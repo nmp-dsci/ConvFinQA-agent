@@ -1,0 +1,14 @@
+{"Methods":"Answered","question_id":1718,"executed_answers_score":0.6210710128,"turn_program_score":0.3841676368}
+{"Methods":"Not Answered","question_id":10876,"executed_answers_score":0.0,"turn_program_score":0.0}
+{"Methods":"turn_type-Number","question_id":615,"executed_answers_score":0.8471544715,"turn_program_score":0.5658536585}
+{"Methods":"turn_type-Program","question_id":1103,"executed_answers_score":0.4950135993,"turn_program_score":0.2828649139}
+{"Methods":"has_type2_question-False","question_id":1111,"executed_answers_score":0.6453645365,"turn_program_score":0.3816381638}
+{"Methods":"has_type2_question-True","question_id":607,"executed_answers_score":0.5766062603,"turn_program_score":0.3887973641}
+{"Methods":"q_order-0","question_id":459,"executed_answers_score":0.7254901961,"turn_program_score":0.522875817}
+{"Methods":"q_order-1","question_id":458,"executed_answers_score":0.6768558952,"turn_program_score":0.4213973799}
+{"Methods":"q_order-2","question_id":356,"executed_answers_score":0.5730337079,"turn_program_score":0.308988764}
+{"Methods":"q_order-3","question_id":256,"executed_answers_score":0.51171875,"turn_program_score":0.296875}
+{"Methods":"q_order-4","question_id":132,"executed_answers_score":0.4696969697,"turn_program_score":0.2272727273}
+{"Methods":"q_order-5","question_id":45,"executed_answers_score":0.5333333333,"turn_program_score":0.2222222222}
+{"Methods":"q_order-6","question_id":11,"executed_answers_score":0.2727272727,"turn_program_score":0.0909090909}
+{"Methods":"q_order-7","question_id":1,"executed_answers_score":0.0,"turn_program_score":0.0}
