@@ -21,7 +21,7 @@ Two agents built and compared against [ConvFinQA-paper](https://arxiv.org/pdf/22
   * Struggues with long question windows: more questions in history / accuracy goes down; need to split out retrival agent to filter down the content fed to LLM.
   * Turn_program prediction under performing. Split out LLM to purely focus on syntax, close the accuracy gap between executed_answer and turn_program. Look into tooling for `turn_program` syntax. 
 
-[![Chat](figures/app_evalution_summ.png)](figures/app_evalution_summ.png)  
+[![Chat](figures/agent_v2_evalution_summ.png)](figures/app_evalution_summ.png)  
 *Image 1: ConFinQA vs Agent V1/V2 Performance*
 
 
@@ -81,7 +81,7 @@ un run main
 #### `Select Record`
 Search or autocomplete from available reports, press `ENTER` to confirm
 
-[![Chat](figures/app_select_record.png)](figures/app_select_record.png)  
+[![Chat](figures/agent_v2_select_record.png)](figures/app_select_record.png)  
 
 
 | Input | Action |
@@ -94,11 +94,11 @@ Search or autocomplete from available reports, press `ENTER` to confirm
 #### `Enter Question` 
 Free form or autocomplete with ConFinQA questions (type 'q' to see questions)
 
-[![Chat](figures/app_enter_question.png)](figures/app_enter_question.png)  
+[![Chat](figures/agent_v2_enter_question.png)](figures/app_enter_question.png)  
 
 See Record Question and Answers 
 
-[![Chat](figures/app_see_answers.png)](figures/app_see_answers.png)
+[![Chat](figures/agent_v2_see_answers.png)](figures/app_see_answers.png)
 
 
 | Input | Action |
