@@ -5,10 +5,17 @@ import numpy as np
 import anthropic 
 import os,json, re 
 from dotenv import load_dotenv
+import asyncio
+import nest_asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+nest_asyncio.apply()  # Needed to run interactive python
+
+
 
 load_dotenv()
 agent_name = 'agent_v3'
-
 
 
 
@@ -165,108 +172,74 @@ You have access to the following financial document to answer the question:
 
 
 
-# test report_id = 'Double_GIS/2008/page_83.pdf'
-def report_data(report_id):
-    '''Pull data for provided report_id''' 
-    with open( "data/convfinqa_dataset.json") as f:
-        data = json.load(f) 
+# # test report_id = 'Double_GIS/2008/page_83.pdf'
+# def report_data(report_id):
+#     '''Pull data for provided report_id''' 
+#     with open( "data/convfinqa_dataset.json") as f:
+#         data = json.load(f) 
 
-    data = data.get('train')+ data.get('dev')
-    if report_id is None: 
-        return "report_id is required for Agent to answer question" 
-    else: 
-        report_data = [x for x in data if x['id'] == report_id]
-        if len(report_data) == 0:
-            return f"No data found for report_id: {report_id}"
-        else :
-            # print('Found Report, ask questions ', report_id)
-            report_data = report_data[0].get('doc')
-    return report_data
+#     data = data.get('train')+ data.get('dev')
+#     if report_id is None: 
+#         return "report_id is required for Agent to answer question" 
+#     else: 
+#         report_data = [x for x in data if x['id'] == report_id]
+#         if len(report_data) == 0:
+#             return f"No data found for report_id: {report_id}"
+#         else :
+#             # print('Found Report, ask questions ', report_id)
+#             report_data = report_data[0].get('doc')
+#     return report_data
 
 
-class recordQAAgent:
-    def __init__(self, agent_name=agent_name):
-        self.agent_name = agent_name
-        self.available_prompts = []
-        self.client = anthropic.Anthropic()
-        self.model_name = 'claude-haiku-4-5'
-        self.available_tools = []
-        self.quesion = {}
-        self.messages = []
-        self.output_template = 'ConvFinQAAnswer'
-        self.tool_answer_structure = {
-            "name": "ConvFinQAAnswer",
-            "description": "Extract structured ConvFinQA answer data",
-            "input_schema": ConvFinQAAnswer.model_json_schema()
-        }
-        self.available_tools.append(self.tool_answer_structure)
+# class recordQAAgent:
+#     def __init__(self, agent_name=agent_name):
+#         self.agent_name = agent_name
+#         self.available_prompts = []
+#         self.client = anthropic.Anthropic()
+#         self.model_name = 'claude-haiku-4-5'
+#         self.available_tools = []
+#         self.quesion = {}
+#         self.messages = []
+#         self.output_template = 'ConvFinQAAnswer'
+#         self.tool_answer_structure = {
+#             "name": "ConvFinQAAnswer",
+#             "description": "Extract structured ConvFinQA answer data",
+#             "input_schema": ConvFinQAAnswer.model_json_schema()
+#         }
+#         self.available_tools.append(self.tool_answer_structure)
     
-    def _init_record(self,report_id):
-        self.report_id = report_id
-        self.report_doc = report_data(self.report_id)
-        ## clear messages history for new Q&A  
-        self.messages = []
-        self.question_n = 0
-        assistant_content_report = assistant_header +  f"""
-        Fincial Document:
-        {self.report_doc}
-        Report_id: 
-        {self.report_id}
-        """
-        self.messages.append({'role':'assistant', 'content':assistant_content_report})
+#     def _init_record(self,report_id):
+#         self.report_id = report_id
+#         self.report_doc = report_data(self.report_id)
+#         ## clear messages history for new Q&A  
+#         self.messages = []
+#         self.question_n = 0
+#         assistant_content_report = assistant_header +  f"""
+#         Fincial Document:
+#         {self.report_doc}
+#         Report_id: 
+#         {self.report_id}
+#         """
+#         self.messages.append({'role':'assistant', 'content':assistant_content_report})
    
-    def query_agent1(self, question_raw):
-        agent_step = f'{self.agent_name}_i1'
-        self.question = {'conv_questions': question_raw, 'question_id': f'{self.report_id}_q{self.question_n}'}
-        self.messages.append({'role':'user', 'content':f''' 
-            Question: {self.question.get('conv_questions')}
-            Question_id: {self.question.get('question_id')}''' })
-        agent1_response = self.client.messages.create(max_tokens = 2024,
-            model = 'claude-haiku-4-5', 
-            messages = self.messages,
-            tools =self.available_tools,
-            tool_choice={"type": "tool", "name": self.output_template },
-            )
-        # dump output 
-        tool_use = next(b for b in agent1_response.content if b.type == "tool_use" and b.name == self.output_template )
-        result = globals().get(self.output_template )(**tool_use.input)
-        self.messages.append({'role':'assistant', 'content':result.model_dump_json()})
-        self.question_n += 1
-        return result.model_dump()
+#     def query_agent(self, question_raw):
+#         agent_step = f'{self.agent_name}_i1'
+#         self.question = {'conv_questions': question_raw, 'question_id': f'{self.report_id}_q{self.question_n}'}
+#         self.messages.append({'role':'user', 'content':f''' 
+#             Question: {self.question.get('conv_questions')}
+#             Question_id: {self.question.get('question_id')}''' })
+#         agent1_response = self.client.messages.create(max_tokens = 2024,
+#             model = self.model_name, 
+#             messages = self.messages,
+#             tools =self.available_tools,
+#             tool_choice={"type": "tool", "name": self.output_template },
+#             )
+#         # dump output 
+#         tool_use = next(b for b in agent1_response.content if b.type == "tool_use" and b.name == self.output_template )
+#         result = globals().get(self.output_template )(**tool_use.input)
+#         self.messages.append({'role':'assistant', 'content':result.model_dump_json()})
+#         self.question_n += 1
+#         return result.model_dump()
     
-    def query_agent2(self):
-        agent_step = f'{self.agent_name}_i2'
-        self.messages.append({'role':'user', 'content':f''' 
-            Based on Question and Output: {self.messages[-1]}   
-
-            Validate if the answer is correct and if not updated provide the correct answer.  
-            Review the answer Output and recalcuate the answer if needed based on the question, financial report and message history 
-
-            Steps to follow for question review
-            1. Review turn_type classification. 
-                * "Number" then turn_program should be a single numeric value 
-                * "Program" the validate turn_program is should be a sequence of opterations a value is directly from Financil Report or #0, #1, etc to reference the operation preceding it in the same string 
-            2. Review qa_split:
-                * True means that is multi-hop question that requires retrieving data for different variations of prior questions and returning value or running calculations based on that.
-                * False means the question can be answer retrieve data based on the question or leveraging prior answers
-            3. Review of turn_program:  review the turn_program in accordance format defined in ConvFinQAAnswer 
-            4. Recalulate any of the outputs to question to questions based on the above review and update the answer
-                * executed_answers
-                * turn_program: pay strict attention to format, use interger over decimal. Consistent decimal place. All values either from the report or are a operation and prior operation results refered too as #0, #1, etc.
-                * turn_type: update this to Number or Program, especially if turn_progam is numeric value then this should be number
-                * qa_split: update True or False, True if its an augmentation of prior questions in message dialogue  to retrieve data 
-            ''' })        
-        iter2_response = self.client.messages.create(max_tokens = 2024,
-            model = 'claude-haiku-4-5', 
-            messages = self.messages,
-            tools =[self.tool_answer_structure],
-            tool_choice={"type": "tool", "name":self.output_template },
-        )        
-        # dump output 
-        tool_use = next(b for b in iter2_response.content if b.type == "tool_use" and b.name == self.output_template )
-        result = globals().get(self.output_template ) (**tool_use.input)
-        self.messages.append({'role':'assistant', 'content':result.model_dump_json()})
-        return result.model_dump()
-
 
 

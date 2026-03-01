@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        
+        "research": {
+            "command": "uv",
+            "args": ["run", "mcp/server_calculator.py"]
+        }
+        
+    }
+}
+  
