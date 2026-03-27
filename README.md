@@ -17,14 +17,34 @@
 
 ### Setup
 1. Clone this repository
-2. Use the UV environment manager to install dependencies:
+2. Setup UV environment 
+3. .env file 
+4. 
 
+
+## Pre-requities: `.env` 
+```bash 
+
+ANTHROPIC_API_KEY=sk-ant-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+```
+
+## Run Evaluations 
+```bash 
+
+promptfoo eval ## to run `promptfooconfig.yaml` to back test different LLM s
+
+promptfoo view ## to spin up local server to review evalations results by LLM provider
+
+
+```
 
 
 ### Run Chat App
 Test out the Agent running app and selecting by Report and Question. 
 ```bash 
 
+uv init 
 # set up env -- reinstall 
 uv sync
 
@@ -32,6 +52,7 @@ uv sync
 un run main 
 
 ```
+
 
 #### `Select Record`
 Search or autocomplete from available reports, press `ENTER` to confirm
