@@ -1,0 +1,20 @@
+description: Answer questions from the ConvFinQA dataset 
+
+providers:
+  - id: "file://provider_v1.py"
+    config:
+      pythonExecutable: ".venv/bin/python"
+  - id: "file://provider_v2.py"
+    config:
+      pythonExecutable: ".venv/bin/python"
+  - id: "file://provider_v3.py"
+    config:
+      pythonExecutable: ".venv/bin/python"
+  - id: "file://provider_v4.py"
+    config:
+      pythonExecutable: ".venv/bin/python"
+  - id: "file://provider_v5.py"
+    config:
+      pythonExecutable: ".venv/bin/python"
+
+tests: file://tests/multiturn_tests_10.yaml

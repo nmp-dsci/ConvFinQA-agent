@@ -1,0 +1,51 @@
+{
+  "id": "Single_C/2009/page_48.pdf-2",
+  "doc": {
+    "pre_text": "corporate/other corporate/other includes global staff functions ( includes finance , risk , human resources , legal and compliance ) and other corporate expense , global operations and technology ( o&t ) , residual corporate treasury and corporate items . at december 31 , 2009 , this segment had approximately $ 230 billion of assets , consisting primarily of the company 2019s liquidity portfolio , including $ 110 billion of cash and cash equivalents. .",
+    "post_text": "2009 vs . 2008 revenues , net of interest expense declined , primarily due to the pretax loss on debt extinguishment related to the repayment of the $ 20 billion of tarp trust preferred securities and the pretax loss in connection with the exit from the loss-sharing agreement with the u.s . government . revenues also declined , due to the absence of the 2008 sale of citigroup global services limited recorded in o&t . this was partially offset by a pretax gain related to the exchange offers , revenues and higher intersegment eliminations . operating expenses increased , primarily due to intersegment eliminations and increases in compensation , partially offset by lower repositioning reserves . 2008 vs . 2007 revenues , net of interest expense increased primarily due to the gain in 2007 on the sale of certain corporate-owned assets and higher intersegment eliminations , partially offset by improved treasury hedging activities . operating expenses declined , primarily due to lower restructuring charges in 2008 as well as reductions in incentive compensation and benefits expense. .",
+    "table": {
+      "2009": {
+        "net interest revenue": -1663.0,
+        "non-interest revenue": -8893.0,
+        "total revenues net of interest expense": -10556.0,
+        "total operating expenses": 1420.0,
+        "provisions for loan losses and for benefits and claims": -1.0,
+        "( loss ) from continuing operations before taxes": -11975.0,
+        "income taxes ( benefits )": -4369.0,
+        "( loss ) from continuing operations": -7606.0,
+        "income ( loss ) from discontinued operations net of taxes": -445.0,
+        "net income ( loss ) before attribution of noncontrolling interests": -8051.0,
+        "net income attributable to noncontrolling interests": 2014.0,
+        "net income ( loss )": -8051.0
+      },
+      "2008": {
+        "net interest revenue": -2680.0,
+        "non-interest revenue": 422.0,
+        "total revenues net of interest expense": -2258.0,
+        "total operating expenses": 510.0,
+        "provisions for loan losses and for benefits and claims": 1.0,
+        "( loss ) from continuing operations before taxes": -2769.0,
+        "income taxes ( benefits )": -587.0,
+        "( loss ) from continuing operations": -2182.0,
+        "income ( loss ) from discontinued operations net of taxes": 4002.0,
+        "net income ( loss ) before attribution of noncontrolling interests": 1820.0,
+        "net income attributable to noncontrolling interests": 2014.0,
+        "net income ( loss )": 1820.0
+      },
+      "2007": {
+        "net interest revenue": -2008.0,
+        "non-interest revenue": -302.0,
+        "total revenues net of interest expense": -2310.0,
+        "total operating expenses": 1813.0,
+        "provisions for loan losses and for benefits and claims": -3.0,
+        "( loss ) from continuing operations before taxes": -4120.0,
+        "income taxes ( benefits )": -1446.0,
+        "( loss ) from continuing operations": -2674.0,
+        "income ( loss ) from discontinued operations net of taxes": 708.0,
+        "net income ( loss ) before attribution of noncontrolling interests": -1966.0,
+        "net income attributable to noncontrolling interests": 2.0,
+        "net income ( loss )": -1968.0
+      }
+    }
+  }
+}

@@ -26,7 +26,7 @@ import os,json, re ,sys
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 from agent_utils import training_data,load_agent_answers
-from agent_v3 import * 
+# from agent_v3 import * 
 
 
 
@@ -42,6 +42,11 @@ agent_name = 'agent_v3'
 
 question_df = training_data()
 question_df.groupby(['has_type2_question','qa_split','turn_type'])['question_id'].size().reset_index(name='count')
+
+ids = ["Single_JKHY/2009/page_28.pdf-3","Single_BLK/2017/page_35.pdf-4"]
+question_df.query(f'report_id in {ids}')
+
+
 
 ######################
 

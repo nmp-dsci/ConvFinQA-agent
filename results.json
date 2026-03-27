@@ -1,0 +1,5222 @@
+{
+  "evalId": "eval-ZjS-2026-03-21T12:58:46",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-03-21T12:58:46.206Z",
+    "prompts": [
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "file://provider_v1.py",
+        "metrics": {
+          "score": 8.3,
+          "testPassCount": 5,
+          "testFailCount": 5,
+          "testErrorCount": 0,
+          "assertPassCount": 30,
+          "assertFailCount": 6,
+          "totalLatencyMs": 474,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 44624,
+            "total": 44624,
+            "numRequests": 10,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "file://provider_v2.py",
+        "metrics": {
+          "score": 8.3,
+          "testPassCount": 5,
+          "testFailCount": 5,
+          "testErrorCount": 0,
+          "assertPassCount": 30,
+          "assertFailCount": 6,
+          "totalLatencyMs": 460,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 72325,
+            "total": 72325,
+            "numRequests": 10,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "file://provider_v3.py",
+        "metrics": {
+          "score": 6.05,
+          "testPassCount": 2,
+          "testFailCount": 8,
+          "testErrorCount": 0,
+          "assertPassCount": 22,
+          "assertFailCount": 14,
+          "totalLatencyMs": 735,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 241392,
+            "total": 241392,
+            "numRequests": 10,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "raw": "{{prompt}}",
+        "label": "{{prompt}}",
+        "provider": "file://provider_v4.py",
+        "metrics": {
+          "score": 7.183333333333334,
+          "testPassCount": 6,
+          "testFailCount": 4,
+          "testErrorCount": 0,
+          "assertPassCount": 26,
+          "assertFailCount": 10,
+          "totalLatencyMs": 853,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 173713,
+            "total": 173713,
+            "numRequests": 10,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"25587\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.25,
+          "reason": "Expected output to contain \"25587\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"206588\"",
+              "assertion": {
+                "type": "contains",
+                "value": "206588"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"181001\"",
+              "assertion": {
+                "type": "contains",
+                "value": "181001"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"25587\"",
+              "assertion": {
+                "type": "contains",
+                "value": "25587"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "14.1"
+              }
+            }
+          ]
+        },
+        "id": "527f6f11-4d0b-42ec-bc82-dd524ed4ee2c",
+        "latencyMs": 543,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$206,588\n\n---\n\n$181,001\n\n---\n\n$25,587\n\n---\n\napproximately 14.14%",
+          "tokenUsage": {
+            "cached": 25283,
+            "total": 25283,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.25,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_JKHY/2009/page_28.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc1.json"
+          },
+          "conversation": [
+            {
+              "user": "What is the net cash from operating activities in 2009?"
+            },
+            {
+              "user": "What about in 2008?"
+            },
+            {
+              "user": "What is the difference?"
+            },
+            {
+              "user": "What percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "206588"
+            },
+            {
+              "type": "contains",
+              "value": "181001"
+            },
+            {
+              "type": "contains",
+              "value": "25587"
+            },
+            {
+              "type": "contains",
+              "value": "14.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "doc": "file://tests/doc1.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "206588"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "181001"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "25587"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "14.1"
+              }
+            }
+          ]
+        },
+        "id": "e96db641-70af-4126-9d1f-5c4e33c08538",
+        "latencyMs": 392,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "206588.0\n\n---\n\n181001.0\n\n---\n\n25587.0\n\n---\n\n14.13%",
+          "tokenUsage": {
+            "cached": 8844,
+            "total": 8844,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_JKHY/2009/page_28.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc1.json"
+          },
+          "conversation": [
+            {
+              "user": "What is the net cash from operating activities in 2009?"
+            },
+            {
+              "user": "What about in 2008?"
+            },
+            {
+              "user": "What is the difference?"
+            },
+            {
+              "user": "What percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "206588"
+            },
+            {
+              "type": "contains",
+              "value": "181001"
+            },
+            {
+              "type": "contains",
+              "value": "25587"
+            },
+            {
+              "type": "contains",
+              "value": "14.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "doc": "file://tests/doc1.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "206588"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "181001"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "25587"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "14.1"
+              }
+            }
+          ]
+        },
+        "id": "de2f8520-4134-483c-af10-2785a603d9ea",
+        "latencyMs": 406,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "206588.0\n\n---\n\n181001.0\n\n---\n\n25587.0\n\n---\n\n14.13%",
+          "tokenUsage": {
+            "cached": 5764,
+            "total": 5764,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_JKHY/2009/page_28.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc1.json"
+          },
+          "conversation": [
+            {
+              "user": "What is the net cash from operating activities in 2009?"
+            },
+            {
+              "user": "What about in 2008?"
+            },
+            {
+              "user": "What is the difference?"
+            },
+            {
+              "user": "What percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "206588"
+            },
+            {
+              "type": "contains",
+              "value": "181001"
+            },
+            {
+              "type": "contains",
+              "value": "25587"
+            },
+            {
+              "type": "contains",
+              "value": "14.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "doc": "file://tests/doc1.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "206588"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "181001"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "25587"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "14.1"
+              }
+            }
+          ]
+        },
+        "id": "96ae6d6d-9e14-438c-846a-3e69c710d01a",
+        "latencyMs": 584,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "206588.0\n\n---\n\n181001.0\n\n---\n\n25587.0\n\n---\n\n14.136385986817752%",
+          "tokenUsage": {
+            "cached": 19414,
+            "total": 19414,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_JKHY/2009/page_28.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc1.json"
+          },
+          "conversation": [
+            {
+              "user": "What is the net cash from operating activities in 2009?"
+            },
+            {
+              "user": "What about in 2008?"
+            },
+            {
+              "user": "What is the difference?"
+            },
+            {
+              "user": "What percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "206588"
+            },
+            {
+              "type": "contains",
+              "value": "181001"
+            },
+            {
+              "type": "contains",
+              "value": "25587"
+            },
+            {
+              "type": "contains",
+              "value": "14.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "doc": "file://tests/doc1.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "19870"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "176675"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "11.2"
+              }
+            }
+          ]
+        },
+        "id": "d04496d9-f1f6-454d-aa58-995f35f1591a",
+        "latencyMs": 7,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "19870.0\n\n---\n\n176675.0\n\n---\n\n11.24%",
+          "tokenUsage": {
+            "cached": 5148,
+            "total": 5148,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_BLK/2017/page_35.pdf-4'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc2.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the net change in value of the balance of asset allocation from 2016 to 2017?"
+            },
+            {
+              "user": "what was the 2016 value?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "19870"
+            },
+            {
+              "type": "contains",
+              "value": "176675"
+            },
+            {
+              "type": "contains",
+              "value": "11.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "doc": "file://tests/doc2.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "19870"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "176675"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "11.2"
+              }
+            }
+          ]
+        },
+        "id": "e151e88c-b5d2-4e2b-a7a3-1f8520503d36",
+        "latencyMs": 4,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "19870.0\n\n---\n\n176675.0\n\n---\n\n11.25%",
+          "tokenUsage": {
+            "cached": 7458,
+            "total": 7458,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_BLK/2017/page_35.pdf-4'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc2.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the net change in value of the balance of asset allocation from 2016 to 2017?"
+            },
+            {
+              "user": "what was the 2016 value?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "19870"
+            },
+            {
+              "type": "contains",
+              "value": "176675"
+            },
+            {
+              "type": "contains",
+              "value": "11.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "doc": "file://tests/doc2.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "19870"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "176675"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "11.2"
+              }
+            }
+          ]
+        },
+        "id": "71377305-cb61-4a43-b1ce-5bd04b9d037b",
+        "latencyMs": 131,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "19870.0\n\n---\n\n176675.0\n\n---\n\n11.25%",
+          "tokenUsage": {
+            "cached": 19406,
+            "total": 19406,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_BLK/2017/page_35.pdf-4'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc2.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the net change in value of the balance of asset allocation from 2016 to 2017?"
+            },
+            {
+              "user": "what was the 2016 value?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "19870"
+            },
+            {
+              "type": "contains",
+              "value": "176675"
+            },
+            {
+              "type": "contains",
+              "value": "11.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "doc": "file://tests/doc2.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "19870"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "176675"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "11.2"
+              }
+            }
+          ]
+        },
+        "id": "1f9d5864-af29-4782-8096-c2fa6abed615",
+        "latencyMs": 168,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "19870.0\n\n---\n\n176675.0\n\n---\n\n11.246639309466534",
+          "tokenUsage": {
+            "cached": 16964,
+            "total": 16964,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_BLK/2017/page_35.pdf-4'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc2.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the net change in value of the balance of asset allocation from 2016 to 2017?"
+            },
+            {
+              "user": "what was the 2016 value?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "19870"
+            },
+            {
+              "type": "contains",
+              "value": "176675"
+            },
+            {
+              "type": "contains",
+              "value": "11.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "doc": "file://tests/doc2.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"2445\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"2445\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "4.54"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "61.13"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "7.4"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "911"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"1534\"",
+              "assertion": {
+                "type": "contains",
+                "value": "1534"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"2445\"",
+              "assertion": {
+                "type": "contains",
+                "value": "2445"
+              }
+            }
+          ]
+        },
+        "id": "ac8d04d9-868c-48e7-b9e0-d6564e2a7273",
+        "latencyMs": 3,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$4.54 billion\n\n---\n\n$61.13 billion\n\n---\n\n7.43%\n\n---\n\n$911 million\n\n---\n\n$1,534 million\n\n---\n\n$2,445 million",
+          "tokenUsage": {
+            "cached": 29978,
+            "total": 29978,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_GS/2013/page_91.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc3.json"
+          },
+          "conversation": [
+            {
+              "user": "as of 2013, what amount from the cash and cash equivalents was generated from operating activities?"
+            },
+            {
+              "user": "and what was the total of those cash and cash equivalents?"
+            },
+            {
+              "user": "what percentage, then, from this total, did that amount represent?"
+            },
+            {
+              "user": "and in that same year, what was, in millions, the total of additional collateral or termination payments for a one-notch downgrade?"
+            },
+            {
+              "user": "what was it for 2012?"
+            },
+            {
+              "user": "what was, then, the total for both years combined, in millions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "4.54"
+            },
+            {
+              "type": "contains",
+              "value": "61.13"
+            },
+            {
+              "type": "contains",
+              "value": "7.4"
+            },
+            {
+              "type": "contains",
+              "value": "911"
+            },
+            {
+              "type": "contains",
+              "value": "1534"
+            },
+            {
+              "type": "contains",
+              "value": "2445"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "doc": "file://tests/doc3.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "4.54"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "61.13"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "7.4"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "911"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1534"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2445"
+              }
+            }
+          ]
+        },
+        "id": "7e7e035e-907a-4281-b28b-82a92662ef52",
+        "latencyMs": 5,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$4.54 billion\n\n---\n\n$61.13 billion\n\n---\n\n7.43%\n\n---\n\n$911 million\n\n---\n\n$1534 million\n\n---\n\n$2445 million",
+          "tokenUsage": {
+            "cached": 6676,
+            "total": 6676,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Double_GS/2013/page_91.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc3.json"
+          },
+          "conversation": [
+            {
+              "user": "as of 2013, what amount from the cash and cash equivalents was generated from operating activities?"
+            },
+            {
+              "user": "and what was the total of those cash and cash equivalents?"
+            },
+            {
+              "user": "what percentage, then, from this total, did that amount represent?"
+            },
+            {
+              "user": "and in that same year, what was, in millions, the total of additional collateral or termination payments for a one-notch downgrade?"
+            },
+            {
+              "user": "what was it for 2012?"
+            },
+            {
+              "user": "what was, then, the total for both years combined, in millions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "4.54"
+            },
+            {
+              "type": "contains",
+              "value": "61.13"
+            },
+            {
+              "type": "contains",
+              "value": "7.4"
+            },
+            {
+              "type": "contains",
+              "value": "911"
+            },
+            {
+              "type": "contains",
+              "value": "1534"
+            },
+            {
+              "type": "contains",
+              "value": "2445"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "doc": "file://tests/doc3.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "4.54"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "61.13"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "7.4"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "911"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1534"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2445"
+              }
+            }
+          ]
+        },
+        "id": "e2b90a22-3620-4f59-9bdb-536ab13bb76b",
+        "latencyMs": 5,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "4.54 billion\n\n---\n\n$61.13 billion\n\n---\n\n7.42%\n\n---\n\n911.0\n\n---\n\n1534.0\n\n---\n\n2445.0",
+          "tokenUsage": {
+            "cached": 11296,
+            "total": 11296,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Double_GS/2013/page_91.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc3.json"
+          },
+          "conversation": [
+            {
+              "user": "as of 2013, what amount from the cash and cash equivalents was generated from operating activities?"
+            },
+            {
+              "user": "and what was the total of those cash and cash equivalents?"
+            },
+            {
+              "user": "what percentage, then, from this total, did that amount represent?"
+            },
+            {
+              "user": "and in that same year, what was, in millions, the total of additional collateral or termination payments for a one-notch downgrade?"
+            },
+            {
+              "user": "what was it for 2012?"
+            },
+            {
+              "user": "what was, then, the total for both years combined, in millions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "4.54"
+            },
+            {
+              "type": "contains",
+              "value": "61.13"
+            },
+            {
+              "type": "contains",
+              "value": "7.4"
+            },
+            {
+              "type": "contains",
+              "value": "911"
+            },
+            {
+              "type": "contains",
+              "value": "1534"
+            },
+            {
+              "type": "contains",
+              "value": "2445"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "doc": "file://tests/doc3.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "4.54"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "61.13"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "7.4"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "911"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1534"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2445"
+              }
+            }
+          ]
+        },
+        "id": "22a4dde2-6c9f-4c2e-9fb3-a85e6aafd4d3",
+        "latencyMs": 28,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "4.54\n\n---\n\n61.13\n\n---\n\n7.426795354163258\n\n---\n\n911\n\n---\n\n1534\n\n---\n\n2445.0",
+          "tokenUsage": {
+            "cached": 21240,
+            "total": 21240,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Double_GS/2013/page_91.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc3.json"
+          },
+          "conversation": [
+            {
+              "user": "as of 2013, what amount from the cash and cash equivalents was generated from operating activities?"
+            },
+            {
+              "user": "and what was the total of those cash and cash equivalents?"
+            },
+            {
+              "user": "what percentage, then, from this total, did that amount represent?"
+            },
+            {
+              "user": "and in that same year, what was, in millions, the total of additional collateral or termination payments for a one-notch downgrade?"
+            },
+            {
+              "user": "what was it for 2012?"
+            },
+            {
+              "user": "what was, then, the total for both years combined, in millions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "4.54"
+            },
+            {
+              "type": "contains",
+              "value": "61.13"
+            },
+            {
+              "type": "contains",
+              "value": "7.4"
+            },
+            {
+              "type": "contains",
+              "value": "911"
+            },
+            {
+              "type": "contains",
+              "value": "1534"
+            },
+            {
+              "type": "contains",
+              "value": "2445"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "doc": "file://tests/doc3.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-1833\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"-1833\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-1833\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-1833"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-2059"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-9.5"
+              }
+            }
+          ]
+        },
+        "id": "fbeda1c6-a38f-4d7c-98b0-b5e25736e0cd",
+        "latencyMs": 2,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-2059.0\n\n---\n\n-2059.0\n\n---\n\n-9.54%",
+          "tokenUsage": {
+            "cached": 2716,
+            "total": 2716,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_AWK/2012/page_118.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc4.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the net change in tax positions throughout 2010?"
+            },
+            {
+              "user": "and what was it from 2011 to 2012?"
+            },
+            {
+              "user": "how much does this previous change represent in relation to those tax positions or the valuation allowance in 2011?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-1833"
+            },
+            {
+              "type": "contains",
+              "value": "-2059"
+            },
+            {
+              "type": "contains",
+              "value": "-9.5"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "doc": "file://tests/doc4.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-1833\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"-1833\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-1833\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-1833"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-2059"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-9.5"
+              }
+            }
+          ]
+        },
+        "id": "99169705-849d-483c-9c45-ef6e94194bc6",
+        "latencyMs": 2,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-2059.0\n\n---\n\n-2059.0\n\n---\n\n-9.54%",
+          "tokenUsage": {
+            "cached": 5026,
+            "total": 5026,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_AWK/2012/page_118.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc4.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the net change in tax positions throughout 2010?"
+            },
+            {
+              "user": "and what was it from 2011 to 2012?"
+            },
+            {
+              "user": "how much does this previous change represent in relation to those tax positions or the valuation allowance in 2011?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-1833"
+            },
+            {
+              "type": "contains",
+              "value": "-2059"
+            },
+            {
+              "type": "contains",
+              "value": "-9.5"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "doc": "file://tests/doc4.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-2059\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.3333333333333333,
+          "reason": "Expected output to contain \"-2059\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-1833\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-1833"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-2059\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-2059"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-9.5"
+              }
+            }
+          ]
+        },
+        "id": "accf7113-0b69-4b35-9e08-af4f90da6e56",
+        "latencyMs": 2,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "**-$1,833**\n\n---\n\n**-$2,059**\n\n---\n\nThe net change from 2011 to 2012 represents approximately **-9.54%** of the valuation allowance balance in 2011.",
+          "tokenUsage": {
+            "cached": 19590,
+            "total": 19590,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.3333333333333333,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_AWK/2012/page_118.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc4.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the net change in tax positions throughout 2010?"
+            },
+            {
+              "user": "and what was it from 2011 to 2012?"
+            },
+            {
+              "user": "how much does this previous change represent in relation to those tax positions or the valuation allowance in 2011?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-1833"
+            },
+            {
+              "type": "contains",
+              "value": "-2059"
+            },
+            {
+              "type": "contains",
+              "value": "-9.5"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "doc": "file://tests/doc4.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-9.5\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.3333333333333333,
+          "reason": "Expected output to contain \"-9.5\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-1833"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-2059\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-2059"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-9.5\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-9.5"
+              }
+            }
+          ]
+        },
+        "id": "1145a67c-bb22-401f-9518-8619377e129b",
+        "latencyMs": 12,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-1833.0\n\n---\n\n-4268.0\n\n---\n\n-19.77848834515038",
+          "tokenUsage": {
+            "cached": 18184,
+            "total": 18184,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.3333333333333333,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_AWK/2012/page_118.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc4.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the net change in tax positions throughout 2010?"
+            },
+            {
+              "user": "and what was it from 2011 to 2012?"
+            },
+            {
+              "user": "how much does this previous change represent in relation to those tax positions or the valuation allowance in 2011?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-1833"
+            },
+            {
+              "type": "contains",
+              "value": "-2059"
+            },
+            {
+              "type": "contains",
+              "value": "-9.5"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "doc": "file://tests/doc4.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"41\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.8,
+          "reason": "Expected output to contain \"41\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "83.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "24"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"41\"",
+              "assertion": {
+                "type": "contains",
+                "value": "41"
+              }
+            }
+          ]
+        },
+        "id": "9a0b7c22-27c6-461f-9d6d-ed80d0775d49",
+        "latencyMs": 14,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$83.0 million\n\n---\n\n$59.0 million\n\n---\n\n$24.0 million\n\n---\n\n$59.0 million\n\n---\n\n40.68%",
+          "tokenUsage": {
+            "cached": 4537,
+            "total": 4537,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.8,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_UAA/2016/page_82.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc5.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sg&a including rent expense in 2015?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what was the net difference?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "83.0"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "24"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "41"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "doc": "file://tests/doc5.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"41\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.8,
+          "reason": "Expected output to contain \"41\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "83.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "24"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"41\"",
+              "assertion": {
+                "type": "contains",
+                "value": "41"
+              }
+            }
+          ]
+        },
+        "id": "63fc02f8-1dbf-4aa7-a87f-615674330ab5",
+        "latencyMs": 15,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$83.0 million\n\n---\n\n$59.0 million\n\n---\n\n$24.0 million\n\n---\n\n$59.0 million\n\n---\n\n40.68%",
+          "tokenUsage": {
+            "cached": 8387,
+            "total": 8387,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.8,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_UAA/2016/page_82.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc5.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sg&a including rent expense in 2015?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what was the net difference?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "83.0"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "24"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "41"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "doc": "file://tests/doc5.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"41\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.8,
+          "reason": "Expected output to contain \"41\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "83.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "24"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"41\"",
+              "assertion": {
+                "type": "contains",
+                "value": "41"
+              }
+            }
+          ]
+        },
+        "id": "364fb049-d861-47d4-aa69-13b148fee996",
+        "latencyMs": 14,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "The rent expense included in selling, general and administrative (SG&A) expense for 2015 was **$83.0 million**.\n\n---\n\nThe rent expense included in selling, general and administrative (SG&A) expense for 2014 was **$59.0 million**.\n\n---\n\nThe net difference in SG&A rent expense between 2015 and 2014 was **$24.0 million**.\n\n---\n\nThe rent expense included in selling, general and administrative (SG&A) expense for 2014 was **$59.0 million**.\n\n---\n\nThe percent change in SG&A rent expense from 2014 to 2015 was approximately **40.68%**.",
+          "tokenUsage": {
+            "cached": 25253,
+            "total": 25253,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.8,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_UAA/2016/page_82.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc5.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sg&a including rent expense in 2015?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what was the net difference?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "83.0"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "24"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "41"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "doc": "file://tests/doc5.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"41\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6,
+          "reason": "Expected output to contain \"41\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"83.0\"",
+              "assertion": {
+                "type": "contains",
+                "value": "83.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "24"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "59.0"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"41\"",
+              "assertion": {
+                "type": "contains",
+                "value": "41"
+              }
+            }
+          ]
+        },
+        "id": "d719f7aa-6cd1-4e7b-94bb-36ac52d6ebae",
+        "latencyMs": 15,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "NOT_FOUND\n\n---\n\n59.0\n\n---\n\n24.0\n\n---\n\n59.0\n\n---\n\n40.67796610169492",
+          "tokenUsage": {
+            "cached": 19636,
+            "total": 19636,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_UAA/2016/page_82.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc5.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sg&a including rent expense in 2015?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what was the net difference?"
+            },
+            {
+              "user": "what was the sg&a including rent expense in 2014?"
+            },
+            {
+              "user": "what is the percent change?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "83.0"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "24"
+            },
+            {
+              "type": "contains",
+              "value": "59.0"
+            },
+            {
+              "type": "contains",
+              "value": "41"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "doc": "file://tests/doc5.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"2.4\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"2.4\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "96"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": ".96"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"2.4\"",
+              "assertion": {
+                "type": "contains",
+                "value": "2.4"
+              }
+            }
+          ]
+        },
+        "id": "e6dc14ba-10f3-46a2-9cd4-3e52021ae551",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "The consumer expected loss component was $2.3 billion at December 31, 2003, a decrease of 4% from year-end 2002.\n\nIf 2003 represents 96% of 2002 (since it decreased by 4%), then the consumer expected loss allowance in 2003 is **96%** of the 2002 value.\n\n---\n\n2003 value = $2.3 billion\n\n2003 is 96% of 2002, so:\n\n$2.3 billion / 0.96 = **$2.395833 billion** (2002 value)\n\n---\n\n$2.3 billion / 0.96 = **$2.395833 billion**",
+          "tokenUsage": {
+            "cached": 4631,
+            "total": 4631,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_JPM/2003/page_67.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc6.json"
+          },
+          "conversation": [
+            {
+              "user": "how much, in percentage, is the consumer expected loss allowance in 2003 in relation to the consumer expected loss allowance in 2002, considering the percentage decrease over the year?"
+            },
+            {
+              "user": "and what is the numerical representation of that percentage?"
+            },
+            {
+              "user": "considering the consumer expected loss allowance in 2003 and its value as a part of the 2002 one, what can be concluded to be the 2002 consumer expected loss allowance, in billions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "96"
+            },
+            {
+              "type": "contains",
+              "value": ".96"
+            },
+            {
+              "type": "contains",
+              "value": "2.4"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 5,
+        "vars": {
+          "doc": "file://tests/doc6.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"2.4\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"2.4\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "96"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": ".96"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"2.4\"",
+              "assertion": {
+                "type": "contains",
+                "value": "2.4"
+              }
+            }
+          ]
+        },
+        "id": "73141932-87b6-4787-a16c-1ee6a499dacf",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "The consumer expected loss component was $2.3 billion at December 31, 2003, a decrease of 4% from year-end 2002.\n\nTo find the 2002 value:\n2003 value = 2002 value × (1 - 0.04)\n2002 value = 2.3 / 0.96 = $2.395833 billion\n\nRatio of 2003 to 2002:\n2.3 / 2.395833 = **96%**\n\n---\n\n**0.96**\n\n---\n\n2.3 / 0.96 = **$2.3958 billion**",
+          "tokenUsage": {
+            "cached": 6952,
+            "total": 6952,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_JPM/2003/page_67.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc6.json"
+          },
+          "conversation": [
+            {
+              "user": "how much, in percentage, is the consumer expected loss allowance in 2003 in relation to the consumer expected loss allowance in 2002, considering the percentage decrease over the year?"
+            },
+            {
+              "user": "and what is the numerical representation of that percentage?"
+            },
+            {
+              "user": "considering the consumer expected loss allowance in 2003 and its value as a part of the 2002 one, what can be concluded to be the 2002 consumer expected loss allowance, in billions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "96"
+            },
+            {
+              "type": "contains",
+              "value": ".96"
+            },
+            {
+              "type": "contains",
+              "value": "2.4"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 5,
+        "vars": {
+          "doc": "file://tests/doc6.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"2.4\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"2.4\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "96"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": ".96"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"2.4\"",
+              "assertion": {
+                "type": "contains",
+                "value": "2.4"
+              }
+            }
+          ]
+        },
+        "id": "6ba98668-000b-43f1-bcd0-a267b49206c9",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "The consumer expected loss allowance in 2003 ($2.3 billion) represents **96%** of the consumer expected loss allowance in 2002 (~$2.395 billion). This is consistent with the document's stated **4% decrease** from year-end 2002 to year-end 2003.\n\n---\n\nThe numerical representation is simply **0.96**, which is the decimal form of 96%.\n\n---\n\nThe 2002 consumer expected loss allowance was approximately **$2.396 billion**.",
+          "tokenUsage": {
+            "cached": 27522,
+            "total": 27522,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_JPM/2003/page_67.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc6.json"
+          },
+          "conversation": [
+            {
+              "user": "how much, in percentage, is the consumer expected loss allowance in 2003 in relation to the consumer expected loss allowance in 2002, considering the percentage decrease over the year?"
+            },
+            {
+              "user": "and what is the numerical representation of that percentage?"
+            },
+            {
+              "user": "considering the consumer expected loss allowance in 2003 and its value as a part of the 2002 one, what can be concluded to be the 2002 consumer expected loss allowance, in billions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "96"
+            },
+            {
+              "type": "contains",
+              "value": ".96"
+            },
+            {
+              "type": "contains",
+              "value": "2.4"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 5,
+        "vars": {
+          "doc": "file://tests/doc6.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"2.4\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "Expected output to contain \"2.4\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"96\"",
+              "assertion": {
+                "type": "contains",
+                "value": "96"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \".96\"",
+              "assertion": {
+                "type": "contains",
+                "value": ".96"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"2.4\"",
+              "assertion": {
+                "type": "contains",
+                "value": "2.4"
+              }
+            }
+          ]
+        },
+        "id": "9cc63c39-ad14-4e4b-ad96-a2d133d594f9",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "NOT_FOUND\n\n---\n\nN/A\n\n---\n\n2.3",
+          "tokenUsage": {
+            "cached": 9622,
+            "total": 9622,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_JPM/2003/page_67.pdf-2'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc6.json"
+          },
+          "conversation": [
+            {
+              "user": "how much, in percentage, is the consumer expected loss allowance in 2003 in relation to the consumer expected loss allowance in 2002, considering the percentage decrease over the year?"
+            },
+            {
+              "user": "and what is the numerical representation of that percentage?"
+            },
+            {
+              "user": "considering the consumer expected loss allowance in 2003 and its value as a part of the 2002 one, what can be concluded to be the 2002 consumer expected loss allowance, in billions?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "96"
+            },
+            {
+              "type": "contains",
+              "value": ".96"
+            },
+            {
+              "type": "contains",
+              "value": "2.4"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 5,
+        "vars": {
+          "doc": "file://tests/doc6.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2.6"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "21.3"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "12.2"
+              }
+            }
+          ]
+        },
+        "id": "8011fc61-3aec-486e-a1c4-2e63d77ba1ec",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-2.6\n\n---\n\n21.3\n\n---\n\n-12.21%",
+          "tokenUsage": {
+            "cached": 3885,
+            "total": 3885,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_SNA/2007/page_80.pdf-1'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc7.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?"
+            },
+            {
+              "user": "what is the balance of the unrecognized tax benefits in 2006?"
+            },
+            {
+              "user": "what percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "2.6"
+            },
+            {
+              "type": "contains",
+              "value": "21.3"
+            },
+            {
+              "type": "contains",
+              "value": "12.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 6,
+        "vars": {
+          "doc": "file://tests/doc7.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2.6"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "21.3"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "12.2"
+              }
+            }
+          ]
+        },
+        "id": "db94b864-03f0-40cd-a83b-33771721e30b",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-2.6\n\n---\n\n21.3\n\n---\n\n-12.21%",
+          "tokenUsage": {
+            "cached": 6195,
+            "total": 6195,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_SNA/2007/page_80.pdf-1'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc7.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?"
+            },
+            {
+              "user": "what is the balance of the unrecognized tax benefits in 2006?"
+            },
+            {
+              "user": "what percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "2.6"
+            },
+            {
+              "type": "contains",
+              "value": "21.3"
+            },
+            {
+              "type": "contains",
+              "value": "12.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 6,
+        "vars": {
+          "doc": "file://tests/doc7.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2.6"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "21.3"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "12.2"
+              }
+            }
+          ]
+        },
+        "id": "920a517c-bc17-4704-ab15-04262671f535",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "**-$2.6 million**\n\nThe unrecognized tax benefits decreased by **$2.6 million**, from $21.3 million at the end of fiscal year 2006 to $18.7 million at the end of fiscal year 2007.\n\n---\n\n**$21.3 million**\n\nThe balance of unrecognized tax benefits as of December 31, 2006 was **$21.3 million**, as directly stated in the reconciliation table.\n\n---\n\n**-12.21%**\n\nThe unrecognized tax benefits decreased by approximately **12.21%** from 2006 to 2007.",
+          "tokenUsage": {
+            "cached": 21610,
+            "total": 21610,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_SNA/2007/page_80.pdf-1'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc7.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?"
+            },
+            {
+              "user": "what is the balance of the unrecognized tax benefits in 2006?"
+            },
+            {
+              "user": "what percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "2.6"
+            },
+            {
+              "type": "contains",
+              "value": "21.3"
+            },
+            {
+              "type": "contains",
+              "value": "12.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 6,
+        "vars": {
+          "doc": "file://tests/doc7.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "2.6"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "21.3"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "12.2"
+              }
+            }
+          ]
+        },
+        "id": "6c2faea9-57c9-4ea8-9180-8169f82f8421",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-2.6\n\n---\n\n21.3\n\n---\n\n-12.206572769953052%",
+          "tokenUsage": {
+            "cached": 13880,
+            "total": 13880,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_SNA/2007/page_80.pdf-1'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc7.json"
+          },
+          "conversation": [
+            {
+              "user": "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?"
+            },
+            {
+              "user": "what is the balance of the unrecognized tax benefits in 2006?"
+            },
+            {
+              "user": "what percentage change does this represent?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "2.6"
+            },
+            {
+              "type": "contains",
+              "value": "21.3"
+            },
+            {
+              "type": "contains",
+              "value": "12.2"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 6,
+        "vars": {
+          "doc": "file://tests/doc7.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-87\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"-87\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-87\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-87"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1699"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-5.1"
+              }
+            }
+          ]
+        },
+        "id": "1034a8fe-1c50-4db4-b37b-ccb9b15de5c1",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "87.0\n\n---\n\n1699.0\n\n---\n\n-5.12%",
+          "tokenUsage": {
+            "cached": 4486,
+            "total": 4486,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_LMT/2014/page_45.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc8.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in operating profit between 2012 and 2013?"
+            },
+            {
+              "user": "and the value for 2012 specifically?"
+            },
+            {
+              "user": "and the growth rate during this time?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-87"
+            },
+            {
+              "type": "contains",
+              "value": "1699"
+            },
+            {
+              "type": "contains",
+              "value": "-5.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 7,
+        "vars": {
+          "doc": "file://tests/doc8.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-87\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.6666666666666666,
+          "reason": "Expected output to contain \"-87\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-87\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-87"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1699"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-5.1"
+              }
+            }
+          ]
+        },
+        "id": "72094c1f-bedd-4563-98d5-0eca7c2096e7",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "87.0\n\n---\n\n1699.0\n\n---\n\n-5.12%",
+          "tokenUsage": {
+            "cached": 6796,
+            "total": 6796,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.6666666666666666,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_LMT/2014/page_45.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc8.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in operating profit between 2012 and 2013?"
+            },
+            {
+              "user": "and the value for 2012 specifically?"
+            },
+            {
+              "user": "and the growth rate during this time?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-87"
+            },
+            {
+              "type": "contains",
+              "value": "1699"
+            },
+            {
+              "type": "contains",
+              "value": "-5.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 7,
+        "vars": {
+          "doc": "file://tests/doc8.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"-5.1\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.3333333333333333,
+          "reason": "Expected output to contain \"-5.1\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-87\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-87"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1699"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"-5.1\"",
+              "assertion": {
+                "type": "contains",
+                "value": "-5.1"
+              }
+            }
+          ]
+        },
+        "id": "600eae9a-a7f1-4b62-b107-cf9acbe48c90",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "87.0 (millions)\n\n---\n\n1699.0 (millions)\n\n---\n\n5.12%",
+          "tokenUsage": {
+            "cached": 22242,
+            "total": 22242,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.3333333333333333,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_LMT/2014/page_45.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc8.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in operating profit between 2012 and 2013?"
+            },
+            {
+              "user": "and the value for 2012 specifically?"
+            },
+            {
+              "user": "and the growth rate during this time?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-87"
+            },
+            {
+              "type": "contains",
+              "value": "1699"
+            },
+            {
+              "type": "contains",
+              "value": "-5.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 7,
+        "vars": {
+          "doc": "file://tests/doc8.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-87"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "1699"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "-5.1"
+              }
+            }
+          ]
+        },
+        "id": "7ab2d4da-44be-4f1c-93b8-1590d5962b5d",
+        "latencyMs": 10,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-87.0\n\n---\n\n1699.0\n\n---\n\n-5.12",
+          "tokenUsage": {
+            "cached": 19692,
+            "total": 19692,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_LMT/2014/page_45.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc8.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in operating profit between 2012 and 2013?"
+            },
+            {
+              "user": "and the value for 2012 specifically?"
+            },
+            {
+              "user": "and the growth rate during this time?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "-87"
+            },
+            {
+              "type": "contains",
+              "value": "1699"
+            },
+            {
+              "type": "contains",
+              "value": "-5.1"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 7,
+        "vars": {
+          "doc": "file://tests/doc8.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"321000000\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"321000000\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"321000000\"",
+              "assertion": {
+                "type": "contains",
+                "value": "321000000"
+              }
+            }
+          ]
+        },
+        "id": "b34224f2-09ba-4203-98bb-710c252eed81",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "The sum of impairment costs related to US assets was **$321 million**, comprised of:\n- **Wolf Hollow**: $120 million\n- **Granite Ridge**: $201 million\n\n---\n\n**$321,000,000**",
+          "tokenUsage": {
+            "cached": 14521,
+            "total": 14521,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Single_AES/2003/page_55.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc9.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sum of impairment costs related to us assets?"
+            },
+            {
+              "user": "what is that time 1000000?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "321"
+            },
+            {
+              "type": "contains",
+              "value": "321000000"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 8,
+        "vars": {
+          "doc": "file://tests/doc9.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321000000"
+              }
+            }
+          ]
+        },
+        "id": "b3f1b4fc-5d95-41f1-b66f-e9a082d9922f",
+        "latencyMs": 7,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "$321 million (Wolf Hollow $120M + Granite Ridge $201M)\n\n---\n\n321000000",
+          "tokenUsage": {
+            "cached": 2801,
+            "total": 2801,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_AES/2003/page_55.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc9.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sum of impairment costs related to us assets?"
+            },
+            {
+              "user": "what is that time 1000000?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "321"
+            },
+            {
+              "type": "contains",
+              "value": "321000000"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 8,
+        "vars": {
+          "doc": "file://tests/doc9.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321000000"
+              }
+            }
+          ]
+        },
+        "id": "16c2408e-a17f-4a67-9eb0-06c4ce082cba",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "321.0\n\n---\n\n321000000",
+          "tokenUsage": {
+            "cached": 4311,
+            "total": 4311,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_AES/2003/page_55.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc9.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sum of impairment costs related to us assets?"
+            },
+            {
+              "user": "what is that time 1000000?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "321"
+            },
+            {
+              "type": "contains",
+              "value": "321000000"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 8,
+        "vars": {
+          "doc": "file://tests/doc9.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "321000000"
+              }
+            }
+          ]
+        },
+        "id": "5c089c7d-2008-49f8-90b5-44a52d3c76fb",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "321.0\n\n---\n\n321000000.0",
+          "tokenUsage": {
+            "cached": 10095,
+            "total": 10095,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "test on document: 'Single_AES/2003/page_55.pdf-3'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc9.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the sum of impairment costs related to us assets?"
+            },
+            {
+              "user": "what is that time 1000000?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "321"
+            },
+            {
+              "type": "contains",
+              "value": "321000000"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 8,
+        "vars": {
+          "doc": "file://tests/doc9.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 0
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"1221\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"1221\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "34.5"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"97.7\"",
+              "assertion": {
+                "type": "contains",
+                "value": "97.7"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "17.1"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"1221\"",
+              "assertion": {
+                "type": "contains",
+                "value": "1221"
+              }
+            }
+          ]
+        },
+        "id": "faf6ca72-196f-4563-ab31-bb78b79cd9e9",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 0,
+        "provider": {
+          "id": "file://provider_v1.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-34.5\n\n---\n\n-49.43%\n\n---\n\n-17.1\n\n---\n\n-92.43%",
+          "tokenUsage": {
+            "cached": 3980,
+            "total": 3980,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_ETR/2002/page_266.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc10.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?"
+            },
+            {
+              "user": "and the percentage change of this value?"
+            },
+            {
+              "user": "and the difference for entergy gulf states?"
+            },
+            {
+              "user": "so what was the percentage change for this region?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "34.5"
+            },
+            {
+              "type": "contains",
+              "value": "97.7"
+            },
+            {
+              "type": "contains",
+              "value": "17.1"
+            },
+            {
+              "type": "contains",
+              "value": "1221"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 9,
+        "vars": {
+          "doc": "file://tests/doc10.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"1221\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"1221\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "34.5"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"97.7\"",
+              "assertion": {
+                "type": "contains",
+                "value": "97.7"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "17.1"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"1221\"",
+              "assertion": {
+                "type": "contains",
+                "value": "1221"
+              }
+            }
+          ]
+        },
+        "id": "149d4d76-6a18-4a25-bbf7-a501064a5665",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 1,
+        "provider": {
+          "id": "file://provider_v2.py",
+          "label": ""
+        },
+        "response": {
+          "output": "-34.5\n\n---\n\n-50.72%\n\n---\n\n-17.1\n\n---\n\n-92.43%",
+          "tokenUsage": {
+            "cached": 7060,
+            "total": 7060,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_ETR/2002/page_266.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc10.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?"
+            },
+            {
+              "user": "and the percentage change of this value?"
+            },
+            {
+              "user": "and the difference for entergy gulf states?"
+            },
+            {
+              "user": "so what was the percentage change for this region?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "34.5"
+            },
+            {
+              "type": "contains",
+              "value": "97.7"
+            },
+            {
+              "type": "contains",
+              "value": "17.1"
+            },
+            {
+              "type": "contains",
+              "value": "1221"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 9,
+        "vars": {
+          "doc": "file://tests/doc10.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"1221\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.5,
+          "reason": "Expected output to contain \"1221\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "34.5"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"97.7\"",
+              "assertion": {
+                "type": "contains",
+                "value": "97.7"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "17.1"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"1221\"",
+              "assertion": {
+                "type": "contains",
+                "value": "1221"
+              }
+            }
+          ]
+        },
+        "id": "2757f121-4a30-499f-ae39-15ba9154054d",
+        "latencyMs": 8,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 2,
+        "provider": {
+          "id": "file://provider_v3.py",
+          "label": ""
+        },
+        "response": {
+          "output": "**-34.5 million**\n\nThe difference in the fair value of securities held in decommissioning trust funds for Entergy Arkansas decreased by **$34.5 million** from 2001 to 2002 (from $69.8M to $35.3M).\n\n---\n\n**-49.43%**\n\nThe fair value difference for Entergy Arkansas decreased by approximately **49.43%** from 2001 to 2002.\n\n---\n\n**-$17.1 million**\n\nThe difference in the fair value of securities held in decommissioning trust funds for Entergy Gulf States decreased by **$17.1 million** from 2001 to 2002 (from $18.5M to $1.4M).\n\n---\n\n**-92.43%**\n\nThe fair value difference for Entergy Gulf States decreased by approximately **92.43%** from 2001 to 2002.",
+          "tokenUsage": {
+            "cached": 35987,
+            "total": 35987,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.5,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_ETR/2002/page_266.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc10.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?"
+            },
+            {
+              "user": "and the percentage change of this value?"
+            },
+            {
+              "user": "and the difference for entergy gulf states?"
+            },
+            {
+              "user": "so what was the percentage change for this region?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "34.5"
+            },
+            {
+              "type": "contains",
+              "value": "97.7"
+            },
+            {
+              "type": "contains",
+              "value": "17.1"
+            },
+            {
+              "type": "contains",
+              "value": "1221"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 9,
+        "vars": {
+          "doc": "file://tests/doc10.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Expected output to contain \"1221\"",
+        "gradingResult": {
+          "pass": false,
+          "score": 0.25,
+          "reason": "Expected output to contain \"1221\"",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"34.5\"",
+              "assertion": {
+                "type": "contains",
+                "value": "34.5"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"97.7\"",
+              "assertion": {
+                "type": "contains",
+                "value": "97.7"
+              }
+            },
+            {
+              "pass": true,
+              "score": 1,
+              "reason": "Assertion passed",
+              "assertion": {
+                "type": "contains",
+                "value": "17.1"
+              }
+            },
+            {
+              "pass": false,
+              "score": 0,
+              "reason": "Expected output to contain \"1221\"",
+              "assertion": {
+                "type": "contains",
+                "value": "1221"
+              }
+            }
+          ]
+        },
+        "id": "33a3e52c-e31d-4371-9845-404c04930b27",
+        "latencyMs": 9,
+        "namedScores": {},
+        "prompt": {
+          "raw": "",
+          "label": "{{prompt}}",
+          "config": {}
+        },
+        "promptId": "effa18501e44aafd9bc42a2f64ffc9b6350f94025520ca2ed382f9bdc4b6e982",
+        "promptIdx": 3,
+        "provider": {
+          "id": "file://provider_v4.py",
+          "label": ""
+        },
+        "response": {
+          "output": "NOT_FOUND\n\n---\n\n-49.4269340974212\n\n---\n\n-17.1\n\n---\n\nI need more information to proceed. Specifically, I need the **2001 value** for the difference in fair value of securities held in decommissioning trust funds and amounts deposited plus earnings on deposits for Entergy Gulf States.\n\nFrom the retrieved values, I have:\n- **Change (",
+          "tokenUsage": {
+            "cached": 24986,
+            "total": 24986,
+            "numRequests": 1
+          },
+          "cached": true
+        },
+        "score": 0.25,
+        "success": false,
+        "testCase": {
+          "description": "test on document: 'Double_ETR/2002/page_266.pdf'",
+          "metadata": {
+            "type2_question": false
+          },
+          "vars": {
+            "doc": "file://tests/doc10.json"
+          },
+          "conversation": [
+            {
+              "user": "what was the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?"
+            },
+            {
+              "user": "and the percentage change of this value?"
+            },
+            {
+              "user": "and the difference for entergy gulf states?"
+            },
+            {
+              "user": "so what was the percentage change for this region?"
+            }
+          ],
+          "assert": [
+            {
+              "type": "contains",
+              "value": "34.5"
+            },
+            {
+              "type": "contains",
+              "value": "97.7"
+            },
+            {
+              "type": "contains",
+              "value": "17.1"
+            },
+            {
+              "type": "contains",
+              "value": "1221"
+            }
+          ],
+          "options": {}
+        },
+        "testIdx": 9,
+        "vars": {
+          "doc": "file://tests/doc10.json"
+        },
+        "metadata": {
+          "type2_question": false,
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 1
+      }
+    ],
+    "stats": {
+      "successes": 18,
+      "failures": 22,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 532054,
+        "total": 532054,
+        "numRequests": 40,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0
+          }
+        }
+      },
+      "durationMs": 715,
+      "evaluationDurationMs": 715
+    }
+  },
+  "config": {
+    "description": "Answer questions from the ConvFinQA dataset",
+    "prompts": [
+      "{{prompt}}"
+    ],
+    "providers": [
+      {
+        "id": "file://provider_v1.py",
+        "config": {
+          "pythonExecutable": ".venv/bin/python"
+        }
+      },
+      {
+        "id": "file://provider_v2.py",
+        "config": {
+          "pythonExecutable": ".venv/bin/python"
+        }
+      },
+      {
+        "id": "file://provider_v3.py",
+        "config": {
+          "pythonExecutable": ".venv/bin/python"
+        }
+      },
+      {
+        "id": "file://provider_v4.py",
+        "config": {
+          "pythonExecutable": ".venv/bin/python"
+        }
+      }
+    ],
+    "tests": "file://tests/multiturn_tests_10.yaml",
+    "outputPath": [
+      "results.json"
+    ],
+    "extensions": []
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.120.26",
+    "nodeVersion": "v25.8.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "exportedAt": "2026-03-21T12:58:47.152Z",
+    "evaluationCreatedAt": "2026-03-21T12:58:46.206Z"
+  }
+}

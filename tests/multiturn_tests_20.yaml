@@ -1,0 +1,459 @@
+- description: "test on document: 'Single_JKHY/2009/page_28.pdf-3'"
+  metadata:
+    type2_question: false 
+  vars:
+    doc: file://tests/doc1.json
+  conversation:
+    - user: "What is the net cash from operating activities in 2009?"
+    - user: "What about in 2008?"
+    - user: "What is the difference?"
+    - user: "What percentage change does this represent?"
+  assert:
+    # Turn 1: net cash from operating activities in 2009 = 206,588
+    - type: contains
+      value: "206588"
+    # Turn 2: net cash from operating activities in 2008 = 181,001
+    - type: contains
+      value: "181001"
+    # Turn 3: difference = 25,587
+    - type: contains
+      value: "25587"
+    # Turn 4: percentage change ~14.1% (25587 / 181001 ≈ 0.14136)
+    - type: contains
+      value: "14.1"
+
+- description: "test on document: 'Single_BLK/2017/page_35.pdf-4'"
+  metadata:
+    type2_question: false 
+  vars:
+    doc: file://tests/doc2.json
+  conversation:
+    - user: "what is the net change in value of the balance of asset allocation from 2016 to 2017?"
+    - user: "what was the 2016 value?"
+    - user: "what is the percent change?"
+  assert:
+    # Turn 1: 
+    - type: contains
+      value: "19870"
+    # Turn 2:  
+    - type: contains
+      value: "176675"
+    # Turn 3:  
+    - type: contains
+      value: "11.2"
+
+- description: "test on document: 'Double_GS/2013/page_91.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc3.json
+  conversation:
+    - user: "as of 2013, what amount from the cash and cash equivalents was generated from operating activities?"
+    - user: "and what was the total of those cash and cash equivalents?"
+    - user: "what percentage, then, from this total, did that amount represent?"
+    - user: "and in that same year, what was, in millions, the total of additional collateral or termination payments for a one-notch downgrade?"
+    - user: "what was it for 2012?"
+    - user: "what was, then, the total for both years combined, in millions?"
+  assert:
+    # Turn 1: answer = "4.54"
+    - type: contains
+      value: "4.54"
+    # Turn 2: answer = "61.13"
+    - type: contains
+      value: "61.13"
+    # Turn 3: answer = "7.4%"
+    - type: contains
+      value: "7.4"
+    # Turn 4: answer = "911"
+    - type: contains
+      value: "911"
+    # Turn 5: answer = "1534"
+    - type: contains
+      value: "1534"
+    # Turn 6: answer = "2445"
+    - type: contains
+      value: "2445"
+
+- description: "test on document: 'Double_AWK/2012/page_118.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc4.json
+  conversation:
+    - user: "what was the net change in tax positions throughout 2010?"
+    - user: "and what was it from 2011 to 2012?"
+    - user: "how much does this previous change represent in relation to those tax positions or the valuation allowance in 2011?"
+  assert:
+    # Turn 1: answer = "-1833"
+    - type: contains
+      value: "-1833"
+    # Turn 2: answer = "-2059"
+    - type: contains
+      value: "-2059"
+    # Turn 3: answer = "-9.5%"
+    - type: contains
+      value: "-9.5"
+
+- description: "test on document: 'Single_UAA/2016/page_82.pdf-2'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc5.json
+  conversation:
+    - user: "what was the sg&a including rent expense in 2015?"
+    - user: "what was the sg&a including rent expense in 2014?"
+    - user: "what was the net difference?"
+    - user: "what was the sg&a including rent expense in 2014?"
+    - user: "what is the percent change?"
+  assert:
+    # Turn 1: answer = "83.0"
+    - type: contains
+      value: "83.0"
+    # Turn 2: answer = "59.0"
+    - type: contains
+      value: "59.0"
+    # Turn 3: answer = "24"
+    - type: contains
+      value: "24"
+    # Turn 4: answer = "59.0"
+    - type: contains
+      value: "59.0"
+    # Turn 5: answer = "41%"
+    - type: contains
+      value: "41"
+
+- description: "test on document: 'Single_JPM/2003/page_67.pdf-2'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc6.json
+  conversation:
+    - user: "how much, in percentage, is the consumer expected loss allowance in 2003 in relation to the consumer expected loss allowance in 2002, considering the percentage decrease over the year?"
+    - user: "and what is the numerical representation of that percentage?"
+    - user: "considering the consumer expected loss allowance in 2003 and its value as a part of the 2002 one, what can be concluded to be the 2002 consumer expected loss allowance, in billions?"
+  assert:
+    # Turn 1: answer = "96"
+    - type: contains
+      value: "96"
+    # Turn 2: answer = ".96"
+    - type: contains
+      value: ".96"
+    # Turn 3: answer = "2.4"
+    - type: contains
+      value: "2.4"
+
+- description: "test on document: 'Single_SNA/2007/page_80.pdf-1'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc7.json
+  conversation:
+    - user: "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?"
+    - user: "what is the balance of the unrecognized tax benefits in 2006?"
+    - user: "what percentage change does this represent?"
+  assert:
+    # Turn 1: answer = "2.6"
+    - type: contains
+      value: "2.6"
+    # Turn 2: answer = "21.3"
+    - type: contains
+      value: "21.3"
+    # Turn 3: answer = "12.2%"
+    - type: contains
+      value: "12.2"
+
+- description: "test on document: 'Single_LMT/2014/page_45.pdf-3'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc8.json
+  conversation:
+    - user: "what was the difference in operating profit between 2012 and 2013?"
+    - user: "and the value for 2012 specifically?"
+    - user: "and the growth rate during this time?"
+  assert:
+    # Turn 1: answer = "-87"
+    - type: contains
+      value: "-87"
+    # Turn 2: answer = "1699"
+    - type: contains
+      value: "1699"
+    # Turn 3: answer = "-5.1%"
+    - type: contains
+      value: "-5.1"
+
+- description: "test on document: 'Single_AES/2003/page_55.pdf-3'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc9.json
+  conversation:
+    - user: "what was the sum of impairment costs related to us assets?"
+    - user: "what is that time 1000000?"
+  assert:
+    # Turn 1: answer = "321"
+    - type: contains
+      value: "321"
+    # Turn 2: answer = "321000000"
+    - type: contains
+      value: "321000000"
+
+- description: "test on document: 'Double_ETR/2002/page_266.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc10.json
+  conversation:
+    - user: "what was the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?"
+    - user: "and the percentage change of this value?"
+    - user: "and the difference for entergy gulf states?"
+    - user: "so what was the percentage change for this region?"
+  assert:
+    # Turn 1: answer = "34.5"
+    - type: contains
+      value: "34.5"
+    # Turn 2: answer = "97.7%"
+    - type: contains
+      value: "97.7"
+    # Turn 3: answer = "17.1"
+    - type: contains
+      value: "17.1"
+    # Turn 4: answer = "1221%"
+    - type: contains
+      value: "1221"
+
+- description: "test on document: 'Single_UAA/2018/page_40.pdf-4'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc11.json
+  conversation:
+    - user: "what was the total net revenue for 2018?"
+    - user: "and converted to the thousands place?"
+    - user: "so what was the gross margin for the year?"
+  assert:
+    # Turn 1: answer = "5193185"
+    - type: contains
+      value: "5193185"
+    # Turn 2: answer = "5193.2"
+    - type: contains
+      value: "5193.2"
+    # Turn 3: answer = "45.1%"
+    - type: contains
+      value: "45.1"
+
+- description: "test on document: 'Single_MAS/2018/page_73.pdf-1'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc12.json
+  conversation:
+    - user: "what was the difference in percent of debt securities between 2017 and 2018?"
+    - user: "what was the percent of debt securities in 2017?"
+    - user: "what is the value of the net difference divided by the 2017 value?"
+  assert:
+    # Turn 1: answer = "21"
+    - type: contains
+      value: "21"
+    # Turn 2: answer = "28"
+    - type: contains
+      value: "28"
+    # Turn 3: answer = "75%"
+    - type: contains
+      value: "75"
+
+- description: "test on document: 'Double_IPG/2015/page_24.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc13.json
+  conversation:
+    - user: "in october of 2015, what was the total amount spent in the repurchase of shares?"
+    - user: "and how much is that in millions?"
+    - user: "and concerning the total amount of shares repurchased in the last three months of that year, what portion was due to december?"
+    - user: "and what is that in percentage?"
+  assert:
+    # Turn 1: answer = "43966096"
+    - type: contains
+      value: "43966096"
+    # Turn 2: answer = "44.0"
+    - type: contains
+      value: "44.0"
+    # Turn 3: answer = "0.3655"
+    - type: contains
+      value: "0.3655"
+    # Turn 4: answer = "36.55"
+    - type: contains
+      value: "36.55"
+
+- description: "test on document: 'Double_FIS/2012/page_11.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc14.json
+  conversation:
+    - user: "what is the net change in the total consolidated revenues from 2011 to 2012?"
+    - user: "what is the total consolidated revenues	in 2011?"
+    - user: "what growth rate does this represent?"
+    - user: "what portion of total consolidated revenues	is related to psg in 2012?"
+  assert:
+    # Turn 1: answer = "182"
+    - type: contains
+      value: "182"
+    # Turn 2: answer = "5625.6"
+    - type: contains
+      value: "5625.6"
+    # Turn 3: answer = "3.2%"
+    - type: contains
+      value: "3.2"
+    # Turn 4: answer = "41%"
+    - type: contains
+      value: "41"
+
+- description: "test on document: 'Single_BLL/2007/page_75.pdf-3'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc15.json
+  conversation:
+    - user: "what was the total amount of senior notes issued in 2006?"
+    - user: "and converted to the hundred millions?"
+    - user: "and the effective yield to maturity?"
+    - user: "so what are the expected annual cash interest costs?"
+  assert:
+    # Turn 1: answer = "450"
+    - type: contains
+      value: "450"
+    # Turn 2: answer = "450000000"
+    - type: contains
+      value: "450000000"
+    # Turn 3: answer = "6.625%"
+    - type: contains
+      value: "6.625"
+    # Turn 4: answer = "28125000"
+    - type: contains
+      value: "28125000"
+
+- description: "test on document: 'Single_PPG/2012/page_76.pdf-1'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc16.json
+  conversation:
+    - user: "what was the total market value of the received shares of axiall common stock under the terms of the transaction, in billions?"
+    - user: "and how much is that in millions?"
+    - user: "what is, then, the total amount received by ppg shareholders, considering the axiall common stock shares and the cash, in millions?"
+    - user: "and how much is that in billions?"
+  assert:
+    # Turn 1: answer = "1.8"
+    - type: contains
+      value: "1.8"
+    # Turn 2: answer = "1800"
+    - type: contains
+      value: "1800"
+    # Turn 3: answer = "2700"
+    - type: contains
+      value: "2700"
+    # Turn 4: answer = "2.7"
+    - type: contains
+      value: "2.7"
+
+- description: "test on document: 'Double_AES/2002/page_60.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc17.json
+  conversation:
+    - user: "what portion of revenue is generated by large utilities in 2002?"
+    - user: "what about in 2001?"
+    - user: "what is the net change in the percentage of revenue?"
+    - user: "what about the portion of revenue is generated by competitive supply in 2002?"
+    - user: "what about in 2001?"
+    - user: "what is the net change in the percentage of revenue?"
+  assert:
+    # Turn 1: answer = "36%"
+    - type: contains
+      value: "36"
+    # Turn 2: answer = "21%"
+    - type: contains
+      value: "21"
+    # Turn 3: answer = "17%"
+    - type: contains
+      value: "17"
+    # Turn 4: answer = "21%"
+    - type: contains
+      value: "21"
+    # Turn 5: answer = "26%"
+    - type: contains
+      value: "26"
+    # Turn 6: answer = "-5%"
+    - type: contains
+      value: "-5"
+
+- description: "test on document: 'Single_PPG/2006/page_22.pdf-2'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc18.json
+  conversation:
+    - user: "what is the sum between the segment income increased by asset impairment in fine chemicals business and the optical and specialty materials segment income of 2005?"
+    - user: "what is the segment income increased by asset impairment in fine chemicals business of 2005?"
+    - user: "how much does that segment income increase represents in relation to that sum?"
+  assert:
+    # Turn 1: answer = "185"
+    - type: contains
+      value: "185"
+    # Turn 2: answer = "27"
+    - type: contains
+      value: "27"
+    # Turn 3: answer = "14.6%"
+    - type: contains
+      value: "14.6"
+
+- description: "test on document: 'Single_CDNS/2016/page_32.pdf-1'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc19.json
+  conversation:
+    - user: "what was the value of nasdaq composite in 2016?"
+    - user: "and what was its value in 2015?"
+    - user: "what was, then, the change in its value over the year?"
+    - user: "and how much does this change represent in relation to the value of that stock in 2015?"
+  assert:
+    # Turn 1: answer = "200.32"
+    - type: contains
+      value: "200.32"
+    # Turn 2: answer = "188.69"
+    - type: contains
+      value: "188.69"
+    # Turn 3: answer = "11.63"
+    - type: contains
+      value: "11.63"
+    # Turn 4: answer = "6.2%"
+    - type: contains
+      value: "6.2"
+
+- description: "test on document: 'Double_STT/2011/page_94.pdf'"
+  metadata:
+    type2_question: false
+  vars:
+    doc: file://tests/doc20.json
+  conversation:
+    - user: "in 2011, what amount of the long-term debt was due in less than 1 year?"
+    - user: "and what was the total of that long-term debt?"
+    - user: "what percentage, then, does that amount represent in relation to this total?"
+    - user: "and concerning the entire period, what becomes this percentage of long-term debt due in less that one year to the total?"
+  assert:
+    # Turn 1: answer = "1973"
+    - type: contains
+      value: "1973"
+    # Turn 2: answer = "9276"
+    - type: contains
+      value: "9276"
+    # Turn 3: answer = "21.3%"
+    - type: contains
+      value: "21.3"
+    # Turn 4: answer = "20%"
+    - type: contains
+      value: "20"

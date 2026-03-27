@@ -1,0 +1,33 @@
+{
+  "id": "Single_PM/2015/page_32.pdf-1",
+  "doc": {
+    "pre_text": "performance graph the graph below compares the cumulative total shareholder return on pmi's common stock with the cumulative total return for the same period of pmi's compensation survey group and the s&p 500 index . the graph assumes the investment of $ 100 as of december 31 , 2010 , in pmi common stock ( at prices quoted on the new york stock exchange ) and each of the indices as of the market close and reinvestment of dividends on a quarterly basis . date pmi pmi compensation survey group ( 12 ) s&p 500 index .",
+    "post_text": "( 1 ) the pmi compensation survey group consists of the following companies with substantial global sales that are direct competitors ; or have similar market capitalization ; or are primarily focused on consumer products ( excluding high technology and financial services ) ; and are companies for which comparative executive compensation data are readily available : bayer ag , british american tobacco p.l.c. , the coca-cola company , diageo plc , glaxosmithkline , heineken n.v. , imperial brands plc ( formerly , imperial tobacco group plc ) , johnson & johnson , mcdonald's corp. , international , inc. , nestl e9 s.a. , novartis ag , pepsico , inc. , pfizer inc. , roche holding ag , unilever nv and plc and vodafone group plc . ( 2 ) on october 1 , 2012 , international , inc . ( nasdaq : mdlz ) , formerly kraft foods inc. , announced that it had completed the spin-off of its north american grocery business , kraft foods group , inc . ( nasdaq : krft ) . international , inc . was retained in the pmi compensation survey group index because of its global footprint . the pmi compensation survey group index total cumulative return calculation weights international , inc.'s total shareholder return at 65% ( 65 % ) of historical kraft foods inc.'s market capitalization on december 31 , 2010 , based on international , inc.'s initial market capitalization relative to the combined market capitalization of international , inc . and kraft foods group , inc . on october 2 , 2012 . note : figures are rounded to the nearest $ 0.10. .",
+    "table": {
+      "pmi": {
+        "december 31 2010": 100.0,
+        "december 31 2011": 139.8,
+        "december 31 2012": 154.6,
+        "december 31 2013": 167.7,
+        "december 31 2014": 164.2,
+        "december 31 2015": 186.2
+      },
+      "pmi compensation survey group ( 12 )": {
+        "december 31 2010": 100.0,
+        "december 31 2011": 114.1,
+        "december 31 2012": 128.0,
+        "december 31 2013": 163.6,
+        "december 31 2014": 170.1,
+        "december 31 2015": 179.2
+      },
+      "s&p 500 index": {
+        "december 31 2010": 100.0,
+        "december 31 2011": 102.1,
+        "december 31 2012": 118.5,
+        "december 31 2013": 156.8,
+        "december 31 2014": 178.3,
+        "december 31 2015": 180.8
+      }
+    }
+  }
+}

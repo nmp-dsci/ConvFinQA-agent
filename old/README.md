@@ -3,13 +3,6 @@
 ### CLI App Structure
 
 
-## Agents teste
- * `provider_v1.py`: document only Q&A 
- * `provider_v2.py`: `provider_v1.py` + Golden Examples + Chain of Thought 
- * `provider_v3.py`:  `provider_v2.py` + tools 
- * `provider_v4.py`: + multi agent
-
-
 
 ### Prerequisites
 - Python 3.12+

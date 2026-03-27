@@ -1,0 +1,24 @@
+{
+  "id": "Double_AWK/2018/page_150.pdf",
+  "doc": {
+    "pre_text": "the following table provides the weighted average assumptions used in the black-scholes option-pricing model for grants and the resulting weighted average grant date fair value per share of stock options granted for the years ended december 31: .",
+    "post_text": "stock units during 2018 , 2017 and 2016 , the company granted rsus to certain employees under the 2007 plan and 2017 omnibus plan , as applicable . rsus generally vest based on continued employment with the company over periods ranging from one to three years. .",
+    "table": {
+      "2018": {
+        "intrinsic value": 9.0,
+        "exercise proceeds": 7.0,
+        "income tax benefit realized": 2.0
+      },
+      "2017": {
+        "intrinsic value": 10.0,
+        "exercise proceeds": 11.0,
+        "income tax benefit realized": 3.0
+      },
+      "2016": {
+        "intrinsic value": 18.0,
+        "exercise proceeds": 15.0,
+        "income tax benefit realized": 6.0
+      }
+    }
+  }
+}
