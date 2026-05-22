@@ -1,0 +1,1 @@
+{"root":["./vite.config.ts","./playwright.config.ts","./tests/e2e/concurrent.spec.ts","./tests/e2e/landing.spec.ts","./tests/e2e/reset.spec.ts","./tests/e2e/smoke.spec.ts","./tests/e2e/unread.spec.ts"],"version":"5.9.3"}

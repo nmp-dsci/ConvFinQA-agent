@@ -16,6 +16,15 @@ __pycache__/
 
 .*cache
 
-
-
 uv.lock
+
+# Evaluation outputs (predictions CSVs, HTML reports) and GEPA artifacts
+# are TRACKED so cached results reproduce across machines without re-running.
+# Local-only DSPy LM cache (~366 MB) stays out — sync via rsync if needed:
+#   rsync -av .dspy_cache/ user@vm:~/ConvFinQA-agent/.dspy_cache/
+.dspy_cache/
+
+# Compiled Python
+*.egg-info/
+build/
+dist/

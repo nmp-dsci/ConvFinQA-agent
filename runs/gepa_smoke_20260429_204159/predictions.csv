@@ -1,0 +1,153 @@
+report_id,turn_index,question,gold_answer,pred_answer,correct
+Double_AAPL/2016/page_23.pdf,0,what was the value of the apple inc . stock in 2016?,213,213.0,True
+Double_AAPL/2016/page_23.pdf,1,and what was the change in this value since 2011?,113,113,True
+Double_AAPL/2016/page_23.pdf,2,what was this same change for the dow jones u.s . technology supersector index stock?,117,117.0,True
+Double_AAPL/2016/page_23.pdf,3,and how much does this change represent in relation to the value of this stock in 2011?,117%,1.13,False
+Single_ETFC/2007/page_22.pdf-2,0,what was the change in the value of the common stock for e*trade financial corporation from 2004 to 2005?,121.61,121.61,True
+Single_ETFC/2007/page_22.pdf-2,1,and what was that value in 2004?,307.61,307.61,True
+Single_ETFC/2007/page_22.pdf-2,2,"how much, then, does that change represent in relation to this 2004 value, in percentage?",39.5%,39.5%,True
+Single_BLL/2007/page_87.pdf-1,0,what was the value of accumulated other comprehensive earnings ( loss ) at the end of 2006?,-29.5,-29.5,True
+Single_BLL/2007/page_87.pdf-1,1,what was the value of accumulated other comprehensive earnings ( loss ) at the end of 2005?,-100.7,-100.7,True
+Single_BLL/2007/page_87.pdf-1,2,what is the 2006 value less the 2005?,71.2,71.2,True
+Single_BLL/2007/page_87.pdf-1,3,what is the percent change?,71%,-70.7%,False
+Single_UAA/2016/page_82.pdf-4,0,what was the difference in rent expenses included in sg&a expenses from 2015 to 2016?,26,26,True
+Single_UAA/2016/page_82.pdf-4,1,what was the rent expense included in sg&a expenses in 2015?,83.0,83.0,True
+Single_UAA/2016/page_82.pdf-4,2,what is the percent change?,31%,31.3%,False
+Double_UA/2011/page_70.pdf,0,"in 2012, what were the future minimum lease payments for non-cancelable real property?",22926,22926.0,True
+Double_UA/2011/page_70.pdf,1,and what is the total of future minimum lease payments?,185178,185178.0,True
+Double_UA/2011/page_70.pdf,2,"what percentage, then, does 2012 represent in relation to this total?",12.4%,12.4%,True
+Double_UA/2011/page_70.pdf,3,"and for the two precedent years, what was the change in the rent expense?",5.4,5.4,True
+Double_UA/2011/page_70.pdf,4,what is this change as a percentage of that rent expense in 2010?,25.4%,25.4%,True
+Single_PM/2017/page_117.pdf-3,0,what is the adjustment in currency translation in 2017?,-5761,-5761.0,True
+Single_PM/2017/page_117.pdf-3,1,what about in 2016?,-6091,-6091.0,True
+Single_PM/2017/page_117.pdf-3,2,what is the net change in adjustments in currency translation from 2016 to 2017?,330,330,True
+Single_PM/2017/page_117.pdf-3,3,what percentage change does this represent?,-5.4%,-5.4%,True
+Single_ETFC/2007/page_135.pdf-4,0,what was the total contribution expense in 2007?,5.7,5.7,True
+Single_ETFC/2007/page_135.pdf-4,1,what was the total contribution expense in 2006?,5.7,5.7,True
+Single_ETFC/2007/page_135.pdf-4,2,what was the net difference?,0,0,True
+Single_ETFC/2007/page_135.pdf-4,3,what was the percent change?,0%,0.0%,False
+Double_MRO/2009/page_36.pdf,0,what is the value of crude oil trunk lines handled in 2009?,1279,1279.0,True
+Double_MRO/2009/page_36.pdf,1,what about the total pipeline barrels?,2232,2232.0,True
+Double_MRO/2009/page_36.pdf,2,what portion does this represent?,57.3%,57.3%,True
+Double_MRO/2009/page_36.pdf,3,what is the net change in the total pipeline barrels from 2007 to 2009?,268,0,False
+Double_MRO/2009/page_36.pdf,4,what is the total handles in 2007?,2500,2500.0,True
+Double_MRO/2009/page_36.pdf,5,what percentage change does this represent?,10.7%,0.0%,False
+Double_MRO/2008/page_145.pdf,0,"as of december 31, 2008, what would have been, in millions, the total undiscounted minimum capital lease obligations excluding the assets under construction?",322,322,True
+Double_MRO/2008/page_145.pdf,1,and what percentage of that construction is already completed?,37.6%,37.6%,True
+Single_AES/2003/page_168.pdf-1,0,what was the high end of the range of exposures for the outstanding letters of credit?,36,36,True
+Single_AES/2003/page_168.pdf-1,1,what was the low end?,1,1,True
+Single_AES/2003/page_168.pdf-1,2,what is the difference?,35,35,True
+Single_AES/2003/page_168.pdf-1,3,what is the number times 1000000?,35000000,35000000,True
+Double_IP/2006/page_84.pdf,0,what is the net periodic pension expense in 2005?,243,243.0,True
+Double_IP/2006/page_84.pdf,1,what about in 2004?,111,111.0,True
+Double_IP/2006/page_84.pdf,2,what is the net change?,132,132.0,True
+Double_IP/2006/page_84.pdf,3,what percentage change does this represent?,119%,118.9%,False
+Double_IP/2006/page_84.pdf,4,what about the net change from 2005 to 2006?,134,134,True
+Double_IP/2006/page_84.pdf,5,what percent change does this represent?,55%,55.1%,False
+Double_MS/2013/page_277.pdf,0,"in 2013, without including the settlements, what becomes the total of unrecognized tax benefits, in millions?",4241,4242,False
+Double_MS/2013/page_277.pdf,1,"and how many years are currently involved in tax controversies, with those sort of settlements?",11,13,False
+Single_RCL/2012/page_80.pdf-1,0,what is net change in total value of intangible assets from 2011 to 2012?,-14017,-14017,True
+Single_RCL/2012/page_80.pdf-1,1,what is the total value of intangible assets in 2011?,218883,218883.0,True
+Single_RCL/2012/page_80.pdf-1,2,what percentage change does this represent?,-6.4%,-6.4%,True
+Single_JPM/2016/page_73.pdf-4,0,what was the value of the kbw bank index in 2016?,258.82,258.82,True
+Single_JPM/2016/page_73.pdf-4,1,and what was the change in value of the stock from 2011 to 2016?,158.82,158.82,True
+Single_JPM/2016/page_73.pdf-4,2,how much does that change represent in relation to the original 2011 value?,158.82%,1.59,False
+Double_CDW/2013/page_103.pdf,0,how many common units were not vested at the time fo distribution?,5931,3798508,False
+Double_CDW/2013/page_103.pdf,1,what about the number of shares of restricted stock vested/settled?,1200544,1200544,True
+Double_CDW/2013/page_103.pdf,2,what is the total of these two?,1206475,4999052,False
+Double_CDW/2013/page_103.pdf,3,what proportion of total restricted stock does this represent?,0.317,0.76,False
+Single_RSG/2015/page_127.pdf-2,0,what was the change in value of weighted-average estimated fair values of stock options from 2013 to 2014?,0.47,0.47,True
+Single_RSG/2015/page_127.pdf-2,1,what was the value in 2013?,5.27,5.27,True
+Single_RSG/2015/page_127.pdf-2,2,what was the percent change?,8.9%,8.9%,True
+Double_PNC/2011/page_209.pdf,0,"what was the total indemnification and repurchase liability for estimated losses on indemnification and repurchase claims for the years of 2010 and 2011, combined?",44.2%,424,False
+Double_PNC/2011/page_209.pdf,1,"and, only in 2011, how much did the home equity loans represent in relation to that total indemnification and repurchase liability, in percentage?",36.1%,11.1%,False
+Single_VLO/2011/page_126.pdf-1,0,what were the value of futures 2013 long?,15398,15398.0,True
+Single_VLO/2011/page_126.pdf-1,1,what were the value of futures 2013 short?,35708,35708.0,True
+Single_VLO/2011/page_126.pdf-1,2,what is the sum?,51106,51106,True
+Single_VLO/2011/page_126.pdf-1,3,what was the value of physical contracts 2013 long?,20310,20310.0,True
+Single_VLO/2011/page_126.pdf-1,4,what is the total sum?,71416,71416,True
+Double_UNP/2011/page_40.pdf,0,"what was the amount of receivables collected by the railroad in 2011, in billions?",18.8,18.8,True
+Double_UNP/2011/page_40.pdf,1,"if there were 4 inventory turns per year, what would be the 2012 cash flow from the balance of these receivables, also in billions?",4.7,N/A,False
+Double_UNP/2011/page_40.pdf,2,"and for the receivables collected in 2010, what would be, in billions, the cash flow in 2011 for their balance?",5.4,16.3,False
+Single_IP/2006/page_19.pdf-1,0,what was the net change in industry segment operating profits from 2004 to 2005?,-81,-81,True
+Single_IP/2006/page_19.pdf-1,1,what was the value of industry segment operating profits in 2004?,1703,1703.0,True
+Single_IP/2006/page_19.pdf-1,2,what is the percent change?,-5%,-4.8%,False
+Double_PKG/2006/page_28.pdf,0,what is the operating margin in 2004?,7%,7.4%,False
+Double_PKG/2006/page_28.pdf,1,what is the income from operations in 2005?,116.1,116.1,True
+Double_PKG/2006/page_28.pdf,2,what about the total net sales?,1993.7,1993.7,True
+Double_PKG/2006/page_28.pdf,3,what is the operating margin in 2004?,6%,7.4%,False
+Single_HUM/2004/page_78.pdf-2,0,what was the medical and other expenses payable?,71063,-71063.0,False
+Single_HUM/2004/page_78.pdf-2,1,and the other current liabilities ?,21604,-21604.0,False
+Single_HUM/2004/page_78.pdf-2,2,"combined, what is the value of these two liabilities?",92667,-92667,False
+Single_HUM/2004/page_78.pdf-2,3,and the value of other liabilities?,82,-82.0,False
+Single_HUM/2004/page_78.pdf-2,4,now combined with the other two values?,92749,-92749,False
+Single_HUM/2004/page_78.pdf-2,5,so what was the percentage of other current liabilities to total liabilties?,23.30%,23.3%,False
+Single_HII/2018/page_124.pdf-2,0,what is the total number of securities to be issued upon exercise of outstanding options warrants and rights?,399165,399165.0,True
+Single_HII/2018/page_124.pdf-2,1,what is the total number of securities remaining available for future issuance under equity compensation plans?,3995600,3995600.0,True
+Single_HII/2018/page_124.pdf-2,2,what is the sum?,4394765,4394765,True
+Single_HII/2018/page_124.pdf-2,3,what is the total number of securities remaining available for future issuance under equity compensation plans?,3995600,3995600.0,True
+Single_HII/2018/page_124.pdf-2,4,what is that divided by the earlier sum value?,90.9%,0.91,False
+Double_SLB/2011/page_41.pdf,0,what was the change in the schlumberger interest expense from 2010 to 2011?,207,91,False
+Double_SLB/2011/page_41.pdf,1,and what is this change as a portion of that interest expense in 2010?,44%,0.44,False
+Double_SLB/2011/page_41.pdf,2,"in that same period, what was the change in the research & engineering as a percent of revenue?",-0.6,0.6%,False
+Double_SLB/2011/page_41.pdf,3,what was that percent in 2010?,3.3,-3.3,False
+Double_SLB/2011/page_41.pdf,4,"what percentage, then, does that change represent in relation to this 2010 percent of revenue?",-18.2%,-18.2%,True
+Single_EMN/2018/page_90.pdf-1,0,what is the sum of 2017 and 2018 compensation expense recognized?,5,116,False
+Single_EMN/2018/page_90.pdf-1,1,what is the total sum including 2016?,7,152,False
+Double_GS/2018/page_175.pdf,0,what is the commercial lending commitments in 2018?,93.99,121.91,False
+Double_GS/2018/page_175.pdf,1,what about in 2017?,85.98,85.98,True
+Double_GS/2018/page_175.pdf,2,what is the net change?,8.01,35.93,False
+Double_GS/2018/page_175.pdf,3,what about the net change in the commercial lending commitments held for investment from 2017 to 2018?,-3507,35.93,False
+Double_GS/2018/page_175.pdf,4,what is the commercial lending commitments held for investment in 2017?,124504,85.98,False
+Double_GS/2018/page_175.pdf,5,what percentage change does this represent?,-2.8%,41.8%,False
+Double_UNP/2016/page_75.pdf,0,"in the year of 2016, how much did the future total minimum operating lease payments due in 2017 represent in relation to the total operating lease payments, in percentage?",15.1%,15.1%,True
+Double_UNP/2016/page_75.pdf,1,and what would be those total payments if terms greater than 12 months were to be included?,3573,3504,False
+Double_UNP/2016/page_75.pdf,2,what percentage would those terms represent in relation to this total?,15%,115.1%,False
+Double_CB/2010/page_212.pdf,0,what is the value of direct amount in 2010?,15780,15780.0,True
+Double_CB/2010/page_212.pdf,1,what about the value of ceded to other companies?,5792,5792.0,True
+Double_CB/2010/page_212.pdf,2,what is the ratio among these two?,2.724,2.72,False
+Double_CB/2010/page_212.pdf,3,what is the net change among ceded and assumed amounts in 2010?,2276,-2276,False
+Double_RSG/2008/page_114.pdf,0,"in the year of 2008, what was the income from continuing operations available to common stockholders?",285.7,285.7,True
+Double_RSG/2008/page_114.pdf,1,and what were the basic earnings per share?,.76,76.0,False
+Double_RSG/2008/page_114.pdf,2,"what, then, can be concluded to be the number of shares available?",375.9,3.76,False
+Double_RSG/2008/page_114.pdf,3,"in that same year, what was the revenue?",9362.2,9362.2,True
+Double_RSG/2008/page_114.pdf,4,and what was it in 2007?,9244.9,9244.9,True
+Double_RSG/2008/page_114.pdf,5,"what was, then, the change over the year?",117.3,117.3,True
+Double_RSG/2008/page_114.pdf,6,and what is this change as a percentage of the 2007 revenue?,1.3%,1.3%,True
+Single_CB/2009/page_220.pdf-2,0,what was the net income in 2009 for bermuda subsidiaries?,2472,2472.0,True
+Single_CB/2009/page_220.pdf-2,1,and in 2008?,2196,2196.0,True
+Single_CB/2009/page_220.pdf-2,2,so what was the difference between these two years?,276,276,True
+Single_CB/2009/page_220.pdf-2,3,and the value for 2008 again?,2196,2196.0,True
+Single_CB/2009/page_220.pdf-2,4,and the percentage change?,12.6%,12.6%,True
+Double_GS/2013/page_97.pdf,0,"as of december 2013, what was the value of the total 10% ( 10 % ) sensitivity amount that was equity related?",2256,2256,True
+Double_GS/2013/page_97.pdf,1,and what was that total 10% ( 10 % ) sensitivity amount?,3778,3778,True
+Double_GS/2013/page_97.pdf,2,"what percentage, then, did that value represent in relation to this amount?",60%,59.7%,False
+Double_GS/2013/page_97.pdf,3,and what was that percentage representation of the equity related amount for the year of 2012?,60%,59.6%,False
+Single_AMT/2005/page_83.pdf-2,0,what was the net change in total property and equipment from 2004 to 2005?,1469246,1469246,True
+Single_AMT/2005/page_83.pdf-2,1,what was the value of the total property and equipment in 2004?,3270329,3270329.0,True
+Single_AMT/2005/page_83.pdf-2,2,what was the percent change?,44.9%,44.9%,True
+Single_MRO/2008/page_130.pdf-3,0,what was the total value of goodwill at the end of 2007?,2899,2899.0,True
+Single_MRO/2008/page_130.pdf-3,1,what was the value at the end of 2008?,1447,1447.0,True
+Single_MRO/2008/page_130.pdf-3,2,what is the net change in value?,-1452,-1452,True
+Single_MRO/2008/page_130.pdf-3,3,what is the percent change?,-50.1%,-50.1%,True
+Double_CME/2012/page_100.pdf,0,"what portion of the future minimum payments as of december 31, 2012 are due in 2013?",9.6%,0.1,False
+Double_CME/2012/page_100.pdf,1,and what percentage of them are due in 2014?,9.8%,2910.0%,False
+Single_PNC/2011/page_183.pdf-4,0,what was the total fair value of incentive/performance unit share and restricted stock/unit awards in 2011?,52,52,True
+Single_PNC/2011/page_183.pdf-4,1,and what was it in 2010?,39,39,True
+Single_PNC/2011/page_183.pdf-4,2,"what was, then, the change over the year?",13,13,True
+Single_PNC/2011/page_183.pdf-4,3,what was the total fair value of incentive/performance unit share and restricted stock/unit awards in 2010?,39,39,True
+Single_PNC/2011/page_183.pdf-4,4,"and how much does that change represent in relation to this 2010 fair value, in percentage?",33.3%,33.3%,True
+Single_CDNS/2007/page_93.pdf-3,0,what was the gross amount of unrecognized tax benefit in 2007?,306870,306870.0,True
+Single_CDNS/2007/page_93.pdf-3,1,and what was it in 2006?,337226,337226.0,True
+Single_CDNS/2007/page_93.pdf-3,2,"what was, then, the change over the year?",-30356,-30356,True
+Single_CDNS/2007/page_93.pdf-3,3,"and how much does this change represent in relation to the 2006 gross amount, in percentage?",-9.0%,-9.0%,True
+Single_FITB/2013/page_163.pdf-3,0,what were the nonrecurring losses in 2013?,19,45,False
+Single_FITB/2013/page_163.pdf-3,1,and in 2012?,17,74,False
+Single_FITB/2013/page_163.pdf-3,2,so what was the difference in this value between the two years?,2,-29,False
+Single_FITB/2013/page_163.pdf-3,3,and the percentage change for this period?,11.8%,-39.2%,False
+Double_ECL/2017/page_57.pdf,0,what percentage of the one-time transition tax is due in less than one year?,8.1%,8.1%,True
+Double_ECL/2017/page_57.pdf,1,"in 2017, what percentage of the balance of cash and cash equivalents on hand is held out of the us?",71.6%,71.6%,True
+Single_HUM/2007/page_96.pdf-4,0,what is the ratio of the 2007 weighted average grant date fair value of the restricted stocks to 2006?,1.1697,1.17,True
+Single_HUM/2007/page_96.pdf-4,1,what is that value less 1?,16.97%,0.17,False
+Double_BLL/2006/page_108.pdf,0,"in the equity plans for 2006, which one was bigger: the number of shares issued or the ones remaining in the plan?",yes,-1088232,False
+Double_BLL/2006/page_108.pdf,1,and what was the total value of those issued shares?,12952980,129525982.82,False

@@ -1,0 +1,184 @@
+{
+  "triage.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "Classify the current turn using the question plus prior conversation history.  \nThe history consists of question-answer pairs from the same financial report (e.g., 10-K, annual report).  \nYour output must contain exactly two labels and a brief reasoning.\n\n## Label 1: `turn_type`\n- **`number`**: the answer is a direct value lookup from the document or a previously answered value in history. No arithmetic, no comparison, no composition of multiple values is required.  \n  Examples:  \n  - \"what was the value of acquired technology?\" (single cell from a table)  \n  - \"in which year was the revenue highest?\" *if the report contains an explicit statement* (no computation) — but if it requires comparing multiple rows, it becomes `program`.\n\n- **`program`**: the answer requires arithmetic, comparison, a rate/change, a percentage, a difference between periods, a sum across values, or any multi-step reasoning over multiple values. This includes transformations of a prior answer (e.g., \"what is 1 less that value?\", \"double that number\").  \n  Examples:  \n  - \"what is the sum?\" (addition of prior numbers)  \n  - \"what is the total sum, including customer-related intangible assets?\" (extends a prior sum with a new value)  \n  - \"how much did the future total minimum operating lease payments due in 2017 represent in relation to the total operating lease payments, in percentage?\" (division + formatting)  \n  - \"what percentage would those terms represent in relation to this total?\" (computation on previously retrieved numbers)  \n  - \"and what would be those total payments if terms greater than 12 months were to be included?\" (combines a subset value with a previously known total)  \n  - \"what is the proportion of these assets compared to total assets acquired?\" (division + percentage)  \n  - \"what is the ratio of 2017 excess central bank balances to 2016 balances?\" (division)  \n  - \"what is 1 less that value?\" (subtraction on historical answer)\n\n## Label 2: `conv_type`\n- **`Type I`**: the question continues the current reasoning thread from the same decomposed multi-hop problem. It assumes the prior context and builds upon the same sub-problem (e.g., step 2 of computing total intangible assets, or a follow-up percentage after retrieving a component).  \n  Indicators: phrases like \"and what would be...\", \"what is the total sum, including...\", \"what percentage would those terms represent...\", \"what is 1 less that value?\".\n\n- **`Type II`**: the question switches to a different aspect or sub-problem of the same report, even if it still references prior turns. You are beginning a new computation thread.  \n  Example: after discussing operating lease payments, suddenly asking about capital expenditure or a completely different table.\n\n## Aggressive history rules\n- If the question contains references like \"that\", \"this\", \"those\", \"the change\", \"the difference\", \"the sum\", \"what about 2010\", \"what percentage\", treat it as a continuation of prior reasoning.  \n- If answering would require combining a value from history with a new value, or applying an operation to a prior answer, it is **`program`** (even if the operation is trivial, e.g., add 1, subtract 1).  \n- A seemingly standalone question like \"what is the total sum?\" is **`program`** when the components were retrieved in earlier turns; it relies on history.  \n\n## Output format\nreasoning: <brief explanation>\nturn_type: <number|program>\nconv_type: <Type I|Type II>",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "${question}"
+        },
+        {
+          "prefix": "History:",
+          "description": "Prior Q&A pairs in this session. Use this to resolve follow-up references and determine whether the current turn is a direct lookup or a continuation that requires computation."
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Turn Type:",
+          "description": "`number` only when the final answer is a single directly retrievable value. Use `program` when the turn needs arithmetic, comparison, change-over-time reasoning, percentages, aggregation, or reuse of a prior answer in a computation."
+        },
+        {
+          "prefix": "Conv Type:",
+          "description": "`Type I` when the turn continues the current reasoning chain. Use `Type II` when the turn pivots to a different aspect or a second decomposed problem about the same report."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "preprocess.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are a task-decomposition assistant. Your job is to break down a user question into retrieval sub-questions and a calculation program, while reusing values from prior conversation turns whenever possible.\n\n**Input Format**\n- `question`: the current user question (string)\n- `history`: a list of prior turns, each containing a question and its answer (list of dicts/objects)\n- `conv_type`: either `\"Type I\"` (continuation of the same reasoning chain) or `\"Type II\"` (switch to a different aspect of the report)\n\n**Output Format**\nYou must produce exactly:\n- `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` can be reused and why.\n- `sub_questions`: an ordered list of strings, each being a value lookup question. Use the placeholder letters A, B, C, … corresponding to the order in this list.\n- `program`: an arithmetic expression built from the letters A, B, C, … using only the functions `add`, `subtract`, `multiply`, and `divide`. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.\n\n**Conversation Type Guidance**\n- **Type I (continuation)**: The new question heavily depends on the preceding reasoning chain. You should reuse cached answers as much as possible. Reproduce the *exact phrasing* from earlier `sub_questions` when they refer to the same quantity. Do not rephrase; identical wording ensures the retriever returns the cached value rather than re-reading the document.\n- **Type II (switch)**: The conversation has shifted to a different aspect of the report. Re-anchor sub-questions on the document (fresh, specific phrasing), but if a needed value clearly already appears in `history`, reuse its exact question phrasing to avoid drift.\n\n**Program Design Rules**\n1. **Basic mapping**: For each sub-question, assign a letter in order (A for the first sub-question, B for the second, etc.).\n2. **Pure ratio**: If the question asks for a plain ratio (e.g. “what is the ratio of X to Y?”), use `divide(A, B)` or the appropriate order. Do NOT multiply by 100.\n3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. “what was the percent change…”, “net change over the 2005 value”, “how much does this change represent in relation to… in percentage”, “value less 1” after a ratio was just computed), the program must include `multiply(..., 100)` to yield a percentage result.  \n   - Example pattern for percent change: `multiply(divide(subtract(B, A), A), 100)`\n   - Example pattern for “value less 1” following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the cached result of a prior `divide`.\n4. **Special literal phrase**: If the question uses the exact wording “what percentage change this represents” (or very close variants), produce the raw ratio **without** multiplying by 100 (i.e., just the decimal form). This is a specific dataset convention.\n5. **Program is numeric**: Never include units, dollar signs, percent symbols, or formatting. The output of the program is a plain number (or a percentage number in decimal form for case 4, otherwise multiplied by 100 for case 3).\n\n**Examples of Correct Decomposition**\n- *Q: “what was the net change in reserves against inventory from 2005 to 2006?”*\n  - sub_questions: `[\"reserves against inventory for 2005\", \"reserves against inventory for 2006\"]`\n  - program: `subtract(B, A)`\n- *Q: “what is the net change over the 2005 value?”* (assuming prior turns already provided 2005 and 2006 reserves)\n  - Here the implied answer is a percentage. Program: `multiply(divide(subtract(B, A), A), 100)`\n- *Q: “what is the ratio of the 2007 weighted average grant date fair value of the restricted stocks to 2006?”*\n  - sub_questions: `[\"weighted average grant date fair value of restricted stocks in 2007\", \"weighted average grant date fair value of restricted stocks in 2006\"]`\n  - program: `divide(A, B)`\n- *Q: “what is that value less 1?”* (following a ratio answer)\n  - Reuse the prior ratio as a cached value. Program: `multiply(subtract(cached_ratio, 1), 100)`\n- *Q: “and how much does this change represent in relation to the total in 2005, in percentage?”*\n  - sub_questions: `[\"total change from 2005 to 2006\", \"total in 2005\"]` (or reuse cached values)\n  - program: `multiply(divide(A, B), 100)`\n\n**History Reuse in Practice**\n- When you need a value that was already retrieved in a previous turn (e.g., “reserves in 2005”), copy that prior sub-question text verbatim into your current `sub_questions` list.\n- In `reasoning`, explicitly call out: “Reusing cached answer for 'reserves in 2005' from Turn 1, sub-question 1.”\n- This minimizes retrieval drift and is critical for long conversations.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "${question}"
+        },
+        {
+          "prefix": "History:",
+          "description": "Prior Q&A pairs in this session — reuse answers when applicable"
+        },
+        {
+          "prefix": "Conv Type:",
+          "description": "From triage: 'Type I' continues the prior chain; 'Type II' switches aspect"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Sub Questions:",
+          "description": "Self-contained value lookups only, not computations. If a needed value already appears in `history`, reuse the same wording as the relevant prior turn so the retriever can return the cached answer."
+        },
+        {
+          "prefix": "Program:",
+          "description": "Arithmetic DSL such as 'subtract(A, B)' or 'divide(subtract(A, B), B)', where A, B, C... map positionally to `sub_questions`. Use 'multiply(divide(...), 100)' for percentage-style outputs and 'divide(...)' for raw ratios."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "retriever.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are an assistant that answers value‑lookup questions from a financial document. Your input contains:\n\n- `turn_type`: either `\"number\"` or `\"program\"`.\n- `questions`: a list of question strings.\n- `document`: a dictionary with keys `pre_text`, `post_text`, and `table`. The table contains parsed values that may be stored as numbers (floats) or strings; always preserve the original precision visible in the document when converting table values to answer strings.\n- `history`: a list of prior question–answer pairs (each with a report identifier, question, and answer string).\n\nYour task is to answer the given questions according to the rules below.\n\n## 1. Mode‑dependent behaviour\n- **`turn_type = \"number\"`**  \n  There is exactly one question and it is the user’s final request.  \n  - If the question asks for a single factual value, return that value directly (plain string, no units).\n  - If the question asks for a change, net increase/decrease, or a percentage, perform the needed arithmetic yourself.  \n  - No further processing stage will run, so you must do the arithmetic here.\n- **`turn_type = \"program\"`**  \n  The questions are sub‑questions from a Preprocess step. Return the raw retrieved value for each question **without** performing any arithmetic or aggregation yourself, even if the question asks for a change.  \n  (The Calculation stage will handle the arithmetic; your answer will be passed to it.)\n\n## 2. Using history\n- When a question (or the value it needs) has already been answered in `history`, prefer to reuse that answer.\n- **Important:** The answer you output must preserve the exact string formatting of the source document. If the history answer lacks required trailing zeros or has a different precision than the source, **do not** reuse it as‑is. Instead, fetch the value from the document again and format it correctly.\n- **Arithmetic context from history:** If the `number`‑mode question asks for a change or percentage change and the history contains answers for the precise earlier and later values being compared (e.g., from a preceding series of sub‑questions), you must use those exact answers as operands. Do not fetch new values from the document unless the history answers are unsuitable (wrong date, missing precision, etc.).\n\n## 3. Retrieval rules\n- Carefully match both the **entity** and the **date/year** mentioned in the question.\n- If the document contains several values for the same year, pick the one the question actually refers to (e.g., do not confuse “sweet/sour differential” with “crack spread”).\n- For raw factual lookups and all `program` mode outputs, return the numeric string exactly as it appears in the document (or in the table), including meaningful trailing zeroes. Do not convert to float and drop zeros.\n- If the value is explicitly given in a table cell, use that exact string representation. When the table stores a value as a number (e.g., a float 19400.0), convert it back to a string that matches the original document’s formatting (e.g., `\"19400.0\"`).\n\n## 4. Arithmetic rules (for `number` mode when required)\n- **Change / net increase/decrease**:  \n  Use signed arithmetic: *later minus earlier*. Do not take absolute values unless the question asks for magnitude.\n- **Percentage change / return rate**:  \n  Formula: `((new - old) / old) * 100`  \n  Append a `%` sign to the answer string.  \n  **Crucial:** Always multiply the ratio by 100 to obtain a percentage. Never output a decimal fraction like `0.836`; the correct form is `83.6%`.  \n  Round the result to a sensible precision:\n  - For typical financial values (two‑decimal operands), round to one decimal place (e.g., `-49.8%`).\n  - When operands have many decimals, round to two decimals.\n  - If the percentage is a whole number after rounding to the required precision, drop the decimal (e.g., `269%` not `269.0%`).\n  - Never return an unrounded float.\n\n## 5. Formatting computed answers\n- **Computed numeric answers** must be plain numeric strings without extraneous units (no `$`, `million`, `billion`, etc.). If the question explicitly asks for a value “in millions”, output the appropriately scaled number with no unit suffix.\n- **Precision of computed values:**\n  - Use a precision that is sensible given the operands.\n  - For monetary amounts (e.g., dollars, dollars per barrel, investment values), always output **two decimal places** if the source data involves cents (even if some operands show only one decimal, the initial investment is typically exact – e.g., `$100.00`). Example: change from `100.0` to `186.2` → `86.20`.\n  - For non‑monetary numbers (e.g., millions of net revenue with one decimal), you may keep the trailing zero shown in the source (e.g., `5524.0`) or omit it if the gold standard allows; both are acceptable as long as you do not introduce additional decimals not supported by the source.\n- **Percentage answers** must always end with `%` and be rounded appropriately as specified above.\n\n## 6. General\n- Always output each answer as a single string (plain text, no JSON).\n- When multiple questions are provided (in `program` mode), return a list of answers matching the order of questions.\n- Do not include explanations or reasoning in the output—only the answer string(s).",
+      "fields": [
+        {
+          "prefix": "Turn Type:",
+          "description": "From triage. 'number' = single question, return the final answer. 'program' = sub-questions from preprocess, return raw values for the calculator."
+        },
+        {
+          "prefix": "Questions:",
+          "description": "One or more self-contained value-lookup questions"
+        },
+        {
+          "prefix": "Document:",
+          "description": "The financial report: pre_text, post_text, and a structured `table` (column -> row -> value)"
+        },
+        {
+          "prefix": "History:",
+          "description": "Prior Q&A pairs — reuse cached answers when applicable"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Answers:",
+          "description": "One QAPair per input question, same order as `questions`. `question` echoes the input question verbatim; `answer` is the retrieved or computed answer string. In `program` mode, return raw values only. In `number` mode, return the final answer string, including `%` only when the question explicitly asks for a percentage-style result."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "calculator.react": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "{\n  \"instruction\": \"You are an agent that must compute a final answer given a `question`, a list of `retrieved` question-answer pairs, and a candidate mathematical `program`. You will use the provided calculator tools (add, subtract, multiply, divide, exp, greater) to perform the required arithmetic, and then call `finish` once the answer is ready.\\n\\n**Input format**\\n- `question`: a natural language question, possibly a follow-up, whose answer must be produced.\\n- `retrieved`: a list of objects, each with a `question` and an `answer`. The first object is assigned to variable A, the second to B, and so on. However, you must verify that each retrieved question actually matches the entity, metric, and time period required by the current question. If a retrieved answer does not correspond to the needed context (e.g., the current question asks about a single year but the retrieved answer covers a combined period or a different metric), the question may be unanswerable with the given data.\\n- `program`: a string like `divide(A, B)` or `multiply(divide(A, B), 100)`. It is a strong hint but may be incorrect or incomplete; you must verify it against the user's intent and correct it if necessary.\\n\\n**Processing rules**\\n1. **Validate the retrieved items**\\n   - Read each retrieved question and check whether it corresponds to the entity, metric, and time period mentioned in the current question. If any clearly required value is missing or mismatched (e.g., the current question asks for a single-year value but the only available answer is a multi-year total or a different metric), you cannot produce a numeric answer. In that case, the final answer is `no`. Do not guess.\\n\\n2. **Clean the retrieved answers**\\n   - For retrieved answers that are usable, strip any non-numeric decoration: `%`, `$`, `,`, `€`, words like `billion`, `million`, etc. Keep the numeric coefficient intact (e.g., `8.38 billion` becomes `8.38`). Do not convert between scales (e.g., do not multiply by 10^9).\\n   - For values that end with `%`, remove the percent sign and keep the number as-is (e.g., `50%` becomes `50`), **unless** the question explicitly asks for a decimal fraction (rare). This rule applies only to the *input* numbers.\\n\\n3. **Interpret the program**\\n   - The program uses the cleaned numbers. If it contains `A`, `B`, etc., substitute the corresponding cleaned retrieved value, provided the retrieved item is valid.\\n   - **Sanity-check directionality**: If the question asks for a *decline*, *decrease*, or *change* from an earlier period to a later period, ensure the subtraction order reflects the direction asked (e.g., earlier value − later value for a decline). Do not blindly follow the program if it contradicts this.\\n   - **Trust the question over the program**: If the question clearly asks for a percentage (growth rate, ROI, net change over, percent of, etc.) and the program only divides, you must multiply by 100 and format as a percentage. Conversely, if the question asks for a plain ratio and the program multiplies by 100, you may need to override to avoid multiplying.\\n\\n4. **Performing calculations**\\n   - Use the calculator tools step-by-step. You may need one or more tool calls.\\n   - Available tools:\\n     - `add(a, b)`: return a + b\\n     - `subtract(a, b)`: return a − b\\n     - `multiply(a, b)`: return a * b\\n     - `divide(a, b)`: return a / b (raises error if b == 0)\\n     - `exp(a, b)`: return a ^ b\\n     - `greater(a, b)`: return True if a > b\\n     - `finish()`: signal that the final answer is ready (takes no arguments)\\n   - Provide tool arguments as JSON.\\n\\n5. **Final answer formatting**\\n   - **For numeric results**: present the exact arithmetic result without rounding. If the result is mathematically an integer, output an integer (e.g., `1251`, `118`). If it has decimals, output the number with its natural decimal places (e.g., `7.295`, `14.59`, `1251.428571`). Do **not** add any symbols, units, or commas.\\n   - **For percentages** (when the question asks for a growth rate, percent change, ratio as a percent, etc.): multiply by 100, round to **one decimal place**, and append a `%` sign (e.g., `1.9%`, `37.5%`).\\n   - **For yes/no, which-one, or comparison questions**: if the question can be answered with the available data, use the `greater` tool and then output `yes`, `no`, or the variable letter (e.g., `A`, `B`) of the greater item as appropriate. If the question cannot be answered because the retrieved data is mismatched or insufficient, output `no`.\\n   - The final answer must be a string containing only digits, an optional decimal point, and (for percentages) a single `%` character, or one of the words `yes`/`no`/entity labels when the question requires them. No other units, commas, or symbols.\\n   - When you are ready to finish, include the final answer clearly in your last `next_thought` (e.g., \\\"The growth rate is approximately 1.9%.\\\" or \\\"The sum is 14.59.\\\"), then call `finish` with no arguments. The system will extract your answer from that thought.\\n\\n**Trajectory structure**\\n- In each turn you provide:\\n  - `next_thought`: your reasoning and plan,\\n  - `next_tool_name`: one of the tool names,\\n  - `next_tool_args`: JSON-encoded arguments.\\n- After a tool call, you receive an `observation` which is the tool's result (a number or boolean).\\n- Repeat until you call `finish`.\\n\\n**Examples of correct behavior**\\n- *Percentage, program correct*: question=\\\"so what was the growth rate during this time?\\\", retrieved=[118, 6305.0], program=\\\"multiply(divide(A, B), 100)\\\" → divide, multiply, round to 1.9%.\\n- *Count of shares, program divide*: question=\\\"on average, how many shares received the yearly dividend in 2012?\\\", retrieved=[438, 0.35], program=\\\"divide(A, B)\\\" → divide, result 1251.428571…, output `1251.428571` (exact).\\n- *Percentage but program missing multiply*: question=\\\"what is the net change over the 2005 value?\\\", retrieved=[8551, 22825], program=\\\"divide(A, B)\\\" → the agent detects percent requested, so after dividing, multiply by 100, round to 37.5%.\\n- *Direction override*: if question asks for decrease and program subtracts later minus earlier, swap order.\\n- *Unanswerable due to mismatched time period*: question=\\\"which one, then, was greater in 2010?\\\", retrieved answers include a combined 2010-2011 total → output `no`.\"\n}",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "The user's original question (context only — do not re-answer from it)"
+        },
+        {
+          "prefix": "Retrieved:",
+          "description": "Sub-questions paired with their retrieved values, in placeholder order: first entry = A, second = B, etc."
+        },
+        {
+          "prefix": "Program:",
+          "description": "Candidate DSL to execute, e.g. 'subtract(A, B)' or 'divide(subtract(A, B), B)'. Correct it if it does not match the question."
+        },
+        {
+          "prefix": "Trajectory:",
+          "description": "${trajectory}"
+        },
+        {
+          "prefix": "Next Thought:",
+          "description": "${next_thought}"
+        },
+        {
+          "prefix": "Next Tool Name:",
+          "description": "${next_tool_name}"
+        },
+        {
+          "prefix": "Next Tool Args:",
+          "description": "${next_tool_args}"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "calculator.extract.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are an assistant that executes a DSL program over retrieved QAPairs using calculator tools.  \nYou receive the original question, a list of retrieved QAPairs (each containing a sub‑question and its answer), and a candidate program. The program is a strong hint, but it may be wrong or incomplete. You must ensure the executed operations match the question's intent, correcting operation, argument order, or semantics when necessary.\n\n**Input format**\n- `question`: the original query\n- `retrieved`: a list of `QAPair` objects with fields `question` and `answer`\n- `program`: an expression using calculator operations (e.g., `subtract(B, A)`, `multiply(divide(A, B), 100)`) and placeholders `A`, `B`, `C`, ... that map positionally to the retrieved answers.\n\n**Rules for execution**\n\n1. **Mapping placeholders to retrieved answers**  \n   Map placeholders **positionally**: the first retrieved answer → `A`, second → `B`, third → `C`, etc.\n\n2. **Cleaning inputs before calculation**  \n   Before using a retrieved answer in any arithmetic operation, strip all non‑numeric decoration while keeping the underlying numeric value.\n   - Remove `%`, `$`, `€`, commas, and unit words such as `billion`, `million`, `thousand`, `trillion`, etc.  \n   - **Do not scale the number** when removing a scale word. For example, `\"3.0 billion\"` → `3.0` (not 3000000000), `\"$10.5 million\"` → `10.5`.  \n   - If an answer is a negative number (e.g., `\"-6.48\"`), preserve the minus sign.  \n   - If a retrieved answer represents a percentage and contains `%`, treat it as its whole‑number value (e.g., `\"15%\"` → `15`). Only convert to a decimal fraction (`0.15`) if the question explicitly asks for a decimal fraction.\n\n3. **Question intent over candidate program**  \n   Always interpret the question’s true intent. If the candidate program conflicts with that intent, modify the operations accordingly. Common remedies:\n   - The question asks for a **percentage** (e.g., percent change, portion, ratio as a percentage) but the program only divides → you must multiply by 100 and format as a percentage.\n   - The question asks for a **change, difference, growth, or decline** between two points in time, but the program subtracts in the opposite order → swap the arguments so that the temporal direction is preserved (e.g., *“change from 2006 to 2010”* means `value(2010) − value(2006)`).  \n   - The question asks for a **decrease/decline** but the program computes an increase → keep the correct sign or adjust the calculation appropriately.\n\n4. **Directionality for changes / differences**  \n   When computing a change (difference, growth, decline, increase, variation) between two points in time *X* and *Y*:\n   - *“from X to Y”*, *“between X and Y”*, *“X vs Y”* → use `Y − X`.\n   - If the program would produce the reversed sign, correct it.\n\n5. **Percentage answers**  \n   When the question asks for a percentage, percent change, percent increase/decrease, or any ratio that should be expressed as a percentage:\n   - Compute the ratio, then multiply by 100 to get the percentage value.\n   - Round the percentage to **one decimal place** (e.g., `14.077...` → `14.1%`), unless the context clearly demands an integer percentage (e.g., *“43%”*).  \n   - Always append a percent sign `%` immediately after the number, with no space (e.g., `\"14.1%\"`, `\"-5.0%\"`).\n\n6. **Performing calculations**  \n   Use the provided calculator tools sequentially: `subtract(a, b)`, `multiply(a, b)`, `divide(a, b)`, `add(a, b)`.  \n   - Execute one operation at a time, observe the result, and proceed if more steps are needed.  \n   - Use floating‑point values as they come; do not manually truncate intermediate results.\n\n7. **Formatting the final answer**  \n   - **Percentage answers**: output the rounded number immediately followed by a percent sign (e.g., `\"14.1%\"`, `\"43%\"`). The percent sign is the **only** non‑numeric symbol allowed in the final answer.\n   - **All other answers**: output a **plain numeric string** with no units, no currency symbols, no commas, and no scale words (e.g., `\"3.0\"`, `\"269\"`, `\"21.2\"`, `\"-6.48\"`).  \n     - Round to a reasonable precision that matches the input data (usually 1–2 decimal places). Do not output excessively long, unrounded floats.  \n     - If the final value is an integer (e.g., `269`), write it without a decimal point (`\"269\"`, not `\"269.0\"`).  \n     - If the value is negative, include the minus sign.\n   - Never output something like `$3.0 billion`; plain `\"3.0\"` is correct, because the question context already determines the unit.\n\n8. **Finishing**  \n   When you have the final computed and formatted answer, output it directly as the result string. Do not include any additional commentary, reasoning, or hedging. The final output must be exactly the required string.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "The user's original question (context only — do not re-answer from it)"
+        },
+        {
+          "prefix": "Retrieved:",
+          "description": "Sub-questions paired with their retrieved values, in placeholder order: first entry = A, second = B, etc."
+        },
+        {
+          "prefix": "Program:",
+          "description": "Candidate DSL to execute, e.g. 'subtract(A, B)' or 'divide(subtract(A, B), B)'. Correct it if it does not match the question."
+        },
+        {
+          "prefix": "Trajectory:",
+          "description": "${trajectory}"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Answer:",
+          "description": "Final plain numeric result as a string from the calculator workflow, with no units or symbols"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.10",
+      "dspy": "3.2.0",
+      "cloudpickle": "3.1"
+    }
+  }
+}

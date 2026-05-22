@@ -1,0 +1,310 @@
+report_id,turn_index,question,gold_answer,pred_dspy,correct_dspy,pred_turn_type,pred_conv_type,pred_pyd,correct_pyd,pred_program,_merge,agree,q_order,turn_type,conv_type
+Double_AAPL/2007/page_70.pdf,0,what is the ending allowance balance in 2006?,52,52.0,True,number,Type I,52.0,True,,both,True,0,Number,Type I
+Double_AAPL/2007/page_70.pdf,1,what about in 2005?,46,46.0,True,number,Type I,46.0,True,,both,True,1,Number,Type I
+Double_AAPL/2007/page_70.pdf,2,what is the net change?,6,6,True,program,Type I,6.0,True,"subtract(52.0, 46.0)",both,True,2,Program,Type I
+Double_AAPL/2007/page_70.pdf,3,what percentage change does this represent?,13%,13.0%,False,program,Type I,13.0%,False,"divide(A, B)",both,True,3,Program,Type I
+Double_AAPL/2007/page_70.pdf,4,what is the value of non-trade receivables in 2007?,2.4,2.4,True,number,Type II,2400.0,False,,both,False,4,Number,Type II
+Double_AAPL/2007/page_70.pdf,5,what about in 2006?,1.6,52.0,False,number,Type I,1600.0,False,,both,True,5,Number,Type II
+Double_AAPL/2007/page_70.pdf,6,what is the net change?,0.8,0.8,True,program,Type I,800,False,"subtract(A, B)",both,False,6,Program,Type II
+Double_AAPL/2016/page_23.pdf,0,what was the value of the apple inc . stock in 2016?,213,213.0,True,number,Type II,213.0,True,,both,True,0,Number,Type I
+Double_AAPL/2016/page_23.pdf,1,and what was the change in this value since 2011?,113,113,True,program,Type I,113.0,True,"subtract(213.0, A)",both,True,1,Program,Type I
+Double_AAPL/2016/page_23.pdf,2,what was this same change for the dow jones u.s . technology supersector index stock?,117,117,True,program,Type II,117.0,True,"subtract(A, B)",both,True,2,Program,Type II
+Double_AAPL/2016/page_23.pdf,3,and how much does this change represent in relation to the value of this stock in 2011?,117%,213%,False,program,Type I,113.0,False,"multiply(divide(113.0, A), 100)",both,True,3,Program,Type II
+Double_AES/2011/page_261.pdf,0,"in 2010, what percentage did the deepwater write-down represent in relation the total of impairments?",19.5%,20.3%,False,program,Type II,20.3%,False,"multiply(divide(A, B), 100)",both,True,0,Program,Type I
+Double_AES/2011/page_261.pdf,1,"and concerning the huntington beach facility in california, what was the recognized asset impairment expense as a percentage of the total carrying value?",69.4%,69.4%,True,program,Type II,69.4%,True,"multiply(divide(A, B), 100)",both,True,1,Program,Type II
+Double_AES/2011/page_270.pdf,0,what amount of the net assets acquired is from goodwill?,2489,2489.0,True,number,Type I,2489.0,True,,both,True,0,Number,Type I
+Double_AES/2011/page_270.pdf,1,and what is the total of those net assets acquired?,3483,3483,True,program,Type I,3483.0,True,A,both,True,1,Number,Type I
+Double_AES/2011/page_270.pdf,2,"what, then, is that amount as a percentage of this total?",71%,71.5%,False,program,Type I,71.5%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Double_AES/2011/page_270.pdf,3,"in that same period, what was the combined total of the cash and the accounts receivable, in millions?",394,,False,program,Type II,278.0,False,"add(A, B)",both,True,3,Program,Type II
+Double_AES/2011/page_270.pdf,4,"adding the inventory, what becomes that total?",518,402,False,program,Type I,402.0,False,"add(A, 278.0)",both,True,4,Program,Type II
+Double_AES/2011/page_270.pdf,5,"and including the other current assets, what then becomes this total of current assets acquired, in millions?",559,443,False,program,Type I,443,False,"add(A, B)",both,True,5,Program,Type II
+Double_ALLE/2017/page_118.pdf,0,what is the total expense for environmental remediation at sites 2016 and 2017?,26.5,26.5,True,program,Type II,26.5,True,"add(A, B)",both,True,0,Program,Type I
+Double_ALLE/2017/page_118.pdf,1,what about if the expense from 2015 is included?,30.9,30.9,True,program,Type I,30.9,True,"add(A, 26.5)",both,True,1,Program,Type I
+Double_ALLE/2017/page_118.pdf,2,what is the average for these three years?,10.3,10.3,True,program,Type I,10.3,True,"divide(30.9, 3)",both,True,2,Program,Type I
+Double_ALLE/2017/page_118.pdf,3,what is the expense for environmental remediation in 2017?,28.9,3.2,False,number,Type II,3.2,False,,both,True,3,Number,Type II
+Double_ALLE/2017/page_118.pdf,4,what about in 2016?,30.6,23.3,False,program,Type I,23.3,False,,both,True,4,Number,Type II
+Double_ALLE/2017/page_118.pdf,5,what is the net change?,-1.7,-20.1,False,program,Type I,-20.1,False,"subtract(B, A)",both,True,5,Program,Type II
+Double_ALLE/2017/page_118.pdf,6,what fraction does this represent?,-0.0555,-0.9,False,program,Type I,-0.8626609442060086,False,"divide(A, B)",both,True,6,Program,Type II
+Double_ALLE/2017/page_118.pdf,7,what about in percentage terms?,-5.55%,-90.0%,False,program,Type I,-86.3%,False,"multiply(A, 100)",both,True,7,Program,Type II
+Double_AON/2010/page_100.pdf,0,what was the net change in the unrecognized tax during 2010?,23,23.0,True,number,Type II,23.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Double_AON/2010/page_100.pdf,1,"and for that year and the one before, what was the total accrued interest by aon, in millions?",3,36,False,program,Type II,3,True,"add(A, B)",both,False,1,Program,Type II
+Double_AON/2010/page_100.pdf,2,and what is the average between the two years?,1.5,18,False,program,Type I,1.5,True,"divide(add(A, B), 2)",both,False,2,Program,Type II
+Double_BLL/2006/page_108.pdf,0,"in the equity plans for 2006, which one was bigger: the number of shares issued or the ones remaining in the plan?",yes,5941210,False,program,Type II,B,False,"subtract(A, B)",both,True,0,Program,Type I
+Double_BLL/2006/page_108.pdf,1,and what was the total value of those issued shares?,12952980,129525982.82,False,number,Type I,no,False,A,both,True,1,Program,Type II
+Double_CB/2009/page_233.pdf,0,what is the amount ceded to other companies in 2009?,5943,5943.0,True,number,Type II,5943.0,True,,both,True,0,Number,Type I
+Double_CB/2009/page_233.pdf,1,what about the total direct amount in 2009?,15415,15415.0,True,number,Type II,15415.0,True,,both,True,1,Number,Type I
+Double_CB/2009/page_233.pdf,2,what portion of the direct amount is ceded to other companies?,38.6%,0.3855,False,program,Type I,38.6%,True,"divide(A, B)",both,False,2,Program,Type I
+Double_CB/2009/page_233.pdf,3,what is the ratio of direct amount to ceded amount in 2009?,2.6,2.59,True,program,Type I,2.5938078411576644,True,"divide(A, B)",both,True,3,Program,Type II
+Double_CB/2010/page_212.pdf,0,what is the value of direct amount in 2010?,15780,15780.0,True,number,Type II,15780.0,True,,both,True,0,Number,Type I
+Double_CB/2010/page_212.pdf,1,what about the value of ceded to other companies?,5792,5792.0,True,number,Type II,5792.0,True,,both,True,1,Number,Type I
+Double_CB/2010/page_212.pdf,2,what is the ratio among these two?,2.724,2.72,True,program,Type I,2.7244475138121547,True,"divide(A, B)",both,True,2,Program,Type I
+Double_CB/2010/page_212.pdf,3,what is the net change among ceded and assumed amounts in 2010?,2276,2276,True,program,Type II,-2276.0,False,"subtract(B, A)",both,False,3,Program,Type II
+Double_CDW/2013/page_103.pdf,0,how many common units were not vested at the time fo distribution?,5931,3798508,False,number,Type II,3798508,False,,both,True,0,Number,Type I
+Double_CDW/2013/page_103.pdf,1,what about the number of shares of restricted stock vested/settled?,1200544,1200544,True,number,Type II,1200544,True,,both,True,1,Number,Type I
+Double_CDW/2013/page_103.pdf,2,what is the total of these two?,1206475,4999052,False,program,Type I,4999052,False,"add(A, B)",both,True,2,Program,Type I
+Double_CDW/2013/page_103.pdf,3,what proportion of total restricted stock does this represent?,0.317,0.4632,True,program,Type I,1.9286220507223482,False,"divide(4999052, A)",both,False,3,Program,Type I
+Double_CME/2012/page_100.pdf,0,"what portion of the future minimum payments as of december 31, 2012 are due in 2013?",9.6%,0.0964,False,program,Type II,9.6%,True,"divide(A, B)",both,False,0,Program,Type I
+Double_CME/2012/page_100.pdf,1,and what percentage of them are due in 2014?,9.8%,9.8%,True,number,Type I,9.8%,True,"multiply(divide(B, A), 100)",both,True,1,Program,Type II
+Double_GIS/2008/page_83.pdf,0,what was the total of net assets in 2008?,2309.9,2325.9,False,number,Type II,2325.9,False,,both,True,0,Number,Type I
+Double_GIS/2008/page_83.pdf,1,and what was it in 2007?,2303.0,2303.0,True,number,Type I,2303.0,True,,both,True,1,Number,Type I
+Double_GIS/2008/page_83.pdf,2,"what was, then, the change over the year?",6.9,22.9,False,program,Type I,22.9,False,"subtract(A, B)",both,True,2,Program,Type I
+Double_GIS/2008/page_83.pdf,3,"and for the two years prior to 2008, what was the total recognized expense related to defined contribution plans?",110.2,93.8,False,program,Type II,93.8,False,"add(A, B)",both,True,3,Program,Type II
+Double_GIS/2008/page_83.pdf,4,"including 2008, what then becomes that total?",155.7,155.7,True,program,Type I,155.7,True,"add(A, 93.8)",both,True,4,Program,Type II
+Double_GIS/2008/page_83.pdf,5,and what is the average total recognized expense between those three years?,51.9,51.9,True,program,Type I,51.9,True,"divide(A, 3)",both,True,5,Program,Type II
+Double_GIS/2018/page_59.pdf,0,what was the total of interest rate instruments as of may 2018?,33.2,33.2,True,number,Type I,33.2,True,,both,True,0,Number,Type I
+Double_GIS/2018/page_59.pdf,1,and what was it in may of the previous year?,25.1,25.1,True,number,Type I,25.1,True,,both,True,1,Number,Type I
+Double_GIS/2018/page_59.pdf,2,"by how much, then, did it increase?",8.1,8.1,True,program,Type I,8.1,True,"subtract(A, B)",both,True,2,Program,Type I
+Double_GIS/2018/page_59.pdf,3,"and in that same year of 2018, what was the total of those interest rate instruments and the foreign currency ones?",54.5,54.5,True,program,Type I,54.5,True,"add(A, B)",both,True,3,Program,Type II
+Double_GIS/2018/page_59.pdf,4,"including the commodity instruments, what becomes this total?",56.4,56.4,True,program,Type I,56.4,True,"add(A, B)",both,True,4,Program,Type II
+Double_GIS/2018/page_59.pdf,5,"and including the equity ones, what becomes the total for all instruments?",58.4,58.4,True,program,Type I,58.4,True,"add(A, 56.4)",both,True,5,Program,Type II
+Double_GS/2013/page_97.pdf,0,"as of december 2013, what was the value of the total 10% ( 10 % ) sensitivity amount that was equity related?",2256,2256,True,number,Type I,2256,True,,both,True,0,Number,Type I
+Double_GS/2013/page_97.pdf,1,and what was that total 10% ( 10 % ) sensitivity amount?,3778,3778.0,True,number,Type I,3778,True,,both,True,1,Number,Type I
+Double_GS/2013/page_97.pdf,2,"what percentage, then, did that value represent in relation to this amount?",60%,59.7%,False,program,Type I,59.7%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Double_GS/2013/page_97.pdf,3,and what was that percentage representation of the equity related amount for the year of 2012?,60%,59.6%,False,program,Type II,59.6%,False,"multiply(divide(A, B), 100)",both,True,3,Program,Type II
+Double_IP/2009/page_34.pdf,0,what was the total of industrial packaging sales in 2009?,8890,8890.0,True,number,Type I,8890.0,True,,both,True,0,Number,Type I
+Double_IP/2009/page_34.pdf,1,and what was it in 2008?,7690,7690.0,True,number,Type I,7690.0,True,,both,True,1,Number,Type I
+Double_IP/2009/page_34.pdf,2,"by how much, then, did it increase over the year?",1200,1200,True,program,Type I,1200.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Double_IP/2009/page_34.pdf,3,"and over the previous year, from 2007 to 2008, what was that increase?",2445,2445,True,program,Type I,no,False,"subtract(B, A)",both,False,3,Program,Type II
+Double_JPM/2017/page_104.pdf,0,what is the ratio of afs investment securities period-end to average in 2017?,0.913,0.9129,True,program,Type II,0.9129316829651918,True,"divide(A, B)",both,True,0,Program,Type I
+Double_LKQ/2016/page_48.pdf,0,what is the total debt balance in 2016?,3365687,3365687,True,number,Type I,3365687.0,True,,both,True,0,Number,Type I
+Double_LKQ/2016/page_48.pdf,1,what about in 2015?,1599695,1599695,True,number,Type I,1599695.0,True,,both,True,1,Number,Type I
+Double_LKQ/2016/page_48.pdf,2,what is the net change during 2016?,1765992,1765992,True,program,Type I,1765992.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Double_LKQ/2016/page_48.pdf,3,what about the net change in the balance of cash and equivalents?,140003,140003,True,program,Type II,140003.0,True,"subtract(A, B)",both,True,3,Program,Type II
+Double_LMT/2014/page_47.pdf,0,what is the net change in net sales from 2012 to 2013?,300,300,True,program,Type II,300.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Double_LMT/2014/page_47.pdf,1,what is the net sales in 2012?,7457,7457.0,True,number,Type II,7457.0,True,,both,True,1,Number,Type I
+Double_LMT/2014/page_47.pdf,2,what growth rate does this represent?,4%,4.0%,False,program,Type I,4.0%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Double_LMT/2014/page_47.pdf,3,what is the net change in operating profit from 2012 to 2013?,175,175,True,program,Type II,175.0,True,"subtract(B, A)",both,True,3,Program,Type II
+Double_LMT/2014/page_47.pdf,4,what growth rate in operating profit does this represent?,13.9%,13.9%,True,program,Type I,13.9%,True,"multiply(divide(175.0, A), 100)",both,True,4,Program,Type II
+Double_MAR/2010/page_55.pdf,0,what is the net change in cash from operations from 2008 to 2009?,227,227,True,program,Type II,227.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Double_MAR/2010/page_55.pdf,1,what is the cash from operations in 2008?,641,641.0,True,number,Type II,641.0,True,,both,True,1,Number,Type I
+Double_MAR/2010/page_55.pdf,2,what percentage change does this represent?,35%,35.4%,False,program,Type I,35.4%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Double_MAR/2010/page_55.pdf,3,what about the cash from operations in 2010?,1151,1151.0,True,number,Type II,1151.0,True,,both,True,3,Number,Type II
+Double_MAR/2010/page_55.pdf,4,and in 2009?,868,868,True,program,Type I,868.0,True,,both,True,4,Number,Type II
+Double_MAR/2010/page_55.pdf,5,what is the net change from 2009 to 2010?,283,283,True,program,Type I,283.0,True,"subtract(B, A)",both,True,5,Program,Type II
+Double_MAR/2010/page_55.pdf,6,what percentage change does this represent?,33%,32.6%,False,program,Type I,24.6%,False,"multiply(divide(A, B), 100)",both,True,6,Program,Type II
+Double_MRO/2008/page_145.pdf,0,"as of december 31, 2008, what would have been, in millions, the total undiscounted minimum capital lease obligations excluding the assets under construction?",322,322.0,True,number,Type II,322.0,True,,both,True,0,Program,Type I
+Double_MRO/2008/page_145.pdf,1,and what percentage of that construction is already completed?,37.6%,49.0%,False,program,Type I,37.6%,True,"multiply(divide(A, B), 100)",both,False,1,Program,Type II
+Double_PNC/2011/page_209.pdf,0,"what was the total indemnification and repurchase liability for estimated losses on indemnification and repurchase claims for the years of 2010 and 2011, combined?",44.2%,424,False,program,Type II,424,False,"add(A, B)",both,True,0,Program,Type I
+Double_PNC/2011/page_209.pdf,1,"and, only in 2011, how much did the home equity loans represent in relation to that total indemnification and repurchase liability, in percentage?",36.1%,no,False,program,Type I,11.1%,False,"multiply(divide(A, 424), 100)",both,True,1,Program,Type II
+Double_PPG/2015/page_40.pdf,0,what was the total of advertising costs in 2015?,324,324,True,number,Type I,324,True,,both,True,0,Number,Type I
+Double_PPG/2015/page_40.pdf,1,and what was it in 2014?,297,297,True,number,Type I,297,True,,both,True,1,Number,Type I
+Double_PPG/2015/page_40.pdf,2,"what was, then, the total costs for the two years, combined?",591,621,False,program,Type I,621,False,"add(A, B)",both,True,2,Program,Type I
+Double_PPG/2015/page_40.pdf,3,"including 2013, what becomes this total?",826,856,False,program,Type I,856,False,"add(A, 621)",both,True,3,Program,Type I
+Double_PPG/2015/page_40.pdf,4,and what were the average costs between the three years?,275,78.3,False,program,Type I,285.333333,False,"divide(A, 3)",both,True,4,Program,Type I
+Double_PPG/2015/page_40.pdf,5,"and in that last year of the period, what were the r&d costs?",505,505.0,True,number,Type II,486.0,False,,both,False,5,Number,Type II
+Double_PPG/2015/page_40.pdf,6,were this cost greater that the advertising ones in that year?,yes,181.0,False,program,Type I,yes,True,"subtract(B, A)",both,False,6,Program,Type II
+Double_RSG/2008/page_114.pdf,0,"in the year of 2008, what was the income from continuing operations available to common stockholders?",285.7,285.7,True,number,Type II,285.7,True,,both,True,0,Number,Type I
+Double_RSG/2008/page_114.pdf,1,and what were the basic earnings per share?,.76,76.0,False,number,Type I,76.0,False,,both,True,1,Number,Type I
+Double_RSG/2008/page_114.pdf,2,"what, then, can be concluded to be the number of shares available?",375.9,3.76,False,program,Type I,3.759210526315789,False,"divide(285.7, 76.0)",both,True,2,Program,Type I
+Double_RSG/2008/page_114.pdf,3,"in that same year, what was the revenue?",9362.2,9362.2,True,number,Type II,9362.2,True,,both,True,3,Number,Type II
+Double_RSG/2008/page_114.pdf,4,and what was it in 2007?,9244.9,9244.9,True,number,Type I,9244.9,True,,both,True,4,Number,Type II
+Double_RSG/2008/page_114.pdf,5,"what was, then, the change over the year?",117.3,0,False,program,Type I,117.3,True,"subtract(A, B)",both,False,5,Program,Type II
+Double_RSG/2008/page_114.pdf,6,and what is this change as a percentage of the 2007 revenue?,1.3%,0.0%,False,program,Type I,1.3%,True,"multiply(divide(A, B), 100)",both,False,6,Program,Type II
+Double_RSG/2010/page_135.pdf,0,what is the expected volatility in 2009?,28.7,-28.7,False,number,Type I,-28.7,False,,both,True,0,Number,Type I
+Double_RSG/2010/page_135.pdf,1,what about in 2008?,27.3,-27.3,False,number,Type I,-27.3,False,,both,True,1,Number,Type I
+Double_RSG/2010/page_135.pdf,2,net change from 2008 to 2009?,1.4,-1.4,False,program,Type I,-1.4,False,"subtract(A, B)",both,True,2,Program,Type I
+Double_RSG/2010/page_135.pdf,3,what percentage change does this represent?,5.2%,5.1%,False,program,Type I,5.1%,False,"multiply(divide(B, A), 100)",both,True,3,Program,Type I
+Double_RSG/2010/page_135.pdf,4,what about the net change in the weighted-average estimated fair values of stock options granted from 2009 to 20010?,1.49,1.49,True,program,Type II,1.4900000000000002,True,"subtract(B, A)",both,True,4,Program,Type II
+Double_RSG/2010/page_135.pdf,5,what is the weighted-average estimated fair values of stock options granted in 2009?,3.79,3.79,True,number,Type I,3.79,True,,both,True,5,Number,Type II
+Double_RSG/2010/page_135.pdf,6,what percentage change does this represent?,39.3%,39.3%,True,program,Type I,39.3%,True,"multiply(divide(A, B), 100)",both,True,6,Program,Type II
+Double_RSG/2010/page_157.pdf,0,"in the year of 2010, what percentage did the financing proceeds represent in relation to the total of restricted cash and marketable securities?",23%,23.0%,False,program,Type II,23.0%,False,"multiply(divide(A, B), 100)",both,True,0,Program,Type I
+Double_RSG/2010/page_157.pdf,1,and how much did the outstanding surety bonds for the investee and the parent represent in relation to the ones in 2009?,1.1,110.3%,False,program,Type II,110.3%,False,"multiply(divide(A, B), 100)",both,True,1,Program,Type II
+Double_SLB/2011/page_41.pdf,0,what was the change in the schlumberger interest expense from 2010 to 2011?,207,91,False,program,Type I,91,False,"subtract(B, A)",both,True,0,Program,Type I
+Double_SLB/2011/page_41.pdf,1,and what is this change as a portion of that interest expense in 2010?,44%,0.44,False,program,Type I,44.0%,False,"multiply(divide(A, B), 100)",both,True,1,Program,Type I
+Double_SLB/2011/page_41.pdf,2,"in that same period, what was the change in the research & engineering as a percent of revenue?",-0.6,no,False,program,Type II,no,False,"subtract(multiply(divide(C, D), 100), multiply(divide(A, B), 100))",both,True,2,Program,Type II
+Double_SLB/2011/page_41.pdf,3,what was that percent in 2010?,3.3,-3.3%,False,number,Type I,44.0,False,44.0,both,True,3,Number,Type II
+Double_SLB/2011/page_41.pdf,4,"what percentage, then, does that change represent in relation to this 2010 percent of revenue?",-18.2%,-13.3%,False,program,Type I,2843.75%,False,"multiply(divide(A, B), 100)",both,True,4,Program,Type II
+Double_UA/2011/page_70.pdf,0,"in 2012, what were the future minimum lease payments for non-cancelable real property?",22926,22926.0,True,number,Type II,22926.0,True,,both,True,0,Number,Type I
+Double_UA/2011/page_70.pdf,1,and what is the total of future minimum lease payments?,185178,185178.0,True,number,Type I,185178.0,True,,both,True,1,Number,Type I
+Double_UA/2011/page_70.pdf,2,"what percentage, then, does 2012 represent in relation to this total?",12.4%,12.4%,True,program,Type I,12.4%,True,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Double_UA/2011/page_70.pdf,3,"and for the two precedent years, what was the change in the rent expense?",5.4,5.4,True,program,Type II,5.4,True,"subtract(A, B)",both,True,3,Program,Type II
+Double_UA/2011/page_70.pdf,4,what is this change as a percentage of that rent expense in 2010?,25.4%,25.4%,True,program,Type I,25.4%,True,"multiply(divide(5.4, A), 100)",both,True,4,Program,Type II
+Single_ABMD/2018/page_112.pdf-3,0,what was the operating lease value for 2021?,1901,1901.0,True,number,Type I,1901.0,True,,both,True,0,Number,Type I
+Single_ABMD/2018/page_112.pdf-3,1,what was the value in 2020?,1888,1888.0,True,number,Type II,1888.0,True,,both,True,1,Number,Type I
+Single_ABMD/2018/page_112.pdf-3,2,what is the net change in value?,13,13,True,program,Type I,13.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_ABMD/2018/page_112.pdf-3,3,what was the 2020 value?,1888,1888.0,True,number,Type II,1888.0,True,,both,True,3,Number,Type I
+Single_ABMD/2018/page_112.pdf-3,4,what is the percent change?,0.7%,0.7%,True,program,Type I,0.7%,True,"multiply(divide(subtract(A, B), B), 100)",both,True,4,Program,Type I
+Single_ADBE/2009/page_81.pdf-4,0,what is the sum of the number of years of trademarks and customer contracts and relationships?,17.0,17,True,program,Type I,17.0,True,"add(A, B)",both,True,0,Program,Type I
+Single_ADBE/2009/page_81.pdf-4,1,what is that sum divided by 2?,8.5,8.5,True,program,Type I,8.5,True,"divide(17.0, 2)",both,True,1,Program,Type I
+Single_AES/2003/page_168.pdf-1,0,what was the high end of the range of exposures for the outstanding letters of credit?,36,36,True,number,Type II,36,True,,both,True,0,Number,Type I
+Single_AES/2003/page_168.pdf-1,1,what was the low end?,1,1,True,number,Type I,1,True,,both,True,1,Number,Type I
+Single_AES/2003/page_168.pdf-1,2,what is the difference?,35,35,True,program,Type I,35,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_AES/2003/page_168.pdf-1,3,what is the number times 1000000?,35000000,35000000,True,program,Type I,35000000.0,True,"multiply(35, 1000000)",both,True,3,Program,Type I
+Single_ALLE/2017/page_118.pdf-2,0,what is the difference in recorded reserves for environmental matters from 2016 to 2017?,-1.7,-1.7,True,program,Type II,-1.7000000000000028,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_ALLE/2017/page_118.pdf-2,1,what fraction does this represent?,-0.0555,-0.0556,True,program,Type I,-0.05555555555555564,True,"divide(subtract(B, A), A)",both,True,1,Program,Type I
+Single_ALLE/2017/page_118.pdf-2,2,what percentage change does this represent?,-5.55%,-5.6%,False,program,Type I,-5.6%,False,"multiply(-0.05555555555555564, 100)",both,True,2,Program,Type I
+Single_AMAT/2012/page_37.pdf-2,0,what was the product of the dividend paid per share for the first 3 quarters in 2012?,0.27,0.000729,True,program,Type II,0.000729,True,"multiply(multiply(A, B), C)",both,True,0,Program,Type I
+Single_AMAT/2012/page_37.pdf-2,1,what was the dividend paid per share in the last quarter of 2012?,0.08,0.08,True,number,Type II,0.08,True,,both,True,1,Number,Type I
+Single_AMAT/2012/page_37.pdf-2,2,what is the sum of the dividend payments per share?,0.35,0.35,True,program,Type I,0.35,True,"add(add(add(A, B), C), D)",both,True,2,Program,Type I
+Single_AMAT/2012/page_37.pdf-2,3,what is the value of total dividends paid by the amount paid per share?,1251.4,1251.43,True,program,Type I,1251.428571,True,"divide(A, B)",both,True,3,Program,Type I
+Single_AMAT/2014/page_37.pdf-3,0,what is the change in value of an investment in the applied materials from 2009 to 2014?,83.29%,83.29,False,program,Type I,83.29,False,"subtract(B, A)",both,True,0,Program,Type I
+Single_AMAT/2014/page_37.pdf-3,1,what is the change in value of an investment in the s&p500 from 2009 to 2014?,116.39%,116.39,False,program,Type II,116.39,False,"subtract(B, A)",both,True,1,Program,Type I
+Single_AMAT/2014/page_37.pdf-3,2,what is the difference in the change of investment values?,33.1%,33.10,False,program,Type I,33.1,False,"subtract(B, A)",both,True,2,Program,Type I
+Single_AMT/2005/page_31.pdf-3,0,"what was the high price of class a common stock in the quarter ended june 30, 2005?",21.16,16.0,False,number,Type II,16.0,False,,both,True,0,Number,Type I
+Single_AMT/2005/page_31.pdf-3,1,what was the low price?,16.28,9.89,False,number,Type I,11.13,False,,both,True,1,Number,Type I
+Single_AMT/2005/page_31.pdf-3,2,what is the net change in price?,4.88,4.87,True,program,Type I,4.869999999999999,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_AMT/2005/page_31.pdf-3,3,what was the low price?,16.28,9.89,False,number,Type II,11.13,False,,both,True,3,Number,Type I
+Single_AMT/2005/page_31.pdf-3,4,what was the net change divided by the low price?,29.97%,0.492,False,program,Type I,0.4375561545372866,False,"divide(A, B)",both,True,4,Program,Type I
+Single_AMT/2007/page_35.pdf-3,0,what was the number of shares repurchased in october 2007?,3493426,3493426.0,True,number,Type I,3493426,True,,both,True,0,Number,Type I
+Single_AMT/2007/page_35.pdf-3,1,and what was the average price paid for each of those shares?,43.30,43.3,True,number,Type I,43.3,True,"divide(B, A)",both,True,1,Number,Type I
+Single_AMT/2007/page_35.pdf-3,2,"what was, then, the total amount spent in the repurchase of those shares?",151265345.8,151265345.8,True,program,Type I,151265345.8,True,"multiply(A, B)",both,True,2,Program,Type I
+Single_AMT/2007/page_35.pdf-3,3,and how much is that in millions?,151.3,151.3,True,program,Type I,0.0003851,False,"divide(A, 1000000)",both,False,3,Program,Type I
+Single_AMT/2010/page_98.pdf-2,0,"what was the expense related to customer relationships, in millions?",205.4,205.4,True,number,Type I,205.4,True,,both,True,0,Number,Type I
+Single_AMT/2010/page_98.pdf-2,1,"and what was it for network location intangibles, also in millions?",55.5,55.5,True,number,Type II,55.5,True,,both,True,1,Number,Type I
+Single_AMT/2010/page_98.pdf-2,2,"what, then, is the combined total of both of those expenses, in millions?",260.9,260.9,True,program,Type I,260.9,True,"add(A, B)",both,True,2,Program,Type I
+Single_AMT/2010/page_98.pdf-2,3,"considering the period over which this total of expenses was being amortized, what is, then, in millions, its annual average?",13.0,13.045,True,program,Type I,13.045,True,"divide(260.9, A)",both,True,3,Program,Type I
+Single_AOS/2016/page_19.pdf-1,0,what was the net change in price for a.o. smith corp from 2011 to 2016?,401.4,401.4,True,program,Type II,401.4,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_AOS/2016/page_19.pdf-1,1,what was the percent change?,401.4%,401.4%,True,program,Type I,401.4%,True,"multiply(divide(subtract(B, A), A), 100)",both,True,1,Program,Type I
+Single_AOS/2016/page_19.pdf-1,2,what was the value of the s&p midcap index at the end of 2016?,204.1,204.1,True,number,Type II,204.1,True,,both,True,2,Number,Type I
+Single_AOS/2016/page_19.pdf-1,3,what was the net change assuming a $100 initial investment?,104.1,401.4,False,program,Type I,401.3999999999999,False,"multiply(100, divide(A, 100))",both,True,3,Program,Type I
+Single_AOS/2016/page_19.pdf-1,4,what is the percent change?,104.1%,401.4%,False,number,Type I,401.4%,False,"multiply(divide(subtract(B, A), A), 100)",both,True,4,Program,Type I
+Single_AOS/2016/page_19.pdf-1,5,what is the difference in the percents?,297.3%,0,False,program,Type I,-401.4,False,"subtract(A, B)",both,True,5,Program,Type I
+Single_AWK/2017/page_136.pdf-3,0,what is the total total regulatory liabilities in 2017?,1664,1664.0,True,number,Type II,1664.0,True,,both,True,0,Number,Type I
+Single_AWK/2017/page_136.pdf-3,1,what about in 2016?,403,403.0,True,number,Type I,403.0,True,,both,True,1,Number,Type I
+Single_AWK/2017/page_136.pdf-3,2,what is the net increase?,1261,1261,True,program,Type I,1261.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_AWK/2017/page_136.pdf-3,3,what is the total total regulatory liabilities in 2016?,403,403.0,True,number,Type II,403.0,True,,both,True,3,Number,Type I
+Single_AWK/2017/page_136.pdf-3,4,what percentage change does this represent?,313%,312.9%,False,program,Type I,312.9032258064516,False,"multiply(divide(1261.0, 403.0), 100)",both,True,4,Program,Type I
+Single_BLL/2007/page_87.pdf-1,0,what was the value of accumulated other comprehensive earnings ( loss ) at the end of 2006?,-29.5,-29.5,True,number,Type I,-29.5,True,,both,True,0,Number,Type I
+Single_BLL/2007/page_87.pdf-1,1,what was the value of accumulated other comprehensive earnings ( loss ) at the end of 2005?,-100.7,-100.7,True,number,Type II,-100.7,True,,both,True,1,Number,Type I
+Single_BLL/2007/page_87.pdf-1,2,what is the 2006 value less the 2005?,71.2,71.2,True,program,Type I,71.2,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_BLL/2007/page_87.pdf-1,3,what is the percent change?,71%,-70.7%,False,program,Type I,-70.7%,False,"multiply(divide(subtract(A, B), B), 100)",both,True,3,Program,Type I
+Single_C/2015/page_314.pdf-4,0,what was the value of citi at the end of 2015?,110.14,110.14,True,number,Type I,110.14,True,,both,True,0,Number,Type I
+Single_C/2015/page_314.pdf-4,1,what was the net change of the value of citi in 2015 less a $100 initial investment?,10.14,10.14,True,program,Type I,10.14,True,"subtract(A, 100)",both,True,1,Program,Type I
+Single_C/2015/page_314.pdf-4,2,what was the percent change?,10.14%,10.1%,False,program,Type I,10.1%,False,"multiply(divide(subtract(A, B), B), 100)",both,True,2,Program,Type I
+Single_C/2017/page_205.pdf-3,0,what were the total brokerage payables in 2017?,61342,61342,True,number,Type I,61342,True,,both,True,0,Number,Type I
+Single_C/2017/page_205.pdf-3,1,and what were they in 2016?,57152,57152,True,number,Type I,57152,True,,both,True,1,Number,Type I
+Single_C/2017/page_205.pdf-3,2,"what was, then, the change over the year?",4190,4190,True,program,Type I,4190,True,"subtract(B, A)",both,True,2,Program,Type I
+Single_C/2017/page_205.pdf-3,3,what were the total brokerage payables in 2016?,57152,57152.0,True,number,Type II,57152,True,,both,True,3,Number,Type I
+Single_C/2017/page_205.pdf-3,4,"and how much does that change represent in relation to these 2016 brokerage payables, in percentage?",7.3%,7.3%,True,program,Type I,7.3%,True,"multiply(divide(A, B), 100)",both,True,4,Program,Type I
+Single_CB/2008/page_216.pdf-1,0,what was the change in the number of common shares authorized to be issued under the 2004 ltip?,4000000,4000000,True,program,Type II,4000000,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_CB/2008/page_216.pdf-1,1,and what was the original number shares authorized to be issued?,15000000,15000000,True,number,Type I,15000000,True,,both,True,1,Number,Type I
+Single_CB/2008/page_216.pdf-1,2,"how much, then, does that change represent in relation to this original number, in percentage?",26.7%,26.7%,True,program,Type I,26.7%,True,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Single_CDNS/2007/page_93.pdf-3,0,what was the gross amount of unrecognized tax benefit in 2007?,306870,306870.0,True,number,Type I,306870.0,True,,both,True,0,Number,Type I
+Single_CDNS/2007/page_93.pdf-3,1,and what was it in 2006?,337226,337226.0,True,number,Type I,337226.0,True,,both,True,1,Number,Type I
+Single_CDNS/2007/page_93.pdf-3,2,"what was, then, the change over the year?",-30356,-30356,True,program,Type I,-30356.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_CDNS/2007/page_93.pdf-3,3,"and how much does this change represent in relation to the 2006 gross amount, in percentage?",-9.0%,-9.0%,True,program,Type I,-9.0%,True,"multiply(divide(A, B), 100)",both,True,3,Program,Type I
+Single_CDNS/2012/page_58.pdf-1,0,what was the number of shares if the closing price is $20?,21.4,,False,program,Type I,no,False,A,both,True,0,Number,Type I
+Single_CDNS/2012/page_58.pdf-1,1,and if the closing price is $11?,0.9,0.9,True,program,Type I,0.9,True,A,both,True,1,Number,Type I
+Single_CDNS/2012/page_58.pdf-1,2,so what is the difference in shares to be issued in these two scenarios?,20.5,20.5,True,program,Type I,-20.5,False,"subtract(B, A)",both,False,2,Program,Type I
+Single_CDNS/2012/page_58.pdf-1,3,and the percentage difference in the number of shares to be issued if the stock price closes at $11 over $20?,278%,-95.8%,False,program,Type I,-95.8%,False,"multiply(divide(subtract(B, A), A), 100)",both,True,3,Program,Type I
+Single_CDW/2015/page_35.pdf-2,0,what was net income in 2015?,403.1,403.1,True,number,Type I,403.1,True,,both,True,0,Number,Type I
+Single_CDW/2015/page_35.pdf-2,1,what was the value of stock compensation?,31.2,31.2,True,number,Type II,31.2,True,,both,True,1,Number,Type I
+Single_CDW/2015/page_35.pdf-2,2,what is the sum total?,434.3,434.3,True,program,Type I,434.3,True,"add(A, B)",both,True,2,Program,Type I
+Single_CDW/2015/page_35.pdf-2,3,what is that value times 1000000?,434300000,434300000,True,program,Type I,434300000.0,True,"multiply(A, 1000000)",both,True,3,Program,Type I
+Single_CE/2009/page_35.pdf-2,0,what was the difference in average price paid per share between october 2009 and december 2009?,7.49,7.49,True,program,Type II,7.49,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_CE/2009/page_35.pdf-2,1,and as a percentage of the original price?,30.5%,30.5%,True,program,Type I,30.5%,True,"multiply(divide(7.49, A), 100)",both,True,1,Program,Type I
+Single_DVN/2012/page_100.pdf-1,0,what is 100 divided by the percent of proved reserves?,3.57,3.57,True,program,Type II,3.5714285714285716,True,"divide(100, A)",both,True,0,Program,Type I
+Single_DVN/2012/page_100.pdf-1,1,what is the number of mmboe of proved undeveloped reserves?,840,840.0,True,number,Type II,840.0,True,,both,True,1,Number,Type I
+Single_DVN/2012/page_100.pdf-1,2,what is the product of the two values?,2998.8,2998.8,True,program,Type I,3000.0,False,"multiply(A, B)",both,False,2,Program,Type I
+Single_ECL/2015/page_70.pdf-2,0,"what was the percent of lifo inventories as a percent of consolidated inventories as of december 31, 2015?",39,no,False,program,Type I,no,False,"multiply(divide(A, B), 100)",both,True,0,Number,Type I
+Single_ECL/2015/page_70.pdf-2,1,and what was that in 2014?,37,37%,False,number,Type I,37%,False,,both,True,1,Number,Type I
+Single_ECL/2015/page_70.pdf-2,2,"what was, then, the combined percent of lifo inventories as a percent of consolidated inventories for both years?",76.0,no,False,program,Type I,76%,False,"add(A, B)",both,True,2,Program,Type I
+Single_ECL/2015/page_70.pdf-2,3,and what is the average annual percent for that same period?,38,38%,False,program,Type I,38.0,True,"divide(add(A, B), 2)",both,False,3,Program,Type I
+Single_ECL/2017/page_95.pdf-3,0,what was the net change in the balance of gross liability for unrecognized tax benefits from 2015 to 2016?,1.4,1.3,True,program,Type I,1.3,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_ECL/2017/page_95.pdf-3,1,what was the percent change?,1.9%,1.7%,False,program,Type I,1.7%,False,"multiply(divide(1.3, A), 100)",both,True,1,Program,Type I
+Single_EMN/2018/page_90.pdf-1,0,what is the sum of 2017 and 2018 compensation expense recognized?,5,116,False,program,Type II,116,False,"add(A, B)",both,True,0,Program,Type I
+Single_EMN/2018/page_90.pdf-1,1,what is the total sum including 2016?,7,152,False,program,Type I,152,False,"add(A, 116)",both,True,1,Program,Type I
+Single_EOG/2018/page_89.pdf-1,0,how much do the liabilities incurred in 2018 represent in relation to the ones incurred in 2017?,1.4435,144.4%,False,program,Type I,1.4435943320429478,True,"divide(A, B)",both,False,0,Program,Type I
+Single_EOG/2018/page_89.pdf-1,1,and what is the difference between this value and the number one?,44.35%,44.4,False,program,Type I,0.44359433204294785,False,"subtract(1.4435943320429478, 1)",both,True,1,Program,Type I
+Single_EOG/2018/page_98.pdf-2,0,how much does the initial balance of 2018 represents in relation to that of 2017?,1.1041,1.104,True,program,Type I,110.4%,False,"multiply(divide(A, B), 100)",both,False,0,Program,Type I
+Single_EOG/2018/page_98.pdf-2,1,which number represents 100% in base 1?,1,1053027.0,False,program,Type II,1,True,,both,False,1,Number,Type I
+Single_EOG/2018/page_98.pdf-2,2,what is the difference between that division and 1?,10.41%,0.104,False,program,Type I,no,False,"subtract(A, B)",both,True,2,Program,Type I
+Single_ETR/2011/page_22.pdf-3,0,what was the difference in net revenue between 2009 and 2010?,357,357,True,program,Type II,357.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_ETR/2011/page_22.pdf-3,1,and the specific value for 2009 again?,4694,4694.0,True,number,Type I,4694.0,True,,both,True,1,Number,Type I
+Single_ETR/2011/page_22.pdf-3,2,so what was the percentage change during this time?,7.61%,7.6%,False,program,Type I,7.6%,False,"multiply(divide(subtract(B, A), A), 100)",both,True,2,Program,Type I
+Single_EW/2016/page_92.pdf-1,0,"what were the matching contributions in the year of 2016, in millions?",17.3,17.3,True,number,Type I,17.3,True,,both,True,0,Number,Type I
+Single_EW/2016/page_92.pdf-1,1,"and what were they in 2014, also in millions?",12.8,12.8,True,number,Type II,12.8,True,,both,True,1,Number,Type I
+Single_EW/2016/page_92.pdf-1,2,"what was, then, in millions, the change in matching contributions over the years?",4.5,4.5,True,program,Type I,4.5,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_EW/2016/page_92.pdf-1,3,"what was the total of matching contributions in the year of 2014, in millions?",12.8,12.8,True,number,Type I,12.8,True,,both,True,3,Number,Type I
+Single_EW/2016/page_92.pdf-1,4,"how much, then, does that change represent in relation to this 2014 total, in percentage?",35%,35.2%,False,program,Type I,35.2%,False,"multiply(divide(A, B), 100)",both,True,4,Program,Type I
+Single_FITB/2013/page_163.pdf-3,0,what were the nonrecurring losses in 2013?,19,45,False,number,Type I,45,False,,both,True,0,Number,Type I
+Single_FITB/2013/page_163.pdf-3,1,and in 2012?,17,74,False,number,Type II,74,False,,both,True,1,Number,Type I
+Single_FITB/2013/page_163.pdf-3,2,so what was the difference in this value between the two years?,2,29,False,program,Type I,29.0,False,"subtract(B, A)",both,True,2,Program,Type I
+Single_FITB/2013/page_163.pdf-3,3,and the percentage change for this period?,11.8%,-39.2%,False,program,Type I,-39.2%,False,"multiply(divide(subtract(A, B), B), 100)",both,True,3,Program,Type I
+Single_GS/2013/page_195.pdf-1,0,what is 8% divided by 100?,.08,0.08,True,program,Type II,0.0008,True,"divide(A, 10000)",both,True,0,Program,Type I
+Single_GS/2013/page_195.pdf-1,1,what is that value times 134935?,10795,10794.8,True,program,Type I,107.948,False,"multiply(0.0008, 134935)",both,False,1,Program,Type I
+Single_GS/2013/page_195.pdf-1,2,what is the value of risk weighted assets at the end of 2013?,134935,134935.0,True,number,Type II,134935.0,True,,both,True,2,Number,Type I
+Single_GS/2013/page_195.pdf-1,3,what is that value less the product of assets by the capital ratio?,124137,0,False,program,Type I,2010639.448,False,"subtract(A, multiply(B, C))",both,True,3,Program,Type I
+Single_GS/2014/page_134.pdf-4,0,what was the net change in value of collateral posted from 2013 to 2014?,12646,12646,True,program,Type II,12646.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_GS/2014/page_134.pdf-4,1,what was the 2013 value?,18178,18178.0,True,number,Type I,18178.0,True,,both,True,1,Number,Type I
+Single_GS/2014/page_134.pdf-4,2,what is the change divided by the 2013 value?,70%,0.70,False,program,Type I,0.6956760919793157,False,"divide(A, B)",both,True,2,Program,Type I
+Single_HII/2012/page_127.pdf-1,0,what is the number of shares issued times the price per share?,13681166837,136811668.37,False,program,Type II,136811668.37,False,"multiply(A, B)",both,True,0,Program,Type I
+Single_HII/2012/page_127.pdf-1,1,what is that simplified?,13.7,136.81,False,program,Type I,no,False,,both,True,1,Program,Type I
+Single_IP/2006/page_19.pdf-1,0,what was the net change in industry segment operating profits from 2004 to 2005?,-81,-81,True,program,Type I,-81.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_IP/2006/page_19.pdf-1,1,what was the value of industry segment operating profits in 2004?,1703,1703.0,True,number,Type I,1703.0,True,,both,True,1,Number,Type I
+Single_IP/2006/page_19.pdf-1,2,what is the percent change?,-5%,-4.8%,False,program,Type I,-4.8%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Single_JPM/2016/page_73.pdf-4,0,what was the value of the kbw bank index in 2016?,258.82,258.82,True,number,Type II,258.82,True,,both,True,0,Number,Type I
+Single_JPM/2016/page_73.pdf-4,1,and what was the change in value of the stock from 2011 to 2016?,158.82,198.31,False,program,Type II,158.82,True,"subtract(B, A)",both,False,1,Program,Type I
+Single_JPM/2016/page_73.pdf-4,2,how much does that change represent in relation to the original 2011 value?,158.82%,198.3%,False,program,Type I,no,False,"multiply(divide(B, C), 100)",both,True,2,Program,Type I
+Single_LKQ/2009/page_77.pdf-1,0,what was the net change in value of rental expense for operating leases from 2007 to 2008?,22.4,22.4,True,program,Type II,22.4,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_LKQ/2009/page_77.pdf-1,1,what is that difference divided by the 2007 value?,84%,0.84,False,program,Type I,0.8421052631578947,False,"divide(22.4, A)",both,True,1,Program,Type I
+Single_LMT/2012/page_45.pdf-3,0,what was the change in net sales for mfc from 2010 to 2011?,533,533,True,program,Type II,533.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_LMT/2012/page_45.pdf-3,1,and what was the total of net sales for mfc in 2010?,6930,6930.0,True,number,Type I,6930.0,True,,both,True,1,Number,Type I
+Single_LMT/2012/page_45.pdf-3,2,"how much, then, does that change represent in relation to this 2010 total?",7.7%,7.7%,True,program,Type I,7.7%,True,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Single_LMT/2013/page_89.pdf-1,0,what was the number of rsus nonvested as of 12/31/13?,3859,3859.0,True,number,Type I,3859.0,True,,both,True,0,Number,Type I
+Single_LMT/2013/page_89.pdf-1,1,and as of 12/3/12?,4822,4822.0,True,number,Type I,4822.0,True,,both,True,1,Number,Type I
+Single_LMT/2013/page_89.pdf-1,2,so what was the difference between these two balances?,-963,-963,True,program,Type I,963.0,False,"subtract(B, A)",both,False,2,Program,Type I
+Single_LMT/2013/page_89.pdf-1,3,and the amount as of 12/31/12 again?,4822,4822.0,True,number,Type I,4822.0,True,,both,True,3,Number,Type I
+Single_LMT/2013/page_89.pdf-1,4,so what was the percentage change?,-20%,-20.0%,False,program,Type I,-20.0%,False,"multiply(divide(subtract(B, A), A), 100)",both,True,4,Program,Type I
+Single_MA/2010/page_107.pdf-1,0,what was the difference in the fair value of significant unobservable inputs between 2008 and 2009?,-12,12,False,program,Type II,-12.0,True,"subtract(B, A)",both,False,0,Program,Type I
+Single_MA/2010/page_107.pdf-1,1,and the specific value for 2008?,192,192.0,True,number,Type I,192.0,True,,both,True,1,Number,Type I
+Single_MA/2010/page_107.pdf-1,2,so then what is the percentage change between the two years?,-6.25%,6.3%,False,program,Type I,-6.25%,True,"multiply(divide(subtract(B, A), A), 100)",both,False,2,Program,Type I
+Single_MMM/2007/page_39.pdf-1,0,"what is the difference between the total debt at december 31, 2007 and that at december 31, 2006?",1.367,1.367,True,program,Type II,1.367,True,"subtract(A, B)",both,True,0,Program,Type I
+Single_MMM/2007/page_39.pdf-1,1,"how much does that difference represents in relation to the total debt at december 31, 2006?",38.5%,38.5%,True,program,Type I,38.5%,True,"multiply(divide(subtract(A, B), B), 100)",both,True,1,Program,Type I
+Single_MRO/2008/page_130.pdf-3,0,what was the total value of goodwill at the end of 2007?,2899,2899.0,True,number,Type II,2899.0,True,,both,True,0,Number,Type I
+Single_MRO/2008/page_130.pdf-3,1,what was the value at the end of 2008?,1447,1447.0,True,number,Type I,1447.0,True,,both,True,1,Number,Type I
+Single_MRO/2008/page_130.pdf-3,2,what is the net change in value?,-1452,-1452,True,program,Type I,-1452.0,True,"subtract(B, A)",both,True,2,Program,Type I
+Single_MRO/2008/page_130.pdf-3,3,what is the percent change?,-50.1%,-50.1%,True,program,Type I,-50.1%,True,"multiply(divide(subtract(B, A), A), 100)",both,True,3,Program,Type I
+Single_MRO/2008/page_146.pdf-2,0,what was the minimal rental value in 2008?,245,245,True,number,Type II,245.0,True,,both,True,0,Number,Type I
+Single_MRO/2008/page_146.pdf-2,1,what was the minimal rental value in 2006?,172,172,True,number,Type II,172.0,True,,both,True,1,Number,Type I
+Single_MRO/2008/page_146.pdf-2,2,what was the change in value?,73,73,True,program,Type I,73.0,True,"subtract(B, A)",both,True,2,Program,Type I
+Single_MRO/2008/page_146.pdf-2,3,what is the percent change?,42.4%,42.4%,True,program,Type I,42.4%,True,"multiply(divide(A, B), 100)",both,True,3,Program,Type I
+Single_MRO/2009/page_107.pdf-4,0,what was the pretax income from discontinued operations in 2009?,80,80.0,True,number,Type II,80.0,True,,both,True,0,Number,Type I
+Single_MRO/2009/page_107.pdf-4,1,and what was it in 2007?,281,281.0,True,number,Type I,281.0,True,A,both,True,1,Number,Type I
+Single_MRO/2009/page_107.pdf-4,2,"what was, then, the change in pretax income from discontinued operations over the years?",-201,-201,True,program,Type I,-201.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_MRO/2009/page_107.pdf-4,3,what was the pretax income from discontinued operations in 2007?,281,281.0,True,number,Type I,281.0,True,,both,True,3,Number,Type I
+Single_MRO/2009/page_107.pdf-4,4,and how much does that change represent in relation to this 2007 pretax income?,-71.5%,-71.5%,True,program,Type I,-71.5%,True,"multiply(divide(A, B), 100)",both,True,4,Program,Type I
+Single_MRO/2012/page_41.pdf-1,0,what is the total revenue in 2012?,15688,15688.0,True,number,Type II,15688.0,True,,both,True,0,Number,Type I
+Single_MRO/2012/page_41.pdf-1,1,what about in 2011?,14663,14663.0,True,number,Type I,14663.0,True,,both,True,1,Number,Type I
+Single_MRO/2012/page_41.pdf-1,2,what is the net increase in total revenue?,1025,1025,True,program,Type I,1025.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_MRO/2012/page_41.pdf-1,3,what growth rate does this represent?,7.0%,7.5%,False,program,Type I,7.0%,True,"multiply(divide(subtract(B, A), A), 100)",both,False,3,Program,Type I
+Single_PM/2015/page_32.pdf-3,0,what is the value of an investment in s&p500 in 2011?,102.10,102.1,True,number,Type II,102.1,True,,both,True,0,Number,Type I
+Single_PM/2015/page_32.pdf-3,1,what is the change in the value of this investment from 2010 to 2011?,2.1,2.1,True,program,Type I,2.0999999999999943,True,"subtract(A, B)",both,True,1,Program,Type I
+Single_PM/2015/page_32.pdf-3,2,what roi does this represent?,2.1%,2.1%,True,program,Type I,4861.904761904775,False,"multiply(divide(B, subtract(A, B)), 100)",both,False,2,Program,Type I
+Single_PM/2017/page_25.pdf-3,0,what was the pmi value at the end of 2017 less 100?,56.8,56.8,True,program,Type II,56.8,True,"subtract(A, 100)",both,True,0,Program,Type I
+Single_PM/2017/page_25.pdf-3,1,"now, what is that value divided by 100?",56.8%,0.568,False,program,Type I,0.568,False,"divide(56.8, 100)",both,True,1,Program,Type I
+Single_PM/2017/page_25.pdf-3,2,what was the s&p value at the end of 2017?,208.10,208.1,True,number,Type II,208.1,True,,both,True,2,Number,Type I
+Single_PM/2017/page_25.pdf-3,3,what was the s&p value at the end of 2017 less 100?,108.1,108.1,True,program,Type I,108.1,True,"subtract(A, 100)",both,True,3,Program,Type I
+Single_PM/2017/page_25.pdf-3,4,"now, what is that value divided by 100?",108.1%,1.081,False,program,Type I,1.081,False,"divide(A, 100)",both,True,4,Program,Type I
+Single_PM/2017/page_25.pdf-3,5,what is the difference of the normalized values of pmi and the s&p?,-51.3%,0.513,False,program,Type I,0.0,False,"subtract(A, B)",both,True,5,Program,Type I
+Single_PNC/2011/page_183.pdf-4,0,what was the total fair value of incentive/performance unit share and restricted stock/unit awards in 2011?,52,52,True,number,Type I,106380.95,False,,both,False,0,Number,Type I
+Single_PNC/2011/page_183.pdf-4,1,and what was it in 2010?,39,39,True,number,Type I,39,True,A,both,True,1,Number,Type I
+Single_PNC/2011/page_183.pdf-4,2,"what was, then, the change over the year?",13,13,True,program,Type I,106341.95,False,"subtract(A, B)",both,False,2,Program,Type I
+Single_PNC/2011/page_183.pdf-4,3,what was the total fair value of incentive/performance unit share and restricted stock/unit awards in 2010?,39,39,True,number,Type II,39,True,,both,True,3,Number,Type I
+Single_PNC/2011/page_183.pdf-4,4,"and how much does that change represent in relation to this 2010 fair value, in percentage?",33.3%,33.3%,True,program,Type I,272671.7%,False,"multiply(divide(A, B), 100)",both,False,4,Program,Type I
+Single_PPG/2016/page_42.pdf-4,0,what was the value for research and development net from 2015?,476,476.0,True,number,Type I,476.0,True,,both,True,0,Number,Type I
+Single_PPG/2016/page_42.pdf-4,1,what was the value in 2014?,483,483.0,True,number,Type I,483.0,True,,both,True,1,Number,Type I
+Single_PPG/2016/page_42.pdf-4,2,what is the net change in value?,-7,-7,True,program,Type I,-7.0,True,"subtract(A, B)",both,True,2,Program,Type I
+Single_PPG/2016/page_42.pdf-4,3,what is the 2014 value?,483,483.0,True,number,Type II,483.0,True,,both,True,3,Number,Type I
+Single_PPG/2016/page_42.pdf-4,4,what is the net change over that?,-1%,-1.4%,False,program,Type I,-1.4%,False,"multiply(divide(A, B), 100)",both,True,4,Program,Type I
+Single_RCL/2012/page_80.pdf-1,0,what is net change in total value of intangible assets from 2011 to 2012?,-14017,-14017,True,program,Type I,-14017.0,True,"subtract(A, B)",both,True,0,Program,Type I
+Single_RCL/2012/page_80.pdf-1,1,what is the total value of intangible assets in 2011?,218883,218883.0,True,number,Type II,218883.0,True,,both,True,1,Number,Type I
+Single_RCL/2012/page_80.pdf-1,2,what percentage change does this represent?,-6.4%,-6.4%,True,program,Type I,-6.4%,True,"divide(A, B)",both,True,2,Program,Type I
+Single_RSG/2015/page_127.pdf-2,0,what was the change in value of weighted-average estimated fair values of stock options from 2013 to 2014?,0.47,0.47,True,program,Type II,0.47,True,"subtract(A, B)",both,True,0,Program,Type I
+Single_RSG/2015/page_127.pdf-2,1,what was the value in 2013?,5.27,5.27,True,number,Type I,5.27,True,,both,True,1,Number,Type I
+Single_RSG/2015/page_127.pdf-2,2,what was the percent change?,8.9%,8.9%,True,program,Type I,8.9%,True,"multiply(divide(B, A), 100)",both,True,2,Program,Type I
+Single_STT/2008/page_109.pdf-4,0,what was the change in value of commercial papers outstanding from 2007 to 2008?,0.23,0.23,True,program,Type II,0.23,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_STT/2008/page_109.pdf-4,1,what was the value of outstanding commercial papers in 2007?,2.36,2.36,True,number,Type II,2.36,True,,both,True,1,Number,Type I
+Single_STT/2008/page_109.pdf-4,2,what is the percent change?,9.7%,9.7%,True,program,Type I,9.7%,True,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Single_UAA/2016/page_82.pdf-4,0,what was the difference in rent expenses included in sg&a expenses from 2015 to 2016?,26,26,True,program,Type II,26,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_UAA/2016/page_82.pdf-4,1,what was the rent expense included in sg&a expenses in 2015?,83.0,83.0,True,number,Type I,83.0,True,,both,True,1,Number,Type I
+Single_UAA/2016/page_82.pdf-4,2,what is the percent change?,31%,31.3%,False,program,Type I,31.3%,False,"multiply(divide(A, B), 100)",both,True,2,Program,Type I
+Single_UNP/2006/page_45.pdf-2,0,what was the difference in the beginning balance of open claims between 2005 and 2006?,169,169,True,program,Type I,169.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_UNP/2006/page_45.pdf-2,1,so what was the percentage change during this time?,41.9%,4.2%,False,program,Type I,4.2%,False,"multiply(divide(subtract(B, A), A), 100)",both,True,1,Program,Type I
+Single_VLO/2011/page_126.pdf-1,0,what were the value of futures 2013 long?,15398,15398.0,True,number,Type II,15398.0,True,,both,True,0,Number,Type I
+Single_VLO/2011/page_126.pdf-1,1,what were the value of futures 2013 short?,35708,35708.0,True,number,Type II,35708.0,True,,both,True,1,Number,Type I
+Single_VLO/2011/page_126.pdf-1,2,what is the sum?,51106,51106,True,program,Type I,51106.0,True,"add(A, B)",both,True,2,Program,Type I
+Single_VLO/2011/page_126.pdf-1,3,what was the value of physical contracts 2013 long?,20310,20310.0,True,number,Type II,20310.0,True,,both,True,3,Number,Type I
+Single_VLO/2011/page_126.pdf-1,4,what is the total sum?,71416,71416,True,program,Type I,35708.0,False,"add(A, B)",both,False,4,Program,Type I
+Single_WMT/2018/page_46.pdf-2,0,what is the net change in value of u.s. segment sales for walmart from 2017 to 2018?,10644,10644,True,program,Type II,10644.0,True,"subtract(B, A)",both,True,0,Program,Type I
+Single_WMT/2018/page_46.pdf-2,1,what is that over the 2017 value?,3.5%,1.0346,False,program,Type I,3.5%,True,"multiply(divide(10644, A), 100)",both,False,1,Program,Type I
