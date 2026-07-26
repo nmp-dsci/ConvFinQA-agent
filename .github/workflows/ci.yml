@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# NOTE: a ruff lint + format gate is intentionally deferred to a follow-up
+# cleanup PR. On current main `ruff check`/`ruff format --check` fail on
+# pre-existing style debt (11 missing-docstring violations, 23 unformatted
+# files); turning the gate on here would require reformatting files that overlap
+# active in-flight work. Tests and the frontend build are enforced now; lint
+# lands once the formatting cleanup can be committed without collision.
+
+jobs:
+  python:
+    name: Python — test
+    runs-on: ubuntu-latest
+    # convfinqa/config.py runs `settings = Settings()` at import and declares
+    # `deepseek_api_key: SecretStr` as a REQUIRED field. Four test modules import
+    # that config chain at collection time, so a value must exist or pytest fails
+    # to even collect. Every test is fully stubbed (pydantic_ai TestModel,
+    # httpx.MockTransport, monkeypatch) and makes NO real DeepSeek/network call,
+    # so this placeholder (NOT a repository secret; safe to commit) unblocks the
+    # whole suite offline. Verified: `pytest tests -q` = 56 passed, 0 network calls.
+    env:
+      DEEPSEEK_API_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python and dependencies
+        run: |
+          uv python install 3.12
+          uv sync --python 3.12
+      - name: pytest
+        run: uv run pytest tests -q
+
+  frontend:
+    name: Frontend — type, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck (tsc -b --noEmit)
+        run: npm run typecheck
+      - name: Build (tsc -b --noEmit && vite build)
+        run: npm run build
+      # Playwright e2e (npm run test:e2e) is intentionally skipped in CI: it
+      # needs a running backend and a browser download. Run it locally.
+
+  # TODO(eval-gate): no committed offline eval/regression test exists on
+  # origin/main. Add a deterministic, API-key-free test that re-scores the
+  # committed evaluation/ snapshots and enforces accuracy floors, then wire an
+  # `eval-gate` job. Do not fabricate one.
+  # TODO(lint): add ruff check + ruff format --check once the formatting/docstring
+  # cleanup can be committed (see PR note above).
