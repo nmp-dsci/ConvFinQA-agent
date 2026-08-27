@@ -25,10 +25,10 @@ uv run pytest
 - **`--workers 1` is required** for the backend — in-memory session state breaks with multiple workers.
 - **Vite proxy** (`frontend/vite.config.ts`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`). Missing entries cause silent HTML-404 failures in the browser.
 - **`pred_program` column** must be present in every predictions CSV. `evaluate_cached` auto-detects its absence and forces a re-run.
-- **Cached evaluations are committed**, not regenerated. `evaluation/` (prediction CSVs, HTML reports, s7 `rules_*_v3_opt.jsonl` + `rule_attempts_*_v3_opt.jsonl`) and `runs/<gepa_name>/` (GEPA artifacts including `optimized_runner.json`) are tracked in git so v1/v2 accuracy and GEPA outcomes reproduce across machines with `REUSE_CACHE=1` and no API calls. Do not add these directories to `.gitignore`. If you change pipeline behaviour and need fresh numbers, regenerate the CSVs and commit them — do not leave the working tree dirty or rely on `REUSE_CACHE=0` to mask stale state.
+- **Cached evaluations are committed**, not regenerated. `evaluation/predictions/` (prediction CSVs, HTML reports, joined CSVs), `evaluation/diagnostics/` (s7 `rules_*_<variant>.jsonl` + `rule_attempts_*_<variant>.jsonl` + diagnostic results), and `runs/<gepa_name>/` (GEPA artifacts including `optimized_runner.json`) are tracked in git so v1/v2 accuracy and GEPA outcomes reproduce across machines with `REUSE_CACHE=1` and no API calls. Do not add these directories to `.gitignore`. If you change pipeline behaviour and need fresh numbers, regenerate the CSVs and commit them — do not leave the working tree dirty or rely on `REUSE_CACHE=0` to mask stale state.
 - **`.dspy_cache/`** (~366 MB DSPy LM cache) is the one cache that stays gitignored. Sync via `rsync` to share warm caches between machines — never commit it.
-- **`src/convfinqa/prompts/v3_opt.py` is generated**, never hand-edited. The s7 harness writes it from the four `rules_<agent>_v3_opt.jsonl` stores via `convfinqa.diagnosis.assembler`. To change v3_opt, edit the JSONL (or run the harness) and re-run `scripts/diagnose_failures.py --stage assemble`.
-- **Diagnostic and predictions HTML use a sticky inspector panel**, not inline `<details>`. Each viewable cell renders a `view` button + adjacent hidden `<pre>`; clicking pops the content into the panel above the table. Keep `evaluation/reporting.py` and `diagnosis/results_html.py` in sync.
+- **The variant module `src/convfinqa/prompts/<variant>.py` (e.g. `v3_1.py`) is generated**, never hand-edited. The s7 harness writes it from the four `rules_<agent>_<variant>.jsonl` stores via `convfinqa.diagnosis.assembler`. To change it, edit the JSONL (or run the harness) and re-run `scripts/diagnose_failures.py --stage assemble`. The variant defaults to `settings.variant` (`v3_1`); override with `--variant`/`VARIANT`.
+- **Diagnostic and predictions HTML use a sticky inspector panel**, not inline `<details>`. Each viewable cell renders a `view` button + adjacent hidden `<pre>`; clicking pops the content into the panel above the table. The shared mechanics (theme CSS, viewer panel/JS, `render_cell`, `render_page`) live in `convfinqa.reporting.html_report`; `evaluation/reporting.py` and `diagnosis/results_html.py` only supply their own columns, summary/pivot blocks, and filter JS. Change the look in one place — `html_report.py`.
 
 ## DSPy Pipeline Commands
 
@@ -63,11 +63,11 @@ uv run python scripts/diagnose_failures.py --limit 1 --reset-rules --skip-regres
 # Up to 2 retries per case
 uv run python scripts/diagnose_failures.py --limit 10 --retry-n 3
 
-# Re-assemble prompts/v3_opt.py from current rules JSONL
+# Re-assemble prompts/<variant>.py (default v3_1) from current rules JSONL
 uv run python scripts/diagnose_failures.py --stage assemble
 ```
 
-Outputs land under `evaluation/`: `diagnostic_results_v3_opt.{csv,html}`, `case_results_v3_opt.jsonl`, `rules_<agent>_v3_opt.jsonl` × 4, `rule_attempts_<agent>_v3_opt.jsonl` × 4, `unresolved_cases_v3_opt.json`.
+Outputs land under `evaluation/diagnostics/`, suffixed by the active `<variant>` (default `v3_1`): `diagnostic_results_<variant>.{csv,html}`, `case_results_<variant>.jsonl`, `rules_<agent>_<variant>.jsonl` × 4, `rule_attempts_<agent>_<variant>.jsonl` × 4, `unresolved_cases_<variant>.json`. The input predictions CSV is read from `evaluation/predictions/`.
 
 ## ConvFinQA Dataset Characteristics
 

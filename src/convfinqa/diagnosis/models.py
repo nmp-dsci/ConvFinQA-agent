@@ -37,6 +37,11 @@ class FixAttempt(BaseModel):
     failed_agent: str
     patch_applied: str
     full_prompt: str
+    # Step 2 propose metadata — populated when a propose was made; reused by
+    # the Step 2 cache to skip the specialist LLM call. Optional for back-compat
+    # with case_results_<variant>.jsonl lines written before this field existed.
+    fix_type: FixType | None = None
+    fix_confidence: float | None = None
     turn_results: list[TurnResult] = Field(default_factory=list)
     correct: bool = False
     first_failing_turn: int | None = None

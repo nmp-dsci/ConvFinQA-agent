@@ -1,10 +1,16 @@
-"""Assemble src/convfinqa/prompts/v3_opt.py from v2 + per-agent JSONL rule stores."""
+"""Assemble src/convfinqa/prompts/<variant>.py from base + per-agent JSONL rule stores.
+
+Variant name is `settings.variant` (default `v3_1`). Override at runtime via
+`--variant v3_2` on the CLI or `VARIANT=v3_2` in the env. The generated module
+path is computed at assemble time so multiple variants coexist on disk.
+"""
 
 from __future__ import annotations
 
 import importlib
 from pathlib import Path
 
+from convfinqa.config import settings
 from convfinqa.diagnosis.models import AgentName, Rule
 from convfinqa.diagnosis.rules_store import AGENTS, all_rules
 from convfinqa.prompts import load as load_prompts
@@ -16,7 +22,12 @@ _PROMPT_VAR_NAMES: dict[AgentName, str] = {
     "calculator": "CALCULATOR_PROMPT",
 }
 
-V3_OPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "v3_opt.py"
+_PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
+
+
+def variant_module_path(variant: str | None = None) -> Path:
+    """Path to src/convfinqa/prompts/<variant>.py."""
+    return _PROMPTS_DIR / f"{variant or settings.variant}.py"
 
 
 def _format_rules_block(rules: list[Rule]) -> str:
@@ -48,7 +59,9 @@ def _escape_triple_quotes(s: str) -> str:
     return s.replace('"""', '\\"\\"\\"')
 
 
-def write_v3_opt_module(prompts: dict[AgentName, str]) -> Path:
+def write_variant_module(
+    prompts: dict[AgentName, str], variant: str | None = None
+) -> Path:
     parts = [
         '"""GENERATED — assembled by convfinqa.diagnosis.assembler. Do not hand-edit."""',
         "",
@@ -62,19 +75,27 @@ def write_v3_opt_module(prompts: dict[AgentName, str]) -> Path:
         parts.append(body.rstrip("\n"))
         parts.append('"""')
         parts.append("")
-    V3_OPT_PATH.write_text("\n".join(parts))
-    return V3_OPT_PATH
+    path = variant_module_path(variant)
+    path.write_text("\n".join(parts))
+    return path
 
 
-def assemble_v3_opt(*, base_version: str = "v2") -> Path:
+def assemble_variant(*, base_version: str = "v2", variant: str | None = None) -> Path:
+    """Assemble the variant module from base prompts + variant rules store.
+
+    `base_version` is the *input* prompts module to overlay rules on top of
+    (e.g. v2 to start a fresh v3_1 run; v3_1 to chain v3_2 on top of v3_1).
+    `variant` is the *output* variant name (defaults to `settings.variant`).
+    """
+    v = variant or settings.variant
     base = load_prompts(base_version)
     rules_by_agent = all_rules()
     prompts = assemble_prompts(base, rules_by_agent)
-    path = write_v3_opt_module(prompts)
-    # Reload the generated module so callers can `prompts.load("v3_opt")` immediately.
+    path = write_variant_module(prompts, variant=v)
+    # Reload the generated module so callers can `prompts.load(variant)` immediately.
     try:
-        importlib.import_module("convfinqa.prompts.v3_opt")
-        importlib.reload(importlib.import_module("convfinqa.prompts.v3_opt"))
+        importlib.import_module(f"convfinqa.prompts.{v}")
+        importlib.reload(importlib.import_module(f"convfinqa.prompts.{v}"))
     except Exception:  # noqa: BLE001
         pass
     return path

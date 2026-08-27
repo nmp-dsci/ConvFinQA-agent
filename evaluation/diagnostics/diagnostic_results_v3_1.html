@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="color-scheme" content="dark">
-  <title>diagnostic_results_v3_opt</title>
+  <title>diagnostic_results_v3_1</title>
   <style>
 :root {
   --bg: #0b141a;
@@ -23,6 +23,13 @@ html, body { background: var(--bg); }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
        margin: 0.75em 1em; color: var(--text-main); font-size: 13px; }
 h1 { font-size: 18px; margin: 0.5em 0; color: var(--text-main); font-weight: 600; }
+.subhead { display: flex; gap: 0.6em; align-items: center; flex-wrap: wrap;
+  margin: 0 0 0.85em 0; font-size: 13px; }
+.subhead .pill { background: var(--panel2); border-radius: 999px;
+  padding: 4px 10px; color: var(--text-main); }
+.subhead .pill strong { color: var(--text-muted); font-weight: 500;
+  margin-right: 0.4em; }
+.subhead .muted { color: var(--text-muted); font-style: italic; }
 .summary { display: flex; gap: 0.75em; margin-bottom: 0.75em; flex-wrap: wrap; }
 .summary div { background: var(--panel2); border-radius: 6px; padding: 6px 12px;
                color: var(--text-main); border: 1px solid var(--border); }
@@ -82,14 +89,59 @@ pre { background: var(--bg); padding: 8px 10px; border-radius: 4px;
 .fix-box { background: rgba(0, 168, 132, 0.08); border-left: 3px solid var(--accent2);
            padding: 4px 8px; border-radius: 3px; white-space: pre-wrap;
            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.pivots { display: flex; gap: 1em; margin-bottom: 0.75em; flex-wrap: wrap; }
+.pivot { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+         padding: 8px 10px; }
+.pivot h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--text-muted); font-weight: 500; margin: 0 0 6px 0; }
+.pivot table { table-layout: auto; width: auto; }
+.pivot th, .pivot td { padding: 3px 10px; font-size: 12px;
+                       border: 1px solid var(--border); cursor: default;
+                       max-width: none; white-space: nowrap; }
+.pivot th { position: static; text-align: left; }
+.pivot td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pivot tr.total td { font-weight: 600; border-top: 2px solid var(--accent2);
+                     background: var(--panel2); }
+.pivot tr.subtotal td { color: var(--text-muted); background: var(--panel2); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
 <body>
-  <h1>diagnostic_results_v3_opt</h1>
-  <div class="summary"><div><strong>file:</strong> diagnostic_results_v3_opt.csv</div><div><strong>cases:</strong> 95</div><div><strong>rows:</strong> 95</div><div><strong>resolved:</strong> 0</div><div><strong>harness_correct:</strong> 0</div></div>
+  <h1>diagnostic_results_v3_1</h1>
+  <div class="subhead">
+    <span class="pill"><strong>variant:</strong> v3_1</span>
+    <span class="pill"><strong>prompts_version (input):</strong> v2</span>
+    <span class="muted">optimising failures of v2 → producing v3_1</span>
+  </div>
+  <div class="summary"><div><strong>file:</strong> diagnostic_results_v3_1.csv</div><div><strong>cases:</strong> 95</div><div><strong>rows:</strong> 95</div><div><strong>resolved:</strong> 0</div><div><strong>harness_correct:</strong> 0</div></div>
+  <div class="pivots"><div class="pivot"><h2>by failed_agent</h2><table><thead><tr><th>failed_agent</th><th>all</th><th>harness_correct</th><th>accuracy</th></tr></thead><tbody><tr><td>ambiguous</td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>calculator</td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td class="num">52</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>retriever</td><td class="num">22</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>triage</td><td class="num">11</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="total"><td>TOTAL</td><td class="num">95</td><td class="num">0</td><td class="num">0.0%</td></tr></tbody></table></div><div class="pivot"><h2>by failed_agent × failure_mode</h2><table><thead><tr><th>failed_agent</th><th>failure_mode</th><th>all</th><th>harness_correct</th><th>accuracy</th></tr></thead><tbody><tr><td>ambiguous</td><td>ambiguous</td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="subtotal"><td>ambiguous</td><td><em>subtotal</em></td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>calculator</td><td>execution_error</td><td class="num">4</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>calculator</td><td>missing_multiply_100_in_calc</td><td class="num">3</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>calculator</td><td>spurious_multiply_100</td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>calculator</td><td>wrong_tool_order</td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="subtotal"><td>calculator</td><td><em>subtotal</em></td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>extra_or_missing_op</td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>missing_multiply_100</td><td class="num">3</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>vague_sub_questions</td><td class="num">21</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>wrong_op</td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>wrong_sub_questions</td><td class="num">1</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>preprocess</td><td>wrong_subtract_direction</td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="subtotal"><td>preprocess</td><td><em>subtotal</em></td><td class="num">52</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>retriever</td><td>wrong_direct_lookup</td><td class="num">12</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>retriever</td><td>wrong_retrieved_value</td><td class="num">10</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="subtotal"><td>retriever</td><td><em>subtotal</em></td><td class="num">22</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>triage</td><td>wrong_conv_type</td><td class="num">2</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr><td>triage</td><td>wrong_turn_type</td><td class="num">9</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="subtotal"><td>triage</td><td><em>subtotal</em></td><td class="num">11</td><td class="num">0</td><td class="num">0.0%</td></tr>
+<tr class="total"><td colspan="2">TOTAL</td><td class="num">95</td><td class="num">0</td><td class="num">0.0%</td></tr></tbody></table></div></div>
   
     <div class="filters">
       <label><input type="checkbox" id="only-resolved"> only resolved</label>
@@ -8457,6 +8509,38 @@ A1: -0.10000000000000009</td><td><button class="view-btn" type="button" data-col
   </table>
   <script>
 let _activeViewBtn = null;
+function closeViewer() {
+  const v = document.getElementById('viewer-panel');
+  if (v) v.classList.add('hidden');
+  if (_activeViewBtn) {
+    _activeViewBtn.classList.remove('active');
+    _activeViewBtn = null;
+  }
+}
+function openViewer(btn) {
+  const content = btn.nextElementSibling;
+  if (!content) return;
+  document.getElementById('viewer-col').textContent = btn.dataset.col || '';
+  document.getElementById('viewer-row').textContent = btn.dataset.row || '';
+  document.getElementById('viewer-content').textContent = content.textContent;
+  document.getElementById('viewer-panel').classList.remove('hidden');
+  if (_activeViewBtn) _activeViewBtn.classList.remove('active');
+  _activeViewBtn = btn;
+  btn.classList.add('active');
+}
+function attachViewer() {
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (_activeViewBtn === btn) { closeViewer(); return; }
+      openViewer(btn);
+    });
+  });
+  const closeBtn = document.getElementById('viewer-close');
+  if (closeBtn) closeBtn.addEventListener('click', closeViewer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+}
+
+
 function applyFilters() {
   const onlyResolved = document.getElementById('only-resolved').checked;
   const onlyUnresolved = document.getElementById('only-unresolved').checked;
@@ -8473,27 +8557,6 @@ function applyFilters() {
     tr.classList.toggle('hidden', !show);
   });
 }
-function closeViewer() {
-  const v = document.getElementById('viewer-panel');
-  if (v) v.classList.add('hidden');
-  if (_activeViewBtn) {
-    _activeViewBtn.classList.remove('active');
-    _activeViewBtn = null;
-  }
-}
-function openViewer(btn) {
-  const content = btn.nextElementSibling;
-  if (!content) return;
-  const colName = btn.dataset.col || '';
-  const rowId = btn.dataset.row || '';
-  document.getElementById('viewer-col').textContent = colName;
-  document.getElementById('viewer-row').textContent = rowId;
-  document.getElementById('viewer-content').textContent = content.textContent;
-  document.getElementById('viewer-panel').classList.remove('hidden');
-  if (_activeViewBtn) _activeViewBtn.classList.remove('active');
-  _activeViewBtn = btn;
-  btn.classList.add('active');
-}
 function attach() {
   ['only-resolved', 'only-unresolved', 'fa-filter', 'att-filter', 'search'].forEach(id => {
     const el = document.getElementById(id);
@@ -8501,15 +8564,7 @@ function attach() {
     el.addEventListener('input', applyFilters);
     el.addEventListener('change', applyFilters);
   });
-  document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (_activeViewBtn === btn) { closeViewer(); return; }
-      openViewer(btn);
-    });
-  });
-  const closeBtn = document.getElementById('viewer-close');
-  if (closeBtn) closeBtn.addEventListener('click', closeViewer);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+  attachViewer();
 }
 document.addEventListener('DOMContentLoaded', attach);
 </script>

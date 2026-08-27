@@ -13,7 +13,7 @@ from typing import Any
 import dspy
 import pandas as pd
 
-from convfinqa.config import settings
+from convfinqa.config import PREDICTIONS_DIR, settings
 from convfinqa.evaluation import numeric_match
 
 
@@ -304,7 +304,7 @@ def main() -> None:
         )
 
         version = settings.version
-        eval_dir = Path("evaluation")
+        eval_dir = PREDICTIONS_DIR
         eval_dir.mkdir(parents=True, exist_ok=True)
         predictions_path = eval_dir / f"dspy_predictions_{version}.csv"
         write_predictions_csv(predictions_path, opt_eval_result.results)
@@ -479,7 +479,7 @@ def main() -> None:
     summary_path.write_text(json.dumps(summary, indent=2, default=str))
 
     version = settings.version
-    eval_dir = Path("evaluation")
+    eval_dir = PREDICTIONS_DIR
     eval_dir.mkdir(parents=True, exist_ok=True)
     predictions_path = eval_dir / f"dspy_predictions_{version}.csv"
     write_predictions_csv(predictions_path, opt_eval_result.results)

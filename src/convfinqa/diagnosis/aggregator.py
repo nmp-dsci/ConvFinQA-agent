@@ -1,4 +1,4 @@
-"""Build unresolved_cases_v3_opt.json from CaseResults."""
+"""Build unresolved_cases_<variant>.json from CaseResults."""
 
 from __future__ import annotations
 

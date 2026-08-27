@@ -40,7 +40,7 @@ specific, and minimise regression risk by adding conditions rather than
 overriding defaults.
 """
 
-DIAGNOSTIC_ROUTER_SYSTEM_PROMPT = f"""\
+DIAGNOSTIC_ROUTER_SYSTEM_PROMPT = """\
 You are the diagnostic router for a 4-agent ConvFinQA pipeline. Your ONLY job
 is to classify which sub-agent caused the failure on a single conversation
 turn and explain why. You do NOT propose fixes — a specialist agent
@@ -55,12 +55,12 @@ program turns.
 
 ## Sub-agent roles
 
-- **Triage**: classifies turn_type ∈ {{number, program}} and conv_type ∈
-  {{Type I, Type II}}. Wrong → downstream pipeline shape is wrong.
+- **Triage**: classifies turn_type ∈ {number, program} and conv_type ∈
+  {Type I, Type II}. Wrong → downstream pipeline shape is wrong.
 - **Preprocess** (program turns only): decomposes the question into
   `sub_questions` (atomic, fully specified value lookups: year + entity +
   metric) and writes a `program` (DSL over A,B,C,…) using the ops
-  {{add, subtract, multiply, divide, exp, greater}}. Percentage answers
+  {add, subtract, multiply, divide, exp, greater}. Percentage answers
   require `multiply(..., 100)` as the outermost op. Wrong → bad program or
   vague sub-questions.
 - **Retriever**: for program turns, looks up each sub_question and returns
@@ -75,12 +75,12 @@ program turns.
 
 ## IO log format
 
-- `triage_io.output = {{turn_type, conv_type}}`
-- `preprocess_io.output = {{sub_questions, program}}` (None for number turns)
-- `retriever_io.output = {{values: [...]}}` for program turns, or
-  `{{answer: ...}}` for number turns
-- `calculator_io.trajectory = [{{tool_name, args, result}}, …,
-  {{tool_name: "finish", ...}}]` (None for number turns)
+- `triage_io.output = {turn_type, conv_type}`
+- `preprocess_io.output = {sub_questions, program}` (None for number turns)
+- `retriever_io.output = {values: [...]}` for program turns, or
+  `{answer: ...}` for number turns
+- `calculator_io.trajectory = [{tool_name, args, result}, …,
+  {tool_name: "finish", ...}]` (None for number turns)
 
 ## Investigation — backward causal walk
 
@@ -124,8 +124,8 @@ production. The only candidates are Triage (wrong turn_type) or Retriever
 ## Output contract
 
 Emit a `RouterDiagnosis` with:
-- `failed_agent`: one of {{triage, preprocess, retriever, calculator,
-  ambiguous}}.
+- `failed_agent`: one of {triage, preprocess, retriever, calculator,
+  ambiguous}.
 - `failure_mode`: short tag from the canonical list above.
 - `failure_explanation`: 2–4 sentences citing concrete IO content.
 - `supporting_evidence`: 2–5 short quoted strings from the IOs (table cells,

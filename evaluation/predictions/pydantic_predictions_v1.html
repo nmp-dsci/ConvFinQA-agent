@@ -5,86 +5,112 @@
   <meta name="color-scheme" content="dark">
   <title>Pydantic predictions — gepa_real_20260502_005251</title>
   <style>
-    :root {
-      --bg: #0b141a;
-      --panel: #111b21;
-      --panel2: #202c33;
-      --border: #2a3942;
-      --accent: #005c4b;
-      --accent2: #00a884;
-      --text-main: #e9edef;
-      --text-muted: #8696a0;
-      --danger: #f15c6d;
-      --row-correct: rgba(0, 168, 132, 0.10);
-      --row-wrong: rgba(241, 92, 109, 0.10);
-    }
-    html, body { background: var(--bg); }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           margin: 0.75em 1em; color: var(--text-main); font-size: 13px; }
-    h1 { font-size: 18px; margin: 0.5em 0; color: var(--text-main); font-weight: 600; }
-    .summary { display: flex; gap: 0.75em; margin-bottom: 0.75em; flex-wrap: wrap; }
-    .summary div { background: var(--panel2); border-radius: 6px; padding: 6px 12px;
-                   color: var(--text-main); border: 1px solid var(--border); }
-    .summary strong { color: var(--text-muted); font-weight: 500; margin-right: 0.4em; }
-    .filters { display: flex; gap: 1em; margin-bottom: 0.75em; flex-wrap: wrap;
-               align-items: center; background: var(--panel); padding: 8px 12px;
-               border-radius: 6px; border: 1px solid var(--border); }
-    .filters label { color: var(--text-muted); display: inline-flex; align-items: center;
-                     gap: 0.4em; }
-    .filters input[type="text"], .filters select {
-      background: var(--panel2); color: var(--text-main); border: 1px solid var(--border);
-      border-radius: 4px; padding: 3px 6px; font: inherit;
-    }
-    .filters input[type="checkbox"] { accent-color: var(--accent2); }
-    table { border-collapse: collapse; width: 100%; table-layout: auto;
-            background: var(--panel); border: 1px solid var(--border); }
-    th, td { border: 1px solid var(--border); padding: 5px 8px; vertical-align: top;
-             max-width: 420px; word-wrap: break-word; }
-    th { background: var(--panel2); color: var(--text-muted); position: sticky;
-         top: 0; z-index: 1; cursor: pointer; font-weight: 500; text-align: left;
-         text-transform: uppercase; font-size: 11px; letter-spacing: 0.03em; }
-    td { color: var(--text-main); }
-    tbody tr:hover td { background: var(--panel2); }
-    tr.row-correct td { background: var(--row-correct); }
-    tr.row-wrong td { background: var(--row-wrong); }
-    tr.row-correct:hover td { background: rgba(0, 168, 132, 0.18); }
-    tr.row-wrong:hover td { background: rgba(241, 92, 109, 0.18); }
-    tr.hidden { display: none; }
-    .hidden-content { display: none; }
-    pre { background: var(--bg); padding: 8px 10px; border-radius: 4px;
-          border: 1px solid var(--border); color: var(--text-main);
-          max-height: 320px; overflow: auto; font-size: 12px;
-          white-space: pre-wrap; word-break: break-word;
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .view-btn { background: transparent; color: var(--accent2);
-                border: 1px solid var(--border); border-radius: 4px;
-                padding: 2px 8px; cursor: pointer; font: inherit; font-size: 12px; }
-    .view-btn:hover { background: var(--panel2); color: var(--text-main); }
-    .view-btn.active { background: var(--accent); color: var(--text-main);
-                       border-color: var(--accent2); }
-    .viewer { position: sticky; top: 0; z-index: 5; background: var(--panel);
-              border: 1px solid var(--border); border-radius: 6px;
-              padding: 8px 12px; margin-bottom: 0.75em; }
-    .viewer.hidden { display: none; }
-    .viewer-header { display: flex; justify-content: space-between;
-                     align-items: center; margin-bottom: 6px; gap: 1em; }
-    .viewer-label { color: var(--text-muted); font-size: 12px;
-                    text-transform: uppercase; letter-spacing: 0.04em; }
-    .viewer-label strong { color: var(--text-main); margin-right: 0.4em;
-                           text-transform: none; letter-spacing: 0;
-                           font-weight: 500; }
-    .viewer-close { background: transparent; color: var(--text-muted);
-                    border: 0; font-size: 18px; cursor: pointer; padding: 0 6px; }
-    .viewer-close:hover { color: var(--danger); }
-    .viewer pre { margin: 0; max-height: 50vh; }
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    </style>
+:root {
+  --bg: #0b141a;
+  --panel: #111b21;
+  --panel2: #202c33;
+  --border: #2a3942;
+  --accent: #005c4b;
+  --accent2: #00a884;
+  --text-main: #e9edef;
+  --text-muted: #8696a0;
+  --danger: #f15c6d;
+  --row-correct: rgba(0, 168, 132, 0.10);
+  --row-wrong: rgba(241, 92, 109, 0.10);
+  --row-pending: rgba(150, 150, 150, 0.07);
+}
+html, body { background: var(--bg); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+       margin: 0.75em 1em; color: var(--text-main); font-size: 13px; }
+h1 { font-size: 18px; margin: 0.5em 0; color: var(--text-main); font-weight: 600; }
+.subhead { display: flex; gap: 0.6em; align-items: center; flex-wrap: wrap;
+  margin: 0 0 0.85em 0; font-size: 13px; }
+.subhead .pill { background: var(--panel2); border-radius: 999px;
+  padding: 4px 10px; color: var(--text-main); }
+.subhead .pill strong { color: var(--text-muted); font-weight: 500;
+  margin-right: 0.4em; }
+.subhead .muted { color: var(--text-muted); font-style: italic; }
+.summary { display: flex; gap: 0.75em; margin-bottom: 0.75em; flex-wrap: wrap; }
+.summary div { background: var(--panel2); border-radius: 6px; padding: 6px 12px;
+               color: var(--text-main); border: 1px solid var(--border); }
+.summary strong { color: var(--text-muted); font-weight: 500; margin-right: 0.4em; }
+.filters { display: flex; gap: 1em; margin-bottom: 0.75em; flex-wrap: wrap;
+           align-items: center; background: var(--panel); padding: 8px 12px;
+           border-radius: 6px; border: 1px solid var(--border); }
+.filters label { color: var(--text-muted); display: inline-flex; align-items: center;
+                 gap: 0.4em; }
+.filters input[type="text"], .filters select {
+  background: var(--panel2); color: var(--text-main); border: 1px solid var(--border);
+  border-radius: 4px; padding: 3px 6px; font: inherit;
+}
+.filters input[type="checkbox"] { accent-color: var(--accent2); }
+table { border-collapse: collapse; width: 100%; table-layout: auto;
+        background: var(--panel); border: 1px solid var(--border); }
+th, td { border: 1px solid var(--border); padding: 5px 8px; vertical-align: top;
+         max-width: 420px; word-wrap: break-word; }
+th { background: var(--panel2); color: var(--text-muted); position: sticky;
+     top: 0; z-index: 1; cursor: pointer; font-weight: 500; text-align: left;
+     text-transform: uppercase; font-size: 11px; letter-spacing: 0.03em; }
+td { color: var(--text-main); }
+tbody tr:hover td { background: var(--panel2); }
+tr.row-correct td { background: var(--row-correct); }
+tr.row-wrong td { background: var(--row-wrong); }
+tr.row-pending td { background: var(--row-pending); }
+tr.row-correct:hover td { background: rgba(0, 168, 132, 0.18); }
+tr.row-wrong:hover td { background: rgba(241, 92, 109, 0.18); }
+tr.hidden { display: none; }
+.hidden-content { display: none; }
+pre { background: var(--bg); padding: 8px 10px; border-radius: 4px;
+      border: 1px solid var(--border); color: var(--text-main);
+      max-height: 320px; overflow: auto; font-size: 12px;
+      white-space: pre-wrap; word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.view-btn { background: transparent; color: var(--accent2); border: 1px solid var(--border);
+            border-radius: 4px; padding: 2px 8px; cursor: pointer; font: inherit;
+            font-size: 12px; }
+.view-btn:hover { background: var(--panel2); color: var(--text-main); }
+.view-btn.active { background: var(--accent); color: var(--text-main);
+                   border-color: var(--accent2); }
+.viewer { position: sticky; top: 0; z-index: 5; background: var(--panel);
+          border: 1px solid var(--border); border-radius: 6px;
+          padding: 8px 12px; margin-bottom: 0.75em; }
+.viewer.hidden { display: none; }
+.viewer-header { display: flex; justify-content: space-between; align-items: center;
+                 margin-bottom: 6px; gap: 1em; }
+.viewer-label { color: var(--text-muted); font-size: 12px;
+                text-transform: uppercase; letter-spacing: 0.04em; }
+.viewer-label strong { color: var(--text-main); margin-right: 0.4em;
+                       text-transform: none; letter-spacing: 0; font-weight: 500; }
+.viewer-close { background: transparent; color: var(--text-muted); border: 0;
+                font-size: 18px; cursor: pointer; padding: 0 6px; }
+.viewer-close:hover { color: var(--danger); }
+.viewer pre { margin: 0; max-height: 50vh; }
+.placeholder { color: var(--text-muted); font-style: italic; }
+.fix-box { background: rgba(0, 168, 132, 0.08); border-left: 3px solid var(--accent2);
+           padding: 4px 8px; border-radius: 3px; white-space: pre-wrap;
+           font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.pivots { display: flex; gap: 1em; margin-bottom: 0.75em; flex-wrap: wrap; }
+.pivot { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+         padding: 8px 10px; }
+.pivot h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--text-muted); font-weight: 500; margin: 0 0 6px 0; }
+.pivot table { table-layout: auto; width: auto; }
+.pivot th, .pivot td { padding: 3px 10px; font-size: 12px;
+                       border: 1px solid var(--border); cursor: default;
+                       max-width: none; white-space: nowrap; }
+.pivot th { position: static; text-align: left; }
+.pivot td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pivot tr.total td { font-weight: 600; border-top: 2px solid var(--accent2);
+                     background: var(--panel2); }
+.pivot tr.subtotal td { color: var(--text-muted); background: var(--panel2); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+</style>
 </head>
 <body>
   <h1>Pydantic predictions — gepa_real_20260502_005251</h1>
-  <div class="summary"><div><strong>file:</strong> pydantic_predictions_v1.csv</div><div><strong>turns:</strong> 770</div><div><strong>correct:</strong> 562</div><div><strong>accuracy:</strong> 73.0%</div></div>
+  <div class="summary"><div><strong>file:</strong> pydantic_predictions_v1.csv</div><div><strong>turns:</strong> 770</div><div><strong>turns-correct:</strong> 562</div><div><strong>turns-incorrect:</strong> 208</div><div><strong>accuracy-correct:</strong> 73.0%</div><div><strong>reports:</strong> 200</div><div><strong>reports-correct:</strong> 94</div><div><strong>reports-incorrect:</strong> 106</div><div><strong>reports-accuracy:</strong> 47.0%</div></div>
   
     <div class="filters">
       <label><input type="checkbox" id="only-wrong"> only wrong</label>
@@ -56475,7 +56501,39 @@ A3: 0.35</pre></td><td><button class="view-btn" type="button" data-col="triage_i
 }</pre></td><td></td></tr></tbody>
   </table>
   <script>
-    let _activeViewBtn = null;
+let _activeViewBtn = null;
+function closeViewer() {
+  const v = document.getElementById('viewer-panel');
+  if (v) v.classList.add('hidden');
+  if (_activeViewBtn) {
+    _activeViewBtn.classList.remove('active');
+    _activeViewBtn = null;
+  }
+}
+function openViewer(btn) {
+  const content = btn.nextElementSibling;
+  if (!content) return;
+  document.getElementById('viewer-col').textContent = btn.dataset.col || '';
+  document.getElementById('viewer-row').textContent = btn.dataset.row || '';
+  document.getElementById('viewer-content').textContent = content.textContent;
+  document.getElementById('viewer-panel').classList.remove('hidden');
+  if (_activeViewBtn) _activeViewBtn.classList.remove('active');
+  _activeViewBtn = btn;
+  btn.classList.add('active');
+}
+function attachViewer() {
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (_activeViewBtn === btn) { closeViewer(); return; }
+      openViewer(btn);
+    });
+  });
+  const closeBtn = document.getElementById('viewer-close');
+  if (closeBtn) closeBtn.addEventListener('click', closeViewer);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+}
+
+
     function applyFilters() {
       const onlyWrong = document.getElementById('only-wrong').checked;
       const tt = document.getElementById('tt-filter').value;
@@ -56490,39 +56548,12 @@ A3: 0.35</pre></td><td><button class="view-btn" type="button" data-col="triage_i
         tr.classList.toggle('hidden', !show);
       });
     }
-    function closeViewer() {
-      const v = document.getElementById('viewer-panel');
-      if (v) v.classList.add('hidden');
-      if (_activeViewBtn) {
-        _activeViewBtn.classList.remove('active');
-        _activeViewBtn = null;
-      }
-    }
-    function openViewer(btn) {
-      const content = btn.nextElementSibling;
-      if (!content) return;
-      document.getElementById('viewer-col').textContent = btn.dataset.col || '';
-      document.getElementById('viewer-row').textContent = btn.dataset.row || '';
-      document.getElementById('viewer-content').textContent = content.textContent;
-      document.getElementById('viewer-panel').classList.remove('hidden');
-      if (_activeViewBtn) _activeViewBtn.classList.remove('active');
-      _activeViewBtn = btn;
-      btn.classList.add('active');
-    }
     function attach() {
       ['only-wrong', 'tt-filter', 'ct-filter', 'search'].forEach(id => {
         document.getElementById(id).addEventListener('input', applyFilters);
         document.getElementById(id).addEventListener('change', applyFilters);
       });
-      document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (_activeViewBtn === btn) { closeViewer(); return; }
-          openViewer(btn);
-        });
-      });
-      const closeBtn = document.getElementById('viewer-close');
-      if (closeBtn) closeBtn.addEventListener('click', closeViewer);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+      attachViewer();
     }
     document.addEventListener('DOMContentLoaded', attach);
     </script>

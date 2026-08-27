@@ -28,6 +28,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # from os.environ at construction time, so the env must be loaded first.
 load_dotenv(Path.home() / ".env")
 
+# ---- Artifact directory layout (single source of truth) -------------------
+# All cached evaluation artifacts live under evaluation/, split by kind so the
+# directory stops sprawling as new versions accumulate:
+#   predictions/ — prediction CSVs + HTML + joined CSVs. Served by the API and
+#                  consumed by REUSE_CACHE; this is the on-disk reproducibility
+#                  cache that v1/v2/... accuracy reproduces from.
+#   diagnostics/ — s7 harness stores: rules_*, rule_attempts_*, case_results_*,
+#                  diagnostic_results_*, unresolved_cases_*.
+# Anchored to the repo root so paths are stable regardless of the process cwd.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+EVAL_ROOT = _REPO_ROOT / "evaluation"
+PREDICTIONS_DIR = EVAL_ROOT / "predictions"
+DIAGNOSTICS_DIR = EVAL_ROOT / "diagnostics"
+
 
 class Settings(BaseSettings):
     """Single source of truth for environment-driven configuration.
@@ -78,10 +92,25 @@ class Settings(BaseSettings):
     dspy_cachedir: Path = Field(default_factory=lambda: Path(".dspy_cache").resolve())
 
     # ---- Diagnosis harness (s7) -------------------------------------------
-    lm_max_model: str = "deepseek-reasoner"
-    rules_dir: Path = Field(default_factory=lambda: Path("evaluation").resolve())
+    # DeepSeek flagship model for the s7 diagnostic router + 4 specialist Fix
+    # agents. Default = `deepseek-v4-pro` (1.6T/49B MoE) for highest-quality
+    # reasoning during prompt optimisation. Override via `LM_MAX_MODEL=...`
+    # to swap to `deepseek-v4-flash` (cheaper) or any DeepSeek model id.
+    # Migrated from the legacy `deepseek-reasoner` alias which deprecates
+    # 2026-07-24; the dspy/GEPA backend uses the same v4-pro identifier.
+    lm_max_model: str = "deepseek-v4-pro"
+    rules_dir: Path = Field(default_factory=lambda: DIAGNOSTICS_DIR)
     retry_n: int = 1
     max_prior_attempts_in_payload: int = 50
+    # Output variant for the s7 harness. Controls the suffix used in every
+    # artifact name (rules_<agent>_<variant>.jsonl, case_results_<variant>.jsonl,
+    # diagnostic_results_<variant>.{csv,html}, etc.) AND the name of the
+    # generated prompts module (src/convfinqa/prompts/<variant>.py). Operators
+    # iterate by passing --variant v3_1, v3_2, ... or VARIANT=v3_1.
+    # The corresponding base prompts version (input) is controlled separately
+    # by --version / PROMPTS_VERSION — e.g. to chain v3_2 on top of v3_1:
+    #   uv run python scripts/diagnose_failures.py --version v3_1 --variant v3_2
+    variant: str = "v3_1"
 
     # ---- FastAPI / frontend ----------------------------------------------
     # Comma-separated CORS allow-list. Both localhost and 127.0.0.1 are needed

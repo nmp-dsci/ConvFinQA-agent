@@ -31,20 +31,43 @@ _AGENT_VARS: dict[str, str] = {
 }
 
 
+_VERSION_RE = re.compile(r"^v(\d+)(?:_(\d+))?$")
+
+
+def _version_key(name: str) -> tuple[int, int]:
+    """Sort key for version module names: (major, minor). Missing minor → 0.
+
+    `v1` → (1, 0); `v2` → (2, 0); `v3` → (3, 0);
+    `v3_1` → (3, 1); `v3_2` → (3, 2).
+    Names that don't match the regex sort to the end (10_000, 0).
+    """
+    m = _VERSION_RE.match(name)
+    if not m:
+        return (10_000, 0)
+    major = int(m.group(1))
+    minor = int(m.group(2)) if m.group(2) is not None else 0
+    return (major, minor)
+
+
 def latest_all() -> list[str]:
-    """Return all version strings found in this package, sorted ascending (e.g. ['v1', 'v2'])."""
+    """Return all version strings found in this package, sorted ascending.
+
+    Matches both plain versions (`v1`, `v2`) and variant versions (`v3_1`, `v3_2`).
+    Tagged variants like `v3_2_alt` are NOT auto-included — they're still
+    loadable via `load("v3_2_alt")` but won't appear in the eval comparison table.
+    """
     versions = [
         m.name
         for m in pkgutil.iter_modules([str(Path(__file__).parent)])
-        if re.match(r"^v\d+$", m.name)
+        if _VERSION_RE.match(m.name)
     ]
     if not versions:
         raise RuntimeError("No versioned prompt modules found in prompts/")
-    return sorted(versions, key=lambda v: int(v[1:]))
+    return sorted(versions, key=_version_key)
 
 
 def latest() -> str:
-    """Return the highest version string found in this package (e.g. 'v2')."""
+    """Return the highest version string found in this package (e.g. 'v3_1')."""
     return latest_all()[-1]
 
 

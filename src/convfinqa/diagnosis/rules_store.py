@@ -1,4 +1,8 @@
-"""Per-agent JSONL stores for rules + rule_attempts (v3_opt)."""
+"""Per-agent JSONL stores for rules + rule_attempts.
+
+Suffix is `_{settings.variant}` (default `_v3_1`). To target a different
+variant in the same process, override via `settings.variant = "v3_2"`.
+"""
 
 from __future__ import annotations
 
@@ -19,15 +23,18 @@ from convfinqa.diagnosis.models import (
 )
 
 AGENTS: tuple[AgentName, ...] = ("triage", "preprocess", "retriever", "calculator")
-_SUFFIX = "_v3_opt"
+
+
+def _suffix() -> str:
+    return f"_{settings.variant}"
 
 
 def rules_path(agent: AgentName) -> Path:
-    return Path(settings.rules_dir) / f"rules_{agent}{_SUFFIX}.jsonl"
+    return Path(settings.rules_dir) / f"rules_{agent}{_suffix()}.jsonl"
 
 
 def attempts_path(agent: AgentName) -> Path:
-    return Path(settings.rules_dir) / f"rule_attempts_{agent}{_SUFFIX}.jsonl"
+    return Path(settings.rules_dir) / f"rule_attempts_{agent}{_suffix()}.jsonl"
 
 
 def _now_iso() -> str:
@@ -95,7 +102,18 @@ def append_rule(
     *,
     supersedes: list[str] | None = None,
 ) -> str:
-    """Append a verified rule. Returns the new rule_id."""
+    """Append a verified rule. Returns the new rule_id.
+
+    Idempotent: if a rule with the same (agent, rule_text.strip()) already
+    exists, returns the existing rule_id without appending. Lets step-cache
+    replays rebuild the rule store deterministically (see spec §Step Caches).
+    """
+    key = rule_text.strip()
+    for entry in _read_lines(rules_path(agent)):
+        if (entry.get("rule") or "").strip() == key:
+            existing_id = entry.get("rule_id")
+            if isinstance(existing_id, str) and existing_id:
+                return existing_id
     rule_id = f"{agent[:4]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
     entry = Rule(
         rule_id=rule_id,
@@ -127,7 +145,25 @@ def append_attempt(
     failure_reason: FailureReason | None = None,
     promoted_rule_id: str | None = None,
 ) -> str:
-    """Append a rule attempt (pass or fail). Returns attempt_id."""
+    """Append a rule attempt (pass or fail). Returns attempt_id.
+
+    Idempotent: if an attempt with the same (agent, rule.strip(), report_id,
+    turn_index, verify_result) already exists, returns the existing attempt_id
+    without appending. Lets step-cache replays rebuild the attempts store
+    deterministically (see spec §Step Caches).
+    """
+    key = rule_text.strip()
+    for entry in _read_lines(attempts_path(agent)):
+        attempted_on = entry.get("attempted_on") or {}
+        if (
+            (entry.get("rule") or "").strip() == key
+            and entry.get("verify_result") == verify_result
+            and attempted_on.get("report_id") == report_id
+            and int(attempted_on.get("turn_index", -1)) == int(turn_index)
+        ):
+            existing_id = entry.get("attempt_id")
+            if isinstance(existing_id, str) and existing_id:
+                return existing_id
     attempt_id = (
         f"{agent[:4]}-att-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
     )

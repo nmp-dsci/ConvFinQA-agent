@@ -10,7 +10,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 from uuid import uuid4
 
 import logfire
@@ -20,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
-from convfinqa.config import settings
+from convfinqa.config import PREDICTIONS_DIR, settings
 from convfinqa.data.loader import _DOCS, qa_data
 from convfinqa.data.schemas import ConversationHistory
 from convfinqa.pipeline.runner import run_turn, stream_turn
@@ -28,7 +27,7 @@ from convfinqa.pipeline.runner import run_turn, stream_turn
 REPORT_IDS = sorted(set(qa_data["report_id"]).intersection(_DOCS))
 QUESTIONS_DF = qa_data[qa_data["report_id"].isin(REPORT_IDS)].copy()
 
-EVAL_DIR = Path(__file__).resolve().parents[3] / "evaluation"
+EVAL_DIR = PREDICTIONS_DIR
 
 _MODEL_CSV_PATTERN: dict[str, str] = {
     "dspy": "dspy_predictions_{v}_joined.csv",
@@ -39,6 +38,23 @@ _GOLD_PROGRAMS: dict[tuple[str, int], str] = {
     (str(r.report_id), int(r.q_order)): str(r.turn_program)
     for r in qa_data.itertuples()
 }
+
+
+def _eval_version_key(v: str) -> tuple[int, int]:
+    """Sort key for version labels: ``v1`` → (1, 0), ``v3_1`` → (3, 1).
+
+    Always returns a uniform ``(int, int)`` so mixed plain/variant versions
+    (``v1``, ``v2``, ``v3_1``) order without comparing across types.
+    Unparseable labels sort last.
+    """
+    body = v[1:] if v.startswith("v") else v
+    parts = body.split("_")
+    try:
+        major = int(parts[0])
+        minor = int(parts[1]) if len(parts) > 1 else 0
+    except (ValueError, IndexError):
+        return (10_000, 0)
+    return (major, minor)
 
 
 class ReportSummary(BaseModel):
@@ -412,7 +428,7 @@ def create_app(
                 if base.startswith(prefix):
                     versions.add(base[len(prefix):])
                     break
-        return sorted(versions, key=lambda v: int(v[1:]) if v[1:].isdigit() else v)
+        return sorted(versions, key=_eval_version_key)
 
     @app.get("/eval/runs/{run_name}/summary")
     async def get_eval_summary(run_name: str) -> EvalSummary:

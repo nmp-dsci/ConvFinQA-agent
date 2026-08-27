@@ -4,7 +4,7 @@ An AI engineering project for [ConvFinQA](https://github.com/czyssrs/ConvFinQA):
 
 ## Evaluation Results
 
-Cached Pydantic AI evaluator across prompt versions (770-question held-out sample). Reproduces offline from committed `evaluation/pydantic_predictions_<version>.csv` — no API calls when `REUSE_CACHE=1`.
+Cached Pydantic AI evaluator across prompt versions (770-question held-out sample). Reproduces offline from committed `evaluation/predictions/pydantic_predictions_<version>.csv` — no API calls when `REUSE_CACHE=1`.
 
 ```bash
 REUSE_CACHE=1 uv run convfinqa-eval
@@ -13,41 +13,64 @@ REUSE_CACHE=1 uv run convfinqa-eval
 ```
 [v1] cache hit: 200/200 conversations (770 questions) — skipping
 [v1] combined accuracy: 73.0%  (562/770 questions)
-Wrote evaluation/pydantic_predictions_v1.html
+Wrote evaluation/predictions/pydantic_predictions_v1.html
 
 [v2] cache hit: 200/200 conversations (770 questions) — skipping
 [v2] combined accuracy: 77.1%  (594/770 questions)
-Wrote evaluation/pydantic_predictions_v2.html
+Wrote evaluation/predictions/pydantic_predictions_v2.html
 
-----------------------------------------------------------
-Cut                      Count            v1            v2
-----------------------------------------------------------
-Overall                    770        73.0%         77.1%
+[v3_1] cache hit: 200/200 conversations (770 questions) — skipping
+[v3_1] combined accuracy: 76.2%  (587/770 questions)
+Wrote evaluation/predictions/pydantic_predictions_v3_1.html
 
-turn_type=Number           284        85.2%         87.7%
-turn_type=Program          486        65.8%         71.0%
+------------------------------------------------------------------------
+Cut                      Count            v1            v2          v3_1
+------------------------------------------------------------------------
+Overall                    770        73.0%         77.1%         76.2%
 
-conv_type=Type I           640        75.2%         78.8%
-conv_type=Type II          130        62.3%         69.2%
+turn_type=Number           284        85.2%         87.7%         89.8%
+turn_type=Program          486        65.8%         71.0%         68.3%
 
-question=0                 200        81.0%         82.0%
-question=1                 199        75.4%         79.4%
-question=2                 160        70.0%         75.6%
-question=3                 116        68.1%         69.8%
-question=4                  60        61.7%         75.0%
-question=5                  24        62.5%         66.7%
-question=6                  10        70.0%         90.0%
-question=7                   1         0.0%          0.0%
-----------------------------------------------------------
+conv_type=Type I           640        75.2%         78.8%         78.8%
+conv_type=Type II          130        62.3%         69.2%         63.8%
+
+question=0                 200        81.0%         82.0%         79.0%
+question=1                 199        75.4%         79.4%         82.4%
+question=2                 160        70.0%         75.6%         73.1%
+question=3                 116        68.1%         69.8%         71.6%
+question=4                  60        61.7%         75.0%         71.7%
+question=5                  24        62.5%         66.7%         58.3%
+question=6                  10        70.0%         90.0%         80.0%
+question=7                   1         0.0%          0.0%          0.0%
+------------------------------------------------------------------------
 ```
 
-v2 beats v1 by +4.1 pp overall; biggest gains are on program turns (+5.2 pp), Type II conversations (+6.9 pp), and deeper turns (`question=4`: +13.3 pp, `question=6`: +20.0 pp).
+**v2 is the current best prompt version.** It beats v1 by +4.1 pp overall; biggest gains are on program turns (+5.2 pp), Type II conversations (+6.9 pp), and deeper turns (`question=4`: +13.3 pp, `question=6`: +20.0 pp).
+
+**v3_1 (the first s7 harness output) regressed by −0.9 pp against the v2 baseline it was optimising** — 76.2% vs 77.1%. The regression is not uniform, and the split is the useful signal:
+
+| Cut | v2 → v3_1 | Read |
+|---|---:|---|
+| `turn_type=Number` | **+2.1 pp** (87.7 → 89.8) | Retrieval-shaped rules landed. |
+| `turn_type=Program` | **−2.7 pp** (71.0 → 68.3) | Program-construction rules hurt more than they helped. |
+| `conv_type=Type II` | **−5.4 pp** (69.2 → 63.8) | Worst cut; hybrid multi-hop chains are the most brittle under added rules. |
+| `conv_type=Type I` | 0.0 pp (78.8 → 78.8) | Flat. |
+
+The likely cause is the shape of the rule store: 24 of the 39 promoted rules target the `preprocess` agent, so v3_1 loads the program-decomposition prompt with case-specific rules that generalise poorly to unseen conversations. Rules verify against the single case that produced them (turns `0..k`), which does not gate against collateral damage elsewhere in the sample.
+
+This result is what motivated [`ai_specs/s8-optimisation-testing.md`](ai_specs/s8-optimisation-testing.md) — a bench comparing three alternative optimisation techniques (TextGrad, ProTeGi, PromptWizard) against the s7 baseline. **s8 is specified but not implemented.**
 
 ### Version differences
 
 - **v1** — Original baseline. Compact instructions per agent: classify (triage), decompose (preprocess), look up (retriever), compute (calculator). Same four-stage pipeline as v2; differences are purely in the system prompts. See `src/convfinqa/prompts/v1.py`.
 - **v2** — GEPA-optimised prompts produced by a full real run (`gepa_real_20260502_005251`). Prompts are longer and more explicit: worked examples, explicit percentage convention (`multiply(..., 100)` outermost), clearer Type I vs Type II conversation guidance, and tighter sub-question specification rules (year + entity + metric). Pipeline structure and tools are unchanged from v1. See `src/convfinqa/prompts/v2.py`.
-- **v3_opt** *(generated)* — Assembled by the s7 prompt-improvement harness from v2 + verified `rules_<agent>_v3_opt.jsonl`. Not hand-edited. See §Prompt-Improvement Harness (s7) below.
+- **v3_1, v3_2, v3_N** *(generated)* — Each is a variant produced by the s7 prompt-improvement harness. `v3_1` assembles from `v2` baseline + `rules_<agent>_v3_1.jsonl`; `v3_2` assembles from `v3_1` baseline + `rules_<agent>_v3_2.jsonl`; and so on. Pass `--variant <name>` to the harness to start a new variant; chain via `--prompts-version <prev> --variant <next>`. Never hand-edited. See §Prompt-Improvement Harness (s7) below.
+  - **`v3_1`** — Built from `v2` + 39 verified rules (`preprocess` 24, `retriever` 7, `calculator` 5, `triage` 3) over the 95 first-wrong-per-conversation cases. Scored 76.2%, a −0.9 pp regression vs v2. **Not promoted.**
+  - **`v3_2`** — *In progress, incomplete.* Round 2 ran diagnose/propose over 94 cases (`case_results_v3_2.jsonl`, `diagnostic_results_v3_2.{csv,html}`) but promoted no rules — the `rules_*_v3_2.jsonl` stores are empty and `prompts/v3_2.py` was never assembled, so there is no v3_2 to evaluate. Resuming means re-running the full loop with `--prompts-version v3_1 --variant v3_2` and letting Step 3 (verify) execute.
+
+### Known state of the s7 case caches
+
+`case_results_<variant>.jsonl` is **overwritten** by each run rather than merged (`--force` is a documented no-op). Both committed `case_results` files were last written by a diagnose/propose pass, so every record carries `verify_result: null` and `resolved: false` — that reflects the last pass, not the full v3_1 run. The verification metadata that actually matters survives in the rules store: every rule in `rules_<agent>_v3_1.jsonl` carries `verified_at` and the `verified_on` case it was verified against.
 
 ## Current Layout
 
@@ -61,13 +84,15 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `src/convfinqa/pipeline/` | Shared stage models, calculator tools, wire format, runner import path. |
 | `src/convfinqa/backends/` | Backend import paths for DSPy and Pydantic AI. |
 | `src/convfinqa/evaluation/` | Metrics, cache, evaluation runners, reporting, API evaluation import paths. |
-| `src/convfinqa/prompts/` | Versioned prompt modules (`v1`, `v2`, generated `v3_opt`). |
-| `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). |
+| `src/convfinqa/prompts/` | Versioned prompt modules (`v1`, `v2`, generated `v3_1`, `v3_2`, …). |
+| `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). CLI implementation lives in `diagnosis/cli.py`. |
 | `src/convfinqa/serving/` | FastAPI app and Typer CLI package paths. |
 | `src/convfinqa/optimization/` | GEPA and prompt optimisation entry points. |
-| `scripts/` | Installed command entry points. |
+| `scripts/` | Installed command entry points. `diagnose_failures.py` is a thin shim over `convfinqa.diagnosis.cli:main`. |
+| `ai_specs/` | Design specs — `s7-prompt-optimisation.md` (implemented), `s8-optimisation-testing.md` (specified, not implemented). |
 | `frontend/` | React/Vite UI. |
-| `evaluation/` | Cached prediction CSVs + dark-themed HTML reports. Tracked in git so accuracy reproduces offline. |
+| `evaluation/predictions/` | Cached prediction CSVs + dark-themed HTML reports + joined CSVs. Tracked in git so accuracy reproduces offline. |
+| `evaluation/diagnostics/` | s7 harness stores (`rules_*`, `rule_attempts_*`, `diagnostic_results_*`, …). Tracked in git. |
 | `runs/` | GEPA optimization artifacts (`optimized_runner.json`). Tracked in git so prior runs are usable on any clone. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
 
@@ -119,6 +144,9 @@ Expected cached baseline:
 |---|---:|
 | `v1` | `73.0%` (`562/770`) |
 | `v2` | `77.1%` (`594/770`) |
+| `v3_1` | `76.2%` (`587/770`) |
+
+The sweep auto-discovers every `prompts/v*.py` module via `prompts.latest_all()`, so a new variant appears in the comparison table with no registration step.
 
 Useful variants:
 
@@ -127,7 +155,7 @@ PROMPTS_VERSION=v2 uv run convfinqa-eval
 REUSE_CACHE=0 uv run convfinqa-eval
 ```
 
-Outputs are written under `evaluation/`, for example:
+Outputs are written under `evaluation/predictions/`, for example:
 
 - `pydantic_predictions_v2.csv`
 - `pydantic_predictions_v2_joined.csv`
@@ -150,10 +178,10 @@ curl http://127.0.0.1:8765/healthz
 curl http://127.0.0.1:8765/eval/runs
 ```
 
-Expected `/eval/runs`:
+Expected `/eval/runs` (auto-discovered from `prompts/`, so it grows as variants are added):
 
 ```json
-["v1", "v2"]
+["v1", "v2", "v3_1"]
 ```
 
 ## CLI
@@ -185,49 +213,207 @@ Outputs include `api_predictions_<version>.csv`, joined CSVs, and model comparis
 
 ## Prompt-Improvement Harness (s7)
 
-Per-case **Diagnose → Route+Fix → Verify** loop over first-wrong-per-conversation cases in `pydantic_predictions_v2.csv`. Promotes verified rules into `prompts/v3_opt.py`.
+Per-case **Step 1 — Diagnose → Step 2 — Propose → Step 3 — Verify** loop over first-wrong-per-conversation cases in `pydantic_predictions_v2.csv`. Promotes verified rules into `prompts/<variant>.py` (default `v3_1`).
+
+Two independent version axes control input/output:
+- **`--prompts-version <name>`** — *input* prompts the harness reads — the baseline being optimised. Default `settings.prompts_version` (from `PROMPTS_VERSION` env) or `v2`. Any existing module in `prompts/` is valid (`v1`, `v2`, `v3_1`, …). Same name as `convfinqa-eval`'s `PROMPTS_VERSION` so the version identifier is consistent end-to-end.
+- **`--variant <name>`** — *output* variant name (default `v3_1`). Controls every artifact suffix (`rules_<agent>_<variant>.jsonl`, `case_results_<variant>.jsonl`, `diagnostic_results_<variant>.{csv,html}`, `unresolved_cases_<variant>.json`) AND the name of the generated prompts module (`prompts/<variant>.py`).
+
+To iterate, pass a **new** `--variant` each round and chain its `--prompts-version` to the previous variant.
+
+### Run modes
+
+Three operator modes, each a strict subset of the next. All three steps are cached in `case_results_v3_1.jsonl` — a `--diagnose-only` pass primes Step 1, `--propose-fix` adds Step 2, a full run adds Step 3. Subsequent runs reuse cached steps for free; with all three caches hot, a re-run makes **zero LLM calls and zero verify replays**.
+
+| Mode | Flag | Steps | First-run cost per non-ambiguous case | All-cache-hit cost | Writes rule store? | Regenerates `v3_1.py`? |
+|---|---|---|---|---|---|---|
+| Diagnose-only | `--diagnose-only` | Step 1 | 1 router LLM call | 0 | No | No |
+| Propose-fix | `--propose-fix` | Step 1 + Step 2 | 1 router + 1 specialist LLM call | 0 | No | No |
+| Full | *(default)* | Step 1 + Step 2 + Step 3 | router + specialist + `k+1` turn-replays | 0 (bookkeeping only, dedup'd) | Yes (on passing verify) | Yes (post-loop) |
+
+`--diagnose-only` and `--propose-fix` are mutually exclusive. Disable specific step caches with `--no-diagnose-cache` / `--no-propose-cache` / `--no-verify-cache`.
+
+The flags below show the explicit `--prompts-version v2 --variant v3_1` form. These are the defaults, so they can be omitted on first iteration — but stating them makes the optimisation direction obvious (`v2 → v3_1`) and matches what subsequent iterations need (`--prompts-version v3_1 --variant v3_2`).
+
+```bash
+# Step 1 only — cheap router classification, no propose, no verify
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v3_1 --variant v3_2 \
+  --diagnose-only --reset-rules
+
+# Step 1 + Step 2 — also propose a fix per case, still skip verify.
+# Reuses Step 1 diagnose cache if present, so this is "specialist LLM only".
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --propose-fix
+
+# Full loop — Step 1 + Step 2 + Step 3, promotes verified rules into the store
+# AND writes prompts/v3_1.py.
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --reset-rules --skip-regression
+```
+
+### Iterating with variants
+
+Each variant is a self-contained universe of artifacts (rules JSONL, attempts JSONL, case_results, diagnostic_results, prompts module). Names must be Python-importable — use underscores, not dots (`v3_2`, not `v3.2`).
+
+```bash
+# Iteration 1: build v3_1 from v2 baseline (this is the default behaviour).
+uv run python scripts/diagnose_failures.py --prompts-version v2 --variant v3_1
+
+# Iteration 2: build v3_2 from v3_1 baseline.
+# - Loads prompts/v3_1.py as the input.
+# - Writes prompts/v3_2.py + evaluation/*_v3_2.* artifacts.
+# - Step caches are per-variant — v3_2 starts fresh, v3_1's cache is untouched.
+uv run python scripts/diagnose_failures.py --prompts-version v3_1 --variant v3_2
+
+# Iteration 3 (and beyond):
+uv run python scripts/diagnose_failures.py --prompts-version v3_2 --variant v3_3
+```
+
+- Each variant lives alongside the others — `v3_1` and `v3_2` artifacts never collide.
+- `--reset-rules` only truncates the *current* variant's stores; other variants are untouched.
+- `--stage assemble --variant <name>` re-assembles `prompts/<name>.py` from that variant's rules JSONL.
+- Never use the same name for `--prompts-version` and `--variant` — it would double-apply the variant's rules onto its own baseline.
 
 ### Smoke runs
 
 ```bash
 # Single case, single attempt, fresh stores (fastest end-to-end smoke)
-uv run python scripts/diagnose_failures.py --limit 1 --reset-rules --skip-regression
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --limit 1 --reset-rules --skip-regression
 
 # 10 cases with up to 2 retries (retry_n=3 ⇒ 3 total attempts max)
-uv run python scripts/diagnose_failures.py --limit 10 --retry-n 3 --skip-regression
-```
-
-### Diagnose-only sweep (Step 1, no fix or verify)
-
-```bash
-# Cheap router-only classification of every first-wrong case — no rule writes
-uv run python scripts/diagnose_failures.py --diagnose-only --reset-rules
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --limit 10 --retry-n 3 --skip-regression
 ```
 
 ### Full corpus run
 
 ```bash
 # All 95 first-wrong cases (omit --limit). Default retry_n=1.
-uv run python scripts/diagnose_failures.py --reset-rules --skip-regression
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --reset-rules --skip-regression
 ```
+
+### Typical workflow
+
+All four commands target the same `(--prompts-version v2, --variant v3_1)` universe — step caches in `case_results_v3_1.jsonl` carry across the four calls, so each step pays its cost once.
+
+```bash
+# 1. Cheap router sweep over every first-wrong case (populates Step 1 cache)
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --diagnose-only
+
+# 2. Review router output in evaluation/diagnostics/diagnostic_results_v3_1.html
+
+# 3. Generate proposed fixes using cached diagnoses (zero router cost,
+#    one specialist call per non-ambiguous case). Populates Step 2 cache.
+#    Group C verify columns render as `—`.
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --propose-fix
+
+# 4. Review proposed system_prompt rules in the HTML, then commit to verify.
+#    Full loop reuses Steps 1+2 caches; only Step 3 (verify replay) is live.
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --skip-regression
+
+# 5. Re-run is free — all three step caches hit, dedup'd bookkeeping only.
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --skip-regression
+
+# To re-execute a specific step (e.g. after editing v2 prompts), opt out:
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --no-verify-cache --skip-regression
+```
+
+### End-to-end optimisation loop (cross-app)
+
+The full loop alternates between the s7 harness (which proposes + verifies rules to improve a baseline) and `convfinqa-eval` (which measures the result against the held-out test sample). Because both scripts use the same `PROMPTS_VERSION` identifier and the prompts loader auto-discovers `v\d+(_\d+)?` modules, the version name carries through every step:
+
+```bash
+# Round 1 — improve v2 → produce v3_1
+PROMPTS_VERSION=v2 VARIANT=v3_1 uv run python scripts/diagnose_failures.py
+#   Writes: prompts/v3_1.py, rules_<agent>_v3_1.jsonl, case_results_v3_1.jsonl,
+#           diagnostic_results_v3_1.{csv,html}, unresolved_cases_v3_1.json
+
+# Round 1 — evaluate v3_1 vs v1/v2
+PROMPTS_VERSION=v3_1 uv run convfinqa-eval
+#   Writes: pydantic_predictions_v3_1.csv + dark-theme HTML
+#   Prints: comparison table with v1, v2, v3_1 side-by-side
+
+# Round 2 — improve v3_1 → produce v3_2
+PROMPTS_VERSION=v3_1 VARIANT=v3_2 uv run python scripts/diagnose_failures.py
+#   Loads prompts/v3_1.py (which already embeds v3_1's verified rules) as the baseline.
+#   Writes a fresh v3_2 universe of artifacts.
+
+# Round 2 — evaluate v3_2 vs all priors
+PROMPTS_VERSION=v3_2 uv run convfinqa-eval
+#   Comparison table now shows v1, v2, v3_1, v3_2.
+
+# Continue iterating: --prompts-version v3_2 --variant v3_3, etc.
+```
+
+Equivalent using flags instead of env vars:
+
+```bash
+uv run python scripts/diagnose_failures.py --prompts-version v2  --variant v3_1
+PROMPTS_VERSION=v3_1 uv run convfinqa-eval
+
+uv run python scripts/diagnose_failures.py --prompts-version v3_1 --variant v3_2
+PROMPTS_VERSION=v3_2 uv run convfinqa-eval
+```
+
+**Why this works** — the version name is the single source of truth across the app:
+
+| Tool | Reads version from |
+|---|---|
+| `diagnose_failures.py` (input baseline) | `--prompts-version` flag → `settings.prompts_version` (`PROMPTS_VERSION` env) → `v2` fallback |
+| `diagnose_failures.py` (output variant) | `--variant` flag → `settings.variant` (`VARIANT` env) → `v3_1` fallback |
+| `convfinqa-eval` (focus + comparison) | `settings.prompts_version` (`PROMPTS_VERSION` env); always includes auto-discovered priors in the comparison table |
+| `convfinqa-eval-api` (backend driver) | `PROMPTS_VERSION` env at process start |
+| `convfinqa.prompts.load(name)` | Dynamic — any `prompts/<name>.py` module is loadable |
+| `convfinqa.prompts.latest_all()` | Auto-discovers all `^v\d+(_\d+)?$` modules; powers the eval sweep |
+
+Drop a new variant module into `prompts/` (typically by running the harness) and every script picks it up automatically. No registration, no aliases, no hardcoded lists.
 
 ### Post-loop stages (standalone, no harness invocation)
 
-```bash
-# Re-assemble prompts/v3_opt.py from the current rules JSONL
-uv run python scripts/diagnose_failures.py --stage assemble
+Both stages honour `--prompts-version` (input baseline) and `--variant` (output variant), so re-assembling a specific variant from hand-edited rules is just:
 
-# Run the regression eval (stub — re-scores v3_opt vs v2; currently a placeholder)
-uv run python scripts/diagnose_failures.py --stage regression
+```bash
+# Re-assemble prompts/v3_1.py from rules_<agent>_v3_1.jsonl
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --stage assemble
+
+# Re-assemble prompts/v3_2.py from rules_<agent>_v3_2.jsonl (chained on v3_1)
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v3_1 --variant v3_2 \
+  --stage assemble
+
+# Run the regression eval (stub — re-scores v3_1 vs v2; currently a placeholder)
+uv run python scripts/diagnose_failures.py \
+  --prompts-version v2 --variant v3_1 \
+  --stage regression
 ```
 
 ### Pointing at a different input or output dir
 
 ```bash
 uv run python scripts/diagnose_failures.py \
-  --input evaluation/pydantic_predictions_v1.csv \
+  --input evaluation/predictions/pydantic_predictions_v1.csv \
   --out-dir evaluation/v1_run \
-  --version v1 \
+  --prompts-version v1 --variant v1_opt \
   --limit 5
 ```
 
@@ -235,34 +421,43 @@ uv run python scripts/diagnose_failures.py \
 
 ```bash
 RETRY_N=3                              uv run python scripts/diagnose_failures.py
-LM_MAX_MODEL=deepseek-chat             uv run python scripts/diagnose_failures.py --limit 1
+LM_MAX_MODEL=deepseek-v4-flash         uv run python scripts/diagnose_failures.py --limit 1
 RULES_DIR=evaluation/experimental      uv run python scripts/diagnose_failures.py --reset-rules
 MAX_PRIOR_ATTEMPTS_IN_PAYLOAD=20       uv run python scripts/diagnose_failures.py
+PROMPTS_VERSION=v3_1 VARIANT=v3_2      uv run python scripts/diagnose_failures.py
 ```
 
 ### All CLI flags
 
 | Flag | Default | Purpose |
 |---|---|---|
-| `--input PATH` | `evaluation/pydantic_predictions_v2.csv` | Predictions CSV to read failing cases from. |
+| `--input PATH` | `evaluation/predictions/pydantic_predictions_v2.csv` | Predictions CSV to read failing cases from. |
 | `--out-dir PATH` | `evaluation` | Where to write `diagnostic_results_*` and `case_results_*`. |
-| `--version` | `v2` | Base prompt version that v3_opt builds on. |
+| `--prompts-version` | `settings.prompts_version` (from `PROMPTS_VERSION` env) or `v2` | *Input* prompts version — the baseline being optimised. Loaded via `prompts.load(prompts_version)`. Use `v3_1`, `v3_2`, … to chain on top of a prior variant. Same name as `convfinqa-eval`'s `PROMPTS_VERSION`. |
+| `--variant` | `v3_1` (`settings.variant`) | *Output* variant name. Controls the suffix on every artifact AND the generated prompts module name. Pass a new name each iteration (e.g. `--variant v3_2`). |
 | `--limit N` | (none) | Truncate to the first N first-wrong cases. |
-| `--diagnose-only` | off | Step 1 only — router classification, no fix, no verify, no rule writes. |
+| `--diagnose-only` | off | Step 1 only — router classification, no propose, no verify, no rule writes. Mutually exclusive with `--propose-fix`. |
+| `--propose-fix` | off | Step 1 + Step 2 — propose a fix per case, skip Step 3 (verify). No rule writes, no v3_1 regeneration. Group C verify columns render as `—`. Mutually exclusive with `--diagnose-only`. |
+| `--no-diagnose-cache` | off | Ignore Step 1 (Diagnose) cache; re-call the router for every case. |
+| `--no-propose-cache` | off | Ignore Step 2 (Propose) cache; re-call the specialist Propose LLM for every attempt. |
+| `--no-verify-cache` | off | Ignore Step 3 (Verify) cache; re-run verify replays for every attempt. |
 | `--stage {all,assemble,regression}` | `all` | Short-circuit to a single post-loop stage. |
-| `--reset-rules` | off | Truncate `rules_<agent>_v3_opt.jsonl` AND `rule_attempts_<agent>_v3_opt.jsonl` for all four agents. |
+| `--reset-rules` | off | Truncate `rules_<agent>_v3_1.jsonl` AND `rule_attempts_<agent>_v3_1.jsonl` for all four agents. |
 | `--retry-n N` | `settings.retry_n` (1) | Total attempts cap per case (1..3). |
 | `--force` | off | Reserved for resume semantics (currently no-op — `case_results` is overwritten). |
 | `--skip-regression` | off | Skip the post-loop regression subprocess (local dev only). |
 | `--verbose / -v` | off | DEBUG logging. |
 
-### Outputs under `evaluation/`
+### Outputs under `evaluation/diagnostics/`
 
-- `diagnostic_results_v3_opt.{csv,html}` (HTML uses the same dark theme + inspector-panel viewer as predictions HTML)
-- `case_results_v3_opt.jsonl`
-- `rules_<agent>_v3_opt.jsonl` × 4 (verified passes — source of truth for `v3_opt.py`)
-- `rule_attempts_<agent>_v3_opt.jsonl` × 4 (pass + fail history — feeds the specialist on future runs)
-- `unresolved_cases_v3_opt.json`
+`<variant>` below is the value of `--variant` (default `v3_1`). Each variant produces its own independent set of files.
+
+- `diagnostic_results_<variant>.{csv,html}` (HTML uses the same dark theme + inspector-panel viewer as predictions HTML)
+- `case_results_<variant>.jsonl` (also the 3-step cache file — see §Run modes)
+- `rules_<agent>_<variant>.jsonl` × 4 (verified passes — source of truth for `prompts/<variant>.py`)
+- `rule_attempts_<agent>_<variant>.jsonl` × 4 (pass + fail history — feeds the specialist on future runs)
+- `unresolved_cases_<variant>.json`
+- `src/convfinqa/prompts/<variant>.py` (generated; never hand-edited)
 
 Full spec: [`ai_specs/s7-prompt-optimisation.md`](ai_specs/s7-prompt-optimisation.md).
 
@@ -278,7 +473,7 @@ RUN_GEPA=1 GEPA_MODE=real RESUME_GEPA=latest uv run convfinqa-optimize
 RUN_GEPA=1 GEPA_NAME=gepa_real_<ts> uv run convfinqa-optimize
 ```
 
-GEPA artifacts live in `runs/<gepa_name>/`; evaluation outputs live in `evaluation/`.
+GEPA artifacts live in `runs/<gepa_name>/`; prediction outputs live in `evaluation/predictions/` and s7 diagnostics in `evaluation/diagnostics/`.
 
 ## Frontend
 
@@ -304,11 +499,23 @@ uv run mypy src/convfinqa
 
 Current validated state:
 
-- `56 passed`
-- Ruff clean
-- mypy: 22 pre-existing errors in `pipeline/runner.py`, `serving/app.py`, `evaluation/runner.py`, `evaluation/reporting.py` (untyped functions, str|Model union access); not a regression — track and fix incrementally.
-- cached eval reproduces `v1=73.0%`, `v2=77.1%`
-- backend health and `/eval/runs` smoke pass under `convfinqa.serving.app:create_app`
+- **pytest: `56 passed`** ✅
+- **Ruff: 10 errors** ⚠️ — all missing-docstring (`D103` public function, `D102` public method), entirely within `src/convfinqa/diagnosis/`: `rules_store.py` (4), `assembler.py` (2), `aggregator.py`, `cli.py`, `models.py`, `results_html.py`. Cosmetic; fix by adding docstrings.
+- **mypy: 48 errors across 10 files** ⚠️ — up from 22 as the diagnosis package grew. Breakdown:
+
+  | File | Errors |
+  |---|---:|
+  | `pipeline/runner.py` | 13 |
+  | `diagnosis/harness.py` | 12 |
+  | `diagnosis/agents.py` | 9 |
+  | `diagnosis/rules_store.py` | 4 |
+  | `backends/pydantic.py` | 4 |
+  | `evaluation/reporting.py` | 2 |
+  | `serving/app.py`, `evaluation/runner.py`, `evaluation/api_runner.py`, `diagnosis/aggregator.py` | 1 each |
+
+  Dominant causes are unchanged from before: untyped function bodies, `str | Model` union attribute access, bare `dict` without type parameters, and `Optional` attribute access (e.g. `harness.py:333` `Item "None" of "FixAttempt | None" has no attribute "first_failing_turn"`). Not blocking; track and fix incrementally.
+- **Cached eval reproduces offline with zero API calls**: `v1=73.0%`, `v2=77.1%`, `v3_1=76.2%`
+- Backend health and `/eval/runs` smoke pass under `convfinqa.serving.app:create_app`
 
 ## Notes for Contributors
 

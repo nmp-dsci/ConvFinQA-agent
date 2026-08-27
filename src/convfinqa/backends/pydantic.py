@@ -15,7 +15,14 @@ _deepseek_provider = OpenAIProvider(
     base_url="https://api.deepseek.com/v1",
     api_key=settings.deepseek_api_key.get_secret_value(),
 )
-LM_MINI = OpenAIChatModel("deepseek-chat", provider=_deepseek_provider)
+# DeepSeek model identifiers — migrated to v4 names ahead of the 2026-07-24
+# deprecation of the legacy `deepseek-chat` / `deepseek-reasoner` aliases.
+# - LM_MINI = `deepseek-v4-flash` (was `deepseek-chat`): 284B/13B MoE, fast,
+#   used by the four production sub-agents on every turn.
+# - LM_MAX  = `deepseek-v4-pro` by default via settings (was `deepseek-reasoner`):
+#   1.6T/49B MoE, slower + more expensive, used by the s7 harness's diagnostic
+#   router + four specialist Fix agents where reasoning quality matters most.
+LM_MINI = OpenAIChatModel("deepseek-v4-flash", provider=_deepseek_provider)
 LM_MAX = OpenAIChatModel(settings.lm_max_model, provider=_deepseek_provider)
 
 triage_agent = Agent(LM_MINI, output_type=TriageOut, instructions=PROMPTS["triage"])

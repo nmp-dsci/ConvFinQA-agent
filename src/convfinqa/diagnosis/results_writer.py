@@ -1,4 +1,4 @@
-"""Write diagnostic_results_v3_opt.csv from CaseResults + input CSV (Group A)."""
+"""Write diagnostic_results_<variant>.csv from CaseResults + input CSV (Group A)."""
 
 from __future__ import annotations
 

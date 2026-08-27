@@ -1,13 +1,14 @@
-"""Render diagnostic_results_v3_opt.html — dark-theme clone of pydantic predictions."""
+"""Render diagnostic_results_<variant>.html — dark-theme clone of pydantic predictions."""
 
 from __future__ import annotations
 
 import html as _html
-import json
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from convfinqa.reporting import render_cell, render_page, viewer_panel_html
 
 _JSON_COLUMNS = {
     "triage_io",
@@ -29,91 +30,7 @@ _LONG_TEXT_COLUMNS = {
     "failure_explanation",
 }
 
-_STYLE = """
-:root {
-  --bg: #0b141a;
-  --panel: #111b21;
-  --panel2: #202c33;
-  --border: #2a3942;
-  --accent: #005c4b;
-  --accent2: #00a884;
-  --text-main: #e9edef;
-  --text-muted: #8696a0;
-  --danger: #f15c6d;
-  --row-correct: rgba(0, 168, 132, 0.10);
-  --row-wrong: rgba(241, 92, 109, 0.10);
-  --row-pending: rgba(150, 150, 150, 0.07);
-}
-html, body { background: var(--bg); }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-       margin: 0.75em 1em; color: var(--text-main); font-size: 13px; }
-h1 { font-size: 18px; margin: 0.5em 0; color: var(--text-main); font-weight: 600; }
-.summary { display: flex; gap: 0.75em; margin-bottom: 0.75em; flex-wrap: wrap; }
-.summary div { background: var(--panel2); border-radius: 6px; padding: 6px 12px;
-               color: var(--text-main); border: 1px solid var(--border); }
-.summary strong { color: var(--text-muted); font-weight: 500; margin-right: 0.4em; }
-.filters { display: flex; gap: 1em; margin-bottom: 0.75em; flex-wrap: wrap;
-           align-items: center; background: var(--panel); padding: 8px 12px;
-           border-radius: 6px; border: 1px solid var(--border); }
-.filters label { color: var(--text-muted); display: inline-flex; align-items: center;
-                 gap: 0.4em; }
-.filters input[type="text"], .filters select {
-  background: var(--panel2); color: var(--text-main); border: 1px solid var(--border);
-  border-radius: 4px; padding: 3px 6px; font: inherit;
-}
-.filters input[type="checkbox"] { accent-color: var(--accent2); }
-table { border-collapse: collapse; width: 100%; table-layout: auto;
-        background: var(--panel); border: 1px solid var(--border); }
-th, td { border: 1px solid var(--border); padding: 5px 8px; vertical-align: top;
-         max-width: 420px; word-wrap: break-word; }
-th { background: var(--panel2); color: var(--text-muted); position: sticky;
-     top: 0; z-index: 1; cursor: pointer; font-weight: 500; text-align: left;
-     text-transform: uppercase; font-size: 11px; letter-spacing: 0.03em; }
-td { color: var(--text-main); }
-tbody tr:hover td { background: var(--panel2); }
-tr.row-correct td { background: var(--row-correct); }
-tr.row-wrong td { background: var(--row-wrong); }
-tr.row-pending td { background: var(--row-pending); }
-tr.row-correct:hover td { background: rgba(0, 168, 132, 0.18); }
-tr.row-wrong:hover td { background: rgba(241, 92, 109, 0.18); }
-tr.hidden { display: none; }
-.hidden-content { display: none; }
-pre { background: var(--bg); padding: 8px 10px; border-radius: 4px;
-      border: 1px solid var(--border); color: var(--text-main);
-      max-height: 320px; overflow: auto; font-size: 12px;
-      white-space: pre-wrap; word-break: break-word;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.view-btn { background: transparent; color: var(--accent2); border: 1px solid var(--border);
-            border-radius: 4px; padding: 2px 8px; cursor: pointer; font: inherit;
-            font-size: 12px; }
-.view-btn:hover { background: var(--panel2); color: var(--text-main); }
-.view-btn.active { background: var(--accent); color: var(--text-main);
-                   border-color: var(--accent2); }
-.viewer { position: sticky; top: 0; z-index: 5; background: var(--panel);
-          border: 1px solid var(--border); border-radius: 6px;
-          padding: 8px 12px; margin-bottom: 0.75em; }
-.viewer.hidden { display: none; }
-.viewer-header { display: flex; justify-content: space-between; align-items: center;
-                 margin-bottom: 6px; gap: 1em; }
-.viewer-label { color: var(--text-muted); font-size: 12px;
-                text-transform: uppercase; letter-spacing: 0.04em; }
-.viewer-label strong { color: var(--text-main); margin-right: 0.4em;
-                       text-transform: none; letter-spacing: 0; font-weight: 500; }
-.viewer-close { background: transparent; color: var(--text-muted); border: 0;
-                font-size: 18px; cursor: pointer; padding: 0 6px; }
-.viewer-close:hover { color: var(--danger); }
-.viewer pre { margin: 0; max-height: 50vh; }
-.placeholder { color: var(--text-muted); font-style: italic; }
-.fix-box { background: rgba(0, 168, 132, 0.08); border-left: 3px solid var(--accent2);
-           padding: 4px 8px; border-radius: 3px; white-space: pre-wrap;
-           font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-"""
-
-_SCRIPT = """
-let _activeViewBtn = null;
+_FILTER_SCRIPT = """
 function applyFilters() {
   const onlyResolved = document.getElementById('only-resolved').checked;
   const onlyUnresolved = document.getElementById('only-unresolved').checked;
@@ -130,27 +47,6 @@ function applyFilters() {
     tr.classList.toggle('hidden', !show);
   });
 }
-function closeViewer() {
-  const v = document.getElementById('viewer-panel');
-  if (v) v.classList.add('hidden');
-  if (_activeViewBtn) {
-    _activeViewBtn.classList.remove('active');
-    _activeViewBtn = null;
-  }
-}
-function openViewer(btn) {
-  const content = btn.nextElementSibling;
-  if (!content) return;
-  const colName = btn.dataset.col || '';
-  const rowId = btn.dataset.row || '';
-  document.getElementById('viewer-col').textContent = colName;
-  document.getElementById('viewer-row').textContent = rowId;
-  document.getElementById('viewer-content').textContent = content.textContent;
-  document.getElementById('viewer-panel').classList.remove('hidden');
-  if (_activeViewBtn) _activeViewBtn.classList.remove('active');
-  _activeViewBtn = btn;
-  btn.classList.add('active');
-}
 function attach() {
   ['only-resolved', 'only-unresolved', 'fa-filter', 'att-filter', 'search'].forEach(id => {
     const el = document.getElementById(id);
@@ -158,52 +54,152 @@ function attach() {
     el.addEventListener('input', applyFilters);
     el.addEventListener('change', applyFilters);
   });
-  document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (_activeViewBtn === btn) { closeViewer(); return; }
-      openViewer(btn);
-    });
-  });
-  const closeBtn = document.getElementById('viewer-close');
-  if (closeBtn) closeBtn.addEventListener('click', closeViewer);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+  attachViewer();
 }
 document.addEventListener('DOMContentLoaded', attach);
 """
 
 
-def _viewable(col: str, label: str, body: str, row_id: str) -> str:
+def _fmt_acc(n_correct: int, n_all: int) -> str:
+    if n_all <= 0:
+        return '<span class="placeholder">—</span>'
+    return f"{n_correct / n_all:.1%}"
+
+
+def _pivot_by_agent(df: pd.DataFrame) -> str:
+    """Counts per failed_agent: all rows / harness_correct / accuracy."""
+    if "failed_agent" not in df.columns:
+        return ""
+    correct_mask = (
+        df["harness_correct"].astype(str).str.lower().isin({"true", "1"})
+        if "harness_correct" in df.columns
+        else pd.Series([False] * len(df))
+    )
+    agents = sorted(a for a in df["failed_agent"].fillna("").unique() if a != "")
+    rows: list[str] = []
+    total_all = 0
+    total_correct = 0
+    for agent in agents:
+        m = df["failed_agent"] == agent
+        n_all = int(m.sum())
+        n_correct = int((m & correct_mask).sum())
+        total_all += n_all
+        total_correct += n_correct
+        rows.append(
+            f"<tr><td>{_html.escape(agent)}</td>"
+            f'<td class="num">{n_all}</td>'
+            f'<td class="num">{n_correct}</td>'
+            f'<td class="num">{_fmt_acc(n_correct, n_all)}</td></tr>'
+        )
+    rows.append(
+        f'<tr class="total"><td>TOTAL</td>'
+        f'<td class="num">{total_all}</td>'
+        f'<td class="num">{total_correct}</td>'
+        f'<td class="num">{_fmt_acc(total_correct, total_all)}</td></tr>'
+    )
+    body = "\n".join(rows)
     return (
-        f'<button class="view-btn" type="button" data-col="{_html.escape(col)}" '
-        f'data-row="{_html.escape(row_id)}">{_html.escape(label)}</button>'
-        f'<pre class="hidden-content">{_html.escape(body)}</pre>'
+        '<div class="pivot">'
+        "<h2>by failed_agent</h2>"
+        "<table><thead><tr>"
+        "<th>failed_agent</th><th>all</th><th>harness_correct</th><th>accuracy</th>"
+        "</tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
     )
 
 
+def _pivot_by_agent_mode(df: pd.DataFrame) -> str:
+    """Counts per (failed_agent, failure_mode): all / harness_correct / accuracy."""
+    if not {"failed_agent", "failure_mode"}.issubset(df.columns):
+        return ""
+    correct_mask = (
+        df["harness_correct"].astype(str).str.lower().isin({"true", "1"})
+        if "harness_correct" in df.columns
+        else pd.Series([False] * len(df))
+    )
+    rows: list[str] = []
+    total_all = 0
+    total_correct = 0
+    agents = sorted(a for a in df["failed_agent"].fillna("").unique() if a != "")
+    for agent in agents:
+        agent_mask = df["failed_agent"] == agent
+        modes = sorted(
+            m for m in df.loc[agent_mask, "failure_mode"].fillna("").unique() if m != ""
+        )
+        agent_all = 0
+        agent_correct = 0
+        agent_rows: list[str] = []
+        for mode in modes:
+            m = agent_mask & (df["failure_mode"] == mode)
+            n_all = int(m.sum())
+            n_correct = int((m & correct_mask).sum())
+            agent_all += n_all
+            agent_correct += n_correct
+            agent_rows.append(
+                f"<tr><td>{_html.escape(agent)}</td>"
+                f"<td>{_html.escape(mode)}</td>"
+                f'<td class="num">{n_all}</td>'
+                f'<td class="num">{n_correct}</td>'
+                f'<td class="num">{_fmt_acc(n_correct, n_all)}</td></tr>'
+            )
+        total_all += agent_all
+        total_correct += agent_correct
+        rows.extend(agent_rows)
+        rows.append(
+            f'<tr class="subtotal"><td>{_html.escape(agent)}</td>'
+            f"<td><em>subtotal</em></td>"
+            f'<td class="num">{agent_all}</td>'
+            f'<td class="num">{agent_correct}</td>'
+            f'<td class="num">{_fmt_acc(agent_correct, agent_all)}</td></tr>'
+        )
+    rows.append(
+        f'<tr class="total"><td colspan="2">TOTAL</td>'
+        f'<td class="num">{total_all}</td>'
+        f'<td class="num">{total_correct}</td>'
+        f'<td class="num">{_fmt_acc(total_correct, total_all)}</td></tr>'
+    )
+    body = "\n".join(rows)
+    return (
+        '<div class="pivot">'
+        "<h2>by failed_agent × failure_mode</h2>"
+        "<table><thead><tr>"
+        "<th>failed_agent</th><th>failure_mode</th>"
+        "<th>all</th><th>harness_correct</th><th>accuracy</th>"
+        "</tr></thead>"
+        f"<tbody>{body}</tbody></table></div>"
+    )
+
+
+def _fix_box(s: str) -> str:
+    return f'<div class="fix-box">{_html.escape(s)}</div>'
+
+
 def _cell(col: str, value: Any, *, row_id: str) -> str:
-    s = "" if value is None else str(value)
-    if s.strip() == "":
-        return '<span class="placeholder">—</span>'
-    if col == "system_prompt_fix" and s.strip():
-        return f'<div class="fix-box">{_html.escape(s)}</div>'
-    if col in _JSON_COLUMNS and s.strip():
-        try:
-            parsed = json.loads(s)
-            pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
-        except (json.JSONDecodeError, TypeError):
-            pretty = s
-        return _viewable(col, "view", pretty, row_id)
-    if col in _LONG_TEXT_COLUMNS and len(s) > 200:
-        return _viewable(col, s[:120] + "…", s, row_id)
-    return _html.escape(s)
+    return render_cell(
+        col,
+        value,
+        row_id=row_id,
+        json_columns=_JSON_COLUMNS,
+        long_text_columns=_LONG_TEXT_COLUMNS,
+        empty_placeholder=True,
+        special={"system_prompt_fix": _fix_box},
+    )
 
 
 def write_diagnostic_html(
     csv_path: Path,
     *,
     output_path: Path | None = None,
-    title: str = "diagnostic_results_v3_opt",
+    title: str | None = None,
+    prompts_version: str | None = None,
+    variant: str | None = None,
 ) -> Path:
+    from convfinqa.config import settings as _s
+    if title is None:
+        title = f"diagnostic_results_{variant or _s.variant}"
+    # Resolved fields for the subtitle under the h1.
+    _variant = variant or _s.variant
+    _prompts_version = prompts_version or _s.prompts_version or "v2"
     df = pd.read_csv(csv_path).fillna("")
     out_path = output_path or csv_path.with_suffix(".html")
     columns = list(df.columns)
@@ -271,6 +267,10 @@ def write_diagnostic_html(
         f"<div><strong>harness_correct:</strong> {n_correct}</div>"
     )
 
+    pivots_html = (
+        f'<div class="pivots">{_pivot_by_agent(df)}{_pivot_by_agent_mode(df)}</div>'
+    )
+
     filters_html = f"""
     <div class="filters">
       <label><input type="checkbox" id="only-resolved"> only resolved</label>
@@ -293,35 +293,20 @@ def write_diagnostic_html(
     </div>
     """
 
-    page = f"""<!doctype html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="color-scheme" content="dark">
-  <title>{_html.escape(title)}</title>
-  <style>{_STYLE}</style>
-</head>
-<body>
-  <h1>{_html.escape(title)}</h1>
-  <div class="summary">{summary_html}</div>
-  {filters_html}
-  <div id="viewer-panel" class="viewer hidden">
-    <div class="viewer-header">
-      <span class="viewer-label">
-        <strong id="viewer-col"></strong>
-        <span id="viewer-row"></span>
-      </span>
-      <button class="viewer-close" id="viewer-close" type="button" aria-label="close">×</button>
-    </div>
-    <pre id="viewer-content"></pre>
+    report_body = f"""  <h1>{_html.escape(title)}</h1>
+  <div class="subhead">
+    <span class="pill"><strong>variant:</strong> {_html.escape(_variant)}</span>
+    <span class="pill"><strong>prompts_version (input):</strong> {_html.escape(_prompts_version)}</span>
+    <span class="muted">optimising failures of {_html.escape(_prompts_version)} → producing {_html.escape(_variant)}</span>
   </div>
+  <div class="summary">{summary_html}</div>
+  {pivots_html}
+  {filters_html}
+{viewer_panel_html()}
   <table>
     <thead><tr>{head_cells}</tr></thead>
     <tbody>{body}</tbody>
-  </table>
-  <script>{_SCRIPT}</script>
-</body>
-</html>
-"""
+  </table>"""
+    page = render_page(title=title, body=report_body, filter_script=_FILTER_SCRIPT)
     out_path.write_text(page)
     return out_path

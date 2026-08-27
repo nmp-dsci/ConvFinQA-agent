@@ -14,6 +14,7 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 
 from convfinqa.backends.pydantic import make_agents
+from convfinqa.config import PREDICTIONS_DIR
 from convfinqa.data.schemas import ConversationHistory
 from convfinqa.evaluation import load_cached_conversations, numeric_match
 from convfinqa.evaluation.joining import write_joined_predictions
@@ -21,7 +22,7 @@ from convfinqa.evaluation.reporting import print_accuracy_table, write_predictio
 from convfinqa.pipeline.prompts_loader import GEPA_NAME
 from convfinqa.pipeline.runner import ConversationRunner, run_turn
 
-EVAL_DIR = Path("evaluation")
+EVAL_DIR = PREDICTIONS_DIR
 
 
 class ConvInput(BaseModel):
@@ -359,16 +360,29 @@ _evaluate_version = evaluate_version
 
 
 async def run_all_versions(reuse: bool = True) -> dict[str, Path]:
-    """Evaluate every available prompt version; print accuracy table."""
+    """Evaluate every available prompt version; print accuracy table.
+
+    Auto-discovers all `v\\d+(_\\d+)?` modules in `convfinqa.prompts` (v1, v2,
+    v3_1, v3_2, …). When `settings.prompts_version` is set, that version is
+    the focus — it is forced into the iteration set even if it wasn't in the
+    auto-discovered list — but prior auto-discovered versions are kept so the
+    comparison table still shows accuracy deltas. To evaluate a single version
+    in isolation, set `PROMPTS_VERSION` AND remove the prior `.py` files (or
+    rename them outside the regex).
+    """
     import convfinqa.prompts as _prompts_pkg
     from convfinqa.config import settings
     from convfinqa.data.loader import load_conv_examples_test
 
     examples, _ = load_conv_examples_test()
+    discovered = _prompts_pkg.latest_all()  # already sorted by (major, minor)
     pinned = settings.prompts_version
-    versions = (
-        [pinned] if pinned else sorted(_prompts_pkg.latest_all(), key=lambda v: int(v[1:]))
-    )
+    if pinned and pinned not in discovered:
+        # Pinned name didn't match the auto-discovery regex (e.g. tagged variant
+        # like "v3_2_alt"). Insert it at the end so it still gets evaluated.
+        versions = list(discovered) + [pinned]
+    else:
+        versions = list(discovered)
     paths: dict[str, Path] = {}
     for version in versions:
         paths[version] = await evaluate_version(examples, version, reuse=reuse)

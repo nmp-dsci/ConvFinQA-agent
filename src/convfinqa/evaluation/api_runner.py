@@ -11,7 +11,7 @@ from typing import Any
 import httpx
 import pandas as pd
 
-from convfinqa.config import settings
+from convfinqa.config import PREDICTIONS_DIR, settings
 from convfinqa.data.loader import load_conv_examples_test, training_data
 from convfinqa.data.schemas import ConvExample
 from convfinqa.evaluation import (
@@ -22,7 +22,7 @@ from convfinqa.evaluation import (
 from convfinqa.evaluation.joining import analyze_predictions, join_predictions
 
 GEPA_NAME = settings.gepa_name or "gepa_real_20260502_005251"
-EVAL_DIR = Path("evaluation")
+EVAL_DIR = PREDICTIONS_DIR
 VERSION = settings.prompts_version or "v2"
 
 

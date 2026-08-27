@@ -1,11 +1,11 @@
-name: "ConvFinQA Prompt-Improvement Harness — Per-Case Diagnose → Route+Fix → Verify Loop for Sub-Agent System Prompts"
+name: "ConvFinQA Prompt-Improvement Harness — Per-Case Diagnose → Propose → Verify Loop for Sub-Agent System Prompts"
 
 ## Purpose
 
 Build an evaluation harness that iteratively improves sub-agent `system_prompt`s based on observed errors. It reads committed predictions (`evaluation/pydantic_predictions_v2.csv`) and, for each conversation's first failed question, runs a **per-case three-step flow** with an optional retry loop:
 
 1. **Diagnose** — Router LLM classifies which sub-agent (Triage / Preprocess / Retriever / Calculator) caused the wrong answer. One `LM_MAX` call. Outputs `RouterDiagnosis`; no fix.
-2. **Route + Fix** — The router's `failed_agent` selects one of four specialist Fix LLMs (`TriageFix / PreprocessFix / RetrieverFix / CalculatorFix`). The specialist proposes a single `system_prompt` rule for its own sub-agent only. One `LM_MAX` call.
+2. **Propose** — The router's `failed_agent` selects one of four specialist Fix LLMs (`TriageFix / PreprocessFix / RetrieverFix / CalculatorFix`). The specialist proposes a single `system_prompt` rule for its own sub-agent only. One `LM_MAX` call.
 3. **Verify** — Patch that sub-agent's prompt with the proposed rule and re-run the conversation **from turn 0 through the originally-failed turn `k`** (`report_id`, turns 0..k), feeding predicted answers forward as conversation history. Replaying through `k` is required because the conversation is multi-turn — turns 1..k may reference earlier Q&A, so the history must be rebuilt with the patched agents. The patch passes iff:
    - turn `k` now matches its gold answer, AND
    - no previously-correct prior turn (0..k-1) regresses (each was correct in the original run; it must remain correct).
@@ -15,8 +15,8 @@ Build an evaluation harness that iteratively improves sub-agent `system_prompt`s
 
 After every case has run, two finalisation steps execute once:
 
-- **Assemble** — regenerate `src/convfinqa/prompts/v3_opt.py` from v2.py + the four `rules_<agent>_v3_opt.jsonl` stores.
-- **Regression eval** — re-score `v3_opt` against the full dev/test set and emit deltas vs v2.
+- **Assemble** — regenerate `src/convfinqa/prompts/v3_1.py` from v2.py + the four `rules_<agent>_v3_1.jsonl` stores.
+- **Regression eval** — re-score `v3_1` against the full dev/test set and emit deltas vs v2.
 
 The only allowed output is a `system_prompt` change for a single sub-agent. No code, pipeline, model, or tool changes. Every rule in the final store has been empirically verified against the case that motivated it.
 
@@ -38,7 +38,7 @@ For each first-wrong case (one row per report_id, at turn k = min(turn_index whe
                            ▼
   ┌──────────── attempt loop (1..retry_n) ─────────────────────────────┐
   │                                                                    │
-  │ Step 2 — ROUTE + FIX                                               │
+  │ Step 2 — PROPOSE                                               │
   │   FIX_AGENTS[failed_agent](FixPayload) → FixProposal               │
   │   1 LM_MAX call into the specialist for that sub-agent only.       │
   │   FixPayload carries:                                              │
@@ -71,10 +71,10 @@ For each first-wrong case (one row per report_id, at turn k = min(turn_index whe
 
 After the case loop completes for all cases:
 
-- **Assemble** — `assemble_v3_opt()` reads the four `rules_<agent>_v3_opt.jsonl` stores and writes `src/convfinqa/prompts/v3_opt.py`.
-- **Regression** — subprocess-invokes `convfinqa-eval-api --version v3_opt` and writes deltas vs v2.
+- **Assemble** — `assemble_variant()` reads the four `rules_<agent>_v3_1.jsonl` stores and writes `src/convfinqa/prompts/v3_1.py`.
+- **Regression** — subprocess-invokes `PROMPTS_VERSION=<variant> uv run convfinqa-eval-api` and writes deltas vs the prior PROMPTS_VERSION (typically v2).
 
-The four `evaluation/rules_<agent>_v3_opt.jsonl` stores are the **source of truth**. `v3_opt.py` is a regenerable cache assembled from them. Per-agent isolation lets each sub-agent's rules evolve independently and makes rollback trivial (`jq 'select(.rule_id != …)'`).
+The four `evaluation/rules_<agent>_v3_1.jsonl` stores are the **source of truth**. `v3_1.py` is a regenerable cache assembled from them. Per-agent isolation lets each sub-agent's rules evolve independently and makes rollback trivial (`jq 'select(.rule_id != …)'`).
 
 ## Feature Architecture
 
@@ -107,7 +107,7 @@ The four `evaluation/rules_<agent>_v3_opt.jsonl` stores are the **source of trut
    ║  attempt loop (1..retry_n) — router NOT re-called inside  ║
    ║                                                           ║
    ║   ┌────────────────────────────────────────────────────┐  ║
-   ║   │ Step 2 — ROUTE + FIX                               │  ║
+   ║   │ Step 2 — PROPOSE                               │  ║
    ║   │ FIX_AGENTS[failed_agent] (1 LM call)               │  ║
    ║   │ inputs: RouterDiagnosis, current_prompt for THIS   │  ║
    ║   │   sub-agent, prior cross-run rule_attempts for     │  ║
@@ -155,7 +155,7 @@ The four `evaluation/rules_<agent>_v3_opt.jsonl` stores are the **source of trut
 | Step | LLM | Calls per case | Concurrency |
 |---|---|---|---|
 | Step 1 — Diagnose | `diagnostic_router_agent` | 1 | Sequential across cases |
-| Step 2 — Route + Fix | One of four `FIX_AGENTS[failed_agent]` | 1 per attempt (1..retry_n) | Sequential (only one specialist per case; rules compound case-to-case) |
+| Step 2 — Propose | One of four `FIX_AGENTS[failed_agent]` | 1 per attempt (1..retry_n) | Sequential (only one specialist per case; rules compound case-to-case) |
 | Step 3 — Verify | None directly — replays patched production pipeline | `k+1` turn-runs per attempt | Sequential within the replay |
 | Assemble | None (pure code) | 0 | n/a |
 | Regression | Subprocess invokes production eval | n/a | Inherits production eval concurrency |
@@ -167,69 +167,266 @@ With default `retry_n = 1`, total cost per case = 1 router call + 1 specialist c
 Implement `scripts/diagnose_failures.py` + `src/convfinqa/diagnosis/` with:
 
 - Loads predictions CSV, filters to **first wrong turn per `report_id`** (`min(turn_index)` where `correct == False`) to isolate root causes and skip cascade-poisoned downstream turns.
-- All config via `convfinqa.config.settings` — never `load_dotenv`. New fields: `lm_max_model: str = "deepseek-reasoner"`, `rules_dir: Path = "evaluation"`, `retry_n: int = 1` (1 ≤ N ≤ 3, where N is the total attempts cap — N=1 ⇒ no retries).
+- All config via `convfinqa.config.settings` — never `load_dotenv`. New fields: `lm_max_model: str = "deepseek-v4-pro"`, `rules_dir: Path = "evaluation"`, `retry_n: int = 1` (1 ≤ N ≤ 3, where N is the total attempts cap — N=1 ⇒ no retries).
 - CLI modes:
   - `--diagnose-only`: run Step 1 (diagnose) only for every case; no fix, no verify. Used to inspect router output without spending fix-or-replay budget.
   - `--stage {assemble,regression}`: standalone post-loop stages (no harness invocation).
   - default: run the full per-case loop end-to-end → assemble → regression.
-  - `--limit N`, `--reset-rules`, `--force`, `--skip-regression`, `--version v2`.
+  - `--limit N`, `--reset-rules`, `--force`, `--skip-regression`, `--prompts-version v2`.
 - Each case runs up to `settings.retry_n` total attempts (default 1 = no retries). The router is called once per case; only Step 2 (specialist fix) is repeated on retry. Iterations 2/3 see prior `FixAttempt`s in the payload; with default 1 the retry loop is effectively disabled — every case gets exactly one diagnose + one fix + one verify (unless ambiguous/duplicate-patch terminates earlier).
 - Log every Step 2/3 line prefixed `[<agent>]` so the log clearly indicates which sub-agent's rules are being modified.
 
 ## Outputs
 
-All artefacts use the `_v3_opt` suffix to sit alongside v1/v2 outputs.
+All artefacts use the `_v3_1` suffix to sit alongside v1/v2 outputs.
 
 | File | Description |
 |---|---|
-| `evaluation/diagnostic_results_v3_opt.csv` | One row per `(report_id, turn_index, attempt_id)`. |
-| `evaluation/diagnostic_results_v3_opt.html` | HTML clone of `pydantic_predictions_v2.html` — same dark theme, sortable headers, collapsible JSON cells. |
-| `evaluation/case_results_v3_opt.jsonl` | Structured `CaseResult` backup; one row per case, captures router diagnosis + every attempt's `FixAttempt`. |
-| `evaluation/rules_<agent>_v3_opt.jsonl` (×4) | **Source of truth for `v3_opt.py`** — passes only. One line per verified rule: `rule_id`, `agent`, `rule`, `fix_type`, `confidence`, `verified_on`, `verified_at`, `supersedes`. |
-| `evaluation/rule_attempts_<agent>_v3_opt.jsonl` (×4) | **Full attempt history — passes AND failures.** One line per verify call (across all cases and runs). Read by the specialist fix agent on subsequent runs so it doesn't re-propose rules already known to pass or fail. Never read by the assembler (does not affect `v3_opt.py`). |
-| `evaluation/unresolved_cases_v3_opt.json` | Cases that exhausted `retry_n` without a passing verify, plus router-`ambiguous` cases. |
-| `evaluation/regression_v3_opt.csv` | Post-loop regression: per-case delta v2 → v3_opt. |
-| `evaluation/model_accuracy_comparison_v3_opt.csv` | Post-loop regression summary row. |
-| `src/convfinqa/prompts/v3_opt.py` | **Regenerable cache** — assembled post-loop. Never hand-edited. Loaded via `convfinqa.prompts.load("v3_opt")`. |
+| `evaluation/diagnostic_results_v3_1.csv` | One row per `(report_id, turn_index, attempt_id)`. |
+| `evaluation/diagnostic_results_v3_1.html` | HTML clone of `pydantic_predictions_v2.html` — same dark theme, sortable headers, collapsible JSON cells. |
+| `evaluation/case_results_v3_1.jsonl` | Structured `CaseResult` backup; one row per case, captures router diagnosis + every attempt's `FixAttempt`. |
+| `evaluation/rules_<agent>_v3_1.jsonl` (×4) | **Source of truth for `v3_1.py`** — passes only. One line per verified rule: `rule_id`, `agent`, `rule`, `fix_type`, `confidence`, `verified_on`, `verified_at`, `supersedes`. |
+| `evaluation/rule_attempts_<agent>_v3_1.jsonl` (×4) | **Full attempt history — passes AND failures.** One line per verify call (across all cases and runs). Read by the specialist fix agent on subsequent runs so it doesn't re-propose rules already known to pass or fail. Never read by the assembler (does not affect `v3_1.py`). |
+| `evaluation/unresolved_cases_v3_1.json` | Cases that exhausted `retry_n` without a passing verify, plus router-`ambiguous` cases. |
+| `evaluation/regression_v3_1.csv` | Post-loop regression: per-case delta v2 → v3_1. |
+| `evaluation/model_accuracy_comparison_v3_1.csv` | Post-loop regression summary row. |
+| `src/convfinqa/prompts/v3_1.py` | **Regenerable cache** — assembled post-loop. Never hand-edited. Loaded via `convfinqa.prompts.load("v3_1")`. |
 
-## Diagnose Cache (reuse Step 1 across runs)
+## Variants — running v3_1, v3_2, v3_n in parallel
 
-The router LLM call is the single most expensive part of Step 1 for high-confidence cases (one full `LM_MAX` reasoning call). Re-running it every time the operator switches modes (`--diagnose-only` → full, or full → full after editing prompts) is wasteful when the case's failing inputs haven't changed. The harness therefore reuses prior router diagnoses when available.
+The harness's output namespace is parameterised by **`settings.variant`** (default `v3_1`). The variant string appears as a suffix on every artifact name AND as the filename of the generated prompts module. Different variant values give different on-disk universes that never collide.
 
-**Cache store**: `evaluation/case_results_v3_opt.jsonl` — the same file the harness already writes incrementally per case (one `CaseResult` per line). Each line carries `router_diagnosis`. No new file is introduced.
+**Files keyed by variant**:
 
-**Cache key**: `(report_id, turn_index)`. This is the case identity; the loader filter (first-wrong-per-report_id) already keys by it. The cache is **not** invalidated by changes to `pred_program`, `pred_answer`, or the four v2 prompts — operators wipe with `--no-diagnose-cache` or `--reset-rules` (which clears all stores) when they want fresh diagnoses.
+| Artifact | Path |
+|---|---|
+| Generated prompts module | `src/convfinqa/prompts/<variant>.py` |
+| Rules store (×4 agents) | `evaluation/rules_<agent>_<variant>.jsonl` |
+| Rule attempts store (×4 agents) | `evaluation/rule_attempts_<agent>_<variant>.jsonl` |
+| Per-case results / step cache | `evaluation/case_results_<variant>.jsonl` |
+| Diagnostic CSV/HTML | `evaluation/diagnostic_results_<variant>.{csv,html}` |
+| Unresolved cases | `evaluation/unresolved_cases_<variant>.json` |
+| Regression CSV | `evaluation/regression_<variant>.csv` |
+| Model accuracy comparison | `evaluation/model_accuracy_comparison_<variant>.csv` |
+| Predictions (eval-api output) | `evaluation/pydantic_predictions_<variant>.csv` |
+
+**Two independent versioning axes**:
+1. **`--prompts-version` (input)** — the base prompts module the harness *reads* via `convfinqa.prompts.load(prompts_version)`. Defaults to `settings.prompts_version` (populated from the `PROMPTS_VERSION` env var) and falls back to `v2` when unset. Use any existing module name (`v1`, `v2`, `v3_1`, `v3_2`, …) — this is the baseline that variant rules get layered on top of. **Same name as `convfinqa-eval`'s `PROMPTS_VERSION`** so the whole app shares one identifier for "which prompts are active".
+2. **`--variant` (output)** — the name of the new prompts module the harness *writes* (and the suffix for every other artifact). Default `v3_1` (overridable via `--variant <name>` or `VARIANT=<name>`).
+
+These are deliberately separate so you can iterate by chaining versions: each new variant builds on a previous variant's output module. The optimisation step is exactly "take the current `PROMPTS_VERSION`, propose+verify rules, emit a new `--variant`".
+
+**Naming convention**: any Python-importable module name works (`v3_1`, `v3_2`, `v3_2a`, `v3_2_triage_focus`). Dots are forbidden (Python uses them as package separators), so prefer underscores. The default chain is the numeric `v3_1 → v3_2 → v3_3 …` sequence.
+
+**Chaining example — iterate v3_2 on top of v3_1**:
+
+```bash
+# First iteration: v3_1 built from v2 baseline (the default behaviour).
+uv run python scripts/diagnose_failures.py --prompts-version v2 --variant v3_1
+
+# Second iteration: v3_2 built from v3_1 baseline.
+# - Loads prompts/v3_1.py as the input baseline (must already exist).
+# - Writes prompts/v3_2.py + evaluation/*_v3_2.* artifacts.
+# - Step caches are per-variant, so v3_1's cache is NOT consulted.
+uv run python scripts/diagnose_failures.py --prompts-version v3_1 --variant v3_2
+
+# Third iteration on top of v3_2:
+uv run python scripts/diagnose_failures.py --prompts-version v3_2 --variant v3_3
+```
+
+**Behaviour notes**:
+- Caches are **per-variant**. `case_results_v3_1.jsonl` is read only when `--variant v3_1`; switching to `--variant v3_2` starts fresh. This is intentional — each variant is its own experiment.
+- Rules stores are **per-variant**. `rules_<agent>_v3_1.jsonl` and `rules_<agent>_v3_2.jsonl` are disjoint files. A rule that passes in v3_1 isn't automatically copied to v3_2's store — instead, the v3_2 variant *inherits the rule via the prompt baseline* because `--prompts-version v3_1` loads the already-assembled `prompts/v3_1.py` which embeds it.
+- `--stage assemble` honours `--variant` too: `--variant v3_2 --stage assemble` reads `rules_<agent>_v3_2.jsonl` and writes `prompts/v3_2.py`.
+- `--reset-rules` only truncates the **current** variant's stores (the one named by `--variant`); other variants are untouched.
+- `convfinqa.prompts.load("v3_1")` and `load("v3_2")` work just like `load("v2")` — the prompt loader is dynamic; any sibling `.py` module with the four required constants is loadable.
+
+**Anti-patterns**:
+- DO NOT use a variant name containing `.` — `prompts/v3.2.py` cannot be imported.
+- DO NOT hand-edit `prompts/<variant>.py`. Edit the variant's `rules_<agent>_<variant>.jsonl` and re-run `--stage assemble --variant <name>`.
+- DO NOT mix `--prompts-version` and `--variant` to the same value (e.g., `--prompts-version v3_1 --variant v3_1`). The harness will load v3_1 as base, then overlay v3_1's rules on top of it, double-applying every rule in the assembled output. Always make the variant a **new** name.
+
+## Cross-App Workflow — variant flows through every tool
+
+The variant name (`v3_1`, `v3_2`, …) is a **first-class version identifier** that every script in the repo recognises. After a successful full-mode harness run, the variant's prompts module is materialised on disk and behaves identically to `v1` / `v2` from every other entry point.
+
+### Lifecycle of a variant — `v3_1` worked example
+
+1. **Improve**: `uv run python scripts/diagnose_failures.py --prompts-version v2 --variant v3_1`
+   - Loads `prompts/v2.py` as the input baseline.
+   - Runs Step 1 → Step 2 → Step 3 over first-wrong cases; verified rules append to `evaluation/rules_<agent>_v3_1.jsonl`.
+   - **Post-loop assemble (full mode only)**: `assemble_variant(base_version="v2", variant="v3_1")` writes `src/convfinqa/prompts/v3_1.py` = v2 baseline + verified rules from the four `rules_<agent>_v3_1.jsonl` stores.
+   - The file is committed to git per the existing rules contract (alongside the four `rules_*_v3_1.jsonl` and four `rule_attempts_*_v3_1.jsonl`).
+
+2. **Evaluate**: `PROMPTS_VERSION=v3_1 uv run convfinqa-eval`
+   - Auto-discovers all `^v\d+(_\d+)?$` modules in `prompts/` (`v1`, `v2`, `v3_1`).
+   - Runs v3_1 against the held-out evaluation sample, writes `evaluation/pydantic_predictions_v3_1.csv`.
+   - **Comparison table includes v1, v2, AND v3_1** so accuracy deltas are visible. This is true whether `PROMPTS_VERSION` is set (pinned target) or unset (full sweep).
+
+3. **Iterate**: `uv run python scripts/diagnose_failures.py --prompts-version v3_1 --variant v3_2`
+   - Now uses `prompts/v3_1.py` as the baseline (which already embeds v3_1's verified rules).
+   - Writes `prompts/v3_2.py`, populates `rules_<agent>_v3_2.jsonl`, etc.
+
+4. **Compare**: `uv run convfinqa-eval` (no env)
+   - Comparison table shows v1, v2, v3_1, v3_2 side-by-side, sorted by `(major, minor)` numeric key.
+
+### Why this works — single source of truth for version names
+
+Every consumer of a version name uses `convfinqa.prompts.load(name)` (dynamic, accepts any module name in `prompts/`) and `convfinqa.prompts.latest_all()` (dynamic-discovers all `v\d+(_\d+)?` modules):
+
+| Consumer | Reads version via |
+|---|---|
+| `convfinqa-eval` (`evaluation/runner.py`) | `latest_all()` for sweep mode; `settings.prompts_version` for pinned target |
+| `convfinqa-eval-api` (`scripts/evaluate_api.py`) | `PROMPTS_VERSION` env passed to the running backend |
+| `convfinqa-optimize` (DSPy/GEPA) | `settings.prompts_version` |
+| `scripts/diagnose_failures.py --prompts-version` | `prompts.load(prompts_version)` for the harness input baseline (defaults to `settings.prompts_version` / `PROMPTS_VERSION` env, fallback `v2`) |
+| `scripts/diagnose_failures.py --variant` | `settings.variant` for the output filename |
+| Backend serving (`serving/app.py` → `make_agents`) | `PROMPTS_VERSION` env at process start |
+
+Adding a new variant (e.g. `v3_5`) consists of exactly one filesystem change: dropping `prompts/v3_5.py` into the package. Every script picks it up automatically.
+
+### Discoverability — `latest_all()` regex
+
+`latest_all()` in `src/convfinqa/prompts/__init__.py` matches `^v\d+(_\d+)?$`. Sort key is `(major, minor)` where missing minor defaults to 0. Example:
+
+```
+prompts/v1.py        → ("v1",   sort=(1,0))
+prompts/v2.py        → ("v2",   sort=(2,0))
+prompts/v3_1.py      → ("v3_1", sort=(3,1))
+prompts/v3_2.py      → ("v3_2", sort=(3,2))
+prompts/v3_2_alt.py  → SKIPPED (regex mismatch — non-numeric tag)
+```
+
+If you want a tagged variant (`v3_2_alt`, `v3_2_triage_focus`) to be auto-included in the comparison table, extend the regex; otherwise tagged variants are still loadable via `prompts.load("v3_2_alt")` but won't auto-evaluate.
+
+### PROMPTS_VERSION semantics in the eval runner
+
+| Setting | Behaviour |
+|---|---|
+| `PROMPTS_VERSION` unset | `convfinqa-eval` sweeps every auto-discovered version, evaluates each, prints comparison table. |
+| `PROMPTS_VERSION=v3_1` | `convfinqa-eval` still iterates the same auto-discovered set but treats v3_1 as the **focus** — it forces v3_1 to be evaluated (cache or live) AND keeps the prior versions in the comparison table for delta inspection. |
+
+A pinned `PROMPTS_VERSION` no longer collapses the table to a single row — the operator's intent ("evaluate this variant") implies "and compare it to history".
+
+### What the post-loop assemble step actually writes
+
+The `assemble_variant(base_version, variant)` function (in `convfinqa/diagnosis/assembler.py`) writes one Python module to `src/convfinqa/prompts/<variant>.py` exporting the four required constants:
+
+```python
+"""GENERATED — assembled by convfinqa.diagnosis.assembler. Do not hand-edit."""
+from __future__ import annotations
+
+TRIAGE_PROMPT = """\
+<v2 baseline text>
+
+## Additional Rules (automated patch)
+
+1. (prep-20260520-103300-abc123) <rule_1 from rules_triage_v3_1.jsonl>
+2. (prep-20260520-103301-def456) <rule_2>
+"""
+
+PREPROCESS_PROMPT = """..."""
+RETRIEVER_PROMPT  = """..."""
+CALCULATOR_PROMPT = """..."""
+```
+
+The post-loop assemble runs **only in full mode** (Step 3 verify executed). `--diagnose-only` and `--propose-fix` never regenerate the prompts module because they produce no verified rules. To manually re-assemble from a hand-edited rules JSONL:
+
+```bash
+uv run python scripts/diagnose_failures.py --variant v3_1 --stage assemble
+```
+
+## Step Caches (reuse Steps 1, 2, 3 across runs)
+
+Each of the three per-case steps has the same caching contract: when a case has been processed in a prior run, the harness reuses that step's result and skips the work. With all three caches hit, a re-run of `scripts/diagnose_failures.py` makes **zero LLM calls and zero replays** for that case — it walks straight through bookkeeping.
+
+**Cache store**: `evaluation/case_results_v3_1.jsonl` — the same file the harness writes incrementally per case (one `CaseResult` per line). Each line carries `router_diagnosis` (Step 1) and `attempts: list[FixAttempt]` (Steps 2 + 3 per attempt). No new file is introduced.
+
+**Cache key**: `(report_id, turn_index)`. Case identity only — not content-hashed. Operators invalidate via the per-step opt-out flags (`--no-diagnose-cache` / `--no-propose-cache` / `--no-verify-cache`) or by deleting the JSONL.
+
+**What each step caches**:
+
+| Step | Cached field on `CaseResult` | Skipped on hit | LLM/replay cost on hit |
+|---|---|---|---|
+| 1 — Diagnose | `router_diagnosis` | `route_case()` | 0 |
+| 2 — Propose | `attempts[i].patch_applied` (+ `fix_type` + `fix_confidence`) | `propose_fix()` | 0 |
+| 3 — Verify | `attempts[i].verify_result` and the rest of the `FixAttempt` (turn_results, IOs, correct, first_failing_turn, failure_reason) | `verify_patch()` and its `k+1` turn-replays | 0 |
+
+**Per-step hit detection** (in order; in `run_case`):
+1. **Step 1**: `cached_case.router_diagnosis is not None` AND `--no-diagnose-cache` not set → reuse, log `cached`.
+2. **Step 2** (per attempt): `cached_case.attempts[attempt_idx-1].patch_applied != ""` AND `--no-propose-cache` not set → reuse the cached `patch_applied` as `fix.rule`, plus cached `fix_type`/`fix_confidence` (or defaults if missing).
+3. **Step 3** (per attempt): cached attempt's `verify_result is not None` AND `--no-verify-cache` not set → reuse the cached `FixAttempt` whole (turn_results, IOs, correct, first_failing_turn, failure_reason). No replay.
+
+Step caches are **independent**: hitting Step 1 doesn't require Step 2/3 hits. After `--diagnose-only`, Step 1 is cached but Steps 2/3 are not — a subsequent full run pays only Steps 2/3. After `--propose-fix`, Steps 1+2 are cached, Step 3 still runs live. After a successful full run, all three are cached — the case re-runs for free.
+
+**Bookkeeping on cache hits**: side effects (`append_attempt`, `append_rule`, in-memory `current_prompts` refresh) still execute on Step 3 cache hits. `append_rule` and `append_attempt` are **dedup'd by content** — if a rule with the same `(agent, rule_text.strip())` already exists, the existing `rule_id` is returned and no new line is written; same for `attempt_id` keyed by `(agent, rule_text.strip(), report_id, turn_index, verify_result)`. This keeps the rule and attempt stores idempotent across cache replays. **Consequence**: a clean checkout's full run from a populated `case_results_v3_1.jsonl` reproduces `rules_<agent>_v3_1.jsonl` even when the rule files were truncated (e.g., after `--reset-rules`), because cached verify "passes" still flow through `append_rule` and create the line afresh.
+
+**Staleness caveat — Step 2 and Step 3 only**:
+- Step 1 (Diagnose) is keyed purely on the failing case's IO — once a case fails the same way, the diagnosis is stable.
+- Step 2 (Propose) sees the *live baseline* (`current_prompt` = v2 + already-passing rules) in its `FixPayload`. If earlier cases in *this* run promote new rules, the cached propose was generated against a different baseline.
+- Step 3 (Verify) replays the production pipeline against the patched prompt. If `current_prompts` evolved, a cached verify result may no longer reflect what live verify would produce now.
+
+The harness does NOT detect staleness automatically. Operators invalidate when they know the baseline changed materially — either by passing `--no-propose-cache` / `--no-verify-cache`, or by `rm evaluation/case_results_v3_1.jsonl`.
 
 **Read path** (at the start of `run_harness`, before the case loop):
-1. If `case_results_v3_opt.jsonl` exists AND `--no-diagnose-cache` was NOT passed: stream-parse each line into a `CaseResult`, build `cache: dict[(report_id, turn_index), RouterDiagnosis]` from any entry whose `router_diagnosis` is non-null.
-2. The file is then truncated and rewritten fresh by the run — the cache is held in memory for the duration of the run.
+1. If `case_results_v3_1.jsonl` exists: stream-parse each line into a `CaseResult`, build `cache: dict[(report_id, turn_index), CaseResult]`. The three opt-out flags then control which fields of each cached `CaseResult` are honoured at hit time inside `run_case`.
+2. The file is truncated and rewritten incrementally as cases complete — the in-memory cache is held for the duration of the run.
 
-**Per-case behaviour** (in `run_case`):
-- Look up `cache[(report_id, turn_index)]`. On hit: skip the `route_case()` LLM call, attach the cached `RouterDiagnosis` to the case, log `[<agent>] diagnosis: cached (mode=… conf=…)`. On miss: run Step 1 as normal.
-- The rest of the per-case flow (Step 2 + 3 attempt loop, or `--diagnose-only` placeholder) is unchanged. **Cache hits apply equally to `--diagnose-only` and full-mode runs** — so a `--diagnose-only` pass populates the cache, and a subsequent full run reuses every diagnosis from it.
+**Promotion paths**:
 
-**Promotion path — `--diagnose-only` → full**:
-1. Operator runs `uv run python scripts/diagnose_failures.py --diagnose-only` (no fix/verify, but writes `case_results_v3_opt.jsonl` with router diagnoses).
-2. Operator inspects diagnoses (HTML viewer or JSONL grep).
-3. Operator runs `uv run python scripts/diagnose_failures.py` (full mode). Every case the router already diagnosed loads from cache — zero router LLM cost, only Step 2+3 cost is paid.
+| Prior run | Subsequent run | Step 1 cost | Step 2 cost | Step 3 cost |
+|---|---|---|---|---|
+| `--diagnose-only` | `--propose-fix` | 0 (cached) | live | n/a (skipped by mode) |
+| `--diagnose-only` | full | 0 (cached) | live | live |
+| `--propose-fix` | full | 0 (cached) | 0 (cached) | live |
+| full | full | 0 (cached) | 0 (cached) | 0 (cached) |
 
-**Verify cache**: not introduced in this iteration. Verify is deterministic given (failed_agent, rule, current_prompts), but `current_prompts` evolves intra-run as earlier cases promote rules, so a naive verify cache would serve stale answers. Stays uncached.
+**Cache invalidation flags**:
+- `--no-diagnose-cache` — ignore Step 1 cache; re-call the router for every case.
+- `--no-propose-cache` — ignore Step 2 cache; re-call the specialist Propose LLM for every attempt.
+- `--no-verify-cache` — ignore Step 3 cache; re-replay verify for every attempt.
+- All three accept-independent: combine freely (e.g., `--no-propose-cache --no-verify-cache` reuses diagnoses only).
+- `--reset-rules` does NOT delete `case_results_v3_1.jsonl`. To wipe step caches, combine with the opt-out flags or `rm evaluation/case_results_v3_1.jsonl`.
 
-**Cache invalidation**:
-- `--no-diagnose-cache` (new flag): the harness ignores any existing cache file. The case_results_v3_opt.jsonl is still overwritten on this run's output.
-- `--reset-rules`: clears rules + rule_attempts but does NOT delete `case_results_v3_opt.jsonl`. To wipe diagnoses, combine with `--no-diagnose-cache` (or `rm evaluation/case_results_v3_opt.jsonl` manually).
-- Editing the router's system prompt: cache is NOT auto-invalidated. Operator must pass `--no-diagnose-cache` for the first run after a router-prompt change.
+**Anti-pattern**: do NOT key any step cache on prompt or prediction hashes. The user-chosen contract is "case identity only" — invalidation is operator-driven, not content-driven. A content-keyed cache would over-invalidate (any v2 prompt tweak that doesn't affect the failure pattern would still pay the cost) and under-document (operators stop noticing when the cache silently misses).
 
-**Anti-pattern**: do NOT key the cache on prompt or prediction hashes. The user-chosen contract is "case identity only" — invalidation is operator-driven, not content-driven. A content-keyed cache would over-invalidate (any v2 prompt tweak that doesn't affect the failure pattern would still pay the router cost) and under-document (operators stop noticing when the cache silently misses).
+## Run Modes — Step 1 / Step 1+2 / Full
+
+The harness exposes three operator modes, each a strict subset of the next:
+
+| Mode | CLI flag | Steps run | Writes rule store? | Writes `v3_1.py`? | Step caches |
+|---|---|---|---|---|---|
+| Diagnose-only | `--diagnose-only` | Step 1 — Diagnose | No | No | Reads + writes Step 1 cache |
+| Propose-fix | `--propose-fix` | Step 1 — Diagnose + Step 2 — Propose | **No** (no verify ⇒ no promotion) | No | Reads + writes Steps 1 + 2 caches |
+| Full | (default) | Step 1 + Step 2 + Step 3 — Verify | Yes (on passing verify) | Yes (post-loop) | Reads + writes all three caches |
+
+`--diagnose-only` and `--propose-fix` are **mutually exclusive** (argparse enforced). Both are short-circuits — they skip downstream steps but keep all upstream behaviour identical to full mode, including the diagnose cache and the per-case sequential iteration.
+
+### Propose-fix mode in detail
+
+`--propose-fix` runs Step 1 (Diagnose) and Step 2 (Propose) for every case, then stops before Step 3 (Verify). The specialist's `FixProposal.rule` is recorded into `diagnostic_results_v3_1.{csv,html}` so operators can review proposed patches in bulk before paying replay cost. Because nothing was verified, **no rules are promoted** — `rules_<agent>_v3_1.jsonl`, `rule_attempts_<agent>_v3_1.jsonl`, and `src/convfinqa/prompts/v3_1.py` are not modified.
+
+**Cache parity with full mode**: when `--propose-fix` runs, Step 1's diagnose cache (§Diagnose Cache) is read and used exactly as in full mode — a cached `RouterDiagnosis` for `(report_id, turn_index)` skips the router LLM call, and only Step 2's specialist LLM call is paid. This makes `--propose-fix` an extremely cheap operator pass after a `--diagnose-only` sweep: zero router cost, one specialist call per non-ambiguous case, no replay cost.
+
+**Output behaviour**:
+- `diagnostic_results_v3_1.{csv,html}`: written. Group A + Group B (router diagnosis + proposed `system_prompt_fix`) are fully populated; **Group C (harness verify columns) are all empty strings**, rendered as `—` in the HTML — same null look as `--diagnose-only`. Operators reading the HTML cannot distinguish a never-verified row by accident: the verify columns visibly show no result.
+- `case_results_v3_1.jsonl`: written. Each `CaseResult` contains the router diagnosis + one `FixAttempt` per case where `patch_applied = fix.rule` and `verify_result = None`. Re-running into `--propose-fix` or full mode reuses the cached diagnosis (§Diagnose Cache).
+- `rules_<agent>_v3_1.jsonl` / `rule_attempts_<agent>_v3_1.jsonl`: **not written**. A propose-fix run can never promote a rule because the rule was never verified.
+- `unresolved_cases_v3_1.json`: written. Ambiguous + non-passing cases are recorded; in propose-fix every non-ambiguous case is "not verified" rather than "verified failing", which is reflected by `verify_result = None` on its attempt.
+- `src/convfinqa/prompts/v3_1.py`: **not regenerated**. The post-loop `assemble_variant()` is skipped because rules didn't change.
+
+**Step-name convention**: throughout the spec and logs the three steps are named **Step 1 — Diagnose**, **Step 2 — Propose**, **Step 3 — Verify**. The Step 2 implementation is the "Route + Propose" dispatch (router's `failed_agent` selects one of four specialist Fix LLMs) but the user-facing name is just **Propose**.
+
+**Null-look columns in CSV/HTML**: a row is propose-fix-or-diagnose-only iff its `verify_result` is empty. When `verify_result == ""`, the writer emits `""` for: `harness_correct`, `harness_first_failing_turn`, `harness_turn_results`, `harness_pred_answer`, `harness_triage_io`, `harness_preprocess_io`, `harness_retriever_io`, `harness_calculator_io`. The HTML renders all eight as `—`. (Previously `harness_correct` was written as the literal `False` for `--diagnose-only` rows — that's also normalised to `""` so the null look is consistent across both short-circuit modes.)
 
 ## Statefulness Across Runs
 
-1. **First run / `--reset-rules`**: all JSONL stores empty → assemble writes `v3_opt.py` byte-identical to `v2.py`. `--reset-rules` truncates BOTH `rules_<agent>_v3_opt.jsonl` AND `rule_attempts_<agent>_v3_opt.jsonl` — there is no separate `--keep-attempts` toggle. Single switch, single behaviour: pass `--reset-rules` to wipe everything; omit it to keep both stores intact (the default). Rationale: keeping attempts without rules creates a confusing half-state where the specialist agent sees prior `promoted_rule_id` references that no longer exist in the rules store. The two stores are conceptually coupled; reset them together or not at all.
-2. **During the case loop**: every verify call appends one line to `rule_attempts_<failed_agent>_v3_opt.jsonl` with `verify_result ∈ {"passed","failed"}`. On `passed`, the harness ALSO appends one line to `rules_<failed_agent>_v3_opt.jsonl`; the in-memory live prompt for that sub-agent is reassembled so subsequent cases see the patched baseline. On `failed`, only the attempts log is updated.
+1. **First run / `--reset-rules`**: all JSONL stores empty → assemble writes `v3_1.py` byte-identical to `v2.py`. `--reset-rules` truncates BOTH `rules_<agent>_v3_1.jsonl` AND `rule_attempts_<agent>_v3_1.jsonl` — there is no separate `--keep-attempts` toggle. Single switch, single behaviour: pass `--reset-rules` to wipe everything; omit it to keep both stores intact (the default). Rationale: keeping attempts without rules creates a confusing half-state where the specialist agent sees prior `promoted_rule_id` references that no longer exist in the rules store. The two stores are conceptually coupled; reset them together or not at all.
+2. **During the case loop**: every verify call appends one line to `rule_attempts_<failed_agent>_v3_1.jsonl` with `verify_result ∈ {"passed","failed"}`. On `passed`, the harness ALSO appends one line to `rules_<failed_agent>_v3_1.jsonl`; the in-memory live prompt for that sub-agent is reassembled so subsequent cases see the patched baseline. On `failed`, only the attempts log is updated.
 3. **Specialist awareness**: each specialist Fix call is given the prior attempts for its own sub-agent, so it can avoid re-suggesting any rule already known to pass (no-op duplicate) or already known to fail (waste of a verify cycle). This is a prompt-level soft check; a hard byte-equality guard on prior `patch_applied` strings also terminates the attempt loop if the agent ignores the guidance.
-4. **End of case loop**: the assembler reassembles `v3_opt.py` from the union of `rules_<agent>_v3_opt.jsonl` stores only. The attempts log is never consulted by the assembler.
+4. **End of case loop**: the assembler reassembles `v3_1.py` from the union of `rules_<agent>_v3_1.jsonl` stores only. The attempts log is never consulted by the assembler.
 5. **Subsequent runs**: both stores reused as-is; new attempts and new passes accumulate. The attempts log grows monotonically and gets the specialist agents "smarter" across runs.
-6. **Targeted rollback**: delete lines from `rules_<agent>_v3_opt.jsonl`, re-run `--stage assemble`. The corresponding attempt line in `rule_attempts_<agent>_v3_opt.jsonl` stays — a previously-passing rule that was rolled back is now visible to the specialist agent as a known pass it can re-introduce, or override via `supersedes`.
+6. **Targeted rollback**: delete lines from `rules_<agent>_v3_1.jsonl`, re-run `--stage assemble`. The corresponding attempt line in `rule_attempts_<agent>_v3_1.jsonl` stays — a previously-passing rule that was rolled back is now visible to the specialist agent as a known pass it can re-introduce, or override via `supersedes`.
 
 ## Diagnostic Results Schema
 
@@ -379,7 +576,7 @@ class RouterPayload(BaseModel):                     # input to diagnostic_router
     current_calculator_prompt: str
     # NOTE: router does NOT receive prior_rule_attempts — it only classifies.
 
-class FixPayload(BaseModel):                        # input to one of the 4 specialist fix agents (Step 2 — Route+Fix)
+class FixPayload(BaseModel):                        # input to one of the 4 specialist fix agents (Step 2 — Propose)
     # Identifying fields:
     report_id: str; turn_index: int
     question: str; history_text: str
@@ -405,7 +602,7 @@ class RouterDiagnosis(BaseModel):                   # output of diagnostic_route
     confidence: float = Field(ge=0.0, le=1.0)
     # NOTE: no `system_prompt_fix` — router classifies, specialist proposes.
 
-class FixProposal(BaseModel):                       # output of one of the 4 specialist fix agents (Step 2 — Route+Fix)
+class FixProposal(BaseModel):                       # output of one of the 4 specialist fix agents (Step 2 — Propose)
     rule: str                                       # the new system_prompt addition (was `system_prompt_fix`)
     fix_type: FixType
     confidence: float = Field(ge=0.0, le=1.0)
@@ -426,7 +623,7 @@ class CaseResult(BaseModel):
     winning_iteration: int | None
     final_patch: str | None
 
-class Rule(BaseModel):                              # one line of rules_<agent>_v3_opt.jsonl
+class Rule(BaseModel):                              # one line of rules_<agent>_v3_1.jsonl
     rule_id: str                                    # "prep-20260519-103300-a1b2c3"
     agent: Literal["triage", "preprocess", "retriever", "calculator"]
     rule: str
@@ -436,7 +633,7 @@ class Rule(BaseModel):                              # one line of rules_<agent>_
     verified_at: str                                # ISO-8601 UTC
     supersedes: list[str] = []                      # prior rule_ids to filter out
 
-class RuleAttempt(BaseModel):                       # one line of rule_attempts_<agent>_v3_opt.jsonl
+class RuleAttempt(BaseModel):                       # one line of rule_attempts_<agent>_v3_1.jsonl
     attempt_id: str                                 # "prep-att-20260519-103300-a1b2c3"
     agent: Literal["triage", "preprocess", "retriever", "calculator"]
     rule: str                                       # the proposed patch_applied text
@@ -448,7 +645,7 @@ class RuleAttempt(BaseModel):                       # one line of rule_attempts_
     # On "failed", capture why so the next diagnose call can avoid the same shape:
     first_failing_turn: int | None                  # only set when verify_result == "failed"
     failure_reason: Literal["did_not_fix", "caused_regression", "duplicate_patch", "ambiguous_followup"] | None
-    # If this attempt was later promoted to rules_<agent>_v3_opt.jsonl, the rule_id pointer:
+    # If this attempt was later promoted to rules_<agent>_v3_1.jsonl, the rule_id pointer:
     promoted_rule_id: str | None = None             # set only on verify_result == "passed"
 ```
 
@@ -466,9 +663,9 @@ src/convfinqa/
   evaluation/reporting.py                    [MODIFIED]   extract PREDICTIONS_CSS, PREDICTIONS_JS,
                                                           render_filter_bar to module level (no behaviour change)
   prompts/
-    __init__.py                              [READ-ONLY]  already supports load("v3_opt")
-    v2.py                                    [READ-ONLY]  base for v3_opt assembly
-    v3_opt.py                                [GENERATED]  assembled by diagnosis.assembler after the case loop
+    __init__.py                              [READ-ONLY]  already supports load("v3_1")
+    v2.py                                    [READ-ONLY]  base for v3_1 assembly
+    v3_1.py                                [GENERATED]  assembled by diagnosis.assembler after the case loop
   diagnosis/                                 [NEW]        entire package
     __init__.py                              [NEW]
     loader.py                                [NEW]        first-wrong-per-report_id filter + RouterPayload build
@@ -480,12 +677,12 @@ src/convfinqa/
                                                           route_case() + propose_fix() dispatcher
     verify.py                                [NEW]        patch + replay turns 0..k (no LLM)
     rules_store.py                           [NEW]        per-agent JSONL CRUD: rules + rule_attempts
-    assembler.py                             [NEW]        assemble_v3_opt() — writes prompts/v3_opt.py
-    harness.py                               [NEW]        per-case loop driver: Diagnose → (Route+Fix → Verify) × retry_n
-    results_writer.py                        [NEW]        diagnostic_results_v3_opt.csv
-    results_html.py                          [NEW]        diagnostic_results_v3_opt.html (imports CSS/JS from reporting.py)
-    aggregator.py                            [NEW]        unresolved_cases_v3_opt.json
-    regression.py                            [NEW]        post-loop — re-score v3_opt vs v2
+    assembler.py                             [NEW]        assemble_variant() — writes prompts/v3_1.py
+    harness.py                               [NEW]        per-case loop driver: Diagnose → (Propose → Verify) × retry_n
+    results_writer.py                        [NEW]        diagnostic_results_v3_1.csv
+    results_html.py                          [NEW]        diagnostic_results_v3_1.html (imports CSS/JS from reporting.py)
+    aggregator.py                            [NEW]        unresolved_cases_v3_1.json
+    regression.py                            [NEW]        post-loop — re-score v3_1 vs v2
 
 scripts/
   diagnose_failures.py                       [NEW]        CLI entry point (--phase, --diagnose-only,
@@ -499,34 +696,34 @@ tests/
 
 ### Data artefacts (under `evaluation/`)
 
-All produced by the harness. Naming convention `_v3_opt` everywhere.
+All produced by the harness. Naming convention `_v3_1` everywhere.
 
 ```
 evaluation/
   pydantic_predictions_v2.csv                [READ-ONLY]  existing input — failing cases come from here
-  pydantic_predictions_v3_opt.csv            [GENERATED]  produced by post-loop regression subprocess (eval-api --version v3_opt)
+  pydantic_predictions_v3_1.csv            [GENERATED]  produced by post-loop regression subprocess (PROMPTS_VERSION=v3_1 convfinqa-eval-api)
 
   # Per-case loop artefacts (gitignored):
-  case_results_v3_opt.jsonl                  [GENERATED]  one CaseResult per case (router diagnosis + all attempts); written incrementally for resumability
-  diagnostic_results_v3_opt.csv              [GENERATED]  one row per (report_id, turn_index, attempt_id)
-  diagnostic_results_v3_opt.html             [GENERATED]  dark-theme HTML view of the CSV
-  unresolved_cases_v3_opt.json               [GENERATED]  ambiguous + after-3-attempts failures
+  case_results_v3_1.jsonl                  [GENERATED]  one CaseResult per case (router diagnosis + all attempts); written incrementally for resumability
+  diagnostic_results_v3_1.csv              [GENERATED]  one row per (report_id, turn_index, attempt_id)
+  diagnostic_results_v3_1.html             [GENERATED]  dark-theme HTML view of the CSV
+  unresolved_cases_v3_1.json               [GENERATED]  ambiguous + after-3-attempts failures
 
   # Source-of-truth stores (COMMITTED):
-  rules_triage_v3_opt.jsonl                  [NEW]        verified passes for triage         ── source for v3_opt.py
-  rules_preprocess_v3_opt.jsonl              [NEW]        verified passes for preprocess     ── source for v3_opt.py
-  rules_retriever_v3_opt.jsonl               [NEW]        verified passes for retriever      ── source for v3_opt.py
-  rules_calculator_v3_opt.jsonl              [NEW]        verified passes for calculator     ── source for v3_opt.py
+  rules_triage_v3_1.jsonl                  [NEW]        verified passes for triage         ── source for v3_1.py
+  rules_preprocess_v3_1.jsonl              [NEW]        verified passes for preprocess     ── source for v3_1.py
+  rules_retriever_v3_1.jsonl               [NEW]        verified passes for retriever      ── source for v3_1.py
+  rules_calculator_v3_1.jsonl              [NEW]        verified passes for calculator     ── source for v3_1.py
 
   # Attempt history (COMMITTED — makes future runs smarter):
-  rule_attempts_triage_v3_opt.jsonl          [NEW]        every triage attempt (pass + fail)
-  rule_attempts_preprocess_v3_opt.jsonl      [NEW]        every preprocess attempt (pass + fail)
-  rule_attempts_retriever_v3_opt.jsonl       [NEW]        every retriever attempt (pass + fail)
-  rule_attempts_calculator_v3_opt.jsonl      [NEW]        every calculator attempt (pass + fail)
+  rule_attempts_triage_v3_1.jsonl          [NEW]        every triage attempt (pass + fail)
+  rule_attempts_preprocess_v3_1.jsonl      [NEW]        every preprocess attempt (pass + fail)
+  rule_attempts_retriever_v3_1.jsonl       [NEW]        every retriever attempt (pass + fail)
+  rule_attempts_calculator_v3_1.jsonl      [NEW]        every calculator attempt (pass + fail)
 
   # Post-loop regression (gitignored):
-  regression_v3_opt.csv                      [GENERATED]  per-case delta v2 → v3_opt
-  model_accuracy_comparison_v3_opt.csv       [GENERATED]  one-row summary (fixed, regressed, net_delta, accuracies)
+  regression_v3_1.csv                      [GENERATED]  per-case delta v2 → v3_1
+  model_accuracy_comparison_v3_1.csv       [GENERATED]  one-row summary (fixed, regressed, net_delta, accuracies)
 ```
 
 ### What this feature adds — at a glance
@@ -536,19 +733,19 @@ evaluation/
 | New Python modules | 12 | `src/convfinqa/diagnosis/*` (11) + `scripts/diagnose_failures.py` |
 | New test files | 1 | `tests/test_diagnose_failures.py` |
 | Modified existing files | 3 | `config.py`, `backends/pydantic.py`, `evaluation/reporting.py` |
-| Generated source files | 1 | `src/convfinqa/prompts/v3_opt.py` |
-| Committed data stores | 8 | 4 × `rules_<agent>_v3_opt.jsonl` + 4 × `rule_attempts_<agent>_v3_opt.jsonl` |
-| Gitignored data artefacts | 7 | `case_results`, `diagnostic_results.{csv,html}`, `unresolved_cases`, `regression`, `model_accuracy_comparison`, `pydantic_predictions_v3_opt` |
+| Generated source files | 1 | `src/convfinqa/prompts/v3_1.py` |
+| Committed data stores | 8 | 4 × `rules_<agent>_v3_1.jsonl` + 4 × `rule_attempts_<agent>_v3_1.jsonl` |
+| Gitignored data artefacts | 7 | `case_results`, `diagnostic_results.{csv,html}`, `unresolved_cases`, `regression`, `model_accuracy_comparison`, `pydantic_predictions_v3_1` |
 | New LM-backed agents | 5 | `diagnostic_router_agent` + 4 `<agent>_fix_agent` specialists (all `LM_MAX`) |
 | New system prompts | 5 | `DIAGNOSTIC_ROUTER_SYSTEM_PROMPT` + `FIX_<AGENT>_SYSTEM_PROMPT` × 4 |
-| New CLI flags | 3 | `--stage`, `--reset-rules`, `--retry-n` (plus existing-style `--diagnose-only`, `--limit`, `--force`, `--skip-regression`, `--version`) |
+| New CLI flags | 3 | `--stage`, `--reset-rules`, `--retry-n` (plus existing-style `--diagnose-only`, `--limit`, `--force`, `--skip-regression`, `--prompts-version`) |
 | New env vars | 3 | `RETRY_N`, `MAX_PRIOR_ATTEMPTS_IN_PAYLOAD`, `RULES_DIR` (plus existing `DEEPSEEK_API_KEY`, `LM_MAX_MODEL`, `PROMPTS_VERSION`) |
 
 ## Implementation Steps
 
 ### Step 0 — Settings + CSS/JS extraction (prerequisite)
 
-- `Settings.lm_max_model: str = "deepseek-reasoner"` (NOT `"deepseek-v4-pro"` — that string was a typo).
+- `Settings.lm_max_model: str = "deepseek-v4-pro"` — flagship DeepSeek model (1.6T total / 49B activated, 1M context). Originally `"deepseek-reasoner"` which was a backward-compat alias that DeepSeek deprecates 2026-07-24 (per `https://api-docs.deepseek.com/updates`); now points at the real v4-pro identifier that the dspy/GEPA backend also uses, keeping the s7 harness and the optimisation toolchain on the same model.
 - `Settings.rules_dir: Path = Path("evaluation").resolve()` — overridable via `RULES_DIR`.
 - `Settings.retry_n: int = 1` — overridable via `RETRY_N`. Validate `1 ≤ N ≤ 3`; raise on out-of-range. Default 1 means single-pass (no refinement loop).
 - `Settings.max_prior_attempts_in_payload: int = 50` — overridable via `MAX_PRIOR_ATTEMPTS_IN_PAYLOAD`. Caps how many prior attempts per agent are surfaced to the diagnostic agent, bounding prompt size. Most-recent-N policy.
@@ -558,7 +755,7 @@ evaluation/
 ### Step 1 — Router + 4 specialist fix agents (LM_MAX)
 
 - In `backends/pydantic.py`: `LM_MAX = OpenAIChatModel(settings.lm_max_model, provider=_deepseek_provider)`. All five agents share this model.
-- **Pydantic AI conformance**: the 5 diagnosis agents are built with `pydantic_ai.Agent(model, output_type=..., instructions=...)` exactly like the four production sub-agents in `src/convfinqa/backends/pydantic.py` (`triage_agent`, `preprocess_agent`, `retriever_agent`, `calculator_agent`). Same constructor signature, same provider object (`_deepseek_provider`), same OpenAI-compat chat-completions transport, structured output via `output_type=<BaseModel>`. The only differences are: (a) `LM_MAX` model id (`deepseek-reasoner`) vs `LM_MINI` (`deepseek-chat`), (b) no `.tool_plain` calls (the diagnosis agents don't expose tools — they return a single structured object), and (c) `instructions` strings are different. Treating the diagnosis stack as "just five more pydantic-ai agents wired up the same way as the production four" is intentional — it keeps Logfire instrumentation, retry semantics, and JSON-output validation uniform across the codebase. No bespoke LLM client, no raw `openai.AsyncOpenAI`.
+- **Pydantic AI conformance**: the 5 diagnosis agents are built with `pydantic_ai.Agent(model, output_type=..., instructions=...)` exactly like the four production sub-agents in `src/convfinqa/backends/pydantic.py` (`triage_agent`, `preprocess_agent`, `retriever_agent`, `calculator_agent`). Same constructor signature, same provider object (`_deepseek_provider`), same OpenAI-compat chat-completions transport, structured output via `output_type=<BaseModel>`. The only differences are: (a) `LM_MAX` model id (`deepseek-v4-pro`, 1.6T MoE) vs `LM_MINI` (`deepseek-v4-flash`, 284B MoE), (b) no `.tool_plain` calls (the diagnosis agents don't expose tools — they return a single structured object), and (c) `instructions` strings are different. Treating the diagnosis stack as "just five more pydantic-ai agents wired up the same way as the production four" is intentional — it keeps Logfire instrumentation, retry semantics, and JSON-output validation uniform across the codebase. No bespoke LLM client, no raw `openai.AsyncOpenAI`.
 
 #### `diagnosis/prompts.py` contains 5 system prompts:
 
@@ -690,7 +887,7 @@ async def route_case(payload: RouterPayload) -> RouterDiagnosis:
     return result.output
 
 async def propose_fix(failed_agent: str, payload: FixPayload) -> FixProposal:
-    """Step 2 — Route+Fix: dispatched to one of the four specialists by failed_agent. One LM_MAX call per attempt (1..retry_n)."""
+    """Step 2 — Propose: dispatched to one of the four specialists by failed_agent. One LM_MAX call per attempt (1..retry_n)."""
     result = await FIX_AGENTS[failed_agent].run(payload.model_dump_json())
     return result.output
 ```
@@ -706,7 +903,7 @@ async def propose_fix(failed_agent: str, payload: FixPayload) -> FixProposal:
 This is the critical question, because the in-memory prompt has THREE layered pieces:
 
 1. **Baseline v2** — the verbatim string from `src/convfinqa/prompts/v2.py` for the failed agent.
-2. **Historical passed rules** — the union of all `rule_text` values in `rules_<failed_agent>_v3_opt.jsonl` (after `supersedes` filtering) that earlier cases in this run — or earlier runs — have already verified as passing. These are pulled in by `_assemble_current_prompts()` before each case, so the sub-agent's prompt grows monotonically as the case loop progresses.
+2. **Historical passed rules** — the union of all `rule_text` values in `rules_<failed_agent>_v3_1.jsonl` (after `supersedes` filtering) that earlier cases in this run — or earlier runs — have already verified as passing. These are pulled in by `_assemble_current_prompts()` before each case, so the sub-agent's prompt grows monotonically as the case loop progresses.
 3. **The proposed new rule** — the `FixProposal.rule` string just returned by the specialist fix agent for THIS case. Not yet committed to the rules store; it will only be appended on a passing verify.
 
 The patched prompt fed to the production sub-agent during replay is:
@@ -722,7 +919,7 @@ N. (proposed) <FixProposal.rule>     ← the candidate being verified
 
 Pieces (1) + (2) form the sub-agent's "current baseline" — that is the prompt the case would have run with if no new rule were proposed. Piece (3) is the candidate the verify is testing. Acceptance therefore means: *adding this candidate on top of the already-passing baseline still fixes turn k and still doesn't regress turns 0..k-1.* The patched prompt includes both historical passed rules AND the proposed rule. The verify never tests the proposed rule against v2 in isolation.
 
-A consequence: **a candidate rule that would have passed against bare v2 can fail in verify** if it conflicts with a rule already in that sub-agent's rules store. That's the desired behaviour — the source of truth is what the assembled v3_opt.py actually ships, not what a clean-room test would have accepted. It also explains why case order in the loop is deterministic-sequential: the baseline that case `n+1` sees depends on which rules cases `0..n` promoted.
+A consequence: **a candidate rule that would have passed against bare v2 can fail in verify** if it conflicts with a rule already in that sub-agent's rules store. That's the desired behaviour — the source of truth is what the assembled v3_1.py actually ships, not what a clean-room test would have accepted. It also explains why case order in the loop is deterministic-sequential: the baseline that case `n+1` sees depends on which rules cases `0..n` promoted.
 
 #### Key contract
 
@@ -740,7 +937,7 @@ GOTCHAs:
 - Cost: each verify executes `k+1` turn-runs. For the median case (`k≈2`) that's 3 turn-runs per verify. With default `retry_n = 1` that's 3 turn-runs per case; with `retry_n = 3` it can reach 9 turn-runs per case. The case loop is fully sequential — wall time is the sum of per-case work, not the max.
 - Stop early on the first failing turn within a single replay — but record which turn failed so the next attempt's specialist call sees the right IOs in `prior_attempts`.
 
-**Proposal-time evidence (not a retry signal)**: there is no special "iteration 2/3 retry signal" — every verify result (pass or fail, with `first_failing_turn` and `failure_reason`) is appended to `rule_attempts_<agent>_v3_opt.jsonl` and is fed back into the specialist agent on the *next case* it sees. The specialist is guided by its system prompt to do an explicit three-way review before emitting a `FixProposal`:
+**Proposal-time evidence (not a retry signal)**: there is no special "iteration 2/3 retry signal" — every verify result (pass or fail, with `first_failing_turn` and `failure_reason`) is appended to `rule_attempts_<agent>_v3_1.jsonl` and is fed back into the specialist agent on the *next case* it sees. The specialist is guided by its system prompt to do an explicit three-way review before emitting a `FixProposal`:
 
 1. **Read the current prompt** (`fix_payload.current_prompt` — the live baseline for that sub-agent: v2 + all already-passing rules concatenated). Understand what rules already exist; do not re-state them. The new rule must add information not already covered.
 2. **Read all passed rules** (entries in `prior_rule_attempts` with `verify_result="passed"`). These rules are in the baseline above. Treat them as constraints — any new rule must be consistent with them. Do not propose anything that contradicts a passed rule.
@@ -770,16 +967,16 @@ In practice this means:
 `diagnosis/rules_store.py`:
 - `rules_path(agent) = settings.rules_dir / f"rules_{agent}.jsonl"`.
 - `attempts_path(agent) = settings.rules_dir / f"rule_attempts_{agent}.jsonl"`.
-- `read_rules(agent)`: returns active rules (filters out any `rule_id` referenced in a later rule's `supersedes`). Reads `rules_<agent>_v3_opt.jsonl` only.
-- `read_attempts(agent, *, limit=settings.max_prior_attempts_in_payload)`: returns the last `limit` attempts (both passed and failed) from `rule_attempts_<agent>_v3_opt.jsonl`, most-recent last. Used to feed `prior_rule_attempts` into the diagnostic payload.
-- `append_rule(agent, rule_text, fix_type, confidence, report_id, turn_index, supersedes=None) -> str`: appends one JSON line to `rules_<agent>_v3_opt.jsonl`; returns `rule_id = f"{agent[:4]}-{ts}-{uuid6}"`.
-- `append_attempt(agent, rule_text, fix_type, confidence, report_id, turn_index, verify_result, first_failing_turn=None, failure_reason=None, promoted_rule_id=None) -> str`: appends one JSON line to `rule_attempts_<agent>_v3_opt.jsonl`. Always called after every verify (pass or fail). Returns `attempt_id`.
-- `reset_rules(agent=None)`: truncates one or all `rules_<agent>_v3_opt.jsonl` files AND the matching `rule_attempts_<agent>_v3_opt.jsonl` files in the same call. Single function, single switch — the two stores are always reset together because a rules wipe without an attempts wipe leaves orphan `promoted_rule_id` pointers in the attempt history.
+- `read_rules(agent)`: returns active rules (filters out any `rule_id` referenced in a later rule's `supersedes`). Reads `rules_<agent>_v3_1.jsonl` only.
+- `read_attempts(agent, *, limit=settings.max_prior_attempts_in_payload)`: returns the last `limit` attempts (both passed and failed) from `rule_attempts_<agent>_v3_1.jsonl`, most-recent last. Used to feed `prior_rule_attempts` into the diagnostic payload.
+- `append_rule(agent, rule_text, fix_type, confidence, report_id, turn_index, supersedes=None) -> str`: appends one JSON line to `rules_<agent>_v3_1.jsonl`; returns `rule_id = f"{agent[:4]}-{ts}-{uuid6}"`.
+- `append_attempt(agent, rule_text, fix_type, confidence, report_id, turn_index, verify_result, first_failing_turn=None, failure_reason=None, promoted_rule_id=None) -> str`: appends one JSON line to `rule_attempts_<agent>_v3_1.jsonl`. Always called after every verify (pass or fail). Returns `attempt_id`.
+- `reset_rules(agent=None)`: truncates one or all `rules_<agent>_v3_1.jsonl` files AND the matching `rule_attempts_<agent>_v3_1.jsonl` files in the same call. Single function, single switch — the two stores are always reset together because a rules wipe without an attempts wipe leaves orphan `promoted_rule_id` pointers in the attempt history.
 
 `diagnosis/assembler.py`:
 - `assemble_prompts(base, rules_by_agent)`: for each agent, if rules exist, append `\n\n## Additional Rules (automated patch)\n\n1. (rule_id) rule…\n2. ...` to the v2 base.
-- `write_v3_opt_module(prompts)`: writes `src/convfinqa/prompts/v3_opt.py` exposing the four constants. Escape any `"""` in bodies (current v2 has none, defensive). Idempotent.
-- `assemble_v3_opt()`: reads stores via `all_rules()`, calls assemble + write, `importlib.reload` the v3_opt module. Loaded downstream via `convfinqa.prompts.load("v3_opt")` — **do not** write a parallel loader.
+- `write_v3_1_module(prompts)`: writes `src/convfinqa/prompts/v3_1.py` exposing the four constants. Escape any `"""` in bodies (current v2 has none, defensive). Idempotent.
+- `assemble_variant()`: reads stores via `all_rules()`, calls assemble + write, `importlib.reload` the v3_1 module. Loaded downstream via `convfinqa.prompts.load("v3_1")` — **do not** write a parallel loader.
 
 ### Step 4 — Harness loop (per-case, fully sequential)
 
@@ -791,17 +988,17 @@ In practice this means:
   - `_assemble_current_prompts()` (cheap; 4 small file reads — picks up rules added by earlier cases).
   - Inject the four current prompts into `router_payload`.
   - `router_diagnosis = await route_case(router_payload)` — one `LM_MAX` call.
-  - Persist `(case, router_diagnosis)` to `case_results_v3_opt.jsonl` immediately so a crash mid-loop doesn't lose work.
+  - Persist `(case, router_diagnosis)` to `case_results_v3_1.jsonl` immediately so a crash mid-loop doesn't lose work.
   - If `router_diagnosis.failed_agent == "ambiguous"`: append a placeholder `FixAttempt` with `correct=False` and route to unresolved. No fix attempt is made — by definition there is no single subagent to send to a specialist.
   - If `diagnose_only=True`: stop here. Append placeholder `FixAttempt(iteration=1, turn_results=[], correct=False, first_failing_turn=None, *_io=None)`; no fix, no verify, no rule writes.
 
-  **Steps 2 + 3 — Route+Fix and Verify** (attempt loop, 1..`settings.retry_n`):
+  **Steps 2 + 3 — Propose and Verify** (attempt loop, 1..`settings.retry_n`):
 
   ```python
   prior_attempts: list[FixAttempt] = []
   for attempt_idx in range(1, settings.retry_n + 1):
       agent = router_diagnosis.failed_agent
-      # Step 2 — ROUTE + FIX
+      # Step 2 — PROPOSE
       fix_payload = FixPayload(
           ...,
           router_diagnosis=router_diagnosis,           # cached from Step 1, not re-called
@@ -837,12 +1034,12 @@ In practice this means:
 
 - `run_harness(payloads, full_df, *, diagnose_only)`:
   - Sequential `for payload in payloads: await run_case(payload, full_df, diagnose_only=diagnose_only)`. **Fully sequential** — one case completes (or unresolves) before the next begins. No `asyncio.gather` anywhere. Rationale: rules added by case `n` must be in the live baseline for case `n+1`'s `_assemble_current_prompts()` call; concurrent cases would race on the rules store.
-  - After the case loop completes, call `assemble_v3_opt()` then `run_regression()` (unless `--skip-regression`).
+  - After the case loop completes, call `assemble_variant()` then `run_regression()` (unless `--skip-regression`).
 
 GOTCHAs:
 - Logs are linear by design — one case completes before the next begins; one attempt completes before the next attempt within a case. Prefix every log line with `[<failed_agent>]` for easy filtering. NEVER use `asyncio.gather` across cases or attempts.
 - The same `prior_attempts` list grows between iterations within a case — that's the within-case retry signal (only active when `retry_n > 1`).
-- `case_results_v3_opt.jsonl` is appended incrementally so partial runs are resumable on re-invocation (the loader skips cases already present unless `--force`).
+- `case_results_v3_1.jsonl` is appended incrementally so partial runs are resumable on re-invocation (the loader skips cases already present unless `--force`).
 
 ### Step 5 — Results writer + HTML clone
 
@@ -854,22 +1051,29 @@ GOTCHAs:
 
 ### Step 5.5 — Post-loop regression
 
-`diagnosis/regression.py`: subprocess-invoke `uv run convfinqa-eval-api --version v3_opt` with `PROMPTS_VERSION=v3_opt`, `REUSE_CACHE=0` in the env (the child re-instantiates `Settings()` — don't mutate `settings` in the parent). Read the resulting `pydantic_predictions_v3_opt.csv`, join with v2 on `(report_id, turn_index)`, classify each row's `delta` ∈ {`fixed`, `regressed`, `unchanged_right`, `unchanged_wrong`}. Write `regression_v3_opt.csv` + `model_accuracy_comparison_v3_opt.csv` (with `fixed`, `regressed`, `v2_accuracy`, `v3_opt_accuracy`, `net_delta`). Expensive — `--skip-regression` allowed for local dev only.
+`diagnosis/regression.py`: subprocess-invoke `uv run convfinqa-eval-api` with `PROMPTS_VERSION=<variant>` and `REUSE_CACHE=0` in the env (the child re-instantiates `Settings()` — don't mutate `settings` in the parent). Read the resulting `pydantic_predictions_<variant>.csv`, join with v2 on `(report_id, turn_index)`, classify each row's `delta` ∈ {`fixed`, `regressed`, `unchanged_right`, `unchanged_wrong`}. Write `regression_<variant>.csv` + `model_accuracy_comparison_<variant>.csv` (with `fixed`, `regressed`, `v2_accuracy`, `<variant>_accuracy`, `net_delta`). Expensive — `--skip-regression` allowed for local dev only.
 
 ### Step 6 — Entry point
 
 `scripts/diagnose_failures.py`. Flags:
-- `--diagnose-only` — run Step 1 (diagnose) only for every case; no Step 2/3, no rule writes, no v3_opt regeneration.
+- `--diagnose-only` — run Step 1 (Diagnose) only for every case; no Step 2/3, no rule writes, no v3_1 regeneration.
+- `--propose-fix` — run Step 1 (Diagnose) + Step 2 (Propose) for every case; skip Step 3 (Verify). No rule writes, no v3_1 regeneration. Mutually exclusive with `--diagnose-only` (argparse enforced). Diagnose cache is consulted the same way as full mode — see §Run Modes.
 - `--stage {all,assemble,regression}` (default `all`) — short-circuit to a single post-loop stage. `--stage assemble` and `--stage regression` skip the harness entirely.
-- `--reset-rules` — wipes BOTH `rules_<agent>_v3_opt.jsonl` and `rule_attempts_<agent>_v3_opt.jsonl` for all four agents. Default (flag absent): both stores are preserved across runs.
-- `--force`, `--limit N`, `--version v2`, `--skip-regression`
+- `--reset-rules` — wipes BOTH `rules_<agent>_v3_1.jsonl` and `rule_attempts_<agent>_v3_1.jsonl` for all four agents. Default (flag absent): both stores are preserved across runs.
+- `--force`, `--limit N`, `--prompts-version v2`, `--skip-regression`
+- `--prompts-version <name>` — input baseline prompts; the version we're optimising on top of. Default = `settings.prompts_version` (from `PROMPTS_VERSION` env) or `v2`. Same identifier the eval uses, so the optimisation loop "improve PROMPTS_VERSION → produce variant" is symmetric.
+- `--variant <name>` — output variant; controls the suffix on every artifact AND the generated prompts module name. Default `settings.variant` (`v3_1`). Combine with `--prompts-version` to chain (`--prompts-version v3_1 --variant v3_2` reads `prompts/v3_1.py` and writes `prompts/v3_2.py` + `*_v3_2.*` artifacts). See §Variants.
 - `--retry-n N` (1–3; default `settings.retry_n` which itself defaults to 1). Overrides the setting for this run only.
-- `--no-diagnose-cache` — ignore any existing `case_results_v3_opt.jsonl` and re-call the router for every case. Default (flag absent) reuses prior router diagnoses keyed by `(report_id, turn_index)`. See §Diagnose Cache.
+- `--no-diagnose-cache` — ignore Step 1 cache; re-call the router for every case.
+- `--no-propose-cache` — ignore Step 2 cache; re-call the specialist Propose LLM for every attempt.
+- `--no-verify-cache` — ignore Step 3 cache; re-run verify replays for every attempt.
+- All three accept-independent — combine freely. Default (flags absent) reuses cached steps keyed by `(report_id, turn_index)`. See §Step Caches.
 
 Behaviour:
 - `--stage assemble` / `--stage regression`: short-circuit; no harness invocation.
-- Default (`--stage all`): load the diagnose cache from `case_results_v3_opt.jsonl` (if present and `--no-diagnose-cache` not set), then run the per-case loop (Step 1 reuses cache if hit, else LLM call; Step 2/3 attempt loop, sequential across all cases), then write CSV/HTML, build unresolved, assemble, regression (unless `--skip-regression`). `case_results_v3_opt.jsonl` is rewritten incrementally during the loop — the cache is held in memory once loaded.
-- `--diagnose-only`: Step 1 only for every case (also reuses cache); no fix proposals, no verifies, no rule writes, no v3_opt regeneration. Use this to *populate* the cache cheaply and review router output before paying Step 2+3 cost.
+- Default (`--stage all`): load the step caches from `case_results_v3_1.jsonl` (if present), then run the per-case loop. Each step independently checks its cache before falling through to the LLM call / replay; opt out per-step via `--no-diagnose-cache` / `--no-propose-cache` / `--no-verify-cache`. After the loop: write CSV/HTML, build unresolved, assemble, regression (unless `--skip-regression`). `case_results_v3_1.jsonl` is rewritten incrementally during the loop — the in-memory cache is held for the duration once loaded. A re-run on the same set of cases with all three caches hot pays **zero LLM calls and zero replays**; only bookkeeping (dedup'd `append_rule` / `append_attempt`) and HTML/CSV emission cost anything.
+- `--diagnose-only`: Step 1 only for every case (also reuses cache); no fix proposals, no verifies, no rule writes, no v3_1 regeneration. Use this to *populate* the cache cheaply and review router output before paying Step 2+3 cost.
+- `--propose-fix`: Step 1 + Step 2 for every case (router cache + specialist Propose); skip Step 3, no rule writes, no v3_1 regeneration. Group C (harness verify) columns in `diagnostic_results_v3_1.{csv,html}` are emitted as empty strings and rendered as `—`. Use this after a `--diagnose-only` sweep when you want to see what the specialist would propose without paying replay cost — diagnoses come free from cache, only the specialist LLM call is paid per non-ambiguous case.
 - Cache promotion flow: a `--diagnose-only` run followed by a full run reuses every diagnosis from the first run — zero router LLM cost on the second run. See §Diagnose Cache → Promotion path.
 
 Print a summary: cases processed, resolved / unresolved counts, per-attempt counts (how many resolved on attempt 1 vs 2 vs 3), list of artefacts.
@@ -888,24 +1092,27 @@ All tests must pass without `DEEPSEEK_API_KEY` — mock `diagnostic_router_agent
 - **Router separation**: `diagnostic_router_agent`'s `RouterDiagnosis` schema has no `system_prompt_fix` / `rule` field; the router cannot accidentally propose a fix. `route_case` calls the router exactly once per case (regardless of `retry_n`) and never invokes a specialist.
 - **Specialist routing**: `propose_fix("triage", ...)` invokes `triage_fix_agent` (not any other); same for the other three. A test parametrised over the four agents asserts the mock for the correct specialist was called and the mocks for the other three were NOT.
 - **FixPayload scoping**: `prior_rule_attempts` passed to `triage_fix_agent` contains ONLY triage attempts, not preprocess/retriever/calculator attempts. Verified by inspecting the JSON sent to the mock.
-- **Rules store**: `append_rule` creates file; `read_rules` preserves order; `supersedes` filters; `reset_rules(agent)` vs `reset_rules()` — both also wipe the matching `rule_attempts_<agent>_v3_opt.jsonl` (single switch).
+- **Rules store**: `append_rule` creates file; `read_rules` preserves order; `supersedes` filters; `reset_rules(agent)` vs `reset_rules()` — both also wipe the matching `rule_attempts_<agent>_v3_1.jsonl` (single switch).
 - **Attempts store**: `append_attempt` writes on both pass and fail; `read_attempts(limit=N)` returns most-recent-N; pass entries have `promoted_rule_id` set, fail entries have `first_failing_turn` and `failure_reason` set; `--reset-rules` clears attempts as part of the same operation; default (flag absent) leaves attempts intact.
 - **Specialist awareness**: when `prior_rule_attempts[<agent>]` is non-empty, the rendered `FixPayload` JSON contains a section listing them; tests can mock the specialist agent's `.run` to assert the rendered text includes the prior-attempts JSON when present.
-- **Assembler**: empty stores → `v3_opt.py == v2.py`; one rule per agent → header appears; written module imports cleanly; triple quotes round-trip; `prompts.load("v3_opt")` reflects assembly.
+- **Assembler**: empty stores → `v3_1.py == v2.py`; one rule per agent → header appears; written module imports cleanly; triple quotes round-trip; `prompts.load("v3_1")` reflects assembly.
 - **Sequencing**: cases run strictly one-at-a-time (no `asyncio.gather` anywhere); attempts within a case run strictly one-at-a-time; rules added by case `n` are visible to case `n+1`'s `_assemble_current_prompts()` call; `append_rule` only on a passing verify; `append_attempt` on every verify.
 - **Regression**: delta classification; summary contents.
-- **Entry point**: cache reuse without `--force`; `--limit` truncation; `--diagnose-only` does not write rules or v3_opt; `--reset-rules` calls reset before the case loop; `--stage assemble` / `--stage regression` short-circuit; `--skip-regression` skips regression; no `load_dotenv` import.
-- **Diagnose cache**: with a pre-existing `case_results_v3_opt.jsonl` containing diagnoses for `(report_id=R, turn_index=k)`, a subsequent run on the same case skips the router LLM call and reuses the cached `RouterDiagnosis` (verified by asserting `route_case` mock was not awaited for the cached key). `--no-diagnose-cache` forces a re-diagnose for every case (mock awaited per case). A `--diagnose-only` run that writes diagnoses to the JSONL, followed by a full-mode run, reuses every diagnosis (mock not called for any case in the second run). Cases not present in the cache file still pay the router call. Empty-file or absent-file cache is a no-op, not an error.
-- **Settings**: `lm_max_model` default is `"deepseek-reasoner"`; env override works; `rules_dir` default ends in `evaluation`; `retry_n` default is `1`; `RETRY_N=2` override works; out-of-range (0 or 4) raises.
+- **Entry point**: cache reuse without `--force`; `--limit` truncation; `--diagnose-only` does not write rules or v3_1; `--reset-rules` calls reset before the case loop; `--stage assemble` / `--stage regression` short-circuit; `--skip-regression` skips regression; no `load_dotenv` import.
+- **Step caches**: with a pre-existing `case_results_v3_1.jsonl` containing a full `CaseResult` (diagnosis + attempts with `patch_applied` + `verify_result`) for `(report_id=R, turn_index=k)`, a subsequent full-mode run on that case must NOT await the `route_case`, `propose_fix`, or `verify_patch` mocks (assert `.await_count == 0` for all three). The reused `FixAttempt`'s `turn_results` / IOs / `correct` flag must be propagated unchanged to `result.attempts`. The three opt-out flags toggle each step's cache independently: `--no-diagnose-cache` awaits the router only; `--no-propose-cache` awaits propose only; `--no-verify-cache` awaits verify only. Cache-miss on a step (cached field is `None` or empty) falls through to the live LLM call / replay regardless of flag. Empty-file or absent-file is a no-op, not an error.
+- **Step-cache dedup**: with cache hits triggering `append_rule` / `append_attempt`, the JSONL stores must NOT grow on re-run. After two consecutive full runs on the same case set with all caches hot, `wc -l rules_<agent>_v3_1.jsonl` and `wc -l rule_attempts_<agent>_v3_1.jsonl` are unchanged from the first run. Dedup key for rules: `(agent, rule.strip())`. Dedup key for attempts: `(agent, rule.strip(), report_id, turn_index, verify_result)`. Reset semantics: after `--reset-rules` (which truncates the rule stores), a cached full run re-builds the rules JSONL with the same line count as the original — dedup makes the rebuild idempotent.
+- **Propose-fix mode**: `--propose-fix` calls Step 1 + Step 2 for every non-ambiguous case but never invokes `verify_patch`; assert the verify mock is not awaited and the propose mock IS awaited once per non-ambiguous case. `append_rule` and `append_attempt` are NOT called (no rule store writes, no attempt log writes); `src/convfinqa/prompts/v3_1.py` is NOT regenerated. The CSV has Group A + Group B populated and Group C empty (string `""`); the HTML renders empty Group C cells as `—`. Mutually exclusive with `--diagnose-only` — argparse raises on `--diagnose-only --propose-fix`. With a populated diagnose cache, the router mock is also not awaited (cache parity with full mode).
+- **Settings**: `lm_max_model` default is `"deepseek-v4-pro"`; env override works (`LM_MAX_MODEL=deepseek-v4-flash` switches to the cheaper model); `rules_dir` default ends in `evaluation`; `retry_n` default is `1`; `RETRY_N=2` override works; out-of-range (0 or 4) raises.
 
 ## Integration Points
 
 ```yaml
 ENV (via settings — no load_dotenv anywhere):
   DEEPSEEK_API_KEY   required
-  LM_MAX_MODEL       default "deepseek-reasoner"
+  LM_MAX_MODEL       default "deepseek-v4-pro" (was "deepseek-reasoner" pre-migration)
   RULES_DIR          default "evaluation"
-  PROMPTS_VERSION    set to "v3_opt" by post-loop regression subprocess only
+  PROMPTS_VERSION    set to settings.variant by post-loop regression subprocess only
+  VARIANT            default "v3_1" — output variant; overrides settings.variant for the run
   RETRY_N  default 1 (range 1..3)
 
 MODIFY:
@@ -916,29 +1123,29 @@ MODIFY:
 INPUT (read-only):
   evaluation/pydantic_predictions_v2.csv
   src/convfinqa/prompts/v2.py
-  evaluation/rules_<agent>_v3_opt.jsonl           # if present
-  evaluation/rule_attempts_<agent>_v3_opt.jsonl   # if present — feeds specialist agent's prior_rule_attempts
+  evaluation/rules_<agent>_v3_1.jsonl           # if present
+  evaluation/rule_attempts_<agent>_v3_1.jsonl   # if present — feeds specialist agent's prior_rule_attempts
 
 OUTPUT:
-  evaluation/diagnostic_results_v3_opt.{csv,html}
-  evaluation/case_results_v3_opt.jsonl
-  evaluation/rules_<agent>_v3_opt.jsonl           # source of truth for v3_opt.py (×4) — passes only
-  evaluation/rule_attempts_<agent>_v3_opt.jsonl   # full attempt history (×4) — passes AND failures
-  evaluation/unresolved_cases_v3_opt.json
-  evaluation/regression_v3_opt.csv
-  evaluation/model_accuracy_comparison_v3_opt.csv
-  evaluation/pydantic_predictions_v3_opt.csv
-  src/convfinqa/prompts/v3_opt.py          # GENERATED
+  evaluation/diagnostic_results_v3_1.{csv,html}
+  evaluation/case_results_v3_1.jsonl
+  evaluation/rules_<agent>_v3_1.jsonl           # source of truth for v3_1.py (×4) — passes only
+  evaluation/rule_attempts_<agent>_v3_1.jsonl   # full attempt history (×4) — passes AND failures
+  evaluation/unresolved_cases_v3_1.json
+  evaluation/regression_v3_1.csv
+  evaluation/model_accuracy_comparison_v3_1.csv
+  evaluation/pydantic_predictions_v3_1.csv
+  src/convfinqa/prompts/v3_1.py          # GENERATED
 
 ONLY THE HARNESS WRITES:
-  src/convfinqa/prompts/v3_opt.py          # via diagnosis.assembler
-  evaluation/rules_<agent>_v3_opt.jsonl           # via diagnosis.rules_store (append_rule)
-  evaluation/rule_attempts_<agent>_v3_opt.jsonl   # via diagnosis.rules_store (append_attempt)
+  src/convfinqa/prompts/v3_1.py          # via diagnosis.assembler
+  evaluation/rules_<agent>_v3_1.jsonl           # via diagnosis.rules_store (append_rule)
+  evaluation/rule_attempts_<agent>_v3_1.jsonl   # via diagnosis.rules_store (append_attempt)
 
-COMMIT: rules_<agent>_v3_opt.jsonl, rule_attempts_<agent>_v3_opt.jsonl, prompts/v3_opt.py
-GITIGNORE: case_results_v3_opt.jsonl, diagnostic_results_v3_opt.{csv,html},
-           unresolved_cases_v3_opt.json, regression_v3_opt.csv,
-           pydantic_predictions_v3_opt.csv, model_accuracy_comparison_v3_opt.csv
+COMMIT: rules_<agent>_v3_1.jsonl, rule_attempts_<agent>_v3_1.jsonl, prompts/v3_1.py
+GITIGNORE: case_results_v3_1.jsonl, diagnostic_results_v3_1.{csv,html},
+           unresolved_cases_v3_1.json, regression_v3_1.csv,
+           pydantic_predictions_v3_1.csv, model_accuracy_comparison_v3_1.csv
 ```
 
 ## Validation
@@ -965,7 +1172,7 @@ uv run python scripts/diagnose_failures.py --diagnose-only --limit 5 --force --r
 
 # Level 5 — Full pipeline smoke (skip regression for speed)
 uv run python scripts/diagnose_failures.py --limit 3 --force --reset-rules --skip-regression
-diff src/convfinqa/prompts/v2.py src/convfinqa/prompts/v3_opt.py | head -40
+diff src/convfinqa/prompts/v2.py src/convfinqa/prompts/v3_1.py | head -40
 
 # Level 5b — Same smoke with one retry enabled
 uv run python scripts/diagnose_failures.py --limit 3 --force --reset-rules --skip-regression --retry-n 2
@@ -987,26 +1194,32 @@ uv run python scripts/diagnose_failures.py --stage regression
 - **DO NOT** replay turns past `k` (the originally-failed turn) during verify — turns `k+1..N` were cascade-poisoned in the original run and their correctness in the patched replay isn't part of the accept criterion. The post-loop regression catches dataset-wide regression.
 - **DO NOT** skip turns 0..k-1 and call `run_turn` for turn k in isolation — the patched agents must rebuild conversation history themselves so multi-turn references in turn k resolve against history the patched pipeline produced, not against gold.
 - **DO NOT** use `LM_MINI` for diagnosis or fix — both router and four specialists must use `LM_MAX` from `settings.lm_max_model`.
-- **DO NOT** hardcode `"deepseek-v4-pro"` (typo) or any model name — go through settings.
+- **DO NOT** hardcode any model name (e.g. `"deepseek-v4-pro"`, `"deepseek-v4-flash"`) in `diagnosis/` or scripts — go through `settings.lm_max_model` so operators can swap models via env without code edits. The literal `"deepseek-v4-flash"` for `LM_MINI` lives in `backends/pydantic.py` only and is the one approved exception.
 - **DO NOT** call `load_dotenv` in `diagnosis/` or `scripts/diagnose_failures.py`.
 - **DO NOT** create a separate refiner agent — the same specialist Fix agent handles all retries via `prior_attempts` in `FixPayload`.
 - **DO NOT** propose anything but a `system_prompt` change.
 - **DO NOT** apply the same patch twice in one case — duplicate-fix guard terminates the attempt loop.
 - **DO NOT** retry on router `"ambiguous"` — terminate the case immediately and route to unresolved (no fix attempt is made at all).
+- **DO NOT** promote rules or write `rule_attempts_<agent>_v3_1.jsonl` in `--propose-fix` mode — a propose-fix attempt has not been verified, so it cannot enter either store. The CSV/HTML is the only output that carries the proposed rule, and Group C harness columns are emitted as empty strings (rendered as `—`).
+- **DO NOT** combine `--diagnose-only` with `--propose-fix` — argparse enforces mutual exclusion. They are different short-circuits; pick one.
+- **DO NOT** bypass the diagnose cache in `--propose-fix` — propose-fix mode reuses cached diagnoses identically to full mode. To force a re-diagnose, pass `--no-diagnose-cache`.
+- **DO NOT** content-hash any step cache (e.g., `pred_program`, v2 prompts, baseline rules). Per user direction the key is `(report_id, turn_index)` for all three steps. Operators handle staleness explicitly via `--no-propose-cache` / `--no-verify-cache`.
+- **DO NOT** skip `append_rule` / `append_attempt` on Step 3 cache hits — the dedup'd bookkeeping is what keeps the rule and attempt stores idempotent and rebuildable. Skipping side effects would leave a `--reset-rules`-then-cache-hit run with an empty rule store.
+- **DO NOT** introduce a separate cache file. Cache state lives entirely inside the existing `case_results_v3_1.jsonl` — one record per case captures all three step results.
 - **DO NOT** treat `retry_n` as a number of retries — by user choice it is the **total attempts cap**. `retry_n=1` ⇒ 1 attempt, no retries (the default). `retry_n=3` ⇒ up to 3 attempts (i.e. up to 2 retries).
-- **DO NOT** auto-promote `rules_<agent>_v3_opt.jsonl` into `prompts/v3.py` — a human reviews regression + rule lists, then hand-writes `v3.py` if desired.
+- **DO NOT** auto-promote `rules_<agent>_v3_1.jsonl` into `prompts/v3_final.py` — a human reviews regression + rule lists, then hand-writes `v3_final.py` if desired.
 - **DO NOT** modify `prompts/v2.py` from the harness.
-- **DO NOT** hand-edit `prompts/v3_opt.py` — edit the JSONL store and re-run `--stage assemble`.
+- **DO NOT** hand-edit `prompts/v3_1.py` — edit the JSONL store and re-run `--stage assemble`.
 - **DO NOT** duplicate `evaluation/reporting.py` CSS into `diagnosis/results_html.py`.
 - **DO NOT** silently skip the regression in CI — `--skip-regression` is for local dev only.
-- **DO NOT** write a parallel `load_v3_opt_prompts()` — use `convfinqa.prompts.load("v3_opt")`.
-- **DO** commit `prompts/v3_opt.py`, the four `rules_<agent>_v3_opt.jsonl`, and the four `rule_attempts_<agent>_v3_opt.jsonl` once a run has produced meaningful accumulation. The attempts log is cheap to store and makes future runs of the specialist agents strictly smarter.
-- **DO NOT** write failed attempts into `rules_<agent>_v3_opt.jsonl` — that file is the source of truth for `v3_opt.py` and must contain only verified passes. Failed attempts live in `rule_attempts_<agent>_v3_opt.jsonl`.
-- **DO NOT** read `rule_attempts_<agent>_v3_opt.jsonl` from the assembler — the attempts log is for the specialist agents' awareness only and must never influence the generated `v3_opt.py`.
+- **DO NOT** write a parallel `load_v3_1_prompts()` — use `convfinqa.prompts.load("v3_1")`.
+- **DO** commit `prompts/v3_1.py`, the four `rules_<agent>_v3_1.jsonl`, and the four `rule_attempts_<agent>_v3_1.jsonl` once a run has produced meaningful accumulation. The attempts log is cheap to store and makes future runs of the specialist agents strictly smarter.
+- **DO NOT** write failed attempts into `rules_<agent>_v3_1.jsonl` — that file is the source of truth for `v3_1.py` and must contain only verified passes. Failed attempts live in `rule_attempts_<agent>_v3_1.jsonl`.
+- **DO NOT** read `rule_attempts_<agent>_v3_1.jsonl` from the assembler — the attempts log is for the specialist agents' awareness only and must never influence the generated `v3_1.py`.
 
 ## Confidence: 7.5 / 10
 
-Per-case three-step flow (Diagnose → Route+Fix → Verify, with an attempt loop on Step 2+3) — fully sequential by design across cases and across attempts within a case. Only one sub-agent's `system_prompt` is being updated and tested at a time, so there is no benefit to concurrency. The attempt loop is bounded by `retry_n`: one router call per case (cached across retries) + up to `retry_n` specialist calls + up to `retry_n` verify replays. **Default `retry_n = 1`** means each case costs exactly one router + one specialist + one replay; operators can opt into 2 or 3 for harder cases. Replay cost is **(k+1) turns × pipeline cost per turn**, where k is the originally-failed turn index — typically 1–3, occasionally higher in Type II conversations. Main risks:
+Per-case three-step flow (Diagnose → Propose → Verify, with an attempt loop on Step 2+3) — fully sequential by design across cases and across attempts within a case. Only one sub-agent's `system_prompt` is being updated and tested at a time, so there is no benefit to concurrency. The attempt loop is bounded by `retry_n`: one router call per case (cached across retries) + up to `retry_n` specialist calls + up to `retry_n` verify replays. **Default `retry_n = 1`** means each case costs exactly one router + one specialist + one replay; operators can opt into 2 or 3 for harder cases. Replay cost is **(k+1) turns × pipeline cost per turn**, where k is the originally-failed turn index — typically 1–3, occasionally higher in Type II conversations. Main risks:
 
 - **Gold-program as source of truth**: for `turn_type=program` cases the router and specialist agents are instructed to treat `gold_program` as the canonical reference — it specifies both the numbers that should flow in (operand positions A, B, C, … mapped to retrieved values) and the calculation chain that should execute (DSL ops + nesting). Conversation history's `(question, answer)` pairs only capture what production observed; they are not what the system *should* have produced. The post-loop regression catches any residual divergence between gold_program-faithful patches and full multi-turn execution. For `turn_type=number` turns gold_program is empty/trivial; gold_answer + the gold cell location serve the same role.
 - **Cached diagnosis on retry**: by user choice, the router is not re-called between retries within a case. Misattributed cases (router fingered the wrong sub-agent) cannot be recovered by the retry loop; they will simply exhaust `retry_n` and route to unresolved. The post-loop regression and the human review of unresolved cases is the safety net.
