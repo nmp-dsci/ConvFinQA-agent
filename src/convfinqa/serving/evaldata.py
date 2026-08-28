@@ -93,23 +93,31 @@ def gold_programs() -> dict[tuple[str, int], str]:
 
 
 @cache
-def splits() -> dict[str, list[str]]:
-    """Report-id membership for each dataset split.
+def optimizer_train_ids() -> frozenset[str]:
+    """The conversations GEPA actually optimized against.
 
-    `train` is the 60% of the sampled conversations the optimizer was allowed to
-    see; `holdout` is everything it was not. Surfacing this in the app is what
-    turns the held-out claim into something a visitor can check rather than take
-    on trust.
+    Deliberately sourced from `backends.dspy`, not from `data.loader`. Both
+    define a "60% train split" with seed 42, but by different means — a pandas
+    `.sample()` in the loader, a `random.Random(42).shuffle()` in the DSPy
+    backend — and they agree on only 78 of 120 conversations. GEPA ran against
+    the DSPy one, so that is the only definition with a claim to being the set
+    the optimizer saw. Reporting against the other would mislabel 42
+    conversations in both directions.
     """
-    from convfinqa.data.loader import (
-        sampled_report_ids,
-        test_report_ids,
-        train_report_ids,
-    )
+    from convfinqa.backends.dspy import conv_examples_train
 
+    return frozenset(example.report_id for example in conv_examples_train)
+
+
+@cache
+def splits() -> dict[str, list[str]]:
+    """Report-id membership per split, keyed by what the optimizer actually saw."""
+    from convfinqa.data.loader import sampled_report_ids
+
+    seen = optimizer_train_ids()
     return {
-        "train": list(train_report_ids),
-        "holdout": list(test_report_ids),
+        "optimizer_train": sorted(seen),
+        "never_seen": sorted(r for r in sampled_report_ids if r not in seen),
         "sampled": list(sampled_report_ids),
     }
 
@@ -117,10 +125,28 @@ def splits() -> dict[str, list[str]]:
 @cache
 def split_of() -> dict[str, str]:
     """Map each report id to the split it belongs to."""
-    membership = splits()
-    lookup = {rid: "holdout" for rid in membership["holdout"]}
-    lookup.update({rid: "train" for rid in membership["train"]})
-    return lookup
+    seen = optimizer_train_ids()
+    return {
+        rid: ("optimizer_train" if rid in seen else "never_seen")
+        for rid in splits()["sampled"]
+    }
+
+
+def holdout_accuracy(df: pd.DataFrame) -> dict[str, Any]:
+    """Accuracy restricted to conversations the optimizer never saw.
+
+    The number that actually supports a generalisation claim. The full 770-row
+    scored set spans all 200 sampled conversations, 120 of which GEPA trained
+    on, so the overall figure is a mix of seen and unseen and cannot be
+    described as held out.
+    """
+    seen = optimizer_train_ids()
+    unseen = df[~df["report_id"].isin(seen)]
+    return {
+        "accuracy": round(float(unseen["correct"].mean()), 6) if len(unseen) else 0.0,
+        "n_questions": int(len(unseen)),
+        "n_conversations": int(unseen["report_id"].nunique()) if len(unseen) else 0,
+    }
 
 
 def slice_accuracy(df: pd.DataFrame, label: str) -> dict[str, Any]:
@@ -152,3 +178,4 @@ def clear_caches() -> None:
     gold_programs.cache_clear()
     splits.cache_clear()
     split_of.cache_clear()
+    optimizer_train_ids.cache_clear()

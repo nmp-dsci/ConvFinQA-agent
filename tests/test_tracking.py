@@ -235,3 +235,46 @@ def test_trace_listing_filters(tmp_path: Path) -> None:
     assert len(store.list_turns(source="eval")) == 1
     assert store.stats()["n_turns"] == 3
     store.close()
+
+
+# ---------------------------------------------------------------------------
+# Metric hygiene
+# ---------------------------------------------------------------------------
+
+
+def test_holdout_split_excludes_everything_the_optimizer_saw() -> None:
+    """The two sets must not overlap, or "held out" means nothing.
+
+    Guards a real bug this replaced: the app reported 770 questions as a
+    held-out set when 461 of them came from conversations GEPA trained on.
+    """
+    from convfinqa.serving import evaldata
+
+    seen = evaldata.optimizer_train_ids()
+    never = set(evaldata.splits()["never_seen"])
+    assert seen & never == set()
+    assert seen | never == set(evaldata.splits()["sampled"])
+    assert len(never) > 0
+
+
+def test_split_source_is_the_one_the_optimizer_actually_used() -> None:
+    """Sourced from the DSPy backend, not the loader's differently-seeded split.
+
+    The two disagree on 42 of 120 conversations; only the DSPy one describes
+    what GEPA trained on.
+    """
+    from convfinqa.backends.dspy import conv_examples_train
+    from convfinqa.serving import evaldata
+
+    assert evaldata.optimizer_train_ids() == {e.report_id for e in conv_examples_train}
+
+
+def test_holdout_accuracy_is_reported_separately_from_overall() -> None:
+    """They are different numbers and must never be conflated."""
+    from convfinqa.serving.evaldata import holdout_accuracy
+    from convfinqa.tracking.comparator import accuracy, load_predictions
+
+    df = load_predictions("v2")
+    held = holdout_accuracy(df)
+    assert held["n_questions"] < len(df)
+    assert held["accuracy"] != accuracy(df)

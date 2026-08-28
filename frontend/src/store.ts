@@ -372,7 +372,11 @@ function patchAssistant(
   });
 }
 
-function applyEvent(message: Message, event: SSEEvent): Message {
+/**
+ * Fold one SSE frame into the assistant message. Exported so the event contract
+ * — which the demo pack also has to satisfy — is directly testable.
+ */
+export function applyEvent(message: Message, event: SSEEvent): Message {
   switch (event.event) {
     case 'stage_start': {
       const stages = { ...(message.stages ?? {}) };
@@ -383,7 +387,12 @@ function applyEvent(message: Message, event: SSEEvent): Message {
     case 'stage_output': {
       const stages = { ...(message.stages ?? {}) };
       const existing = stages[event.stage as StageName] ?? { started: true };
-      stages[event.stage as StageName] = { ...existing, started: true, output: event.output };
+      stages[event.stage as StageName] = {
+        ...existing,
+        started: true,
+        output: event.output,
+        metrics: event.metrics,
+      };
       return { ...message, stages };
     }
     case 'tool_call': {
@@ -411,9 +420,16 @@ function applyEvent(message: Message, event: SSEEvent): Message {
       return {
         ...message,
         status: message.status === 'error' ? 'error' : 'done',
+        traceId: event.trace_id,
       };
     case 'error':
-      return { ...message, status: 'error', errorText: event.error };
+      // `code` is the stable contract; `error` is prose that may change.
+      return {
+        ...message,
+        status: 'error',
+        errorText: event.error,
+        errorCode: event.code,
+      };
     default:
       return message;
   }

@@ -31,11 +31,19 @@ def build_snapshot() -> dict[str, Any]:
             df = load_predictions(version)
         except (FileNotFoundError, ValueError):
             continue
+        from convfinqa.serving.evaldata import holdout_accuracy
+
+        held_out = holdout_accuracy(df)
         versions.append(
             {
                 "version": version,
                 "accuracy": round(accuracy(df), 6),
                 "n_questions": int(len(df)),
+                # Reported separately from `accuracy`, never blended into it:
+                # the overall figure spans conversations the optimizer trained
+                # on, so only this one supports a generalisation claim.
+                "holdout_accuracy": held_out["accuracy"],
+                "holdout_n_questions": held_out["n_questions"],
                 "slices": _slices(df),
             }
         )

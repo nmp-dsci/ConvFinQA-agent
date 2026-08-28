@@ -1,6 +1,6 @@
 {
   "snapshot_version": 1,
-  "exported_at": "2026-08-28T00:25:35.257987+00:00",
+  "exported_at": "2026-08-28T00:35:25.813395+00:00",
   "runs": [
     {
       "run_id": "c46f69d989304ad09c8ecaf552b7f36a",
@@ -327,6 +327,8 @@
       "version": "v1",
       "accuracy": 0.72987,
       "n_questions": 770,
+      "holdout_accuracy": 0.728155,
+      "holdout_n_questions": 309,
       "slices": {
         "gold_turn_type": {
           "Number": 0.852113,
@@ -342,6 +344,8 @@
       "version": "v2",
       "accuracy": 0.771429,
       "n_questions": 770,
+      "holdout_accuracy": 0.776699,
+      "holdout_n_questions": 309,
       "slices": {
         "gold_turn_type": {
           "Number": 0.876761,
@@ -357,6 +361,8 @@
       "version": "v3_1",
       "accuracy": 0.762338,
       "n_questions": 770,
+      "holdout_accuracy": 0.734628,
+      "holdout_n_questions": 309,
       "slices": {
         "gold_turn_type": {
           "Number": 0.897887,

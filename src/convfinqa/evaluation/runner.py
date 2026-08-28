@@ -312,11 +312,17 @@ def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None
     except (FileNotFoundError, ValueError):
         return
 
+    from convfinqa.serving.evaldata import holdout_accuracy
+
     overall = round(accuracy(df), 6)
+    held_out = holdout_accuracy(df)
     metrics: dict[str, float] = {
         "accuracy": overall,
         "n_questions": float(len(df)),
         "n_conversations": float(n_conversations),
+        # The generalisation number, kept distinct from the overall one.
+        "holdout_accuracy": held_out["accuracy"],
+        "holdout_n_questions": float(held_out["n_questions"]),
     }
     for column in ("gold_turn_type", "gold_conv_type"):
         if column not in df.columns:

@@ -23,15 +23,19 @@ from convfinqa.serving.models import (
 router = APIRouter(prefix="/eval")
 
 _SPLIT_DESCRIPTIONS = {
-    "train": (
-        "The 60% of sampled conversations the optimizer was allowed to see. GEPA "
-        "and the s7 harness read these; no reported accuracy comes from them."
+    "optimizer_train": (
+        "The conversations GEPA optimized against. Accuracy measured here says "
+        "nothing about generalisation, because the prompts were tuned on it."
     ),
-    "holdout": (
-        "Held out from every optimizer. Every headline accuracy in this app is "
-        "measured here, on questions no prompt was ever tuned against."
+    "never_seen": (
+        "Never shown to any optimizer. This is the only subset that supports a "
+        "generalisation claim, and the one the held-out figures are measured on."
     ),
-    "sampled": "The full 200-conversation sample the train/holdout split was drawn from.",
+    "sampled": (
+        "All 200 sampled conversations — the full scored set. Its overall "
+        "accuracy mixes seen and unseen conversations, so it is reported as "
+        "'overall', never as 'held out'."
+    ),
 }
 
 
@@ -47,7 +51,7 @@ async def get_splits() -> list[SplitSummary]:
     from convfinqa.data.loader import qa_data
 
     out: list[SplitSummary] = []
-    for name in ("train", "holdout", "sampled"):
+    for name in ("optimizer_train", "never_seen", "sampled"):
         report_ids = evaldata.splits()[name]
         n_questions = int(qa_data["report_id"].isin(report_ids).sum())
         out.append(
