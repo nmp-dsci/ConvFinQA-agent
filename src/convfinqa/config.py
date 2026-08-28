@@ -150,6 +150,12 @@ class Settings(BaseSettings):
     # ---- Serving limits ---------------------------------------------------
     # Cheapest check first: a global in-flight cap, then a per-IP window.
     # In-memory is *correct* here — App Runner runs this at max-size 1.
+    # App Runner terminates TLS and always sets X-Forwarded-For itself, so the
+    # header can be trusted by default. Only the global in-flight cap (which
+    # is not keyed by client) protects against a deployment where that
+    # assumption doesn't hold; if trusted_proxy is ever set False, per-client
+    # rate limiting falls back to request.client.host.
+    trusted_proxy: bool = True
     max_inflight_turns: int = 4
     rate_limit_requests: int = 30
     rate_limit_window_seconds: int = 60

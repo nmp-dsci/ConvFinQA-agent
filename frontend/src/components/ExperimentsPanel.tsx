@@ -89,17 +89,17 @@ function ComparisonView({ result }: { result: ComparisonResult }) {
         <div className="bg-bg/40 rounded p-3">
           <div className="text-xs text-textMuted">{result.baseline_version}</div>
           <div className="text-lg font-semibold">
-            <Pct value={result.baseline_accuracy} />
+            <Pct value={result.baseline_accuracy_all} />
           </div>
         </div>
         <div className="bg-bg/40 rounded p-3">
           <div className="text-xs text-textMuted">{result.candidate_version}</div>
           <div className="text-lg font-semibold">
-            <Pct value={result.candidate_accuracy} />
+            <Pct value={result.candidate_accuracy_all} />
           </div>
         </div>
         <div className="bg-bg/40 rounded p-3">
-          <div className="text-xs text-textMuted">delta over {result.n_compared} questions</div>
+          <div className="text-xs text-textMuted">delta over {result.n_compared} shared questions</div>
           <div className="text-lg font-semibold">
             <Delta value={result.accuracy_delta} />
           </div>

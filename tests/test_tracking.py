@@ -105,6 +105,44 @@ def test_non_overlapping_questions_are_excluded_and_noted() -> None:
     assert result.notes and "no counterpart" in result.notes[0]
 
 
+def test_accuracy_gate_uses_the_shared_question_set_not_full_frames() -> None:
+    """The accuracy half of the gate must describe the same population as the
+    flip check, not the two runs' full frames.
+
+    Baseline has an extra question the candidate never scored (r3); candidate has
+    an extra question the baseline never scored (r4, wrong). Neither extra row is
+    part of what was actually compared. A full-frame accuracy comparison would
+    let the candidate's unrelated r4 failure drag its overall accuracy down and
+    block a promotion that, on the questions both runs actually share, is a clean
+    match with zero flips.
+    """
+    base = _frame(
+        [
+            ("r1", 0, "1", "1", True),
+            ("r2", 0, "1", "1", True),
+            ("r3", 0, "1", "1", True),
+        ]
+    )
+    cand = _frame(
+        [
+            ("r1", 0, "1", "1", True),
+            ("r2", 0, "1", "1", True),
+            ("r4", 0, "1", "x", False),
+        ]
+    )
+    result = compare_frames(base, cand, baseline_version="v1", candidate_version="v2")
+    assert result.n_compared == 2
+    assert result.baseline_accuracy == pytest.approx(1.0)
+    assert result.candidate_accuracy == pytest.approx(1.0)
+    assert result.accuracy_delta == pytest.approx(0.0)
+    assert result.baseline_accuracy_all == pytest.approx(1.0)
+    assert result.candidate_accuracy_all == pytest.approx(2 / 3)
+    assert result.accuracy_ok
+    assert result.no_regressions
+    assert result.promotable
+    assert result.notes and "no counterpart" in result.notes[0]
+
+
 def test_empty_comparison_is_not_promotable() -> None:
     """Nothing compared means nothing demonstrated."""
     base = _frame([("r1", 0, "1", "1", True)])

@@ -336,7 +336,11 @@ def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None
 
     try:
         df = load_predictions(version)
-    except (FileNotFoundError, ValueError):
+    except (FileNotFoundError, ValueError) as exc:
+        print(  # noqa: T201
+            f"Not logging eval run to MLflow: {csv_path} unusable as predictions "
+            f"for version {version!r} ({exc})"
+        )
         return
 
     from convfinqa.serving.evaldata import holdout_accuracy

@@ -286,6 +286,8 @@ export interface ComparisonResult {
   candidate_version: string;
   baseline_accuracy: number;
   candidate_accuracy: number;
+  baseline_accuracy_all: number;
+  candidate_accuracy_all: number;
   accuracy_delta: number;
   n_compared: number;
   accuracy_ok: boolean;

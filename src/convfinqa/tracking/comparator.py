@@ -56,12 +56,21 @@ class Flip:
 
 @dataclass
 class ComparisonResult:
-    """The verdict, plus every fact it was based on."""
+    """The verdict, plus every fact it was based on.
+
+    `baseline_accuracy`/`candidate_accuracy` (and the delta/ok flags derived from
+    them) are computed over the *shared* question set — the same population the
+    flip check uses — so the promotion gate's two halves describe one population.
+    `baseline_accuracy_all`/`candidate_accuracy_all` keep the full-frame headline
+    numbers for display; they never drive `promotable`.
+    """
 
     baseline_version: str
     candidate_version: str
     baseline_accuracy: float
     candidate_accuracy: float
+    baseline_accuracy_all: float
+    candidate_accuracy_all: float
     n_compared: int
     regressions: list[Flip] = field(default_factory=list)
     improvements: list[Flip] = field(default_factory=list)
@@ -94,17 +103,18 @@ class ComparisonResult:
             return "no overlapping questions to compare"
         if not self.accuracy_ok:
             return (
-                f"overall accuracy fell {self.baseline_accuracy:.1%} → "
+                f"shared-question accuracy fell {self.baseline_accuracy:.1%} → "
                 f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%})"
             )
         if self.regressions:
             return (
                 f"{len(self.regressions)} question(s) flipped pass→fail "
-                f"despite {self.accuracy_delta:+.2%} overall"
+                f"despite {self.accuracy_delta:+.2%} on the shared question set"
             )
         return (
-            f"accuracy {self.baseline_accuracy:.1%} → {self.candidate_accuracy:.1%} "
-            f"({self.accuracy_delta:+.2%}), {len(self.improvements)} fixed, 0 broken"
+            f"shared-question accuracy {self.baseline_accuracy:.1%} → "
+            f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}), "
+            f"{len(self.improvements)} fixed, 0 broken"
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -114,6 +124,8 @@ class ComparisonResult:
             "candidate_version": self.candidate_version,
             "baseline_accuracy": round(self.baseline_accuracy, 6),
             "candidate_accuracy": round(self.candidate_accuracy, 6),
+            "baseline_accuracy_all": round(self.baseline_accuracy_all, 6),
+            "candidate_accuracy_all": round(self.candidate_accuracy_all, 6),
             "accuracy_delta": round(self.accuracy_delta, 6),
             "n_compared": self.n_compared,
             "accuracy_ok": self.accuracy_ok,
@@ -239,11 +251,20 @@ def compare_frames(
                 for label in shared
             }
 
+    shared_baseline_accuracy = (
+        float(merged["correct_base"].mean()) if len(merged) else 0.0
+    )
+    shared_candidate_accuracy = (
+        float(merged["correct_cand"].mean()) if len(merged) else 0.0
+    )
+
     return ComparisonResult(
         baseline_version=baseline_version,
         candidate_version=candidate_version,
-        baseline_accuracy=accuracy(baseline),
-        candidate_accuracy=accuracy(candidate),
+        baseline_accuracy=shared_baseline_accuracy,
+        candidate_accuracy=shared_candidate_accuracy,
+        baseline_accuracy_all=accuracy(baseline),
+        candidate_accuracy_all=accuracy(candidate),
         n_compared=len(merged),
         regressions=regressions,
         improvements=improvements,

@@ -12,6 +12,7 @@ consistent with. If that ever changes, these two classes are the seam.
 from __future__ import annotations
 
 import asyncio
+import secrets
 import time
 from collections import defaultdict, deque
 
@@ -122,11 +123,16 @@ def client_key(request: Request) -> str:
 
     App Runner terminates TLS and forwards the caller in `X-Forwarded-For`, so
     the first hop in that list is the real client; `request.client` would report
-    the load balancer and rate-limit every visitor as one.
+    the load balancer and rate-limit every visitor as one. This is only trusted
+    when `settings.trusted_proxy` is set (the default, true for App Runner) —
+    otherwise a caller could rotate the header to dodge the per-client window.
+    The global in-flight cap is deliberately *not* keyed by client, so it still
+    holds regardless of this setting.
     """
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    if settings.trusted_proxy:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 
@@ -146,7 +152,9 @@ def require_owner(request: Request) -> None:
             },
         )
     presented = request.headers.get("x-owner-token", "")
-    if not presented or presented != expected.get_secret_value():
+    if not presented or not secrets.compare_digest(
+        presented, expected.get_secret_value()
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={

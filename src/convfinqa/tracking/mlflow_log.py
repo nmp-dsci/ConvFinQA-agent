@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -22,6 +23,8 @@ from typing import Any
 
 from convfinqa.config import MLRUNS_DIR, settings
 from convfinqa.tracking.bundle import bundle_fingerprint, bundle_id
+
+log = logging.getLogger("convfinqa.tracking")
 
 
 def tracking_uri() -> str:
@@ -110,7 +113,13 @@ def run(
 
 
 class _Recorder:
-    """Thin wrapper over the mlflow module, scoped to one active run."""
+    """Thin wrapper over the mlflow module, scoped to one active run.
+
+    A failed write is logged rather than silently dropped: the whole point of
+    logging inside the runners is that a gap in the history should mean the run
+    never happened, not that a metric quietly vanished from one that looks
+    complete.
+    """
 
     def __init__(self, mlflow: Any, run_id: str) -> None:
         self._mlflow = mlflow
@@ -118,8 +127,15 @@ class _Recorder:
 
     def metric(self, key: str, value: float, *, step: int | None = None) -> None:
         """Log a single metric, optionally as a step in a trajectory."""
-        with contextlib.suppress(Exception):
+        try:
             self._mlflow.log_metric(key, float(value), step=step)
+        except Exception:
+            log.warning(
+                "mlflow: failed to log metric %r for run %s",
+                key,
+                self.run_id,
+                exc_info=True,
+            )
 
     def metrics(self, values: dict[str, float]) -> None:
         """Log several metrics at once."""
@@ -131,13 +147,27 @@ class _Recorder:
         candidate = Path(path)
         if not candidate.exists():
             return
-        with contextlib.suppress(Exception):
+        try:
             self._mlflow.log_artifact(str(candidate))
+        except Exception:
+            log.warning(
+                "mlflow: failed to log artifact %s for run %s",
+                candidate,
+                self.run_id,
+                exc_info=True,
+            )
 
     def dict_artifact(self, name: str, payload: dict[str, Any]) -> None:
         """Attach a JSON document to the run."""
-        with contextlib.suppress(Exception):
+        try:
             self._mlflow.log_dict(payload, name)
+        except Exception:
+            log.warning(
+                "mlflow: failed to log dict artifact %r for run %s",
+                name,
+                self.run_id,
+                exc_info=True,
+            )
 
 
 class _NullRecorder:
