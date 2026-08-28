@@ -244,3 +244,37 @@ def test_demo_report_list_is_restricted_to_the_pack(demo_mode: None) -> None:
         listed = client.get("/reports?limit=500").json()
     assert set(listed) <= set(pack.report_ids)
     assert set(listed) <= set(chat_routes.REPORT_IDS)
+
+
+# ---------------------------------------------------------------------------
+# Keyless import
+# ---------------------------------------------------------------------------
+
+
+def test_every_module_imports_without_a_key(demo_mode: None) -> None:
+    """No module may construct a model at import time.
+
+    Regression test for a real deployment failure: `backends.dspy` built its
+    DSPy LMs at module scope, so the keyless demo container returned 500 from
+    `/eval/splits` — a read-only route that has no business touching a model —
+    simply because reading a dataset fact imported that module.
+    """
+    import importlib
+
+    for name in (
+        "convfinqa.backends.dspy",
+        "convfinqa.backends.pydantic",
+        "convfinqa.diagnosis.agents",
+        "convfinqa.optimization.gepa",
+        "convfinqa.serving.evaldata",
+        "convfinqa.pipeline.runner",
+    ):
+        importlib.import_module(name)
+
+
+def test_split_is_readable_without_importing_an_optimizer(demo_mode: None) -> None:
+    """The serving layer reads the split from the dataset, not from DSPy."""
+    from convfinqa.serving import evaldata
+
+    assert len(evaldata.optimizer_train_ids()) == 120
+    assert len(evaldata.splits()["never_seen"]) == 80

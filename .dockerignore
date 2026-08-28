@@ -1,0 +1,24 @@
+# Everything the image must not carry. The .dspy_cache alone is ~366 MB, and a
+# stray .env would put a key inside an image whose entire premise is not having
+# one.
+.git
+.venv
+.env
+.dspy_cache/
+mlruns/
+.traces/
+frontend/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+**/__pycache__
+*.pyc
+.*cache
+.lavish
+.claude
+.codex
+ai_specs
+tests
+infra
+evaluation/predictions/*.html
+evaluation/diagnostics/*.html

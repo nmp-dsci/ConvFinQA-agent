@@ -96,17 +96,20 @@ def gold_programs() -> dict[tuple[str, int], str]:
 def optimizer_train_ids() -> frozenset[str]:
     """The conversations GEPA actually optimized against.
 
-    Deliberately sourced from `backends.dspy`, not from `data.loader`. Both
-    define a "60% train split" with seed 42, but by different means — a pandas
-    `.sample()` in the loader, a `random.Random(42).shuffle()` in the DSPy
-    backend — and they agree on only 78 of 120 conversations. GEPA ran against
-    the DSPy one, so that is the only definition with a claim to being the set
-    the optimizer saw. Reporting against the other would mislabel 42
-    conversations in both directions.
-    """
-    from convfinqa.backends.dspy import conv_examples_train
+    Sourced from `data.loader.optimizer_split()`, which reproduces the DSPy
+    backend's shuffle without importing it — reading a dataset fact must not
+    construct a language model, and the keyless demo container could not do so
+    if it wanted to.
 
-    return frozenset(example.report_id for example in conv_examples_train)
+    Note this is *not* `data.loader.train_report_ids`. Both define a "60% train
+    split" with seed 42, by different means, and they agree on only 78 of 120
+    conversations. GEPA ran against this one, so it is the only definition with
+    a claim to being the set the optimizer saw.
+    """
+    from convfinqa.data.loader import optimizer_split
+
+    train_ids, _ = optimizer_split()
+    return frozenset(train_ids)
 
 
 @cache

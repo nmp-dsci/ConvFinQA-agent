@@ -207,10 +207,15 @@ def main() -> None:
     # ruff: noqa: T201
     from convfinqa.backends.dspy import (
         ConversationRunner,
+        configure_dspy,
         conv_examples_test,
         conv_examples_train,
         lm_max,
     )
+
+    # Models are lazy now, so the entry point that actually runs them is the
+    # one that has to wire DSPy up.
+    configure_dspy()
     from convfinqa.evaluation.joining import analyze_predictions
 
     test_set = conv_examples_test
@@ -398,7 +403,7 @@ def main() -> None:
         track_best_outputs=True,
         log_dir=str(run_dir / "dspy_gepa_logs"),
         reflection_minibatch_size=3,
-        reflection_lm=lm_max,
+        reflection_lm=lm_max(),
         **gepa_kwargs,
     )
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 import re
 from pathlib import Path
 from typing import Any, cast
@@ -140,3 +141,24 @@ def _build_conv_examples(report_ids: list[str], qa: pd.DataFrame) -> list[ConvEx
 def load_conv_examples_test() -> tuple[list[ConvExample], pd.DataFrame]:
     """Return the canonical cached-evaluation conversation sample."""
     return _build_conv_examples(sampled_report_ids, qa_data), qa_data
+
+
+def optimizer_split() -> tuple[list[str], list[str]]:
+    """The 60/40 split GEPA optimizes against, as (train_ids, unseen_ids).
+
+    Lives here rather than in `backends.dspy` because it is a property of the
+    dataset, not of an optimizer backend: the serving layer has to report which
+    conversations were optimized against, and it must not have to import — and
+    thereby construct — a language model to find out.
+
+    The shuffle is reproduced exactly as the DSPy backend performed it, seed and
+    all. Note that this is *not* the same partition as `train_report_ids` above,
+    which uses a pandas `.sample()` with the same seed; the two agree on only 78
+    of 120 conversations. This one is the split GEPA actually ran against, so it
+    is the only one that can support a held-out claim.
+    """
+    rng = random.Random(42)
+    shuffled = list(sampled_report_ids)
+    rng.shuffle(shuffled)
+    cut = int(len(shuffled) * 0.6)
+    return shuffled[:cut], shuffled[cut:]
