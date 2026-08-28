@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from convfinqa.serving import app as api_app
+from convfinqa.serving.routes import chat as chat_routes
 
 
 def _client() -> TestClient:
@@ -29,7 +30,7 @@ def test_cors_preflight_allows_vite_dev_origin() -> None:
 
 
 def test_cors_actual_request_carries_allow_origin() -> None:
-    rid = api_app.REPORT_IDS[0]
+    rid = chat_routes.REPORT_IDS[0]
     with _client() as client:
         response = client.get(
             "/reports?limit=1", headers={"Origin": "http://localhost:5173"}
@@ -42,4 +43,4 @@ def test_cors_actual_request_carries_allow_origin() -> None:
         # Sanity: returns expected payload
         assert isinstance(response.json(), list)
         # rid is read solely to ensure the test fixture is healthy
-        assert rid in api_app.REPORT_IDS
+        assert rid in chat_routes.REPORT_IDS

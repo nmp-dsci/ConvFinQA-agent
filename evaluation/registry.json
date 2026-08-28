@@ -1,0 +1,89 @@
+{
+  "model": "convfinqa-pipeline",
+  "versions": [
+    {
+      "version": "v1",
+      "registered_at": "2026-08-28T00:15:18.930515+00:00",
+      "source": "manual",
+      "bundle_id": "17676b0e5e5e",
+      "bundle": {
+        "prompts_version": "v1",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df"
+      },
+      "runs": [
+        "e4822714d7ac4565aa88574aecfd9dbf",
+        "7c3cdcb453eb447a9800e1fa29ef88fb"
+      ],
+      "metrics": {
+        "accuracy": 0.72987,
+        "n_questions": 770.0
+      },
+      "notes": ""
+    },
+    {
+      "version": "v2",
+      "registered_at": "2026-08-28T00:15:18.986156+00:00",
+      "source": "manual",
+      "bundle_id": "5bd47e9e3c23",
+      "bundle": {
+        "prompts_version": "v2",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df"
+      },
+      "runs": [
+        "8292242f6dcf48b5a440c9c346fc1305",
+        "4f91d36929c14a8cb28b376dd9d9b93e"
+      ],
+      "metrics": {
+        "accuracy": 0.771429,
+        "n_questions": 770.0
+      },
+      "notes": ""
+    },
+    {
+      "version": "v3_1",
+      "registered_at": "2026-08-28T00:15:19.037294+00:00",
+      "source": "manual",
+      "bundle_id": "010add94fe49",
+      "bundle": {
+        "prompts_version": "v3_1",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df"
+      },
+      "runs": [
+        "ea3caf7a72d24a608273c8e5d60001ff",
+        "a8dd8665d9684004b6f6732ad6cb4255"
+      ],
+      "metrics": {
+        "accuracy": 0.762338,
+        "n_questions": 770.0
+      },
+      "notes": ""
+    }
+  ],
+  "aliases": {
+    "champion": "v2"
+  },
+  "history": [
+    {
+      "at": "2026-08-28T00:15:19.117895+00:00",
+      "event": "promote",
+      "version": "v2",
+      "previous_champion": null,
+      "actor": "backfill",
+      "forced": false,
+      "reason": "first registered version becomes champion by default",
+      "comparison": null
+    }
+  ]
+}

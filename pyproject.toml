@@ -87,7 +87,10 @@ extend-select = [
 # Tests document themselves through their names; docstring rules add noise
 # without adding information. `print` is legitimate output in CLI scripts.
 "tests/**" = ["D101", "D102", "D103"]
+# `print` is the output of a command-line tool, not a stray debug statement.
 "scripts/**" = ["T201"]
+"src/convfinqa/**/cli.py" = ["T201"]
+"src/convfinqa/tracking/gate.py" = ["T201"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

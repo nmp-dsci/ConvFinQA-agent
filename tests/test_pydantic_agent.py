@@ -29,12 +29,7 @@ from convfinqa.backends.dspy import (
     TriageSignature,
 )
 from convfinqa.backends.dspy import conv_examples_test as dspy_conv_examples_test
-from convfinqa.backends.pydantic import (
-    calculator_agent,
-    preprocess_agent,
-    retriever_agent,
-    triage_agent,
-)
+from convfinqa.backends.pydantic import default_agents
 from convfinqa.data.loader import _DOCS
 from convfinqa.data.schemas import ConversationHistory, QAPair
 from convfinqa.evaluation.joining import compare_runs
@@ -167,19 +162,14 @@ def test_render_chat_inputs_handles_basemodel_and_list() -> None:
 
 def test_calculator_has_six_tools() -> None:
     """Calculator agent has all six DSL tools registered."""
-    tools = calculator_agent._function_toolset.tools
+    tools = default_agents()["calculator"]._function_toolset.tools
     assert set(tools) == {"add", "subtract", "multiply", "divide", "exp", "greater"}
 
 
 def test_each_agent_uses_optimized_instructions() -> None:
     """Each Pydantic AI agent is constructed with its optimized instructions."""
-    pairs = [
-        (triage_agent, "triage"),
-        (preprocess_agent, "preprocess"),
-        (retriever_agent, "retriever"),
-        (calculator_agent, "calculator"),
-    ]
-    for ag, key in pairs:
+    agents = default_agents()
+    for key, ag in agents.items():
         # Pydantic AI stores instructions as a list[str]
         assert ag._instructions == [PROMPTS[key]]
 
@@ -213,20 +203,23 @@ def _stub_overrides(
     """Build agent.override(model=TestModel(...)) context managers for each stage."""
     from pydantic_ai.models.test import TestModel
 
-    ctxs = [triage_agent.override(model=TestModel(custom_output_args=triage_args))]
+    agents = default_agents()
+    ctxs = [agents["triage"].override(model=TestModel(custom_output_args=triage_args))]
     if retriever_args is not None:
         ctxs.append(
-            retriever_agent.override(model=TestModel(custom_output_args=retriever_args))
+            agents["retriever"].override(
+                model=TestModel(custom_output_args=retriever_args)
+            )
         )
     if preprocess_args is not None:
         ctxs.append(
-            preprocess_agent.override(
+            agents["preprocess"].override(
                 model=TestModel(custom_output_args=preprocess_args)
             )
         )
     if calc_args is not None:
         ctxs.append(
-            calculator_agent.override(
+            agents["calculator"].override(
                 model=TestModel(custom_output_args=calc_args, call_tools=[])
             )
         )

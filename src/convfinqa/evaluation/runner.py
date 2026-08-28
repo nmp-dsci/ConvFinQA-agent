@@ -297,6 +297,58 @@ async def evaluate_cached(
     return await evaluate(examples, max_concurrency=max_concurrency)
 
 
+def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None:
+    """Record this evaluation as an MLflow run and register the bundle version.
+
+    Called from inside the runner rather than from the caller, so an evaluation
+    cannot happen without being recorded. That is the whole reason the
+    experiment history can be trusted to have no silent gaps.
+    """
+    from convfinqa.tracking import mlflow_log, registry
+    from convfinqa.tracking.comparator import accuracy, load_predictions
+
+    try:
+        df = load_predictions(version)
+    except (FileNotFoundError, ValueError):
+        return
+
+    overall = round(accuracy(df), 6)
+    metrics: dict[str, float] = {
+        "accuracy": overall,
+        "n_questions": float(len(df)),
+        "n_conversations": float(n_conversations),
+    }
+    for column in ("gold_turn_type", "gold_conv_type"):
+        if column not in df.columns:
+            continue
+        for value, group in df.groupby(column):
+            label = str(value).strip().replace(" ", "_")
+            if label and label.lower() != "nan":
+                metrics[f"accuracy_{column}_{label}"] = round(
+                    float(group["correct"].mean()), 6
+                )
+
+    with mlflow_log.run(
+        f"eval-{version}",
+        kind="eval",
+        version=version,
+        params={"n_conversations": n_conversations},
+        tags={"bundle_version": version},
+    ) as recorder:
+        recorder.metrics(metrics)
+        recorder.artifact(csv_path)
+        recorder.artifact(csv_path.with_name(f"{csv_path.stem}_joined.csv"))
+        run_id = recorder.run_id
+
+    registry.register(
+        version,
+        source="manual",
+        run_id=run_id,
+        metrics={"accuracy": overall, "n_questions": float(len(df))},
+    )
+    print(f"[{version}] logged to MLflow (accuracy {overall:.2%})")  # noqa: T201
+
+
 async def evaluate_version(
     examples: list[Any],
     version: str,
@@ -358,6 +410,8 @@ async def evaluate_version(
         print(  # noqa: T201
             f"\n[{version}] combined accuracy: {correct / total:.1%}  ({correct}/{total} questions)"
         )
+
+    _log_eval_run(version, csv_path, n_conversations=len(examples))
 
     write_predictions_html(
         csv_path,
