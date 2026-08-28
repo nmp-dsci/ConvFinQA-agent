@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConvFinQA — Build Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Design source: the ConvFinQA frontend's own system (frontend/tailwind.config.ts).
+   This page documents that app's UI, so it is rendered in that app's palette
+   rather than a new one — the mocks below are the real components' colours.
+   --------------------------------------------------------------------------- */
+:root{
+  --bg:#0b141a; --panel:#111b21; --panel2:#202c33;
+  --accent:#005c4b; --accent2:#00a884;
+  --text:#e9edef; --muted:#8696a0; --danger:#f15c6d; --warn:#f0b429;
+  --line:rgba(233,237,239,.08); --line2:rgba(233,237,239,.14);
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --maxw:940px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+
+h1{font-size:clamp(30px,4.6vw,46px);line-height:1.12;letter-spacing:-.022em;margin:0 0 18px;text-wrap:balance}
+h2{font-size:clamp(23px,3vw,30px);line-height:1.2;letter-spacing:-.016em;margin:0 0 14px;text-wrap:balance}
+h3{font-size:17px;margin:32px 0 10px;letter-spacing:-.005em}
+h4{font-size:14px;margin:20px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+p{margin:0 0 14px;max-width:68ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:68ch}
+li{margin:0 0 7px}
+a{color:var(--accent2)}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.88em;background:var(--panel2);padding:1.5px 5px;border-radius:4px;color:var(--text)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);margin:0 0 10px}
+.lede{font-size:18px;color:var(--muted);max-width:64ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+pre{
+  font-family:var(--mono);font-size:12.5px;line-height:1.65;
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:14px 16px;overflow-x:auto;margin:0 0 16px;
+}
+pre .c{color:var(--muted)}
+pre .k{color:var(--accent2)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.grid{display:grid;gap:14px}
+@media(min-width:700px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:5px;border:1px solid var(--line2);
+  background:var(--panel2);color:var(--muted);white-space:nowrap;
+}
+.chip.good{background:rgba(0,168,132,.15);color:var(--accent2);border-color:rgba(0,168,132,.4)}
+.chip.warn{background:rgba(240,180,41,.13);color:var(--warn);border-color:rgba(240,180,41,.35)}
+.chip.bad{background:rgba(241,92,109,.13);color:var(--danger);border-color:rgba(241,92,109,.35)}
+
+.scroll-x{overflow-x:auto;margin:0 0 16px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13px}
+tbody tr:last-child td{border-bottom:none}
+
+figure{margin:0 0 18px}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:68ch}
+svg{max-width:100%;height:auto;display:block}
+
+/* Metric row */
+.metrics{display:flex;flex-wrap:wrap;gap:28px;margin:26px 0 12px}
+.metric .v{font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* UI mock — the real app's chrome, so the walkthrough shows the product */
+.mock{border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg);margin:0 0 8px}
+.mock-bar{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.mock-logo{width:26px;height:26px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-size:11px;font-weight:600;flex:0 0 auto}
+.mock-tabs{display:flex;border:1px solid rgba(0,0,0,.4);border-radius:6px;overflow:hidden;font-size:11.5px}
+.mock-tabs span{padding:3px 9px;background:var(--panel2);color:var(--muted);white-space:nowrap}
+.mock-tabs span.on{background:var(--accent2);color:var(--bg);font-weight:600}
+.mock-body{padding:14px}
+.mock-note{font-size:12px;color:var(--muted);margin:0 0 14px}
+
+.step{display:grid;grid-template-columns:38px 1fr;gap:16px;margin:0 0 22px}
+.step .n{
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent2);
+  border:1px solid rgba(0,168,132,.4);border-radius:7px;height:32px;display:grid;place-items:center;
+  background:rgba(0,168,132,.08);
+}
+.step h3{margin:2px 0 6px;font-size:16px}
+.step p:last-child,.step pre:last-child,.step ul:last-child{margin-bottom:0}
+
+.callout{border-left:2px solid var(--accent2);background:var(--panel);padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 16px}
+.callout.warn{border-left-color:var(--warn)}
+.callout strong{display:block;margin-bottom:5px}
+.callout p:last-child{margin-bottom:0}
+
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:700px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{
+  display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:14px;
+}
+.toc a:hover{border-color:var(--accent2)}
+.toc a .n{font-family:var(--mono);font-size:11px;color:var(--accent2);flex:0 0 auto}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ══════════════════════════ HERO ══════════════════════════ -->
+<section>
+  <p class="eyebrow">Delivered · branch <code>prod-build</code> · PR #3</p>
+  <h1>From a research repo to a system you can operate</h1>
+  <p class="lede">
+    All seven phases of the approved plan are built, tested and verified end to end against
+    the real container. This page walks through what exists, how to use it, and — the part
+    you asked for specifically — exactly what to do when you want to make a new model version.
+  </p>
+
+  <div class="metrics">
+    <div class="metric"><div class="v">7&nbsp;<span class="muted" style="font-size:18px">/ 7</span></div><div class="l">phases delivered</div></div>
+    <div class="metric"><div class="v">107</div><div class="l">python tests (was 56)</div></div>
+    <div class="metric"><div class="v">6</div><div class="l">CI gates, all green</div></div>
+    <div class="metric"><div class="v">7&nbsp;<span class="muted" style="font-size:18px">s</span></div><div class="l">container boot, keyless</div></div>
+  </div>
+
+  <div class="toc">
+    <a href="#s1"><span class="n">01</span><span>What changed, in one picture</span></a>
+    <a href="#s2"><span class="n">02</span><span>The five surfaces</span></a>
+    <a href="#s3"><span class="n">03</span><span>Making a new model version</span></a>
+    <a href="#s4"><span class="n">04</span><span>The promotion contract</span></a>
+    <a href="#s5"><span class="n">05</span><span>Demo mode &amp; deploying</span></a>
+    <a href="#s6"><span class="n">06</span><span>Three corrections worth knowing</span></a>
+    <a href="#s7"><span class="n">07</span><span>Command reference</span></a>
+    <a href="#s8"><span class="n">08</span><span>What is left to do</span></a>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 01 ARCHITECTURE ══════════════════════════ -->
+<section id="s1">
+  <p class="eyebrow">01 · Architecture</p>
+  <h2>What changed, in one picture</h2>
+  <p>
+    The four-stage agent pipeline is unchanged — it was already good. What is new is
+    everything around it: one choke point every model call passes through, a trace of every
+    turn, a registry that decides what may become champion, and a public demo that runs the
+    same build with no keys in it.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 900 400" role="img" aria-label="Architecture: a browser talks to one FastAPI process that serves both the built React app and the API. Chat routes through a single LLM choke point in dev, or through a recorded demo pack in demo mode. Every turn writes to a trace store. Evaluation, GEPA and the auto-research harness all log into MLflow, which feeds a bundle registry whose comparator gates promotion to champion.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- Browser -->
+      <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".85">
+        <rect x="18" y="150" width="112" height="62" rx="5"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12.5" fill="currentColor" text-anchor="middle">
+        <text x="74" y="176">Browser</text>
+        <text x="74" y="194" font-size="10.5" opacity=".6">React SPA</text>
+      </g>
+
+      <!-- Server box -->
+      <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55">
+        <rect x="176" y="30" width="424" height="340" rx="7"/>
+      </g>
+      <text x="192" y="52" font-family="IBM Plex Mono,monospace" font-size="11" fill="currentColor" opacity=".65">
+        one FastAPI process · one origin · --workers 1
+      </text>
+
+      <!-- Routers -->
+      <g fill="none" stroke="currentColor" stroke-width="1.1" opacity=".8">
+        <rect x="196" y="70" width="180" height="40" rx="4"/>
+        <rect x="196" y="122" width="180" height="40" rx="4"/>
+        <rect x="196" y="174" width="180" height="40" rx="4"/>
+        <rect x="196" y="226" width="180" height="40" rx="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="currentColor">
+        <text x="209" y="88">chat</text><text x="209" y="103" font-size="10" opacity=".6">/sessions · SSE</text>
+        <text x="209" y="140">evaluation</text><text x="209" y="155" font-size="10" opacity=".6">/eval · splits · answers</text>
+        <text x="209" y="192">traces</text><text x="209" y="207" font-size="10" opacity=".6">/traces</text>
+        <text x="209" y="244">admin</text><text x="209" y="259" font-size="10" opacity=".6">experiments · registry · research</text>
+      </g>
+
+      <!-- Choke point -->
+      <g fill="none" style="stroke:#00a884" stroke-width="1.9">
+        <rect x="410" y="70" width="168" height="44" rx="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" style="fill:#00a884" text-anchor="middle">
+        <text x="494" y="88" font-weight="600">convfinqa/llm.py</text>
+      </g>
+      <text x="494" y="103" font-family="Inter,sans-serif" font-size="10" fill="currentColor" opacity=".65" text-anchor="middle">the only place a model is built</text>
+
+      <!-- demo pack -->
+      <g fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" opacity=".8">
+        <rect x="410" y="128" width="168" height="40" rx="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="11.5" fill="currentColor" text-anchor="middle">
+        <text x="494" y="145">demo pack replay</text>
+        <text x="494" y="159" font-size="10" opacity=".6">same events, no model</text>
+      </g>
+
+      <!-- trace store -->
+      <g fill="none" stroke="currentColor" stroke-width="1.1" opacity=".8">
+        <rect x="410" y="182" width="168" height="40" rx="4"/>
+        <rect x="410" y="236" width="168" height="40" rx="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="11.5" fill="currentColor" text-anchor="middle">
+        <text x="494" y="199">trace store</text><text x="494" y="213" font-size="10" opacity=".6">every turn, every stage</text>
+        <text x="494" y="253">committed artifacts</text><text x="494" y="267" font-size="10" opacity=".6">CSVs · snapshot · registry</text>
+      </g>
+
+      <!-- SPA -->
+      <g fill="none" stroke="currentColor" stroke-width="1.1" opacity=".65">
+        <rect x="196" y="300" width="382" height="42" rx="4"/>
+      </g>
+      <text x="387" y="326" font-family="Inter,sans-serif" font-size="11.5" fill="currentColor" opacity=".8" text-anchor="middle">
+        serves frontend/dist — same origin, no CORS in production
+      </text>
+
+      <!-- Right column: tracking -->
+      <g fill="none" stroke="currentColor" stroke-width="1.1" opacity=".8">
+        <rect x="646" y="70" width="212" height="46" rx="4"/>
+        <rect x="646" y="130" width="212" height="46" rx="4"/>
+      </g>
+      <g fill="none" style="stroke:#00a884" stroke-width="1.7">
+        <rect x="646" y="190" width="212" height="58" rx="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="currentColor" text-anchor="middle">
+        <text x="752" y="89">eval · GEPA · auto-research</text><text x="752" y="105" font-size="10" opacity=".6">log from inside the runners</text>
+        <text x="752" y="149">MLflow</text><text x="752" y="165" font-size="10" opacity=".6">runs, params, metrics</text>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" style="fill:#00a884" text-anchor="middle">
+        <text x="752" y="212" font-weight="600">bundle registry</text>
+      </g>
+      <text x="752" y="228" font-family="Inter,sans-serif" font-size="10" fill="currentColor" opacity=".65" text-anchor="middle">comparator gates the champion alias</text>
+      <text x="752" y="241" font-family="Inter,sans-serif" font-size="10" fill="currentColor" opacity=".65" text-anchor="middle">history append-only</text>
+
+      <!-- arrows -->
+      <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#a1)" opacity=".75">
+        <line x1="130" y1="181" x2="192" y2="181"/>
+        <line x1="376" y1="90" x2="406" y2="90"/>
+        <line x1="376" y1="142" x2="406" y2="146"/>
+        <line x1="376" y1="194" x2="406" y2="200"/>
+        <line x1="376" y1="246" x2="406" y2="252"/>
+        <line x1="578" y1="152" x2="642" y2="152"/>
+        <path d="M752,176 L752,186"/>
+        <path d="M646,219 L610,219 L610,256 L582,256"/>
+      </g>
+      <text x="612" y="146" font-family="IBM Plex Mono,monospace" font-size="9.5" fill="currentColor" opacity=".55">reads</text>
+    </svg>
+    <figcaption>
+      Verified against <code>src/convfinqa/serving/app.py</code>, <code>llm.py</code> and
+      <code>tracking/</code>. The dashed box is the only thing that differs between the two
+      deployments: in demo mode chat resolves through the recorded pack instead of the choke
+      point, and every other box behaves identically.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════════════ 02 SURFACES ══════════════════════════ -->
+<section id="s2">
+  <p class="eyebrow">02 · The product</p>
+  <h2>The five surfaces</h2>
+  <p>
+    The frontend is now an operator console, not just a chat window. A mode-aware landing
+    page is the front door in both deployments; the header carries a mode chip throughout.
+  </p>
+
+  <div class="mock">
+    <div class="mock-bar">
+      <div class="mock-logo">CF</div>
+      <div class="mock-tabs">
+        <span class="on">Chat</span><span>Data &amp; answers</span><span>Traces</span><span>Experiments</span><span>Research</span><span>Eval</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span class="chip good">dev · live</span>
+        <span class="small muted" style="font-family:var(--mono)">champion v2</span>
+      </div>
+    </div>
+    <div class="mock-body">
+      <p class="mock-note">The real header, from <code>frontend/src/components/TopBar.tsx</code>. In the public demo the chip reads <span class="chip warn">demo · read only</span> and every write control renders inside a real <code>&lt;fieldset disabled&gt;</code>.</p>
+    </div>
+  </div>
+
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Surface</th><th>What it answers</th><th>In the demo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Chat</strong></td>
+        <td>Pick a filing, then ask freely or step through the dataset's own questions turn by turn — the run-all-gold flow you already had — watching all four stages stream.</td>
+        <td><span class="chip warn">replayed</span></td>
+      </tr>
+      <tr>
+        <td><strong>Data &amp; answers</strong></td>
+        <td>Which conversations the optimizer saw and which it never did, plus every question with gold beside <em>each</em> version's answer. Filter to just the turns where versions disagree — that is where a regression actually lives.</td>
+        <td><span class="chip good">fully live</span></td>
+      </tr>
+      <tr>
+        <td><strong>Traces</strong></td>
+        <td>Every turn the system has answered, stage by stage: inputs, outputs, reasoning, the calculator's tool loop, tokens, latency, and gold comparison.</td>
+        <td><span class="chip good">fully live</span></td>
+      </tr>
+      <tr>
+        <td><strong>Experiments</strong></td>
+        <td>Every eval / GEPA / research run, the accuracy trend with the champion marked, a question-by-question diff of any two versions, the registry, and the promotion history.</td>
+        <td><span class="chip good">fully live</span></td>
+      </tr>
+      <tr>
+        <td><strong>Research console</strong></td>
+        <td>Launch an auto-research round or a GEPA smoke run and watch it stream; browse the rules each round promoted into each agent's prompt.</td>
+        <td><span class="chip warn">visible, inert</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>One trace viewer, two sources</h3>
+  <p>
+    A live turn and a turn replayed out of a committed eval CSV both come from the same
+    <code>capture</code> structure, so one component renders both. A year-old scored run
+    opens in exactly the viewer a question asked ten seconds ago does — which is what makes
+    the answers explorer clickable straight through into evidence.
+  </p>
+
+  <div class="mock">
+    <div class="mock-bar">
+      <div class="mock-logo">CF</div>
+      <div class="mock-tabs"><span>Chat</span><span class="on">Traces</span><span>Experiments</span></div>
+    </div>
+    <div class="mock-body" style="font-size:13px">
+      <div style="border-left:1px solid var(--line2);padding-left:14px">
+        <div style="margin-bottom:11px">
+          <span style="color:var(--accent2)">▾ triage</span>
+          <span class="chip" style="margin-left:6px">412ms</span><span class="chip">180 tok</span>
+          <div class="muted small" style="margin-top:2px">Is this a value to look up, or a calculation to plan?</div>
+        </div>
+        <div style="margin-bottom:11px;opacity:.45">
+          <span>● preprocess</span> <span class="chip">skipped — number path</span>
+        </div>
+        <div style="margin-bottom:11px">
+          <span style="color:var(--accent2)">▾ retriever</span>
+          <span class="chip" style="margin-left:6px">1.2s</span><span class="chip">2,340 tok</span>
+          <div class="muted small" style="margin-top:2px">Find each value in the filing's text and table.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:rgba(11,20,26,.6);border-radius:6px;padding:12px;margin-top:12px">
+        <div><div class="muted small">Predicted</div><div style="font-family:var(--mono);color:var(--accent2)">227.0</div></div>
+        <div><div class="muted small">Gold</div><div style="font-family:var(--mono)">227.0</div></div>
+      </div>
+      <p class="mock-note" style="margin-top:12px">A skipped stage is information, not absence — the number path deliberately bypasses preprocess and calculator, and the trace says so.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 03 NEW MODEL ══════════════════════════ -->
+<section id="s3">
+  <p class="eyebrow">03 · The thing you asked for</p>
+  <h2>Making a new model version</h2>
+  <p>
+    A “model version” here is a <strong>bundle</strong>, not a checkpoint: prompts + GEPA
+    overlay + both model ids + dataset hash + code SHA, versioned together. Three routes
+    produce one, and all three converge on the same evaluation and the same gate.
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" role="img" aria-label="Three routes produce a new bundle — hand-edited prompts, an auto-research round, or a GEPA run. All three converge on registration, then evaluation on the never-seen split, then the comparator, which either promotes the bundle to champion or leaves it registered as a failed challenger with its evidence kept.">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.15" opacity=".8">
+        <rect x="14" y="26" width="150" height="38" rx="4"/>
+        <rect x="14" y="86" width="150" height="38" rx="4"/>
+        <rect x="14" y="146" width="150" height="38" rx="4"/>
+        <rect x="228" y="86" width="132" height="38" rx="4"/>
+        <rect x="416" y="86" width="150" height="38" rx="4"/>
+      </g>
+      <g fill="none" style="stroke:#00a884" stroke-width="1.8">
+        <rect x="622" y="80" width="140" height="50" rx="4"/>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-width="1.15" stroke-dasharray="4 3" opacity=".65">
+        <rect x="622" y="168" width="240" height="44" rx="4"/>
+      </g>
+
+      <g font-family="Inter,sans-serif" font-size="12" fill="currentColor" text-anchor="middle">
+        <text x="89" y="43">edit prompts by hand</text><text x="89" y="57" font-size="10" opacity=".6">prompts/v4.py</text>
+        <text x="89" y="103">auto-research round</text><text x="89" y="117" font-size="10" opacity=".6">s7 harness → v3_2</text>
+        <text x="89" y="163">GEPA optimisation</text><text x="89" y="177" font-size="10" opacity=".6">runs/gepa_real_…</text>
+        <text x="294" y="103">register</text><text x="294" y="117" font-size="10" opacity=".6">spec captured, kept forever</text>
+        <text x="491" y="103">evaluate</text><text x="491" y="117" font-size="10" opacity=".6">309 never-seen questions</text>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12.5" style="fill:#00a884" text-anchor="middle">
+        <text x="692" y="101" font-weight="600">comparator</text>
+      </g>
+      <text x="692" y="118" font-family="Inter,sans-serif" font-size="10" fill="currentColor" opacity=".7" text-anchor="middle">≥ champion AND no flips</text>
+      <text x="742" y="188" font-family="Inter,sans-serif" font-size="11.5" fill="currentColor" opacity=".75" text-anchor="middle">refused → stays registered as a</text>
+      <text x="742" y="203" font-family="Inter,sans-serif" font-size="11.5" fill="currentColor" opacity=".75" text-anchor="middle">challenger, evidence kept</text>
+
+      <g stroke="currentColor" stroke-width="1.15" fill="none" marker-end="url(#a2)" opacity=".75">
+        <path d="M164,45 L196,45 L196,101 L224,101"/>
+        <line x1="164" y1="105" x2="224" y2="105"/>
+        <path d="M164,165 L196,165 L196,109 L224,109"/>
+        <line x1="360" y1="105" x2="412" y2="105"/>
+        <line x1="566" y1="105" x2="618" y2="105"/>
+      </g>
+      <g stroke="currentColor" stroke-width="1.15" fill="none" marker-end="url(#a2)" opacity=".55">
+        <path d="M692,130 L692,164"/>
+      </g>
+      <g style="stroke:#00a884" stroke-width="1.6" fill="none" marker-end="url(#a2)">
+        <path d="M762,105 L810,105"/>
+      </g>
+      <text x="838" y="102" font-family="Inter,sans-serif" font-size="12" style="fill:#00a884" text-anchor="middle" font-weight="600">champion</text>
+    </svg>
+    <figcaption>
+      No route is privileged. A hand-edited prompt and a GEPA run face the same gate, and a
+      refused bundle is never deleted — its spec and its eval artifacts stay in the registry
+      exactly as long as a champion's do.
+    </figcaption>
+  </figure>
+
+  <h3>Walk-through: shipping <code>v4</code></h3>
+
+  <div class="step">
+    <div class="n">1</div>
+    <div>
+      <h3>Produce the bundle</h3>
+      <p>Pick whichever route fits. Auto-research and GEPA can both be launched from the Research tab in dev, or from the terminal:</p>
+      <pre><span class="c"># Route A — hand-edit: create src/convfinqa/prompts/v4.py with the four constants</span>
+<span class="c">#            (TRIAGE_PROMPT, PREPROCESS_PROMPT, RETRIEVER_PROMPT, CALCULATOR_PROMPT)</span>
+
+<span class="c"># Route B — auto-research: diagnose failures, propose fixes, keep only what verifies</span>
+uv run convfinqa-diagnose --version v2 --variant v4 --limit 20
+
+<span class="c"># Route C — GEPA</span>
+RUN_GEPA=1 GEPA_MODE=real uv run convfinqa-optimize</pre>
+      <p class="small muted">
+        Route B writes <code>prompts/v4.py</code> for you from the rule stores — that module
+        is <strong>generated, never hand-edited</strong>. To change it, change the JSONL or
+        re-run the harness.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">2</div>
+    <div>
+      <h3>Evaluate it</h3>
+      <pre>PROMPTS_VERSION=v4 uv run convfinqa-eval</pre>
+      <p>
+        This writes <code>evaluation/predictions/pydantic_predictions_v4.csv</code>,
+        <em>and</em> opens an MLflow run and registers the bundle — because the logging
+        lives inside the runner, not beside it. There is no separate “remember to log it”
+        step to forget.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">3</div>
+    <div>
+      <h3>See what actually changed</h3>
+      <pre>uv run convfinqa-mlflow compare v2 v4</pre>
+      <p>
+        Or open <strong>Experiments → Compare two versions</strong> in the app, which shows
+        the same thing with both flip lists side by side. Read the
+        <span class="chip bad">pass → fail</span> column first: that is the one that blocks a
+        promotion, and it names the exact questions.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">4</div>
+    <div>
+      <h3>Promote — if it earns it</h3>
+      <pre>uv run convfinqa-mlflow promote v4</pre>
+      <p>
+        Exits non-zero and changes nothing if the comparator refuses. In the app it is the
+        <strong>Promote</strong> button in the registry table, owner-token gated, and it
+        returns <code>409</code> with the reason rather than a silent no-op. A refusal is the
+        gate working; the bundle stays registered as a challenger with all its evidence.
+      </p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="n">5</div>
+    <div>
+      <h3>Ship it</h3>
+      <pre>uv run convfinqa-mlflow snapshot   <span class="c"># export history for the demo image</span>
+uv run convfinqa-demo-pack         <span class="c"># re-record the demo from the new champion</span>
+git add evaluation/ src/convfinqa/prompts/ src/convfinqa/serving/demo_pack/
+git commit -m "v4: …"  &amp;&amp;  git push</pre>
+      <p>
+        CI re-scores the committed CSVs, the eval gate enforces the new floor, and merging to
+        <code>main</code> deploys the demo. The prediction CSVs are committed deliberately:
+        they are the reproducibility cache that lets all of this run with zero API calls.
+      </p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <strong>The one trap</strong>
+    <p>
+      Regenerate the demo pack after a promotion, or the public demo keeps replaying the old
+      champion's answers while the registry claims a new one. <code>convfinqa-demo-pack</code>
+      defaults to the registered champion, so running it with no arguments is correct.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 04 CONTRACT ══════════════════════════ -->
+<section id="s4">
+  <p class="eyebrow">04 · The gate</p>
+  <h2>The promotion contract</h2>
+  <p>
+    This is the understanding you confirmed, with the one refinement I raised: “beats the
+    champion” alone is not sufficient.
+  </p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Condition 1 — accuracy</h4>
+      <p class="small">Candidate accuracy ≥ champion, measured over the questions both runs actually cover.</p>
+    </div>
+    <div class="card" style="border-color:rgba(0,168,132,.4)">
+      <h4 style="margin-top:0;color:var(--accent2)">Condition 2 — no pass → fail flips</h4>
+      <p class="small">Not one question that used to be right may become wrong. This is the load-bearing half.</p>
+    </div>
+  </div>
+
+  <p style="margin-top:18px">
+    Why the second condition exists: a change that fixes twelve number-retrieval turns and
+    breaks nine program turns <em>nets out positive</em>. An accuracy-only gate calls that an
+    improvement. It is not — a capability that used to work no longer does, and the headline
+    number hides it. The comparison is per-question precisely so the flip list can be the
+    evidence, and the CI gate prints the questions that broke.
+  </p>
+
+  <h3>What the registry keeps</h3>
+  <ul>
+    <li><strong>Every version, forever.</strong> Registration captures the full spec; nothing is deleted. A failed challenger keeps its bundle and its eval artifacts exactly as long as a champion does.</li>
+    <li><strong>Promotion is an append-only event</strong> — timestamp, actor, comparator verdict, and the runs it was based on. The history view shows the whole chain; nothing is overwritten.</li>
+    <li><strong>How a bundle came to exist</strong> is recorded (<code>manual</code> / <code>gepa</code> / <code>s7</code>), so “auto-research produced this one” is a field, not folklore.</li>
+    <li><strong>A forced promotion is recorded as forced.</strong> The override exists for a deliberate rollback, and never happens silently.</li>
+  </ul>
+
+  <h3>History is already populated</h3>
+  <p>
+    Backfill reconstructed everything that predates the tracking layer from git — the v1, v2
+    and v3_1 evaluations, both committed GEPA runs, and both s7 rounds. From here it is
+    captured automatically. Note the champion was seeded by <em>accuracy, not recency</em>:
+  </p>
+
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Version</th><th class="num">Never-seen (309 q)</th><th class="num">Overall (770 q)</th><th>Source</th><th></th></tr></thead>
+    <tbody>
+      <tr><td><code>v1</code></td><td class="num">72.8%</td><td class="num">73.0%</td><td class="small muted">manual</td><td></td></tr>
+      <tr><td><code>v2</code></td><td class="num" style="color:var(--accent2)">77.7%</td><td class="num">77.1%</td><td class="small muted">manual</td><td><span class="chip good">champion</span></td></tr>
+      <tr><td><code>v3_1</code></td><td class="num">73.5%</td><td class="num">76.2%</td><td class="small muted">s7</td><td><span class="chip">registered, not promoted</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">
+    <code>v3_1</code> is newer than <code>v2</code> and scores lower. Adopting the newest
+    would have made the registry assert an improvement that did not happen, so backfill seeds
+    the champion by accuracy — and v3_1 keeps its place in the history as the honest negative
+    result it is.
+  </p>
+</section>
+
+<!-- ══════════════════════════ 05 DEMO & DEPLOY ══════════════════════════ -->
+<section id="s5">
+  <p class="eyebrow">05 · Shipping</p>
+  <h2>Demo mode &amp; deploying</h2>
+
+  <h3>What makes the demo honest</h3>
+  <p>
+    It replays rather than fakes. Recordings were reconstructed from the committed prediction
+    CSVs — every row already carried the full per-stage IO — so building the pack cost
+    <strong>zero API calls</strong>. Replay emits the same SSE events the live path emits,
+    paced so a real 30–60 second turn plays in about four seconds. The frontend cannot tell
+    the difference, because from its side there is none.
+  </p>
+  <p>
+    Below the fuzzy-match threshold it <strong>declines</strong> rather than serving the
+    nearest recording:
+  </p>
+  <pre>$ curl -X POST …/ask -d '{"question":"who is the chief executive officer"}'
+HTTP 404
+{"detail":{"code":"no_recording","message":"This demo replays recorded
+ conversations and has no recording for that question. Pick one of the
+ suggested questions for this report to see the agent work end to end."}}</pre>
+  <p class="small muted">
+    Confidently returning another filing's number would be the worst failure a system whose
+    entire subject is numerical accuracy could have. Declining is the feature.
+  </p>
+
+  <h3>Two deployments, one build</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th></th><th>dev</th><th>demo (public)</th></tr></thead>
+    <tbody>
+      <tr><td>Chat</td><td>live against the champion</td><td>replayed from recordings</td></tr>
+      <tr><td>Splits, answers, traces, experiments</td><td>live</td><td>live — same committed artifacts</td></tr>
+      <tr><td>Promote / launch research</td><td>owner-token gated</td><td>visible, inert</td></tr>
+      <tr><td>API keys present</td><td>yes</td><td><strong>none, by construction</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>
+    <code>DEMO_MODE</code> is baked into the <em>image</em>, not set in Terraform — so no
+    infrastructure change or console edit can turn the public URL into a billable one, and
+    there is no key in the environment for it to use even if it could.
+  </p>
+
+  <h3>The ship path</h3>
+  <pre><span class="c"># locally, exactly what ships:</span>
+docker compose up demo
+./scripts/demo_smoke.sh http://localhost:8080
+
+<span class="c"># then: push → CI must pass → deploy-aws.yml → ECR → App Runner → smoke gate</span></pre>
+  <p>
+    Six CI gates block every PR: ruff + format + mypy, pytest, the offline eval-regression
+    gate, frontend typecheck + tests + build, a Docker build, and <code>terraform
+    fmt/validate</code>. The deploy workflow is chained on CI via <code>workflow_run</code> and
+    refuses to run unless it succeeded — one deliberate improvement over the sibling projects,
+    whose deploy fires on push regardless, so a red <code>main</code> can ship there.
+  </p>
+  <p class="small muted">
+    Infrastructure is ECR + App Runner + a 5xx alarm. No VPC, no database, no Secrets Manager.
+    Measured 225 MiB RSS at rest and 315 MiB with every prediction CSV cached, so the 1 GB
+    instance is the honest floor — 512 MB would boot fine and then OOM the first time someone
+    opened the answers tab.
+  </p>
+</section>
+
+<!-- ══════════════════════════ 06 CORRECTIONS ══════════════════════════ -->
+<section id="s6">
+  <p class="eyebrow">06 · Worth knowing</p>
+  <h2>Three corrections</h2>
+  <p>Each of these changes something you previously believed to be true, so none of them should stay buried in a commit message.</p>
+
+  <h3>1. The 770-question set was never held out</h3>
+  <p>
+    The plan and README claimed <em>“77.1% on a 770-question held-out set”</em>. GEPA trained
+    on 120 of the 200 scored conversations, so <strong>461 of those 770 questions were seen by
+    the optimizer</strong>. Worse, two different 60/40 “train” splits existed with the same
+    seed but different shuffles, agreeing on only 78 of 120 conversations — and GEPA used the
+    one the serving layer was <em>not</em> reading.
+  </p>
+  <p>
+    Now: the split lives in <code>data.loader.optimizer_split()</code>, the splits are named
+    <code>optimizer_train</code> / <code>never_seen</code>, and held-out accuracy is reported
+    alongside — never blended into — the overall figure. <strong>The good news:</strong> the
+    improvement survives and is slightly larger than claimed — <strong>+4.9 pp</strong> on
+    never-seen data versus +4.2 pp overall. The v3_1 regression is correspondingly larger.
+    Both numbers now appear on the landing page rather than the flattering one.
+  </p>
+
+  <h3>2. mypy was checking almost nothing</h3>
+  <p>
+    <code>packages = ["src"]</code> pointed at a directory that is not a package, so every
+    <code>convfinqa.*</code> import fell through <code>ignore_missing_imports</code> and
+    resolved to <code>Any</code> — the strict settings applied to hardly anything. Fixing the
+    config surfaced 31 real findings, several substantive: a function advertising it accepted a
+    sync transport for an async client that could never use one, and three
+    <code>FixAttempt | None</code> dereferences in the s7 harness that were safe only by
+    accident. All fixed; the gate is on.
+  </p>
+
+  <h3>3. Two crashes and a timing side-channel</h3>
+  <ul>
+    <li><code>numeric_match</code> crashed on a missing prediction: it arrives as the string <code>"nan"</code>, which parses cleanly as a float and then raises inside <code>round()</code>. Found by the new gate re-scoring committed CSVs.</li>
+    <li>The container returned <strong>500 on a read-only route</strong> because <code>backends.dspy</code> built its models at import time, so merely reading a dataset fact demanded an API key. A test now pins that every module imports keyless.</li>
+    <li>The review gate caught a genuine one I introduced: the owner-token check used <code>!=</code> rather than a constant-time compare — a timing side-channel on the only auth gate protecting promotion and research launches. Now <code>secrets.compare_digest</code>.</li>
+  </ul>
+</section>
+
+<!-- ══════════════════════════ 07 COMMANDS ══════════════════════════ -->
+<section id="s7">
+  <p class="eyebrow">07 · Reference</p>
+  <h2>Command reference</h2>
+
+  <h4>Everyday</h4>
+  <pre>uv run python -m uvicorn convfinqa.serving.app:create_app --factory --workers 1 --port 8765
+cd frontend &amp;&amp; npm run dev                 <span class="c"># http://localhost:5173</span>
+DEMO_MODE=1 uv run python -m uvicorn …     <span class="c"># the public build, no key needed</span></pre>
+
+  <h4>Versions &amp; promotion</h4>
+  <pre>uv run convfinqa-mlflow status             <span class="c"># config, aliases, every version</span>
+uv run convfinqa-mlflow versions
+uv run convfinqa-mlflow compare v2 v4      <span class="c"># exit 1 when not promotable</span>
+uv run convfinqa-mlflow promote v4
+uv run convfinqa-mlflow challenger v4      <span class="c"># point the challenger alias</span>
+uv run convfinqa-mlflow backfill           <span class="c"># rebuild history from git</span>
+uv run convfinqa-mlflow snapshot           <span class="c"># export for the demo image</span>
+uv run mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db</pre>
+
+  <h4>Producing a version</h4>
+  <pre>PROMPTS_VERSION=v4 uv run convfinqa-eval   <span class="c"># evaluate + log + register</span>
+uv run convfinqa-diagnose --variant v4 --limit 20
+RUN_GEPA=1 GEPA_MODE=real uv run convfinqa-optimize</pre>
+
+  <h4>Demo &amp; deploy</h4>
+  <pre>uv run convfinqa-demo-pack --n 8           <span class="c"># re-record from the champion</span>
+docker compose up demo
+./scripts/demo_smoke.sh http://localhost:8080
+./scripts/aws_build_push.sh                <span class="c"># CI runs this too</span></pre>
+
+  <h4>Gates — all six run in CI</h4>
+  <pre>uv run ruff check --no-fix src scripts tests
+uv run ruff format --check src scripts tests
+uv run mypy
+uv run pytest tests -q
+uv run python -m convfinqa.tracking.gate   <span class="c"># offline, no API calls</span>
+cd frontend &amp;&amp; npm run typecheck &amp;&amp; npm run test:unit &amp;&amp; npm run build</pre>
+</section>
+
+<!-- ══════════════════════════ 08 REMAINING ══════════════════════════ -->
+<section id="s8">
+  <p class="eyebrow">08 · Open</p>
+  <h2>What is left to do</h2>
+  <p>Everything in the plan is built. These are the things only you can do, plus honest caveats.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Needs your hands</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li>Run <code>infra/terraform/bootstrap</code> once with admin credentials to create the OIDC deploy role. Terraform is written and validates, but has never been applied.</li>
+        <li>Merge <a href="https://github.com/nmp-dsci/ConvFinQA-agent/pull/3">PR #3</a>; the deploy workflow fires on <code>main</code>.</li>
+        <li>Set <code>OWNER_TOKEN</code> in the dev environment to unlock promote and research launches. Unset means <em>refused</em>, not open.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Honest caveats</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li>Cost metrics read the per-stage token counts added in this build, so the three committed CSVs report zero. The first new eval populates them.</li>
+        <li>The image is 1.76 GB — mlflow and dspy dominate. Fine for a 5-image ECR window; splittable into dependency groups later if it matters.</li>
+        <li>Playwright e2e still needs a local run; CI covers unit, type, build and the eval gate instead.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Verified, not assumed</h3>
+  <p>
+    Every claim on this page was checked against the branch. The container was built and run
+    keyless: it boots in 7 seconds, passes a smoke test asserting <code>mode=demo</code>, a
+    registered champion, the committed splits and eval runs, a non-empty demo pack and a
+    <code>403</code> on an admin write — then answers a real recorded question
+    (<code>227.0</code>, matching gold) and declines an unrecorded one.
+  </p>
+</section>
+
+<section style="padding-bottom:80px">
+  <p class="small muted">
+    Branch <code>prod-build</code> · 7 commits · PR
+    <a href="https://github.com/nmp-dsci/ConvFinQA-agent/pull/3">#3</a> ·
+    validated through the no-mistakes gate (review, test, document, lint, CI — all green).
+    Plan this delivers: <code>.lavish/s00_production-plan.html</code>.
+  </p>
+</section>
+
+</div>
+</body>
+</html>
