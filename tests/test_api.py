@@ -31,7 +31,9 @@ def _stub_overrides(
         )
     if retriever_args is not None:
         stack.enter_context(
-            pa.retriever_agent.override(model=TestModel(custom_output_args=retriever_args))
+            pa.retriever_agent.override(
+                model=TestModel(custom_output_args=retriever_args)
+            )
         )
     if calc_args is not None:
         stack.enter_context(
@@ -42,7 +44,9 @@ def _stub_overrides(
     return stack
 
 
-def _client(*, ttl_seconds: int = 1800, eviction_interval_seconds: int = 3600) -> TestClient:
+def _client(
+    *, ttl_seconds: int = 1800, eviction_interval_seconds: int = 3600
+) -> TestClient:
     return TestClient(
         api_app.create_app(
             session_ttl_seconds=ttl_seconds,
@@ -135,19 +139,29 @@ def test_number_path_with_testmodel_overrides() -> None:
 def test_program_path_with_testmodel_overrides() -> None:
     rid = api_app.REPORT_IDS[0]
     triage_a = {"reasoning": "r", "turn_type": "program", "conv_type": "Type I"}
-    pp_a = {"reasoning": "r", "sub_questions": ["a?", "b?"], "program": "subtract(A, B)"}
+    pp_a = {
+        "reasoning": "r",
+        "sub_questions": ["a?", "b?"],
+        "program": "subtract(A, B)",
+    }
     retr_a = {
         "reasoning": "r",
-        "answers": [{"question": "a?", "answer": "10"}, {"question": "b?", "answer": "3"}],
+        "answers": [
+            {"question": "a?", "answer": "10"},
+            {"question": "b?", "answer": "3"},
+        ],
     }
     calc_a = {"answer": "7"}
 
-    with _stub_overrides(
-        triage_a,
-        retriever_args=retr_a,
-        preprocess_args=pp_a,
-        calc_args=calc_a,
-    ), _client() as client:
+    with (
+        _stub_overrides(
+            triage_a,
+            retriever_args=retr_a,
+            preprocess_args=pp_a,
+            calc_args=calc_a,
+        ),
+        _client() as client,
+    ):
         session = client.post("/sessions", json={"report_id": rid}).json()
         response = client.post(
             f"/sessions/{session['session_id']}/ask",
@@ -189,8 +203,12 @@ def test_session_isolation_same_report(monkeypatch: Any) -> None:
     with _client() as client:
         a = client.post("/sessions", json={"report_id": rid}).json()
         b = client.post("/sessions", json={"report_id": rid}).json()
-        ra = client.post(f"/sessions/{a['session_id']}/ask", json={"question": "x"}).json()
-        rb = client.post(f"/sessions/{b['session_id']}/ask", json={"question": "x"}).json()
+        ra = client.post(
+            f"/sessions/{a['session_id']}/ask", json={"question": "x"}
+        ).json()
+        rb = client.post(
+            f"/sessions/{b['session_id']}/ask", json={"question": "x"}
+        ).json()
         assert ra["turn_index"] == 0
         assert rb["turn_index"] == 0
         assert client.get(f"/sessions/{a['session_id']}").json()["n_turns"] == 1

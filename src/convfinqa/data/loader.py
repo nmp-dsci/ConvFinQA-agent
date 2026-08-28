@@ -9,9 +9,12 @@ from typing import Any, cast
 
 import pandas as pd
 
+from convfinqa.config import DATA_DIR
 from convfinqa.data.schemas import ConvExample, Document
 
-DATASET_PATH = Path("data/convfinqa_dataset.json")
+# Anchored to the repo root, not the cwd: uvicorn, pytest, the CLIs and the
+# container all start from different directories and must find the same file.
+DATASET_PATH = DATA_DIR / "convfinqa_dataset.json"
 
 
 def load_raw_dataset(path: Path = DATASET_PATH) -> dict[str, Any]:
@@ -46,7 +49,9 @@ def training_data() -> pd.DataFrame:
         )
 
     features_df = pd.concat(features.values(), ignore_index=True)
-    features_df["has_type2_question"].apply(lambda x: "Simple" if x is False else "Complex")
+    features_df["has_type2_question"].apply(
+        lambda x: "Simple" if x is False else "Complex"
+    )
     assert features_df["report_id"].nunique() == features_df.shape[0], (
         "id should be unique for each report"
     )
@@ -56,13 +61,21 @@ def training_data() -> pd.DataFrame:
     question_df["turn_type"] = pd.to_numeric(
         question_df["turn_program"], errors="coerce"
     ).apply(lambda x: "Number" if pd.notnull(x) else "Program")
-    question_df["turn_program_actions"] = question_df["turn_program"].str.split(r"(?<=\)),")
-    question_df["turn_program_actions_n"] = question_df["turn_program_actions"].apply(len)
+    question_df["turn_program_actions"] = question_df["turn_program"].str.split(
+        r"(?<=\)),"
+    )
+    question_df["turn_program_actions_n"] = question_df["turn_program_actions"].apply(
+        len
+    )
     question_df["turn_program_calcs"] = question_df["turn_program_actions"].apply(
         lambda x: [m.group(1) if (m := re.match(r"\s*(\w+)\(", s)) else None for s in x]
     )
-    question_df["question_id"] = question_df["report_id"] + "_q" + question_df["q_order"].astype(str)
-    question_df = question_df.merge(features_df, on=["report_id", "data_key"], how="left")
+    question_df["question_id"] = (
+        question_df["report_id"] + "_q" + question_df["q_order"].astype(str)
+    )
+    question_df = question_df.merge(
+        features_df, on=["report_id", "data_key"], how="left"
+    )
 
     assert question_df["question_id"].value_counts().max() == 1, (
         "question_id should be unique for each question"
@@ -85,8 +98,12 @@ def _sample_qa_data() -> tuple[pd.DataFrame, list[str], list[str], list[str]]:
         .tolist()
     )
     all_report_ids = sampled_report_ids + additional_test_ids
-    train_report_ids = pd.Series(sampled_report_ids).sample(frac=0.6, random_state=42).tolist()
-    test_report_ids = [r for r in sampled_report_ids if r not in train_report_ids] + additional_test_ids
+    train_report_ids = (
+        pd.Series(sampled_report_ids).sample(frac=0.6, random_state=42).tolist()
+    )
+    test_report_ids = [
+        r for r in sampled_report_ids if r not in train_report_ids
+    ] + additional_test_ids
     qa = qa[qa["report_id"].isin(all_report_ids)].reset_index(drop=True)
     return qa, sampled_report_ids, train_report_ids, test_report_ids
 
@@ -112,7 +129,9 @@ def _build_conv_examples(report_ids: list[str], qa: pd.DataFrame) -> list[ConvEx
                 gold_answers=group["conv_answers"].tolist(),
                 gold_programs=group["turn_program"].fillna("").tolist(),
                 gold_turn_types=group["turn_type"].tolist(),
-                gold_conv_types=group["qa_split"].map({True: "Type II", False: "Type I"}).tolist(),
+                gold_conv_types=group["qa_split"]
+                .map({True: "Type II", False: "Type I"})
+                .tolist(),
             )
         )
     return examples

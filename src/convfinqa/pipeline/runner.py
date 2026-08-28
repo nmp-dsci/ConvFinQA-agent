@@ -33,10 +33,16 @@ def _calc_trajectory(messages: list[Any]) -> list[dict[str, Any]]:
                         args = json.loads(args)
                     except json.JSONDecodeError:
                         pass
-                events.append({"event": "tool_call", "tool": part.tool_name, "args": args})
+                events.append(
+                    {"event": "tool_call", "tool": part.tool_name, "args": args}
+                )
             elif isinstance(part, ToolReturnPart):
                 events.append(
-                    {"event": "tool_return", "tool": part.tool_name, "result": str(part.content)}
+                    {
+                        "event": "tool_return",
+                        "tool": part.tool_name,
+                        "result": str(part.content),
+                    }
                 )
     return events
 
@@ -195,7 +201,11 @@ async def stream_turn(
         triage = (await triage_agent.run(triage_msg)).output
         span.set_attribute("turn_type", triage.turn_type)
         span.set_attribute("conv_type", triage.conv_type)
-        yield {"event": "stage_output", "stage": "triage", "output": triage.model_dump()}
+        yield {
+            "event": "stage_output",
+            "stage": "triage",
+            "output": triage.model_dump(),
+        }
 
         if triage.turn_type == "number":
             yield {"event": "stage_start", "stage": "retriever"}

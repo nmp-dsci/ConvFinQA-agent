@@ -61,9 +61,7 @@ def load_cached_conversations(
     return df, cached_rids
 
 
-def identify_cached_conversations(
-    df: pd.DataFrame, examples: list[Any]
-) -> set[str]:
+def identify_cached_conversations(df: pd.DataFrame, examples: list[Any]) -> set[str]:
     """Return the set of report_ids in `examples` whose every turn is in `df`.
 
     Pure helper around the in-memory DataFrame, useful when the CSV has
@@ -71,9 +69,7 @@ def identify_cached_conversations(
     """
     cached_rids: set[str] = set()
     for ex in examples:
-        present = set(
-            df.loc[df["report_id"] == ex.report_id, "turn_index"].astype(int)
-        )
+        present = set(df.loc[df["report_id"] == ex.report_id, "turn_index"].astype(int))
         if all(i in present for i in range(len(ex.questions))):
             cached_rids.add(ex.report_id)
     return cached_rids

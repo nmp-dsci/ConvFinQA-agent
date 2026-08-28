@@ -160,7 +160,10 @@ class SessionState:
             created_at=self.created_at,
             updated_at=self.updated_at,
             n_turns=len(self.conversation.pairs),
-            history=[HistoryItem.model_validate(p.model_dump()) for p in self.conversation.pairs],
+            history=[
+                HistoryItem.model_validate(p.model_dump())
+                for p in self.conversation.pairs
+            ],
         )
 
 
@@ -257,7 +260,9 @@ def _load_preds(version: str, model: str) -> pd.DataFrame | None:
 def _slice_accuracy(df: pd.DataFrame, label: str) -> AccuracySlice:
     n = len(df)
     c = int(df["correct"].sum())
-    return AccuracySlice(label=label, accuracy=round(c / n, 4) if n else 0.0, n_correct=c, n_total=n)
+    return AccuracySlice(
+        label=label, accuracy=round(c / n, 4) if n else 0.0, n_correct=c, n_total=n
+    )
 
 
 def _slices_by(df: pd.DataFrame, col: str) -> list[AccuracySlice]:
@@ -276,7 +281,9 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        eviction_task = asyncio.create_task(_eviction_loop(store, eviction_interval_seconds))
+        eviction_task = asyncio.create_task(
+            _eviction_loop(store, eviction_interval_seconds)
+        )
         try:
             yield
         finally:
@@ -339,7 +346,9 @@ def create_app(
         try:
             state = store.create(body.report_id)
         except KeyError as exc:
-            raise HTTPException(status_code=404, detail=f"Unknown report_id: {body.report_id}") from exc
+            raise HTTPException(
+                status_code=404, detail=f"Unknown report_id: {body.report_id}"
+            ) from exc
         return state.as_response()
 
     @app.get("/sessions/{session_id}")
@@ -426,7 +435,7 @@ def create_app(
             for model in _MODEL_CSV_PATTERN:
                 prefix = f"{model}_predictions_"
                 if base.startswith(prefix):
-                    versions.add(base[len(prefix):])
+                    versions.add(base[len(prefix) :])
                     break
         return sorted(versions, key=_eval_version_key)
 
@@ -444,16 +453,24 @@ def create_app(
                 by_q_order=_slices_by(df, "q_order"),
             )
         if not available:
-            raise HTTPException(status_code=404, detail=f"No predictions found for version {run_name}")
-        return EvalSummary(run_name=run_name, available_models=list(available), models=available)
+            raise HTTPException(
+                status_code=404, detail=f"No predictions found for version {run_name}"
+            )
+        return EvalSummary(
+            run_name=run_name, available_models=list(available), models=available
+        )
 
     @app.get("/eval/runs/{run_name}/predictions")
-    async def get_eval_predictions(run_name: str, model: str = "pydantic") -> list[PredRow]:
+    async def get_eval_predictions(
+        run_name: str, model: str = "pydantic"
+    ) -> list[PredRow]:
         if model not in _MODEL_CSV_PATTERN:
             raise HTTPException(status_code=400, detail=f"Unknown model: {model}")
         df = _load_preds(run_name, model)
         if df is None:
-            raise HTTPException(status_code=404, detail=f"No predictions for {run_name}/{model}")
+            raise HTTPException(
+                status_code=404, detail=f"No predictions for {run_name}/{model}"
+            )
         rows: list[PredRow] = []
         for row in df.itertuples():
             key = (str(row.report_id), int(row.q_order))
@@ -492,14 +509,18 @@ def _get_session_or_404(store: SessionStore, session_id: str) -> SessionState:
     try:
         return store.get(session_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail=f"Unknown session_id: {session_id}") from exc
+        raise HTTPException(
+            status_code=404, detail=f"Unknown session_id: {session_id}"
+        ) from exc
 
 
 def _get_lock_or_404(store: SessionStore, session_id: str) -> asyncio.Lock:
     try:
         return store.get_lock(session_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail=f"Unknown session_id: {session_id}") from exc
+        raise HTTPException(
+            status_code=404, detail=f"Unknown session_id: {session_id}"
+        ) from exc
 
 
 app = create_app()

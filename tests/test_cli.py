@@ -28,7 +28,13 @@ def test_reports_command(monkeypatch: Any) -> None:
         assert request.url.path == "/reports"
         return httpx.Response(200, json=["r1", "r2"])
 
-    monkeypatch.setattr(cli, "build_client", lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(httpx.MockTransport(handler)))
+    monkeypatch.setattr(
+        cli,
+        "build_client",
+        lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(
+            httpx.MockTransport(handler)
+        ),
+    )
     result = CliRunner().invoke(cli.cli_app, ["reports"])
     assert result.exit_code == 0
     assert "r1" in result.stdout
@@ -45,8 +51,16 @@ def test_ask_one_shot(monkeypatch: Any) -> None:
             return httpx.Response(200, json={"answer": "42"})
         raise AssertionError(f"unexpected path {request.url.path}")
 
-    monkeypatch.setattr(cli, "build_client", lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(httpx.MockTransport(handler)))
-    result = CliRunner().invoke(cli.cli_app, ["ask", "--report", "r1", "--question", "what?"])
+    monkeypatch.setattr(
+        cli,
+        "build_client",
+        lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(
+            httpx.MockTransport(handler)
+        ),
+    )
+    result = CliRunner().invoke(
+        cli.cli_app, ["ask", "--report", "r1", "--question", "what?"]
+    )
     assert result.exit_code == 0
     assert result.stdout.strip() == "42"
 
@@ -74,8 +88,12 @@ def test_interactive_default_flow_with_change_report(monkeypatch: Any) -> None:
     def next_prompt() -> str:
         return next(prompts)
 
-    monkeypatch.setattr(cli.questionary, "autocomplete", lambda *args, **kwargs: _Prompt(next_prompt()))
-    monkeypatch.setattr(cli.questionary, "select", lambda *args, **kwargs: _Prompt(next_prompt()))
+    monkeypatch.setattr(
+        cli.questionary, "autocomplete", lambda *args, **kwargs: _Prompt(next_prompt())
+    )
+    monkeypatch.setattr(
+        cli.questionary, "select", lambda *args, **kwargs: _Prompt(next_prompt())
+    )
 
     session_ids = iter(["sess-1", "sess-2"])
     asked: list[tuple[str, str]] = []
@@ -97,7 +115,10 @@ def test_interactive_default_flow_with_change_report(monkeypatch: Any) -> None:
             payload = json.loads(request.content.decode())
             return httpx.Response(
                 200,
-                json={"session_id": next(session_ids), "report_id": payload["report_id"]},
+                json={
+                    "session_id": next(session_ids),
+                    "report_id": payload["report_id"],
+                },
             )
         if request.url.path.endswith("/ask/stream"):
             payload = json.loads(request.content.decode())
@@ -119,7 +140,13 @@ def test_interactive_default_flow_with_change_report(monkeypatch: Any) -> None:
             )
         raise AssertionError(f"unexpected path {request.url.path}")
 
-    monkeypatch.setattr(cli, "build_client", lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(httpx.MockTransport(handler)))
+    monkeypatch.setattr(
+        cli,
+        "build_client",
+        lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(
+            httpx.MockTransport(handler)
+        ),
+    )
     result = CliRunner().invoke(cli.cli_app, [])
     assert result.exit_code == 0
     assert "Session sess-1" in result.stdout
@@ -163,7 +190,13 @@ def test_run_all_streams_every_gold_question(monkeypatch: Any) -> None:
             )
         raise AssertionError(f"unexpected path {request.url.path}")
 
-    monkeypatch.setattr(cli, "build_client", lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(httpx.MockTransport(handler)))
+    monkeypatch.setattr(
+        cli,
+        "build_client",
+        lambda base_url=cli.DEFAULT_BASE_URL: _mock_client(
+            httpx.MockTransport(handler)
+        ),
+    )
     result = CliRunner().invoke(cli.cli_app, ["run-all", "--report", "r1"])
     assert result.exit_code == 0
     assert asked == [

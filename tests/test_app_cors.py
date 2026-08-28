@@ -31,9 +31,14 @@ def test_cors_preflight_allows_vite_dev_origin() -> None:
 def test_cors_actual_request_carries_allow_origin() -> None:
     rid = api_app.REPORT_IDS[0]
     with _client() as client:
-        response = client.get("/reports?limit=1", headers={"Origin": "http://localhost:5173"})
+        response = client.get(
+            "/reports?limit=1", headers={"Origin": "http://localhost:5173"}
+        )
         assert response.status_code == 200
-        assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
+        assert (
+            response.headers.get("access-control-allow-origin")
+            == "http://localhost:5173"
+        )
         # Sanity: returns expected payload
         assert isinstance(response.json(), list)
         # rid is read solely to ensure the test fixture is healthy

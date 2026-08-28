@@ -46,7 +46,9 @@ def load_first_wrong_cases(
     report_id. Injects the four current prompts (default v2) into each payload.
     """
     full_df = pd.read_csv(csv_path).fillna("")
-    full_df["correct_bool"] = full_df["correct"].astype(str).str.lower().isin({"true", "1"})
+    full_df["correct_bool"] = (
+        full_df["correct"].astype(str).str.lower().isin({"true", "1"})
+    )
     wrong = full_df[~full_df["correct_bool"]]
     if wrong.empty:
         return [], full_df

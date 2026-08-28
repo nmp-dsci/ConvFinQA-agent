@@ -37,10 +37,21 @@ load_dotenv(Path.home() / ".env")
 #   diagnostics/ — s7 harness stores: rules_*, rule_attempts_*, case_results_*,
 #                  diagnostic_results_*, unresolved_cases_*.
 # Anchored to the repo root so paths are stable regardless of the process cwd.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-EVAL_ROOT = _REPO_ROOT / "evaluation"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+_REPO_ROOT = REPO_ROOT  # backwards-compatible alias
+EVAL_ROOT = REPO_ROOT / "evaluation"
 PREDICTIONS_DIR = EVAL_ROOT / "predictions"
 DIAGNOSTICS_DIR = EVAL_ROOT / "diagnostics"
+# Dataset and optimizer artifacts are repo content, not cwd-relative content.
+# Anchoring them here is what lets the API, the CLIs, and the container all
+# resolve the same files regardless of which directory the process started in.
+DATA_DIR = REPO_ROOT / "data"
+RUNS_DIR = REPO_ROOT / "runs"
+# MLflow file store (dev) and the committed export the demo reads instead.
+MLRUNS_DIR = REPO_ROOT / "mlruns"
+MLFLOW_SNAPSHOT_PATH = EVAL_ROOT / "mlflow_snapshot.json"
+# Run-trace store: per-turn stage IO for every serving and eval turn.
+TRACES_DIR = REPO_ROOT / ".traces"
 
 
 class Settings(BaseSettings):
@@ -59,7 +70,12 @@ class Settings(BaseSettings):
     )
 
     # ---- API keys ---------------------------------------------------------
-    deepseek_api_key: SecretStr
+    # Optional at boot, required at call time. A fresh clone — and the demo
+    # container, which has no keys by construction — must import the whole
+    # package, run the test suite, and serve every non-LLM route without one.
+    # `require_deepseek_api_key()` is the single place that demands it, and it
+    # raises only when an LLM call is actually about to happen.
+    deepseek_api_key: SecretStr | None = None
     logfire_token: SecretStr | None = None
 
     # ---- Prompts ----------------------------------------------------------
@@ -115,10 +131,53 @@ class Settings(BaseSettings):
     # ---- FastAPI / frontend ----------------------------------------------
     # Comma-separated CORS allow-list. Both localhost and 127.0.0.1 are needed
     # for the various ways the frontend dev server / preview can be reached.
+    # In the container the SPA is same-origin, so this list only matters in dev.
     frontend_origins: str = (
         "http://localhost:5173,http://localhost:4173,"
         "http://127.0.0.1:5173,http://127.0.0.1:4173,http://127.0.0.1:8765"
     )
+
+    # ---- Demo mode --------------------------------------------------------
+    # The single flag that separates the public deployment from dev. When set,
+    # every LLM call is refused at one choke point (`convfinqa.llm`) and chat
+    # is served from the recorded demo pack instead. Read-only surfaces —
+    # reports, splits, answers, traces, experiments — stay genuinely live.
+    demo_mode: bool = False
+    # Owner token for admin writes (promotion, research launches). Unset means
+    # admin writes are refused outright rather than left open.
+    owner_token: SecretStr | None = None
+
+    # ---- Serving limits ---------------------------------------------------
+    # Cheapest check first: a global in-flight cap, then a per-IP window.
+    # In-memory is *correct* here — App Runner runs this at max-size 1.
+    max_inflight_turns: int = 4
+    rate_limit_requests: int = 30
+    rate_limit_window_seconds: int = 60
+    # Hard ceiling on a single LLM call, and how many times to retry it.
+    llm_timeout_seconds: float = 120.0
+    llm_max_attempts: int = 4
+
+    # ---- Tracking ---------------------------------------------------------
+    # `file:` store in dev; the demo reads the committed snapshot instead.
+    mlflow_tracking_uri: str = ""
+    mlflow_experiment: str = "convfinqa"
+    registered_model_name: str = "convfinqa-pipeline"
+    # Persist per-stage IO for every serving turn. Off in tests.
+    trace_capture_enabled: bool = True
+
+    def require_deepseek_api_key(self) -> str:
+        """Return the DeepSeek key, raising a clear error when it is absent.
+
+        Called at LLM-construction time, never at import time — that ordering is
+        what keeps a keyless clone (and the demo image) fully importable.
+        """
+        if self.deepseek_api_key is None:
+            raise RuntimeError(
+                "DEEPSEEK_API_KEY is not set. It is required for any call that "
+                "reaches the model. Set it in ~/.env or the process environment; "
+                "read-only routes, the test suite, and DEMO_MODE=1 need no key."
+            )
+        return self.deepseek_api_key.get_secret_value()
 
 
 settings = Settings()  # singleton import-time instance

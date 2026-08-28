@@ -42,7 +42,9 @@ class ConversationHistory(BaseModel):
     pairs: list[_HistoryTurn] = Field(default_factory=list)
 
     def append(self, question: str, answer: str, report_id: str = "") -> None:
-        self.pairs.append(_HistoryTurn(question=question, answer=answer, report_id=report_id))
+        self.pairs.append(
+            _HistoryTurn(question=question, answer=answer, report_id=report_id)
+        )
 
     def as_text(self) -> str:
         if not self.pairs:
@@ -78,7 +80,9 @@ class ConvFinQAOrchestrator(dspy.Module):
     def __init__(self) -> None:
         super().__init__()
         self.triage = dspy.Predict("question, history -> turn_type, conv_type")
-        self.preprocess = dspy.Predict("question, history, conv_type -> sub_questions, program")
+        self.preprocess = dspy.Predict(
+            "question, history, conv_type -> sub_questions, program"
+        )
         self.retriever = dspy.Predict("question, document, history -> answer")
         self.calculator = dspy.Predict("question, retrieved, program -> answer")
 
@@ -105,7 +109,9 @@ class ConvFinQAOrchestrator(dspy.Module):
                 sub_questions=[QAPair(question=question, answer=answer)],
             )
 
-        pp = self.preprocess(question=question, history=history.as_text(), conv_type=conv_type)
+        pp = self.preprocess(
+            question=question, history=history.as_text(), conv_type=conv_type
+        )
         retrieved: list[QAPair] = []
         for sub_question in pp.sub_questions:
             ret = self.retriever(
@@ -114,7 +120,9 @@ class ConvFinQAOrchestrator(dspy.Module):
                 history=history.as_text(),
             )
             retrieved.append(QAPair(question=sub_question, answer=str(ret.answer)))
-        calc = self.calculator(question=question, retrieved=retrieved, program=pp.program)
+        calc = self.calculator(
+            question=question, retrieved=retrieved, program=pp.program
+        )
         return AgentResponse(
             answer=str(calc.answer),
             turn_type=turn_type,
@@ -134,6 +142,8 @@ def run_record(orchestrator: Any, record: ConvFinQARecord) -> list[dict[str, Any
         strict=False,
     ):
         pred = orchestrator(question=question, document=document, history=history)
-        rows.append({"question": question, "pred_answer": pred.answer, "gold_answer": gold})
+        rows.append(
+            {"question": question, "pred_answer": pred.answer, "gold_answer": gold}
+        )
         history.append(question, str(gold), record.id)
     return rows

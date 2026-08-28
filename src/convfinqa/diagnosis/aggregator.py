@@ -8,9 +8,8 @@ from pathlib import Path
 from convfinqa.diagnosis.models import CaseResult
 
 
-def build_unresolved_cases(
-    results: list[CaseResult], unresolved_path: Path
-) -> Path:
+def build_unresolved_cases(results: list[CaseResult], unresolved_path: Path) -> Path:
+    """Write the cases the harness could not resolve to `unresolved_path`."""
     unresolved: list[dict] = []
     for r in results:
         if r.resolved:

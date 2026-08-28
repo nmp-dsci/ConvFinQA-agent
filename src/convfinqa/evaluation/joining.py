@@ -124,7 +124,9 @@ def compare_prediction_runs(
             f"Test-set drift: {drift} rows are not in both runs. "
             f"{left_csv.name} and {right_csv.name} must evaluate the same records."
         )
-    merged["agree"] = merged[f"correct_{left_label}"] == merged[f"correct_{right_label}"]
+    merged["agree"] = (
+        merged[f"correct_{left_label}"] == merged[f"correct_{right_label}"]
+    )
 
     qa = qa_data.sort_values(["report_id", "q_order"]).copy()
     qa["turn_index"] = qa.groupby("report_id").cumcount()

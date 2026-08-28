@@ -13,11 +13,13 @@ from typing import Any
 import dspy
 import pandas as pd
 
-from convfinqa.config import PREDICTIONS_DIR, settings
+from convfinqa.config import PREDICTIONS_DIR, RUNS_DIR, settings
 from convfinqa.evaluation import numeric_match
 
 
-def conv_turn_accuracy(example: dspy.Example, pred: dspy.Prediction, trace: Any = None) -> float:
+def conv_turn_accuracy(
+    example: dspy.Example, pred: dspy.Prediction, trace: Any = None
+) -> float:
     """Fraction of turns in this conversation where pred matches gold."""
     golds = example.gold_answers
     preds = getattr(pred, "predictions", None) or []
@@ -121,7 +123,9 @@ def print_model_accuracy_table(
     out = pd.DataFrame(rows)
     printable = out.copy()
     for col in [c for c in printable.columns if c.endswith("_acc")]:
-        printable[col] = printable[col].map(lambda v: f"{v:.1%}" if pd.notna(v) else "-")
+        printable[col] = printable[col].map(
+            lambda v: f"{v:.1%}" if pd.notna(v) else "-"
+        )
     print(f"\n{title}:")  # noqa: T201
     print(printable.to_string(index=False))  # noqa: T201
 
@@ -166,32 +170,36 @@ def write_predictions_csv(
     """Write per-turn predictions plus predicted turn labels for inspection."""
     with predictions_path.open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow([
-            "report_id",
-            "turn_index",
-            "question",
-            "gold_answer",
-            "pred_answer",
-            "correct",
-            "pred_turn_type",
-            "pred_conv_type",
-        ])
+        w.writerow(
+            [
+                "report_id",
+                "turn_index",
+                "question",
+                "gold_answer",
+                "pred_answer",
+                "correct",
+                "pred_turn_type",
+                "pred_conv_type",
+            ]
+        )
         for ex, pred, _ in eval_results:
             preds = getattr(pred, "predictions", None) or []
             responses = getattr(pred, "responses", None) or []
             for i, (q, g) in enumerate(zip(ex.questions, ex.gold_answers)):
                 p = preds[i] if i < len(preds) else None
                 response = responses[i] if i < len(responses) else None
-                w.writerow([
-                    ex.report_id,
-                    i,
-                    q,
-                    g,
-                    p,
-                    numeric_match(p, g) if p is not None else False,
-                    getattr(response, "turn_type", None),
-                    getattr(response, "conv_type", None),
-                ])
+                w.writerow(
+                    [
+                        ex.report_id,
+                        i,
+                        q,
+                        g,
+                        p,
+                        numeric_match(p, g) if p is not None else False,
+                        getattr(response, "turn_type", None),
+                        getattr(response, "conv_type", None),
+                    ]
+                )
 
 
 def main() -> None:
@@ -259,13 +267,13 @@ def main() -> None:
     existing_program: Path | None = None
     if not resume_target:
         if gepa_name:
-            run_dir = Path("runs") / gepa_name
+            run_dir = RUNS_DIR / gepa_name
             existing_program = run_dir / "dspy_optimized_runner.json"
             if not existing_program.exists():
                 existing_program = run_dir / "optimized_runner.json"
         else:
             candidate_dirs = sorted(
-                Path("runs").glob(f"gepa_{gepa_mode}_*"), key=lambda p: p.name
+                RUNS_DIR.glob(f"gepa_{gepa_mode}_*"), key=lambda p: p.name
             )
             for candidate in reversed(candidate_dirs):
                 candidate_program = candidate / "dspy_optimized_runner.json"
@@ -291,7 +299,9 @@ def main() -> None:
         print(f"Optimized turn accuracy: {opt_eval_result.score:.1f}%")
         print(f"Δ = {opt_eval_result.score - eval_result.score:+.1f} pts")
         baseline_joined = _eval_result_to_joined(eval_result, model_label="baseline")
-        optimized_joined = _eval_result_to_joined(opt_eval_result, model_label="optimized")
+        optimized_joined = _eval_result_to_joined(
+            opt_eval_result, model_label="optimized"
+        )
         print_model_accuracy_table(
             [baseline_joined, optimized_joined],
             slice_col="turn_type",
@@ -319,7 +329,7 @@ def main() -> None:
         )
 
     if resume_target == "latest":
-        matches = sorted(Path("runs").glob(f"gepa_{gepa_mode}_*"), key=lambda p: p.name)
+        matches = sorted(RUNS_DIR.glob(f"gepa_{gepa_mode}_*"), key=lambda p: p.name)
         if not matches:
             raise RuntimeError(
                 f"RESUME_GEPA=latest with GEPA_MODE={gepa_mode} but no "
@@ -330,23 +340,25 @@ def main() -> None:
     elif resume_target:
         run_dir = Path(resume_target)
         if not run_dir.exists() and not run_dir.is_absolute():
-            candidate = Path("runs") / resume_target
+            candidate = RUNS_DIR / resume_target
             if candidate.exists():
                 run_dir = candidate
         if not run_dir.exists():
             raise RuntimeError(
                 f"RESUME_GEPA={resume_target} does not exist "
-                f"(checked {Path(resume_target)} and {Path('runs') / resume_target})"
+                f"(checked {Path(resume_target)} and {RUNS_DIR / resume_target})"
             )
         is_resume = True
     else:
         run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_dir = Path("runs") / f"gepa_{gepa_mode}_{run_ts}"
+        run_dir = RUNS_DIR / f"gepa_{gepa_mode}_{run_ts}"
         run_dir.mkdir(parents=True, exist_ok=True)
         is_resume = False
 
     print("\n" + "=" * 60)
-    print(f"GEPA mode: {gepa_mode.upper()}  ({'resuming' if is_resume else 'new'}: {run_dir})")
+    print(
+        f"GEPA mode: {gepa_mode.upper()}  ({'resuming' if is_resume else 'new'}: {run_dir})"
+    )
     print("=" * 60)
 
     gepa_trainset = conv_examples_train[n_val:]

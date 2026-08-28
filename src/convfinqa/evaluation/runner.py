@@ -157,7 +157,9 @@ def _capture_to_row_fields(cap: dict[str, Any]) -> dict[str, str]:
     retriever = cap.get("retriever") or {}
     calculator = cap.get("calculator") or {}
     triage_out = triage.get("output", {}) if isinstance(triage, dict) else {}
-    preprocess_out = preprocess.get("output", {}) if isinstance(preprocess, dict) else {}
+    preprocess_out = (
+        preprocess.get("output", {}) if isinstance(preprocess, dict) else {}
+    )
     return {
         "pred_turn_type": str(triage_out.get("turn_type", "")),
         "pred_conv_type": str(triage_out.get("conv_type", "")),
@@ -200,7 +202,14 @@ def _write_predictions_csv(
             gold_turn_types = ex.gold_turn_types if ex.gold_turn_types else [""] * n
             gold_conv_types = ex.gold_conv_types if ex.gold_conv_types else [""] * n
             for i, (q, g, gp, gtt, gct) in enumerate(
-                zip(ex.questions, ex.gold_answers, gold_programs, gold_turn_types, gold_conv_types, strict=False)
+                zip(
+                    ex.questions,
+                    ex.gold_answers,
+                    gold_programs,
+                    gold_turn_types,
+                    gold_conv_types,
+                    strict=False,
+                )
             ):
                 p = preds[i] if i < len(preds) else None
                 prog = programs[i] if i < len(programs) else ""
@@ -343,7 +352,9 @@ async def evaluate_version(
         combined = pd.concat([cached_subset, new_df], ignore_index=True)
         combined.to_csv(csv_path, index=False)
         total = len(combined)
-        correct = int(combined["correct"].astype(str).str.lower().isin({"true", "1"}).sum())
+        correct = int(
+            combined["correct"].astype(str).str.lower().isin({"true", "1"}).sum()
+        )
         print(  # noqa: T201
             f"\n[{version}] combined accuracy: {correct / total:.1%}  ({correct}/{total} questions)"
         )

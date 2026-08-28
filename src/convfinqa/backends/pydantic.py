@@ -42,16 +42,24 @@ for _fn in CALCULATOR_TOOLS:
 
 def make_agents(version_prompts: dict[str, str]) -> dict[str, Agent]:
     """Build a fresh set of four pipeline agents from a prompts dict."""
-    calc = Agent(LM_MINI, output_type=CalcOut, instructions=version_prompts["calculator"])
+    calc = Agent(
+        LM_MINI, output_type=CalcOut, instructions=version_prompts["calculator"]
+    )
     for fn in CALCULATOR_TOOLS:
         calc.tool_plain(fn)
     return {
-        "triage": Agent(LM_MINI, output_type=TriageOut, instructions=version_prompts["triage"]),
+        "triage": Agent(
+            LM_MINI, output_type=TriageOut, instructions=version_prompts["triage"]
+        ),
         "preprocess": Agent(
-            LM_MINI, output_type=PreprocessOut, instructions=version_prompts["preprocess"]
+            LM_MINI,
+            output_type=PreprocessOut,
+            instructions=version_prompts["preprocess"],
         ),
         "retriever": Agent(
-            LM_MINI, output_type=RetrievedValues, instructions=version_prompts["retriever"]
+            LM_MINI,
+            output_type=RetrievedValues,
+            instructions=version_prompts["retriever"],
         ),
         "calculator": calc,
     }

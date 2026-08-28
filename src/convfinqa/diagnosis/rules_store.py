@@ -30,10 +30,12 @@ def _suffix() -> str:
 
 
 def rules_path(agent: AgentName) -> Path:
+    """Path to the promoted-rules JSONL store for `agent` in the active variant."""
     return Path(settings.rules_dir) / f"rules_{agent}{_suffix()}.jsonl"
 
 
 def attempts_path(agent: AgentName) -> Path:
+    """Path to the rule-attempts JSONL store for `agent` in the active variant."""
     return Path(settings.rules_dir) / f"rule_attempts_{agent}{_suffix()}.jsonl"
 
 
@@ -78,6 +80,7 @@ def read_rules(agent: AgentName) -> list[Rule]:
 
 
 def read_attempts(agent: AgentName, *, limit: int | None = None) -> list[RuleAttempt]:
+    """Read this agent's rule attempts, most recent last, capped at `limit`."""
     raw = _read_lines(attempts_path(agent))
     out: list[RuleAttempt] = []
     for entry in raw:
@@ -198,4 +201,5 @@ def reset_rules(agent: AgentName | None = None) -> None:
 
 
 def all_rules() -> dict[AgentName, list[Rule]]:
+    """Promoted rules for every agent, keyed by agent name."""
     return {a: read_rules(a) for a in AGENTS}

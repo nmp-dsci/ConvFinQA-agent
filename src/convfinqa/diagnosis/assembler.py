@@ -42,6 +42,7 @@ def _format_rules_block(rules: list[Rule]) -> str:
 def assemble_prompts(
     base: dict[str, str], rules_by_agent: dict[AgentName, list[Rule]]
 ) -> dict[AgentName, str]:
+    """Append each agent's promoted rules to its base prompt."""
     out: dict[AgentName, str] = {}
     for agent in AGENTS:
         base_prompt = base[agent].rstrip()
@@ -62,6 +63,7 @@ def _escape_triple_quotes(s: str) -> str:
 def write_variant_module(
     prompts: dict[AgentName, str], variant: str | None = None
 ) -> Path:
+    """Generate `prompts/<variant>.py` from assembled prompts. Never hand-edit it."""
     parts = [
         '"""GENERATED — assembled by convfinqa.diagnosis.assembler. Do not hand-edit."""',
         "",

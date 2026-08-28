@@ -177,20 +177,29 @@ def print_accuracy_table(csv_paths: dict[str, Path]) -> None:
         rows.append(
             _row(
                 f"turn_type={tt}",
-                {v: dfs[v]["gold_turn_type"].str.lower() == tt.lower() for v in versions},
+                {
+                    v: dfs[v]["gold_turn_type"].str.lower() == tt.lower()
+                    for v in versions
+                },
             )
         )
     for ct in ["Type I", "Type II"]:
         rows.append(
-            _row(f"conv_type={ct}", {v: dfs[v]["gold_conv_type"] == ct for v in versions})
+            _row(
+                f"conv_type={ct}", {v: dfs[v]["gold_conv_type"] == ct for v in versions}
+            )
         )
     max_turn = max(int(dfs[v]["turn_index"].max()) for v in versions)
     for ti in range(max_turn + 1):
-        rows.append(_row(f"question={ti}", {v: dfs[v]["turn_index"] == ti for v in versions}))
+        rows.append(
+            _row(f"question={ti}", {v: dfs[v]["turn_index"] == ti for v in versions})
+        )
 
     col_w = 22
     ver_w = 12
-    header = f"{'Cut':<{col_w}}  {'Count':>6}" + "".join(f"  {v:>{ver_w}}" for v in versions)
+    header = f"{'Cut':<{col_w}}  {'Count':>6}" + "".join(
+        f"  {v:>{ver_w}}" for v in versions
+    )
     sep = "-" * len(header)
     print(f"\n{sep}\n{header}\n{sep}")  # noqa: T201
     for i, (label, count, *accs) in enumerate(rows):

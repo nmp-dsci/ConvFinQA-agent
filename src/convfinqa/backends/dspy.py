@@ -139,7 +139,9 @@ class PreprocessSignature(dspy.Signature):
     """
 
     question: str = dspy.InputField()
-    history: str = dspy.InputField(desc="Prior Q&A pairs in this session — reuse answers when applicable")
+    history: str = dspy.InputField(
+        desc="Prior Q&A pairs in this session — reuse answers when applicable"
+    )
     conv_type: Literal["Type I", "Type II"] = dspy.InputField(
         desc="From triage: 'Type I' continues the prior chain; 'Type II' switches aspect",
     )
@@ -195,11 +197,15 @@ class RetrieverSignature(dspy.Signature):
             "'program' = sub-questions from preprocess, return raw values for the calculator."
         ),
     )
-    questions: list[str] = dspy.InputField(desc="One or more self-contained value-lookup questions")
+    questions: list[str] = dspy.InputField(
+        desc="One or more self-contained value-lookup questions"
+    )
     document: Document = dspy.InputField(
         desc="The financial report: pre_text, post_text, and a structured `table` (column -> row -> value)",
     )
-    history: str = dspy.InputField(desc="Prior Q&A pairs — reuse cached answers when applicable")
+    history: str = dspy.InputField(
+        desc="Prior Q&A pairs — reuse cached answers when applicable"
+    )
     answers: list[QAPair] = dspy.OutputField(
         desc=(
             "One QAPair per input question, same order as `questions`. "
@@ -232,7 +238,9 @@ class CalculationSignature(dspy.Signature):
       - The final answer must be a plain numeric string with no units or symbols.
     """
 
-    question: str = dspy.InputField(desc="The user's original question (context only — do not re-answer from it)")
+    question: str = dspy.InputField(
+        desc="The user's original question (context only — do not re-answer from it)"
+    )
     retrieved: list[QAPair] = dspy.InputField(
         desc=(
             "Sub-questions paired with their retrieved values, in placeholder order: "
@@ -294,7 +302,9 @@ class ConvFinQASequentialAgent(dspy.Module):
                 history=hist_text,
             )
             answer = str(r.answers[0].answer)
-            self.conversation.append(question=question, answer=answer, report_id=report_id)
+            self.conversation.append(
+                question=question, answer=answer, report_id=report_id
+            )
             return AgentResponse(
                 question=question,
                 report_id=report_id,
@@ -305,7 +315,9 @@ class ConvFinQASequentialAgent(dspy.Module):
                 retriever_reasoning=getattr(r, "reasoning", None),
             )
 
-        pp = self.preprocess(question=question, history=hist_text, conv_type=triage.conv_type)
+        pp = self.preprocess(
+            question=question, history=hist_text, conv_type=triage.conv_type
+        )
         r = self.retriever(
             turn_type="program",
             questions=list(pp.sub_questions),
@@ -376,7 +388,9 @@ class ConversationRunner(dspy.Module):
                 retriever_reasoning=getattr(r, "reasoning", None),
             )
 
-        pp = self.preprocess(question=question, history=hist_text, conv_type=triage.conv_type)
+        pp = self.preprocess(
+            question=question, history=hist_text, conv_type=triage.conv_type
+        )
         r = self.retriever(
             turn_type="program",
             questions=list(pp.sub_questions),

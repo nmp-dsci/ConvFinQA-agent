@@ -104,7 +104,9 @@ def _build_fix_payload(
     for upstream_agent in ("triage", "preprocess", "retriever", "calculator"):
         if upstream_agent == agent:
             break
-        upstream[upstream_agent] = _stage_io_from_router_payload(payload, upstream_agent)  # type: ignore[arg-type]
+        upstream[upstream_agent] = _stage_io_from_router_payload(
+            payload, upstream_agent
+        )  # type: ignore[arg-type]
     return FixPayload(
         report_id=payload.report_id,
         turn_index=payload.turn_index,
@@ -211,7 +213,10 @@ async def run_case(
         )
         return result
 
-    if diagnosis.failed_agent == "ambiguous" or diagnosis.failed_agent not in _SPEC_AGENTS:
+    if (
+        diagnosis.failed_agent == "ambiguous"
+        or diagnosis.failed_agent not in _SPEC_AGENTS
+    ):
         log.info("[ambiguous] no specialist routing; case unresolved")
         result.attempts.append(
             FixAttempt(
@@ -244,18 +249,23 @@ async def run_case(
         if propose_cache_hit:
             log.info(
                 "[%s] attempt %d/%d — propose: cached (rule=%r)",
-                agent, attempt_idx, max_attempts,
+                agent,
+                attempt_idx,
+                max_attempts,
                 cached_attempt.patch_applied[:80],
             )
             fix = FixProposal(
                 rule=cached_attempt.patch_applied,
                 fix_type=cached_attempt.fix_type or "add_rule",
                 confidence=cached_attempt.fix_confidence
-                if cached_attempt.fix_confidence is not None else 0.5,
+                if cached_attempt.fix_confidence is not None
+                else 0.5,
                 rationale="(restored from step-cache)",
             )
         else:
-            log.info("[%s] attempt %d/%d — propose_fix", agent, attempt_idx, max_attempts)
+            log.info(
+                "[%s] attempt %d/%d — propose_fix", agent, attempt_idx, max_attempts
+            )
             fix_payload = _build_fix_payload(
                 payload,
                 router_diagnosis=diagnosis,
@@ -473,11 +483,16 @@ async def run_harness(
             # and continue with the next case.
             log.error(
                 "[case %d/%d] FAILED — report=%s turn=%s: %s: %s",
-                i, len(payloads),
-                payload.report_id, payload.turn_index,
-                type(exc).__name__, exc,
+                i,
+                len(payloads),
+                payload.report_id,
+                payload.turn_index,
+                type(exc).__name__,
+                exc,
             )
-            skipped.append((payload.report_id, int(payload.turn_index), type(exc).__name__))
+            skipped.append(
+                (payload.report_id, int(payload.turn_index), type(exc).__name__)
+            )
             if cached is not None and case_log_path is not None:
                 with case_log_path.open("a") as f:
                     f.write(cached.model_dump_json() + "\n")
@@ -489,7 +504,10 @@ async def run_harness(
     if case_cache:
         log.info(
             "[step-cache] hits diagnose=%d propose=%d verify=%d (cache size=%d cases)",
-            hits["diagnose"], hits["propose"], hits["verify"], len(case_cache),
+            hits["diagnose"],
+            hits["propose"],
+            hits["verify"],
+            len(case_cache),
         )
     if skipped:
         log.warning(
@@ -504,13 +522,12 @@ def join_full_df_columns(
     results: list[CaseResult], full_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Join Group A columns (from the input CSV) onto the case results."""
-    keys = [
-        (r.report_id, r.turn_index)
-        for r in results
-    ]
+    keys = [(r.report_id, r.turn_index) for r in results]
     keys_set = set(keys)
     sub = full_df[
-        full_df.apply(lambda r: (r["report_id"], int(r["turn_index"])) in keys_set, axis=1)
+        full_df.apply(
+            lambda r: (r["report_id"], int(r["turn_index"])) in keys_set, axis=1
+        )
     ].copy()
     return sub
 
@@ -522,7 +539,9 @@ def case_results_to_rows(results: list[CaseResult]) -> list[dict]:
         attempts = r.attempts or [
             FixAttempt(
                 iteration=1,
-                failed_agent=r.router_diagnosis.failed_agent if r.router_diagnosis else "ambiguous",
+                failed_agent=r.router_diagnosis.failed_agent
+                if r.router_diagnosis
+                else "ambiguous",
                 patch_applied="",
                 full_prompt="",
                 correct=False,
@@ -547,35 +566,43 @@ def case_results_to_rows(results: list[CaseResult]) -> list[dict]:
                     "failed_agent": diag.failed_agent if diag else "",
                     "failure_mode": diag.failure_mode if diag else "",
                     "failure_explanation": diag.failure_explanation if diag else "",
-                    "supporting_evidence": json.dumps(diag.supporting_evidence) if diag else "",
+                    "supporting_evidence": json.dumps(diag.supporting_evidence)
+                    if diag
+                    else "",
                     "confidence": diag.confidence if diag else "",
                     "system_prompt_fix": a.patch_applied,
                     "fix_type": "",
                     "harness_correct": a.correct if verified else "",
                     "harness_first_failing_turn": (
-                        "" if (not verified or a.first_failing_turn is None)
+                        ""
+                        if (not verified or a.first_failing_turn is None)
                         else a.first_failing_turn
                     ),
                     "harness_turn_results": (
                         json.dumps([tr.model_dump() for tr in a.turn_results])
-                        if verified else ""
+                        if verified
+                        else ""
                     ),
                     "harness_pred_answer": a.pred_answer if verified else "",
                     "harness_triage_io": (
                         a.triage_io.model_dump_json()
-                        if (verified and a.triage_io) else ""
+                        if (verified and a.triage_io)
+                        else ""
                     ),
                     "harness_preprocess_io": (
                         a.preprocess_io.model_dump_json()
-                        if (verified and a.preprocess_io) else ""
+                        if (verified and a.preprocess_io)
+                        else ""
                     ),
                     "harness_retriever_io": (
                         a.retriever_io.model_dump_json()
-                        if (verified and a.retriever_io) else ""
+                        if (verified and a.retriever_io)
+                        else ""
                     ),
                     "harness_calculator_io": (
                         a.calculator_io.model_dump_json()
-                        if (verified and a.calculator_io) else ""
+                        if (verified and a.calculator_io)
+                        else ""
                     ),
                     "verify_result": a.verify_result or "",
                     "failure_reason": a.failure_reason or "",
