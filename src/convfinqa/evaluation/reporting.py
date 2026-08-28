@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as _html
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -161,7 +162,7 @@ def print_accuracy_table(csv_paths: dict[str, Path]) -> None:
         df["_ok"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
         dfs[v] = df
 
-    def _row(label: str, masks: dict[str, pd.Series]) -> tuple:
+    def _row(label: str, masks: dict[str, pd.Series]) -> tuple[Any, ...]:
         count = int(masks[versions[0]].sum())
         accs = []
         for v in versions:
@@ -171,26 +172,35 @@ def print_accuracy_table(csv_paths: dict[str, Path]) -> None:
             accs.append(correct / total if total else 0.0)
         return (label, count, *accs)
 
-    rows: list[tuple] = []
+    rows: list[tuple[Any, ...]] = []
     rows.append(_row("Overall", {v: pd.Series([True] * len(dfs[v])) for v in versions}))
     for tt in ["Number", "Program"]:
         rows.append(
             _row(
                 f"turn_type={tt}",
-                {v: dfs[v]["gold_turn_type"].str.lower() == tt.lower() for v in versions},
+                {
+                    v: dfs[v]["gold_turn_type"].str.lower() == tt.lower()
+                    for v in versions
+                },
             )
         )
     for ct in ["Type I", "Type II"]:
         rows.append(
-            _row(f"conv_type={ct}", {v: dfs[v]["gold_conv_type"] == ct for v in versions})
+            _row(
+                f"conv_type={ct}", {v: dfs[v]["gold_conv_type"] == ct for v in versions}
+            )
         )
     max_turn = max(int(dfs[v]["turn_index"].max()) for v in versions)
     for ti in range(max_turn + 1):
-        rows.append(_row(f"question={ti}", {v: dfs[v]["turn_index"] == ti for v in versions}))
+        rows.append(
+            _row(f"question={ti}", {v: dfs[v]["turn_index"] == ti for v in versions})
+        )
 
     col_w = 22
     ver_w = 12
-    header = f"{'Cut':<{col_w}}  {'Count':>6}" + "".join(f"  {v:>{ver_w}}" for v in versions)
+    header = f"{'Cut':<{col_w}}  {'Count':>6}" + "".join(
+        f"  {v:>{ver_w}}" for v in versions
+    )
     sep = "-" * len(header)
     print(f"\n{sep}\n{header}\n{sep}")  # noqa: T201
     for i, (label, count, *accs) in enumerate(rows):

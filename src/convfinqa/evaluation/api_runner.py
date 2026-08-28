@@ -26,7 +26,9 @@ EVAL_DIR = PREDICTIONS_DIR
 VERSION = settings.prompts_version or "v2"
 
 
-def _build_conv_examples(report_ids: list[str], qa_data: pd.DataFrame) -> list[ConvExample]:
+def _build_conv_examples(
+    report_ids: list[str], qa_data: pd.DataFrame
+) -> list[ConvExample]:
     examples: list[ConvExample] = []
     for rid in report_ids:
         group = qa_data[qa_data["report_id"] == rid].sort_values("q_order")
@@ -53,11 +55,15 @@ def _local_load_conv_examples_test() -> tuple[list[ConvExample], pd.DataFrame]:
     sampled_report_ids = (
         qa_data["report_id"].drop_duplicates().sample(n=200, random_state=42).tolist()
     )
-    qa_data = qa_data[qa_data["report_id"].isin(sampled_report_ids)].reset_index(drop=True)
+    qa_data = qa_data[qa_data["report_id"].isin(sampled_report_ids)].reset_index(
+        drop=True
+    )
     return _build_conv_examples(sampled_report_ids, qa_data), qa_data
 
 
-def _analyze_predictions_local(predictions_path: Path, qa_data: pd.DataFrame) -> pd.DataFrame:
+def _analyze_predictions_local(
+    predictions_path: Path, qa_data: pd.DataFrame
+) -> pd.DataFrame:
     preds = pd.read_csv(predictions_path)
     qa = qa_data.sort_values(["report_id", "q_order"]).copy()
     qa["turn_index"] = qa.groupby("report_id").cumcount()
@@ -117,7 +123,9 @@ def compare_model_accuracies(
     rows.append(overall)
 
     all_turn_types = sorted(
-        set().union(*(set(frame["turn_type"].dropna().unique()) for frame in available.values()))
+        set().union(
+            *(set(frame["turn_type"].dropna().unique()) for frame in available.values())
+        )
     )
     for turn_type in all_turn_types:
         row: dict[str, Any] = {"slice": "turn_type", "value": turn_type}
@@ -127,7 +135,9 @@ def compare_model_accuracies(
         rows.append(row)
 
     all_q_orders = sorted(
-        set().union(*(set(frame["q_order"].dropna().unique()) for frame in available.values()))
+        set().union(
+            *(set(frame["q_order"].dropna().unique()) for frame in available.values())
+        )
     )
     for q_order in all_q_orders:
         row = {"slice": "q_order", "value": q_order}
@@ -140,7 +150,11 @@ def compare_model_accuracies(
     ordered_cols = [
         "slice",
         "value",
-        *[f"{label}_acc" for label in ("dspy", "pydantic", "api") if label in available],
+        *[
+            f"{label}_acc"
+            for label in ("dspy", "pydantic", "api")
+            if label in available
+        ],
     ]
     out = out[ordered_cols]
     out_path = run_dir / f"model_accuracy_comparison_{version}.csv"
@@ -148,9 +162,7 @@ def compare_model_accuracies(
 
     printable = out.copy()
     for col in [c for c in printable.columns if c.endswith("_acc")]:
-        printable[col] = printable[col].map(
-            lambda v: f"{v:.1%}" if pd.notna(v) else ""
-        )
+        printable[col] = printable[col].map(lambda v: f"{v:.1%}" if pd.notna(v) else "")
     print("\nModel accuracy comparison:")
     print(printable.to_string(index=False))
     print(f"\nWrote {out_path}")
@@ -206,7 +218,7 @@ async def _evaluate_api_async(
     base_url: str,
     timeout: float,
     examples: list[Any],
-    transport: httpx.AsyncBaseTransport | httpx.BaseTransport | None,
+    transport: httpx.AsyncBaseTransport | None,
     max_concurrency: int,
     out_path: Path,
     initial_rows: list[list[Any]],
@@ -266,7 +278,7 @@ def evaluate_api(
     base_url: str = "http://127.0.0.1:8765",
     timeout: float = 120.0,
     examples: list[Any] | None = None,
-    transport: httpx.AsyncBaseTransport | httpx.BaseTransport | None = None,
+    transport: httpx.AsyncBaseTransport | None = None,
     max_concurrency: int = 8,
     reuse_existing: bool = True,
 ) -> Path:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -94,7 +95,9 @@ async def _conv_task(case: ConvInput) -> ConvOutput:
     return ConvOutput(preds=preds, programs=programs, stage_captures=captures)
 
 
-def make_task_fn(agents: dict[str, Agent]):
+def make_task_fn(
+    agents: dict[str, Agent[None, Any]],
+) -> Callable[[ConvInput], Awaitable[ConvOutput]]:
     """Return a pydantic-evals task function that uses the given agents."""
 
     async def _task(case: ConvInput) -> ConvOutput:
@@ -157,7 +160,9 @@ def _capture_to_row_fields(cap: dict[str, Any]) -> dict[str, str]:
     retriever = cap.get("retriever") or {}
     calculator = cap.get("calculator") or {}
     triage_out = triage.get("output", {}) if isinstance(triage, dict) else {}
-    preprocess_out = preprocess.get("output", {}) if isinstance(preprocess, dict) else {}
+    preprocess_out = (
+        preprocess.get("output", {}) if isinstance(preprocess, dict) else {}
+    )
     return {
         "pred_turn_type": str(triage_out.get("turn_type", "")),
         "pred_conv_type": str(triage_out.get("conv_type", "")),
@@ -200,7 +205,14 @@ def _write_predictions_csv(
             gold_turn_types = ex.gold_turn_types if ex.gold_turn_types else [""] * n
             gold_conv_types = ex.gold_conv_types if ex.gold_conv_types else [""] * n
             for i, (q, g, gp, gtt, gct) in enumerate(
-                zip(ex.questions, ex.gold_answers, gold_programs, gold_turn_types, gold_conv_types, strict=False)
+                zip(
+                    ex.questions,
+                    ex.gold_answers,
+                    gold_programs,
+                    gold_turn_types,
+                    gold_conv_types,
+                    strict=False,
+                )
             ):
                 p = preds[i] if i < len(preds) else None
                 prog = programs[i] if i < len(programs) else ""
@@ -288,6 +300,94 @@ async def evaluate_cached(
     return await evaluate(examples, max_concurrency=max_concurrency)
 
 
+def _cost_metrics(df: pd.DataFrame) -> dict[str, float]:
+    """Token and cost totals for a scored run, from its recorded stage metrics.
+
+    Older CSVs predate per-stage metrics and simply contribute nothing, so this
+    degrades to zeros rather than failing a run that is otherwise fine.
+    """
+    from convfinqa.tracking.cost import aggregate
+
+    captures: list[dict[str, Any]] = []
+    for row in df.itertuples():
+        capture: dict[str, Any] = {}
+        for stage in ("triage", "preprocess", "retriever", "calculator"):
+            raw = getattr(row, f"{stage}_io", "")
+            if isinstance(raw, str) and raw.strip():
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, dict):
+                    capture[stage] = parsed
+        captures.append(capture)
+    return aggregate(captures)
+
+
+def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None:
+    """Record this evaluation as an MLflow run and register the bundle version.
+
+    Called from inside the runner rather than from the caller, so an evaluation
+    cannot happen without being recorded. That is the whole reason the
+    experiment history can be trusted to have no silent gaps.
+    """
+    from convfinqa.tracking import mlflow_log, registry
+    from convfinqa.tracking.comparator import accuracy, load_predictions
+
+    try:
+        df = load_predictions(version)
+    except (FileNotFoundError, ValueError) as exc:
+        print(  # noqa: T201
+            f"Not logging eval run to MLflow: {csv_path} unusable as predictions "
+            f"for version {version!r} ({exc})"
+        )
+        return
+
+    from convfinqa.serving.evaldata import holdout_accuracy
+
+    overall = round(accuracy(df), 6)
+    held_out = holdout_accuracy(df)
+    metrics: dict[str, float] = {
+        "accuracy": overall,
+        "n_questions": float(len(df)),
+        "n_conversations": float(n_conversations),
+        # The generalisation number, kept distinct from the overall one.
+        "holdout_accuracy": held_out["accuracy"],
+        "holdout_n_questions": float(held_out["n_questions"]),
+    }
+    for column in ("gold_turn_type", "gold_conv_type"):
+        if column not in df.columns:
+            continue
+        for value, group in df.groupby(column):
+            label = str(value).strip().replace(" ", "_")
+            if label and label.lower() != "nan":
+                metrics[f"accuracy_{column}_{label}"] = round(
+                    float(group["correct"].mean()), 6
+                )
+
+    metrics.update(_cost_metrics(df))
+
+    with mlflow_log.run(
+        f"eval-{version}",
+        kind="eval",
+        version=version,
+        params={"n_conversations": n_conversations},
+        tags={"bundle_version": version},
+    ) as recorder:
+        recorder.metrics(metrics)
+        recorder.artifact(csv_path)
+        recorder.artifact(csv_path.with_name(f"{csv_path.stem}_joined.csv"))
+        run_id = recorder.run_id
+
+    registry.register(
+        version,
+        source="manual",
+        run_id=run_id,
+        metrics={"accuracy": overall, "n_questions": float(len(df))},
+    )
+    print(f"[{version}] logged to MLflow (accuracy {overall:.2%})")  # noqa: T201
+
+
 async def evaluate_version(
     examples: list[Any],
     version: str,
@@ -343,10 +443,14 @@ async def evaluate_version(
         combined = pd.concat([cached_subset, new_df], ignore_index=True)
         combined.to_csv(csv_path, index=False)
         total = len(combined)
-        correct = int(combined["correct"].astype(str).str.lower().isin({"true", "1"}).sum())
+        correct = int(
+            combined["correct"].astype(str).str.lower().isin({"true", "1"}).sum()
+        )
         print(  # noqa: T201
             f"\n[{version}] combined accuracy: {correct / total:.1%}  ({correct}/{total} questions)"
         )
+
+    _log_eval_run(version, csv_path, n_conversations=len(examples))
 
     write_predictions_html(
         csv_path,

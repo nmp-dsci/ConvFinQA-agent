@@ -53,7 +53,9 @@ def _pick_report(client: httpx.Client) -> str:
         choices=report_ids,
         match_middle=True,
         ignore_case=True,
-        validate=lambda text: True if text in report_ids else "Choose a valid report_id",
+        validate=lambda text: (
+            True if text in report_ids else "Choose a valid report_id"
+        ),
     ).ask()
     return _abort_if_none(report_id)
 
@@ -98,7 +100,9 @@ def _print_event(event: dict[str, Any]) -> None:
             typer.secho(f"  sub_questions ({len(sq)}):", fg=typer.colors.BRIGHT_BLACK)
             for q in sq:
                 typer.secho(f"    - {q}", fg=typer.colors.BRIGHT_BLACK)
-            typer.secho(f"  program: {out.get('program', '')}", fg=typer.colors.BRIGHT_BLACK)
+            typer.secho(
+                f"  program: {out.get('program', '')}", fg=typer.colors.BRIGHT_BLACK
+            )
         elif stage == "retriever":
             for a in out.get("answers", []) or []:
                 typer.secho(
@@ -185,7 +189,12 @@ def _interactive_loop(client: httpx.Client, initial_report: str | None = None) -
     while True:
         action = questionary.select(
             "What next?",
-            choices=["Ask a question", "Run all gold questions", "Change report", "Quit"],
+            choices=[
+                "Ask a question",
+                "Run all gold questions",
+                "Change report",
+                "Quit",
+            ],
         ).ask()
         action = _abort_if_none(action)
 
@@ -249,7 +258,9 @@ def _run_all_gold(client: httpx.Client, session_id: str, report_id: str) -> None
             fg=color,
         )
     correct = sum(
-        1 for _, _, gold, pred in rows if pred is not None and _loose_numeric_match(pred, gold)
+        1
+        for _, _, gold, pred in rows
+        if pred is not None and _loose_numeric_match(pred, gold)
     )
     typer.secho(
         f"\nTotal: {correct}/{len(rows)}",

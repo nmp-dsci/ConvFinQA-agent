@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 # Pin DSPy's LM cache to a repo-local dir before `import dspy` (read at import time).
 os.environ.setdefault(
@@ -26,21 +26,41 @@ from convfinqa.data.schemas import (  # noqa: E402
 )
 from convfinqa.pipeline.tools import CALCULATOR_TOOLS  # noqa: E402
 
-_deepseek_api_key = settings.deepseek_api_key.get_secret_value()
-lm_mini = dspy.LM(
-    model="deepseek/deepseek-v4-flash",
-    api_key=_deepseek_api_key,
-    max_tokens=64000,
-    temperature=1,
-)
-lm_max = dspy.LM(
-    model="deepseek/deepseek-v4-pro",
-    api_key=_deepseek_api_key,
-    max_tokens=64000,
-    temperature=1,
-)
+# Models are built on first use, not at import. Importing this module must not
+# demand an API key: the serving layer reads dataset facts from it, and the
+# keyless demo container imports it while being unable to call a model at all.
+# `configure_dspy()` is called by the optimizer entry points that actually run.
+_lm_cache: dict[str, Any] = {}
 
-dspy.configure(lm=lm_mini, adapter=dspy.ChatAdapter())
+
+def _lm(model: str) -> Any:
+    """Build (once) a DSPy LM, routed through the shared demo gate and key."""
+    from convfinqa.llm import guard_llm_call
+
+    if model not in _lm_cache:
+        guard_llm_call()
+        _lm_cache[model] = dspy.LM(
+            model=f"deepseek/{model}",
+            api_key=settings.require_deepseek_api_key(),
+            max_tokens=64000,
+            temperature=1,
+        )
+    return _lm_cache[model]
+
+
+def lm_mini() -> Any:
+    """The fast model the DSPy pipeline runs on."""
+    return _lm("deepseek-v4-flash")
+
+
+def lm_max() -> Any:
+    """The flagship model, used where reasoning quality is the product."""
+    return _lm("deepseek-v4-pro")
+
+
+def configure_dspy() -> None:
+    """Point DSPy at the mini model. Call before running or optimizing."""
+    dspy.configure(lm=lm_mini(), adapter=dspy.ChatAdapter())
 
 
 class TriageSignature(dspy.Signature):
@@ -139,7 +159,9 @@ class PreprocessSignature(dspy.Signature):
     """
 
     question: str = dspy.InputField()
-    history: str = dspy.InputField(desc="Prior Q&A pairs in this session — reuse answers when applicable")
+    history: str = dspy.InputField(
+        desc="Prior Q&A pairs in this session — reuse answers when applicable"
+    )
     conv_type: Literal["Type I", "Type II"] = dspy.InputField(
         desc="From triage: 'Type I' continues the prior chain; 'Type II' switches aspect",
     )
@@ -195,11 +217,15 @@ class RetrieverSignature(dspy.Signature):
             "'program' = sub-questions from preprocess, return raw values for the calculator."
         ),
     )
-    questions: list[str] = dspy.InputField(desc="One or more self-contained value-lookup questions")
+    questions: list[str] = dspy.InputField(
+        desc="One or more self-contained value-lookup questions"
+    )
     document: Document = dspy.InputField(
         desc="The financial report: pre_text, post_text, and a structured `table` (column -> row -> value)",
     )
-    history: str = dspy.InputField(desc="Prior Q&A pairs — reuse cached answers when applicable")
+    history: str = dspy.InputField(
+        desc="Prior Q&A pairs — reuse cached answers when applicable"
+    )
     answers: list[QAPair] = dspy.OutputField(
         desc=(
             "One QAPair per input question, same order as `questions`. "
@@ -232,7 +258,9 @@ class CalculationSignature(dspy.Signature):
       - The final answer must be a plain numeric string with no units or symbols.
     """
 
-    question: str = dspy.InputField(desc="The user's original question (context only — do not re-answer from it)")
+    question: str = dspy.InputField(
+        desc="The user's original question (context only — do not re-answer from it)"
+    )
     retrieved: list[QAPair] = dspy.InputField(
         desc=(
             "Sub-questions paired with their retrieved values, in placeholder order: "
@@ -294,7 +322,9 @@ class ConvFinQASequentialAgent(dspy.Module):
                 history=hist_text,
             )
             answer = str(r.answers[0].answer)
-            self.conversation.append(question=question, answer=answer, report_id=report_id)
+            self.conversation.append(
+                question=question, answer=answer, report_id=report_id
+            )
             return AgentResponse(
                 question=question,
                 report_id=report_id,
@@ -305,7 +335,9 @@ class ConvFinQASequentialAgent(dspy.Module):
                 retriever_reasoning=getattr(r, "reasoning", None),
             )
 
-        pp = self.preprocess(question=question, history=hist_text, conv_type=triage.conv_type)
+        pp = self.preprocess(
+            question=question, history=hist_text, conv_type=triage.conv_type
+        )
         r = self.retriever(
             turn_type="program",
             questions=list(pp.sub_questions),
@@ -376,7 +408,9 @@ class ConversationRunner(dspy.Module):
                 retriever_reasoning=getattr(r, "reasoning", None),
             )
 
-        pp = self.preprocess(question=question, history=hist_text, conv_type=triage.conv_type)
+        pp = self.preprocess(
+            question=question, history=hist_text, conv_type=triage.conv_type
+        )
         r = self.retriever(
             turn_type="program",
             questions=list(pp.sub_questions),
@@ -442,16 +476,9 @@ def _build_dspy_data() -> tuple[list[dspy.Example], list[dspy.Example]]:
     The DSPy baseline uses a `random.Random(42)` shuffle of the 200 sampled
     report_ids into a 60/40 train/test split, with no `additional_test_ids`.
     """
-    import random  # noqa: PLC0415
+    from convfinqa.data.loader import optimizer_split  # noqa: PLC0415
 
-    from convfinqa.data.loader import sampled_report_ids  # noqa: PLC0415
-
-    rng = random.Random(42)
-    shuffled = list(sampled_report_ids)
-    rng.shuffle(shuffled)
-    split = int(len(shuffled) * 0.6)
-    train_ids = shuffled[:split]
-    test_ids = shuffled[split:]
+    train_ids, test_ids = optimizer_split()
     return build_conv_examples(train_ids), build_conv_examples(test_ids)
 
 

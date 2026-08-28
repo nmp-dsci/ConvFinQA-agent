@@ -12,41 +12,60 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# NOTE: a ruff lint + format gate is intentionally deferred to a follow-up
-# cleanup PR. On current main `ruff check`/`ruff format --check` fail on
-# pre-existing style debt (11 missing-docstring violations, 23 unformatted
-# files); turning the gate on here would require reformatting files that overlap
-# active in-flight work. Tests and the frontend build are enforced now; lint
-# lands once the formatting cleanup can be committed without collision.
-
 jobs:
+  lint:
+    name: Python — lint, format, types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12
+      - name: ruff check
+        run: uv run ruff check --no-fix src scripts tests
+      - name: ruff format --check
+        run: uv run ruff format --check src scripts tests
+      - name: mypy
+        run: uv run mypy
+
   python:
     name: Python — test
     runs-on: ubuntu-latest
-    # convfinqa/config.py runs `settings = Settings()` at import and declares
-    # `deepseek_api_key: SecretStr` as a REQUIRED field. Four test modules import
-    # that config chain at collection time, so a value must exist or pytest fails
-    # to even collect. Every test is fully stubbed (pydantic_ai TestModel,
-    # httpx.MockTransport, monkeypatch) and makes NO real DeepSeek/network call,
-    # so this placeholder (NOT a repository secret; safe to commit) unblocks the
-    # whole suite offline. Verified: `pytest tests -q` = 56 passed, 0 network calls.
-    env:
-      DEEPSEEK_API_KEY: ci-placeholder-not-a-real-key
+    # No DEEPSEEK_API_KEY here, deliberately. `Settings` boots keyless and
+    # `require_deepseek_api_key()` raises only when a call would actually reach
+    # the model, so the absence of a key is itself part of what CI verifies:
+    # every test is stubbed and none of them touch the network.
     steps:
       - uses: actions/checkout@v4
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Install Python and dependencies
-        run: |
-          uv python install 3.12
-          uv sync --python 3.12
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12
       - name: pytest
         run: uv run pytest tests -q
 
+  eval-gate:
+    name: Eval regression gate
+    runs-on: ubuntu-latest
+    # The load-bearing gate. Prediction CSVs are committed, so the champion's
+    # accuracy can be re-scored deterministically with zero API calls. A prompt
+    # change that quietly degrades the champion — or flips any case that used to
+    # pass — cannot merge.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12
+      - name: Re-score committed predictions against the champion floor
+        run: uv run python -m convfinqa.tracking.gate
+
   frontend:
-    name: Frontend — type, build
+    name: Frontend — type, test, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,18 +77,43 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Typecheck (tsc -b --noEmit)
+      - run: npm ci
+      - name: Typecheck
         run: npm run typecheck
-      - name: Build (tsc -b --noEmit && vite build)
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Build
         run: npm run build
-      # Playwright e2e (npm run test:e2e) is intentionally skipped in CI: it
-      # needs a running backend and a browser download. Run it locally.
+      # Playwright e2e (npm run test:e2e) needs a running backend and a browser
+      # download; it stays a local target.
 
-  # TODO(eval-gate): no committed offline eval/regression test exists on
-  # origin/main. Add a deterministic, API-key-free test that re-scores the
-  # committed evaluation/ snapshots and enforces accuracy floors, then wire an
-  # `eval-gate` job. Do not fabricate one.
-  # TODO(lint): add ruff check + ruff format --check once the formatting/docstring
-  # cleanup can be committed (see PR note above).
+  docker:
+    name: Docker — build the demo image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  terraform:
+    name: Terraform — fmt & validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: fmt
+        run: terraform fmt -check -recursive infra/
+      - name: validate (no backend — plan needs AWS creds, this does not)
+        working-directory: infra/terraform/demo
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate

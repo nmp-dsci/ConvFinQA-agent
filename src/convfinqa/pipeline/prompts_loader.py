@@ -7,11 +7,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from convfinqa.config import settings
+from convfinqa.config import RUNS_DIR, settings
 
 _DEFAULT_GEPA_NAME = "gepa_real_20260502_005251"
 GEPA_NAME = settings.gepa_name or _DEFAULT_GEPA_NAME
-RUN_DIR = Path("runs") / GEPA_NAME
+RUN_DIR = RUNS_DIR / GEPA_NAME
 PROMPTS_PATH = RUN_DIR / "dspy_optimized_runner.json"
 if not PROMPTS_PATH.exists():
     PROMPTS_PATH = RUN_DIR / "optimized_runner.json"
@@ -60,8 +60,8 @@ def _load_optimized_prompts(path: Path) -> dict[str, str]:
             field_lines.append(f"- {prefix}: {desc}")
 
         if field_lines:
-            instructions = (
-                f"{instructions}\n\nField guidance:\n" + "\n".join(field_lines)
+            instructions = f"{instructions}\n\nField guidance:\n" + "\n".join(
+                field_lines
             )
         prompts[short] = instructions
     return prompts

@@ -287,6 +287,7 @@ async def _amain(args: argparse.Namespace) -> int:
         # Capture the freshly-assembled prompts module path so the summary can
         # tell the operator what was written.
         from convfinqa.diagnosis.assembler import assemble_variant
+
         prompts_module_path = assemble_variant(
             base_version=prompts_version, variant=variant
         )
@@ -298,7 +299,9 @@ async def _amain(args: argparse.Namespace) -> int:
     per_iteration: dict[int, int] = {}
     for r in results:
         if r.resolved and r.winning_iteration is not None:
-            per_iteration[r.winning_iteration] = per_iteration.get(r.winning_iteration, 0) + 1
+            per_iteration[r.winning_iteration] = (
+                per_iteration.get(r.winning_iteration, 0) + 1
+            )
 
     print("")  # noqa: T201
     print("=== summary ===")  # noqa: T201
@@ -320,6 +323,7 @@ async def _amain(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point for the s7 diagnose/route/fix/verify harness."""
     args = _make_parser().parse_args(argv)
     _configure_logging(args.verbose)
     return asyncio.run(_amain(args))

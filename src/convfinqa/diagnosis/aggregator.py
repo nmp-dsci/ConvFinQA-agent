@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from convfinqa.diagnosis.models import CaseResult
 
 
-def build_unresolved_cases(
-    results: list[CaseResult], unresolved_path: Path
-) -> Path:
-    unresolved: list[dict] = []
+def build_unresolved_cases(results: list[CaseResult], unresolved_path: Path) -> Path:
+    """Write the cases the harness could not resolve to `unresolved_path`."""
+    unresolved: list[dict[str, Any]] = []
     for r in results:
         if r.resolved:
             continue

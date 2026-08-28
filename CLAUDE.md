@@ -23,10 +23,17 @@ uv run pytest
 ## Key Invariants
 
 - **`--workers 1` is required** for the backend — in-memory session state breaks with multiple workers.
-- **Vite proxy** (`frontend/vite.config.ts`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`). Missing entries cause silent HTML-404 failures in the browser.
+- **`convfinqa/llm.py` is the only place a model may be constructed.** The demo gate and the retry/timeout policy live there; a model built anywhere else silently bypasses both. Backends expose `lm_mini()` / `lm_max()` factories, never module-level model objects — importing a module must never require an API key, because the demo container has none.
+- **Nothing may build a model at import time.** This broke the deployment twice (`backends.pydantic`, then `backends.dspy`): a read-only route returned 500 purely because reading a dataset fact imported a module that constructed an LM. `tests/test_demo_mode.py::test_every_module_imports_without_a_key` pins it.
+- **"Held out" means `data.loader.optimizer_split()`, not `train_report_ids`.** Both are 60/40 splits seeded 42, but they agree on only 78 of 120 conversations, and GEPA ran against the former. The 770-question scored set spans conversations the optimizer saw; the never-seen subset is 309 questions. Report `holdout_accuracy` alongside — never blended into — the overall figure.
+- **Promotion requires accuracy ≥ champion AND no per-question pass→fail flips.** "Beats the champion" alone lets "fixed number turns, broke programs" through. Enforced in `tracking/comparator.py`, gated in CI by `tracking/gate.py`.
+- **MLflow logging lives inside the runners**, not beside them. An operator who forgets to wrap a run produces an unrecorded result, and a history with silent gaps is worse than none.
+- **Vite proxy** (`frontend/vite.config.ts`'s `BACKEND_PREFIXES`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`, `/admin`, `/traces`, `/demo`). Missing entries cause silent HTML-404 failures in the browser.
 - **`pred_program` column** must be present in every predictions CSV. `evaluate_cached` auto-detects its absence and forces a re-run.
 - **Cached evaluations are committed**, not regenerated. `evaluation/predictions/` (prediction CSVs, HTML reports, joined CSVs), `evaluation/diagnostics/` (s7 `rules_*_<variant>.jsonl` + `rule_attempts_*_<variant>.jsonl` + diagnostic results), and `runs/<gepa_name>/` (GEPA artifacts including `optimized_runner.json`) are tracked in git so v1/v2 accuracy and GEPA outcomes reproduce across machines with `REUSE_CACHE=1` and no API calls. Do not add these directories to `.gitignore`. If you change pipeline behaviour and need fresh numbers, regenerate the CSVs and commit them — do not leave the working tree dirty or rely on `REUSE_CACHE=0` to mask stale state.
-- **`.dspy_cache/`** (~366 MB DSPy LM cache) is the one cache that stays gitignored. Sync via `rsync` to share warm caches between machines — never commit it.
+- **`.dspy_cache/`** (~366 MB DSPy LM cache), **`mlruns/`** and **`.traces/`** stay gitignored — they are dev state. What ships is the committed export: `evaluation/mlflow_snapshot.json` + `evaluation/registry.json`, regenerated with `convfinqa-mlflow snapshot`. Sync `.dspy_cache/` via `rsync` to share warm caches; never commit it.
+- **`DEMO_MODE` is baked into the Docker image**, not set in Terraform. Infrastructure must not be able to turn the public URL into a billable one. The demo container holds no API key at all.
+- **The demo pack is rebuilt from committed CSVs**, never from fresh API calls: `uv run convfinqa-demo-pack`. Its events must stay identical to what `pipeline/runner.py::turn_events` emits — `serving/demo_pack/cli.py::events_from_row` is the other half of that contract.
 - **The variant module `src/convfinqa/prompts/<variant>.py` (e.g. `v3_1.py`) is generated**, never hand-edited. The s7 harness writes it from the four `rules_<agent>_<variant>.jsonl` stores via `convfinqa.diagnosis.assembler`. To change it, edit the JSONL (or run the harness) and re-run `scripts/diagnose_failures.py --stage assemble`. The variant defaults to `settings.variant` (`v3_1`); override with `--variant`/`VARIANT`.
 - **Diagnostic and predictions HTML use a sticky inspector panel**, not inline `<details>`. Each viewable cell renders a `view` button + adjacent hidden `<pre>`; clicking pops the content into the panel above the table. The shared mechanics (theme CSS, viewer panel/JS, `render_cell`, `render_page`) live in `convfinqa.reporting.html_report`; `evaluation/reporting.py` and `diagnosis/results_html.py` only supply their own columns, summary/pivot blocks, and filter JS. Change the look in one place — `html_report.py`.
 
@@ -50,6 +57,23 @@ RUN_GEPA=1 GEPA_NAME=gepa_real_<ts> uv run convfinqa-optimize
 
 # Pydantic AI evaluation
 uv run convfinqa-eval-api
+```
+
+## Tracking & demo commands
+
+```bash
+uv run convfinqa-mlflow status            # tracking config, aliases, versions
+uv run convfinqa-mlflow compare v2 v3_1   # exit 1 when not promotable
+uv run convfinqa-mlflow promote v3_1      # refused unless the comparator passes
+uv run convfinqa-mlflow backfill          # rebuild history from committed artifacts
+uv run convfinqa-mlflow snapshot          # export what the demo image reads
+uv run python -m convfinqa.tracking.gate  # the CI eval-regression gate
+uv run convfinqa-demo-pack --n 8          # rebuild the recorded demo pack
+
+DEMO_MODE=1 uv run python -m uvicorn convfinqa.serving.app:create_app \
+  --factory --workers 1 --port 8765       # runs with no API key
+docker compose up demo                    # exactly what ships
+./scripts/demo_smoke.sh http://localhost:8080
 ```
 
 ## Prompt-Improvement Harness (s7)

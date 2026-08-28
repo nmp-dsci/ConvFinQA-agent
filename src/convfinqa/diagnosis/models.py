@@ -54,6 +54,7 @@ class FixAttempt(BaseModel):
 
     @property
     def pred_answer(self) -> str:
+        """Answer from the final turn, or empty when no turn ran."""
         if not self.turn_results:
             return ""
         idx = (

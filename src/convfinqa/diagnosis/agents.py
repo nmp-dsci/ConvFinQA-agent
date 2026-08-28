@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import re
+from functools import cache
+from typing import Any
 
 from pydantic_ai import Agent
 from pydantic_ai.output import PromptedOutput
 
-from convfinqa.backends.pydantic import LM_MAX
+from convfinqa.backends.pydantic import lm_max
 from convfinqa.diagnosis.models import (
     FixPayload,
     FixProposal,
@@ -22,38 +24,46 @@ from convfinqa.diagnosis.prompts import (
     FIX_TRIAGE_SYSTEM_PROMPT,
 )
 
-diagnostic_router_agent = Agent(
-    LM_MAX,
-    output_type=PromptedOutput(RouterDiagnosis),
-    instructions=DIAGNOSTIC_ROUTER_SYSTEM_PROMPT,
-)
-triage_fix_agent = Agent(
-    LM_MAX,
-    output_type=PromptedOutput(FixProposal),
-    instructions=FIX_TRIAGE_SYSTEM_PROMPT,
-)
-preprocess_fix_agent = Agent(
-    LM_MAX,
-    output_type=PromptedOutput(FixProposal),
-    instructions=FIX_PREPROCESS_SYSTEM_PROMPT,
-)
-retriever_fix_agent = Agent(
-    LM_MAX,
-    output_type=PromptedOutput(FixProposal),
-    instructions=FIX_RETRIEVER_SYSTEM_PROMPT,
-)
-calculator_fix_agent = Agent(
-    LM_MAX,
-    output_type=PromptedOutput(FixProposal),
-    instructions=FIX_CALCULATOR_SYSTEM_PROMPT,
-)
+# Built lazily, like the pipeline agents: constructing a model demands a key,
+# and the s7 module is imported by the CLI and the admin API in processes that
+# may never run a round. `functools.cache` keeps it to one construction.
 
-FIX_AGENTS: dict[str, Agent] = {
-    "triage": triage_fix_agent,
-    "preprocess": preprocess_fix_agent,
-    "retriever": retriever_fix_agent,
-    "calculator": calculator_fix_agent,
-}
+
+@cache
+def _agents() -> dict[str, Agent[None, Any]]:
+    """Router + four specialist Fix agents, all on the flagship model."""
+    model = lm_max()
+    return {
+        "router": Agent(
+            model,
+            output_type=PromptedOutput(RouterDiagnosis),
+            instructions=DIAGNOSTIC_ROUTER_SYSTEM_PROMPT,
+        ),
+        "triage": Agent(
+            model,
+            output_type=PromptedOutput(FixProposal),
+            instructions=FIX_TRIAGE_SYSTEM_PROMPT,
+        ),
+        "preprocess": Agent(
+            model,
+            output_type=PromptedOutput(FixProposal),
+            instructions=FIX_PREPROCESS_SYSTEM_PROMPT,
+        ),
+        "retriever": Agent(
+            model,
+            output_type=PromptedOutput(FixProposal),
+            instructions=FIX_RETRIEVER_SYSTEM_PROMPT,
+        ),
+        "calculator": Agent(
+            model,
+            output_type=PromptedOutput(FixProposal),
+            instructions=FIX_CALCULATOR_SYSTEM_PROMPT,
+        ),
+    }
+
+
+FIX_AGENT_NAMES = ("triage", "preprocess", "retriever", "calculator")
+
 
 _FORBIDDEN_TOKENS = re.compile(
     r"\b(def\s|import\s|class\s|Agent\(|model\s*=|temperature\s*=|tools\s*=|pipeline)\b"
@@ -61,20 +71,21 @@ _FORBIDDEN_TOKENS = re.compile(
 
 
 async def route_case(payload: RouterPayload) -> RouterDiagnosis:
-    """Step 1 — Diagnose: classify-only. One LM_MAX call per case."""
-    result = await diagnostic_router_agent.run(payload.model_dump_json())
-    return result.output
+    """Step 1 — Diagnose: classify-only. One flagship-model call per case."""
+    result = await _agents()["router"].run(payload.model_dump_json())
+    diagnosis: RouterDiagnosis = result.output
+    return diagnosis
 
 
 async def propose_fix(failed_agent: str, payload: FixPayload) -> FixProposal:
     """Step 2 — Route+Fix: dispatch to the specialist for failed_agent."""
-    if failed_agent not in FIX_AGENTS:
+    if failed_agent not in FIX_AGENT_NAMES:
         raise ValueError(
             f"propose_fix called with unknown failed_agent={failed_agent!r}; "
-            f"expected one of {list(FIX_AGENTS)}"
+            f"expected one of {list(FIX_AGENT_NAMES)}"
         )
-    result = await FIX_AGENTS[failed_agent].run(payload.model_dump_json())
-    proposal = result.output
+    result = await _agents()[failed_agent].run(payload.model_dump_json())
+    proposal: FixProposal = result.output
     if _FORBIDDEN_TOKENS.search(proposal.rule):
         # Hard-constraint guard: scrub the rule and downgrade confidence so
         # the harness routes the case to unresolved.

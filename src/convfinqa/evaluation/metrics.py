@@ -8,6 +8,7 @@ three runners (api_eval, pydantic_agent, dspy_agent) cannot diverge.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -37,12 +38,21 @@ def numeric_match(pred: Any, gold: Any) -> bool:
        output "90.9" when the gold answer is "0.9091".
 
     Non-numeric inputs fall back to case-insensitive string comparison.
+
+    A NaN or infinite value on either side is never a match. `float("nan")`
+    parses cleanly and then explodes in `round()`, so it has to be rejected here
+    rather than caught by the parse guard — a missing prediction reaches this
+    function as the literal string "nan" whenever a conversation errored out and
+    its row was written with an empty answer.
     """
     try:
         pv, p_is_pct = _to_float(str(pred))
         gv, g_is_pct = _to_float(str(gold))
     except (ValueError, TypeError):
         return str(pred).strip().lower() == str(gold).strip().lower()
+
+    if not (math.isfinite(pv) and math.isfinite(gv)):
+        return False
 
     # Rule 1: integer-rounded equality
     if round(pv) == round(gv):

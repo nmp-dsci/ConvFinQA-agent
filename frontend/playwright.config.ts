@@ -19,7 +19,10 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: `cd .. && uv run python cli.py serve --port ${PORT_BACKEND}`,
+      // `cli.py` has not existed since the package migration. The backend is
+      // the FastAPI factory, and --workers 1 is load-bearing: session state
+      // lives in process memory.
+      command: `cd .. && uv run python -m uvicorn convfinqa.serving.app:create_app --factory --workers 1 --port ${PORT_BACKEND}`,
       url: `http://127.0.0.1:${PORT_BACKEND}/healthz`,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,

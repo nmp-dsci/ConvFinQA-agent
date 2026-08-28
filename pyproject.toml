@@ -9,19 +9,13 @@ dependencies = [
   "httpx>=0.28,<0.29",
   "typer==0.12.0",
   "click==8.1.7",
+  "questionary>=2.1.1",
   "dotenv>=0.9.9",
   "pandas>=2.2.3",
   "pydantic>=2.11.4",
   "pydantic-settings>=2.0",
   "ruff>=0.11.10",
   "mypy>=1.15.0",
-  "pylit>=0.8.0",
-  "anthropic>=0.83.0",
-  "matplotlib>=3.9.4",
-  "questionary>=2.1.1",
-  "mcp>=1.26.0",
-  "nest-asyncio>=1.6.0",
-  "claude-agent-sdk>=0.1.56",
   "pydantic-ai>=0.2",
   "logfire[fastapi,httpx,pydantic-ai]>=3.0.0",
   "tenacity>=8.0.0",
@@ -36,13 +30,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/convfinqa", "scripts", "prompt_optim"]
+packages = ["src/convfinqa", "scripts"]
 
 [project.scripts]
 convfinqa-eval = "scripts.evaluate:main"
 convfinqa-eval-api = "scripts.evaluate_api:main"
 convfinqa-optimize = "scripts.optimize:main"
 convfinqa-serve = "scripts.serve:main"
+convfinqa-diagnose = "convfinqa.diagnosis.cli:main"
+convfinqa-mlflow = "convfinqa.tracking.cli:main"
+convfinqa-demo-pack = "convfinqa.serving.demo_pack.cli:main"
 
 
 [tool.ruff]
@@ -86,6 +83,20 @@ extend-select = [
     "T201",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Tests document themselves through their names; docstring rules add noise
+# without adding information. `print` is legitimate output in CLI scripts.
+"tests/**" = ["D101", "D102", "D103"]
+# `print` is the output of a command-line tool, not a stray debug statement.
+"scripts/**" = ["T201"]
+"src/convfinqa/**/cli.py" = ["T201"]
+"src/convfinqa/tracking/gate.py" = ["T201"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
 [tool.mypy]
 disallow_any_generics = true
 disallow_untyped_defs = true
@@ -95,7 +106,12 @@ show_error_codes = true
 strict = false
 warn_return_any = true
 plugins = ['pydantic.mypy']
-packages = ["src"]
+# `packages = ["src"]` looked right but silently defeated the whole check:
+# `src` is not the package, `src/convfinqa` is. Every intra-package import
+# then fell through `ignore_missing_imports` and resolved to Any, so the
+# strictest settings above applied to almost nothing.
+mypy_path = "src"
+packages = ["convfinqa"]
 
 [dependency-groups]
 dev = [

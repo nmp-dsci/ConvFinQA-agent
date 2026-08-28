@@ -1,0 +1,726 @@
+<title>ConvFinQA Production Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F6F8F4;
+    --surface: #FFFFFF;
+    --surface-2: #EFF3EE;
+    --ink: #1A231F;
+    --muted: #5B6862;
+    --line: #DCE3DC;
+    --line-strong: #B9C4BB;
+    --accent: #0E7A5C;
+    --accent-soft: #E1EFE9;
+    --crit: #B3442E;
+    --crit-soft: #F5E6E1;
+    --warn: #96660F;
+    --warn-soft: #F4ECDA;
+    --code-bg: #EEF2ED;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1513;
+      --surface: #171E1B;
+      --surface-2: #1D2622;
+      --ink: #E5ECE7;
+      --muted: #94A29A;
+      --line: #2A342E;
+      --line-strong: #40504A;
+      --accent: #43BD96;
+      --accent-soft: #17352C;
+      --crit: #E0836C;
+      --crit-soft: #3A231D;
+      --warn: #D9AC55;
+      --warn-soft: #34290F;
+      --code-bg: #1B2420;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1513;
+    --surface: #171E1B;
+    --surface-2: #1D2622;
+    --ink: #E5ECE7;
+    --muted: #94A29A;
+    --line: #2A342E;
+    --line-strong: #40504A;
+    --accent: #43BD96;
+    --accent-soft: #17352C;
+    --crit: #E0836C;
+    --crit-soft: #3A231D;
+    --warn: #D9AC55;
+    --warn-soft: #34290F;
+    --code-bg: #1B2420;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 24px 96px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  .measure { max-width: 720px; }
+  h1, h2, h3 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 500;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: 46px; letter-spacing: -0.01em; }
+  h2 { font-size: 30px; margin: 0 0 14px; }
+  h3 { font-size: 21px; margin: 26px 0 8px; }
+  p { margin: 0 0 16px; }
+  a { color: var(--accent); }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  header.hero { padding: 72px 0 8px; border-bottom: 1px solid var(--line-strong); margin-bottom: 8px; }
+  .standfirst {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 21px;
+    line-height: 1.45;
+    color: var(--muted);
+    max-width: 680px;
+    margin: 18px 0 34px;
+  }
+  .statstrip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: -1px;
+  }
+  .stat { background: var(--surface); padding: 14px 16px 12px; }
+  .stat .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .stat .l { font-size: 12.5px; color: var(--muted); line-height: 1.35; display: block; margin-top: 2px; }
+  .stat .n.good { color: var(--accent); }
+  .stat .n.bad { color: var(--crit); }
+  section { padding: 44px 0 12px; }
+  section + section { border-top: 1px solid var(--line); }
+  figure { margin: 28px 0; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13.5px; color: var(--muted); margin-top: 10px; max-width: 720px; }
+  .scroll-x { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 14px 8px 0;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .pill.ok   { background: var(--accent-soft); color: var(--accent); }
+  .pill.crit { background: var(--crit-soft); color: var(--crit); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  code, .mono {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.88em;
+  }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+    border-radius: 4px;
+  }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 22px; margin: 0 0 16px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--muted); }
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 14.5px;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .phase {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 0 22px;
+    padding: 22px 0;
+    border-top: 1px solid var(--line);
+  }
+  .phase:first-of-type { border-top: 1px solid var(--line-strong); }
+  .phase .no {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .phase .no small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.06em; }
+  .phase h3 { margin: 0 0 6px; }
+  .phase p.exit { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; }
+  .phase p.exit strong { color: var(--ink); font-weight: 600; }
+  .phase ul { font-size: 14.5px; margin-bottom: 6px; }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 34px; }
+  @media (max-width: 700px) { .cols2 { grid-template-columns: 1fr; } }
+  .srcnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 48px; padding-top: 16px; }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Architecture review &amp; delivery plan · 27 Aug 2026</p>
+  <h1>ConvFinQA Production Plan</h1>
+  <p class="standfirst">The research core is done and the numbers are real — a four-stage agent pipeline at 77.1% held-out execution accuracy, with a committed eval cache and a self-improving prompt harness. What is missing is everything that makes it an operable product: deployment, auth, resilience, experiment tracking, and gates. Both of those halves already exist in this portfolio — the siblings solved production, this repo solved the model. The plan is to merge them.</p>
+  <div class="statstrip">
+    <div class="stat"><span class="n good">77.1%</span><span class="l">v2 exec accuracy, 770-question held-out set (73.0% baseline)</span></div>
+    <div class="stat"><span class="n">7,457</span><span class="l">LOC in src/convfinqa, 46 files</span></div>
+    <div class="stat"><span class="n">56</span><span class="l">tests, all zero-network</span></div>
+    <div class="stat"><span class="n">46 MB</span><span class="l">committed eval cache — reproducible with no API calls</span></div>
+    <div class="stat"><span class="n bad">0</span><span class="l">Dockerfiles, deploy workflows, auth checks, MLflow runs</span></div>
+  </div>
+</header>
+
+<!-- ============ 1. TODAY ============ -->
+<section>
+  <p class="eyebrow">01 · Where it stands</p>
+  <h2>The system today</h2>
+  <div class="measure">
+    <p>Every turn of a conversation runs a four-stage pipeline over DeepSeek <code>v4-flash</code>. Triage classifies the turn; number turns take a two-call path, program turns a four-call path ending in a tool-calling calculator over the six ConvFinQA DSL operations. Two backends implement the same stages: <strong>Pydantic AI</strong> is the serving path, <strong>DSPy</strong> exists for GEPA optimization.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 920 330" role="img" aria-label="Current pipeline: a question passes triage, then either a two-call number path through the retriever, or a four-call program path through preprocess, retriever, and a tool-calling calculator; both paths end at the answer. Every stage call goes to DeepSeek v4-flash, and per-stage IO is captured into committed prediction CSVs.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="20"  y="125" width="120" height="52" rx="3"/>
+        <rect x="200" y="125" width="110" height="52" rx="3"/>
+        <rect x="380" y="35"  width="120" height="52" rx="3"/>
+        <rect x="380" y="215" width="130" height="52" rx="3"/>
+        <rect x="560" y="215" width="120" height="52" rx="3"/>
+        <rect x="720" y="215" width="140" height="52" rx="3"/>
+        <rect x="740" y="35"  width="120" height="52" rx="3" stroke-width="2.2"/>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="13" fill="currentColor" text-anchor="middle">
+        <text x="80"  y="147">question +</text><text x="80" y="163">history</text>
+        <text x="255" y="155" font-weight="600">triage</text>
+        <text x="440" y="57" font-weight="600">retriever</text><text x="440" y="73" font-size="11">value lookup</text>
+        <text x="445" y="237" font-weight="600">preprocess</text><text x="445" y="253" font-size="11">sub-Qs + DSL plan</text>
+        <text x="620" y="237" font-weight="600">retriever</text><text x="620" y="253" font-size="11">per sub-question</text>
+        <text x="790" y="237" font-weight="600">calculator</text><text x="790" y="253" font-size="11">tool loop · 6 DSL ops</text>
+        <text x="800" y="57" font-weight="600">answer</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#arr)">
+        <line x1="140" y1="151" x2="196" y2="151"/>
+        <path d="M310,140 C340,110 345,75 376,63"/>
+        <path d="M310,162 C340,192 345,228 376,240"/>
+        <line x1="500" y1="61" x2="736" y2="61"/>
+        <line x1="510" y1="241" x2="556" y2="241"/>
+        <line x1="680" y1="241" x2="716" y2="241"/>
+        <path d="M860,215 C880,170 880,120 810,91"/>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity="0.75">
+        <text x="330" y="88">number turn · 2 calls</text>
+        <text x="316" y="212">program turn · 4 calls</text>
+      </g>
+      <g>
+        <rect x="20" y="296" width="840" height="1" fill="currentColor" opacity="0.25"/>
+        <text x="20" y="320" font-family="'IBM Plex Mono',monospace" font-size="11.5" fill="currentColor" opacity="0.8">every stage call → DeepSeek v4-flash (single provider, no retry/timeout) · per-stage IO captured → committed prediction CSVs</text>
+      </g>
+    </svg>
+    <figcaption>The runtime pipeline (<code>pipeline/runner.py</code>). The capture mechanism that writes per-stage IO into the prediction CSVs is the same asset the demo replay packs will be built from.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <p>Around that pipeline sits an unusually strong <strong>research apparatus</strong>: a cached eval harness whose outputs are committed to git (v1/v2/v3_1 reproduce with zero API calls), two GEPA optimization runs in <code>runs/</code>, and the s7 diagnosis harness — a Diagnose → Route+Fix → Verify loop that mines failing cases into per-agent prompt rules and regenerates prompt variants. The serving layer is a FastAPI app (sessions, SSE streaming ask, eval read APIs) with a React chat + eval-explorer frontend.</p>
+    <p>Headline results, on the 770-question held-out sample the optimizer never trained on: <span class="mono">v1 73.0% → v2 (GEPA) 77.1% → v3_1 (s7) 76.2%</span>. v2 is champion; v3_1 is a published negative result worth keeping visible — the harness worked mechanically, but rules verified against single cases over-fitted.</p>
+  </div>
+</section>
+
+<!-- ============ 2. SCORECARD ============ -->
+<section>
+  <p class="eyebrow">02 · The gap</p>
+  <h2>Production scorecard</h2>
+  <div class="measure">
+    <p>Audited against the production-readiness checklist in <code>ai-engineer-fit</code> (which already scores this repo: CI ✗, container ✗, IaC ✗, deployed ✗, cost tracking ✗, resilience ✗) plus the deep review. Evidence is from the current tree.</p>
+  </div>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Dimension</th><th>Status</th><th>Today — evidence</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Deployment</strong></td><td><span class="pill crit">absent</span></td><td>No Dockerfile, compose, Terraform, or deploy workflow. Server binds <code>127.0.0.1</code>.</td><td>Single container on App Runner, demo mode, Terraform + OIDC deploys</td></tr>
+      <tr><td><strong>Auth &amp; abuse controls</strong></td><td><span class="pill crit">absent</span></td><td>Zero auth on any route; no rate limits; CORS is localhost-only.</td><td>Demo gate + per-IP limits + concurrency cap; owner door for dev</td></tr>
+      <tr><td><strong>LLM resilience</strong></td><td><span class="pill crit">absent</span></td><td>Single DeepSeek endpoint, no retry/timeout/budget; <code>tenacity</code> declared, unused.</td><td>Retry + backoff + timeouts + per-session token budget at one choke point</td></tr>
+      <tr><td><strong>Experiment tracking</strong></td><td><span class="pill crit">absent</span></td><td><code>mlflow&gt;=3.11.1</code> in pyproject, referenced nowhere. Runs live as bespoke CSV/JSON.</td><td>MLflow runs for every eval/GEPA/s7 run + prompt-bundle registry</td></tr>
+      <tr><td><strong>CI gates</strong></td><td><span class="pill warn">partial</span></td><td>Tests + frontend build only. Ruff/format gates disabled in-file; no eval gate (both are TODOs in <code>ci.yml</code>).</td><td>Lint, types, offline eval-regression gate, docker build, tf plan</td></tr>
+      <tr><td><strong>Reproducibility</strong></td><td><span class="pill warn">partial</span></td><td><code>uv.lock</code> gitignored (unpinned CI); <code>frontend/node_modules</code> committed — 4,223 tracked files.</td><td>Lockfile committed; node_modules untracked</td></tr>
+      <tr><td><strong>Sessions</strong></td><td><span class="pill warn">partial</span></td><td>In-process dict + <code>asyncio.Lock</code>; hard <code>--workers 1</code>; lost on restart.</td><td>Acceptable for a 1-instance demo; put behind an interface for Redis later</td></tr>
+      <tr><td><strong>Observability &amp; cost</strong></td><td><span class="pill warn">partial</span></td><td>Logfire on serving only; evals/harness use <code>print()</code>. No token/cost accounting anywhere.</td><td>Spans + token/cost metrics on every path; billing alarm in AWS</td></tr>
+      <tr><td><strong>Config hygiene</strong></td><td><span class="pill warn">partial</span></td><td>Import-time <code>Settings()</code> hard-fails without an API key (CI injects a placeholder); 21 MB dataset parsed at import; cwd-relative paths (<code>data/</code>, <code>runs/</code>).</td><td>Lazy settings, packaged paths, boots keyless in demo mode</td></tr>
+      <tr><td><strong>Evaluation</strong></td><td><span class="pill ok">strong</span></td><td>Committed, reproducible, held-out-disciplined, with slices by turn type / conv type / question order.</td><td>Same, wired into MLflow and enforced as a CI floor</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout warn measure">
+    <strong>Small defects to clear while in there</strong>
+    A leaked 99-byte test-fixture (<code>evaluation/predictions/api_predictions_v2.csv</code>) sits in a directory the API globs for run discovery; Playwright's webServer still launches the deleted root <code>cli.py</code>; AGENTS.md documents retired model names (<code>deepseek-chat</code>/<code>-reasoner</code>) and a renamed spec directory; <code>run_turn</code>/<code>stream_turn</code> are hand-synced duplicates of the same flow.
+  </div>
+</section>
+
+<!-- ============ 3. TARGET ============ -->
+<section>
+  <p class="eyebrow">03 · Target architecture</p>
+  <h2>One image, two modes</h2>
+  <div class="measure">
+    <p>Both siblings converged on the same doctrine, and ConvFinQA should adopt it wholesale: <strong>build one container image that carries everything pre-computed, and let a single environment flag decide whether the LLM exists.</strong> Dev runs the full system with keys from <code>~/.env</code>; the public AWS deployment runs the identical image with <code>DEMO_MODE=1</code> and <em>no keys at all</em> — the gate is belt-and-braces because there is nothing to steal.</p>
+    <p>ConvFinQA is the easiest of the three to deploy this way: it has <strong>no database</strong>. The dataset, prediction CSVs, replay packs, and MLflow export are all files, so the transcript-rag-agent pattern applies directly — one App Runner service, frontend <code>dist/</code> served by FastAPI, no VPC, no Aurora, no Secrets Manager.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 920 430" role="img" aria-label="One container image holds the FastAPI app, built frontend, dataset, replay packs, eval snapshots and MLflow export. It deploys two ways: locally with DEMO_MODE=0 and API keys for live LLM calls, recording, and optimization; and to AWS App Runner with DEMO_MODE=1 and no keys, where ask requests replay recorded packs and all admin surfaces are read-only.">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <!-- image box -->
+      <g fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="200" y="20" width="520" height="130" rx="4"/>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="12" fill="currentColor">
+        <text x="216" y="44" font-weight="600">container image (multi-stage: node build → python-slim)</text>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-width="1" opacity="0.7">
+        <rect x="216" y="58" width="150" height="34" rx="3"/>
+        <rect x="378" y="58" width="160" height="34" rx="3"/>
+        <rect x="550" y="58" width="152" height="34" rx="3"/>
+        <rect x="216" y="100" width="150" height="34" rx="3"/>
+        <rect x="378" y="100" width="160" height="34" rx="3"/>
+        <rect x="550" y="100" width="152" height="34" rx="3"/>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="11.5" fill="currentColor" text-anchor="middle">
+        <text x="291" y="79">FastAPI + pipeline</text>
+        <text x="458" y="79">frontend dist/ (static)</text>
+        <text x="626" y="79">dataset (21 MB)</text>
+        <text x="291" y="121">demo replay packs</text>
+        <text x="458" y="121">eval CSVs + diagnostics</text>
+        <text x="626" y="121">MLflow snapshot JSON</text>
+      </g>
+      <!-- arrows down -->
+      <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#arr2)">
+        <path d="M330,150 L240,196"/>
+        <path d="M590,150 L680,196"/>
+      </g>
+      <!-- dev lane -->
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="30" y="200" width="400" height="200" rx="4"/>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="12" fill="currentColor">
+        <text x="46" y="226" font-weight="600">dev · laptop / compose</text>
+        <text x="46" y="246" opacity="0.8">DEMO_MODE=0 · keys in ~/.env</text>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="12.5" fill="currentColor">
+        <text x="46" y="278">· live DeepSeek calls, full chat + streaming</text>
+        <text x="46" y="300">· research console: launch GEPA / s7 rounds → MLflow</text>
+        <text x="46" y="322">· record demo packs from real sessions</text>
+        <text x="46" y="344">· promote champion / challenger bundles</text>
+        <text x="46" y="366">· owner door: token auth on admin writes</text>
+      </g>
+      <!-- demo lane -->
+      <g fill="none" style="stroke: var(--accent)" stroke-width="1.8">
+        <rect x="490" y="200" width="400" height="200" rx="4"/>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="12" style="fill: var(--accent)">
+        <text x="506" y="226" font-weight="600">demo · AWS App Runner (public)</text>
+        <text x="506" y="246">DEMO_MODE=1 · zero provider keys</text>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="12.5" fill="currentColor">
+        <text x="506" y="278">· POST ask → replay pack, identical SSE frames</text>
+        <text x="506" y="300">· splits, answers, traces, experiments: live reads</text>
+        <text x="506" y="322">· writes → 403 “demo”; controls visible but inert</text>
+        <text x="506" y="344">· per-IP rate limits + global concurrency cap</text>
+        <text x="506" y="366">· ECR + 5xx alarm + billing alarm, no VPC/DB</text>
+      </g>
+    </svg>
+    <figcaption>The deployment thesis: the diff between dev and the public demo is one env var and the absence of keys — never a separate codebase or build.</figcaption>
+  </figure>
+
+  <div class="callout measure">
+    <strong>Why this shape wins</strong>
+    It is the proven pattern one directory over: data-qa-agent runs <code>DEMO_MODE</code> through a single LLM choke point with recorded replay packs baked into the image; transcript-rag-agent deploys keyless to App Runner with a deny-by-default method gate and everything pre-computed. Reusing their Terraform bootstrap, tfstate bucket, OIDC role pattern, and smoke-test discipline cuts this from a project to a porting exercise.
+  </div>
+</section>
+
+<!-- ============ 4. DEMO MODE ============ -->
+<section>
+  <p class="eyebrow">04 · Demo mode</p>
+  <h2>Replay, don't fake</h2>
+  <div class="measure">
+    <p>The demo must feel like the real product. The trick both siblings use: record real LLM sessions in dev, ship the recordings in the image, and replay them through the <em>same SSE frame types</em> the live path emits — the frontend cannot tell the difference. ConvFinQA is uniquely well-positioned: <code>stream_turn</code> already emits typed events (<code>stage_start</code> / <code>stage_output</code> / <code>tool_call</code> / <code>tool_return</code> / <code>answer</code>), and every committed prediction row already carries full per-stage IO. The demo pack is nearly free.</p>
+    <h3>Mechanism</h3>
+    <ul>
+      <li><strong>One flag, one choke point.</strong> <code>settings.demo_mode</code>, checked in a single module every LLM call passes through — a <code>_demo_blocked()</code> that raises <code>501 not_available_demo</code>. Handlers cannot route around it. Tested both ways ("LLM functions untouched outside demo").</li>
+      <li><strong>Recorder.</strong> A <code>demo_pack</code> CLI exports selected recorded conversations (per showcase report: question, per-stage IO, tool calls, final answer) into PR-reviewed JSON under <code>src/convfinqa/serving/demo_pack/</code>. Curate 6–10 reports that show off number turns, multi-step programs, and cross-turn reference resolution.</li>
+      <li><strong>Replay.</strong> In demo mode, <code>ask/stream</code> resolves the question against the pack for the active report — exact gold-question match first, fuzzy (SequenceMatcher + Jaccard blend, honest miss below threshold) second — then synthesizes the same event sequence, paced at a few hundred ms per stage so a real 30–60 s turn plays in ~4 s.</li>
+      <li><strong>Keep the non-LLM half genuinely live.</strong> Report browsing, document viewer, gold questions, the eval explorer, and the admin portal all read committed files — they stay fully functional, which is what makes the demo honest.</li>
+      <li><strong>Frontend: flag, don't hide.</strong> <code>/healthz</code> reports <code>mode: demo</code>; a <code>DemoGate</code> wraps free-composer input in a real <code>&lt;fieldset disabled&gt;</code> with a "demo replay" chip, and steers users to a chip rail of available showcase questions (<code>GET /demo/questions</code>). Stable error codes (<code>not_available_demo</code>, <code>demo_rate_limited</code>, <code>demo_full</code>) map to friendly copy.</li>
+      <li><strong>Abuse controls</strong> (cheapest check first): global in-flight concurrency cap → per-IP sliding-window limits (in-memory is <em>correct</em> here because App Runner max-size=1) → method-level deny of writes. Session TTL eviction already exists.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 5. MLFLOW ============ -->
+<section>
+  <p class="eyebrow">05 · Experiment tracking</p>
+  <h2>MLflow as the system of record</h2>
+  <div class="measure">
+    <p>MLflow is already a declared dependency — it has just never been called. The design principle (from the production playbook material): <strong>version the whole bundle together</strong>. A "model version" here is not a model checkpoint — it is a <em>prompt bundle</em>:</p>
+  </div>
+  <pre><code>bundle = {
+  prompts_version:  "v2",                      # or variant, e.g. v3_1
+  gepa_overlay:     "gepa_real_20260502_005251" | null,
+  lm_mini:          "deepseek-v4-flash",
+  lm_max:           "deepseek-v4-pro",
+  dataset_hash:     sha256(convfinqa_dataset.json)[:12],
+  code_sha:         git short sha,
+}</code></pre>
+  <div class="measure">
+    <p>A small <code>bundle_fingerprint()</code> module computes this once and stamps it everywhere: every MLflow run, every prediction CSV, every serving session (data-qa-agent's <code>agent_version.py</code> is the template — every answer attributable to the exact build that produced it).</p>
+    <h3>What gets logged</h3>
+    <ul>
+      <li><strong>Eval runs</strong> (<code>evaluation/runner.py</code>) — one MLflow run per version scored: bundle params; metrics = overall accuracy + every slice already computed (turn_type, conv_type, question order); artifacts = the prediction + joined CSVs and the HTML report.</li>
+      <li><strong>GEPA runs</strong> (<code>optimization/gepa.py</code>) — params (mode, metric-call budget, train/val sizes), the val-score trajectory as step metrics, <code>optimized_runner.json</code> as an artifact. Backfill the two committed runs in <code>runs/</code> so history starts populated.</li>
+      <li><strong>s7 harness runs</strong> (<code>diagnosis/harness.py</code>) — cases diagnosed / resolved / unresolved as metrics, promoted-rule counts per agent, rules + attempts JSONL and the diagnostic HTML as artifacts.</li>
+      <li><strong>Registry.</strong> Register <code>convfinqa-pipeline</code>; each version is a bundle; aliases <code>champion</code> (v2 today) and <code>challenger</code>. Promotion is not a click — it requires the regression comparator to pass: <strong>overall accuracy ≥ champion AND no per-question pass→fail flips</strong>. "Fixed number turns, broke programs" can never score as a win.</li>
+    </ul>
+    <h3>The promotion lifecycle</h3>
+    <p>The full loop, end to end — this is the contract the registry enforces:</p>
+    <ol>
+      <li><strong>Every new bundle is registered</strong> — whether it came from hand-edited prompts, an s7 auto-research round, or a DSPy/GEPA run. Its full spec (params, prompt sources, optimizer artifacts) is captured at registration and <em>never deleted</em> — past champions and failed challengers keep their spec and eval artifacts forever.</li>
+      <li><strong>It is evaluated on the same 770-question held-out set</strong> the optimizer never saw, producing a scored MLflow run linked to the version.</li>
+      <li><strong>The comparator decides promotion.</strong> The first version becomes champion by default; after that a challenger is promoted only if overall accuracy ≥ champion <em>and</em> no per-question pass→fail flips. (Strictly "beats the champion" is not quite enough — the flip check is what stops "fixed number turns, broke programs" sneaking through.)</li>
+      <li><strong>Promotion is an append-only event</strong> — an alias move recorded with timestamp, comparator verdict, and the runs it was based on. The registry view shows the whole promotion history; nothing is overwritten.</li>
+      <li><strong>History is backfilled once, then captured automatically.</strong> v1/v2/v3_1 evals and both committed GEPA runs are reconstructable from git and get backfilled in Phase 2. Everything after that is captured by construction, because logging lives inside the eval/GEPA/s7 runners themselves — not in operator discipline.</li>
+    </ol>
+    <p><strong>Backend: file store, not a server.</strong> <code>file:./mlruns</code> locally (gitignored, like <code>.dspy_cache</code>). For the demo, an export step writes a compact <code>mlflow_snapshot.json</code> (runs, params, metrics, no heavy artifacts) that is committed and baked into the image — the admin portal reads the snapshot in demo mode and the live store in dev. No tracking server to run, secure, or pay for.</p>
+  </div>
+</section>
+
+<!-- ============ 6. FRONTEND ============ -->
+<section>
+  <p class="eyebrow">06 · Frontend</p>
+  <h2>The product surface of a gen-AI system</h2>
+  <div class="measure">
+    <p>The existing React app (chat + eval explorer, Zustand, SSE streaming) is a solid base, but the target is a frontend where you can <em>see how the agent works</em>, not just talk to it. Five surfaces:</p>
+    <h3>Chat — ask the agent</h3>
+    <ul>
+      <li><strong>Select a report, then ask.</strong> The existing flow stays: pick a financial report (ReportPicker), then either type free-form questions or run the conversation's preset gold questions from the dataset turn by turn — the run-all-gold batch mode the app already has — watching the four stages stream. Live against the champion bundle in dev; replayed from packs in demo.</li>
+    </ul>
+    <h3>Traces — how the agent is working</h3>
+    <ul>
+      <li><strong>Every agent run is traced and browsable.</strong> A lightweight run-trace store (SQLite/JSONL) persists what the <code>capture</code> dict already produces — per-stage input/output/reasoning, tool calls, plus tokens and latency per stage — for every serving turn <em>and</em> every eval-run row. Logfire stays the deep external trace; this is the in-app view.</li>
+      <li><strong>Trace viewer</strong> — pick any conversation turn (live session or eval run) and see the stage timeline: triage decision → preprocess plan → retrieved values → calculator tool loop → answer, with gold comparison where one exists. This is the "why did it answer that" surface.</li>
+    </ul>
+    <h3>Data &amp; answers explorer</h3>
+    <ul>
+      <li><strong>Dataset splits made visible</strong> — the train sample (200 conversations the optimizer saw), the 770-question held-out set, and each conversation's membership clearly badged. The held-out discipline becomes something you can point at, not just claim.</li>
+      <li><strong>All the answers</strong> — per conversation: every question, gold answer + program, and each version's predicted answer/program side by side (v1 / v2 / v3_1 / …), with correct/incorrect marks and a link into the trace for that turn. Fully live in demo — it all reads committed CSVs.</li>
+    </ul>
+    <h3>Experiments &amp; model versioning — champion / challenger</h3>
+    <ul>
+      <li><strong>Experiments table</strong> — every MLflow run (eval / GEPA / s7), sortable, with bundle params, headline metric, and status; served by <code>/admin/experiments</code> endpoints that read the live store in dev and the baked snapshot in demo.</li>
+      <li><strong>Accuracy trend</strong> — overall + per-slice accuracy across versions, the champion marked; the honest chart that shows v3_1 dipping.</li>
+      <li><strong>Run detail &amp; diff</strong> — params, all slice metrics, links into the prediction viewer for the exact CSV behind the run; side-by-side diff of two runs with per-slice deltas and the pass→fail flip list.</li>
+      <li><strong>Registry view</strong> — bundle versions with <span class="mono">champion</span>/<span class="mono">challenger</span> aliases and promotion history; promote is owner-gated in dev (and only enabled when the regression comparator passes), visible-but-inert in demo.</li>
+      <li><strong>Rules browser</strong> — the s7 rule stores per agent (rule text, verified-on case, attempts), currently only visible by reading JSONL.</li>
+    </ul>
+    <h3>Research console — dev only</h3>
+    <ul>
+      <li><strong>Kick off a round of auto-research from the app</strong>: launch an s7 diagnosis round (with limit/retry knobs) or a GEPA smoke run as a background job — <code>POST /admin/research/start</code>, owner-token gated, one job at a time, progress streamed over the same SSE machinery the chat uses.</li>
+      <li>Results land as MLflow runs and appear in the experiments tab as the new challenger; the demo shows the console with completed rounds and their outcomes, launch controls inert.</li>
+    </ul>
+    <h3>Landing page — the front door in both modes</h3>
+    <p>Modeled on the siblings' entry pages: a standalone landing route that presents the project before the app — name, one-line pitch, the headline metric (73.0% → 77.1% held-out), and cards for what is inside (chat, data &amp; answers, traces, experiments, research). It reads <code>/healthz</code> at runtime, so the same build adapts to the deployment with no rebuild:</p>
+    <ul>
+      <li><strong>Dev:</strong> "Open app" goes straight through to the live product — ask questions against any report, launch auto-research rounds from the research console, inspect traces and experiments; admin writes unlock with the owner token.</li>
+      <li><strong>Demo:</strong> an "Enter demo" card explains what is genuinely live (splits, answers, traces, experiments) and what is replayed (chat), then opens the <em>same app read-only</em> — every function visible, all write and launch controls inert behind <code>DemoGate</code>, with a discreet owner sign-in kept off to the side, like data-qa-agent's hidden owner door.</li>
+    </ul>
+    <p>A mode chip stays in the header throughout the app; the composer gets the <code>DemoGate</code> treatment and a showcase-question chip rail per report in demo.</p>
+    <h3>Production build path</h3>
+    <p>FastAPI mounts <code>frontend/dist</code> (SPA fallback to <code>index.html</code>) so one container serves everything; <code>VITE_API_URL</code> becomes same-origin and the dev-only Vite proxy list stops being a production concern. Fix the Playwright webServer command while in there.</p>
+  </div>
+</section>
+
+<!-- ============ 7. CI/CD ============ -->
+<section>
+  <p class="eyebrow">07 · CI/CD</p>
+  <h2>The ship path</h2>
+  <div class="measure">
+    <p>The current CI (tests + frontend build) grows into a gate wall on every PR, and a deploy workflow on main. The load-bearing addition is the <strong>offline eval-regression gate</strong> — the pattern from transcript-rag-agent's <code>test_committed_runs.py</code>: because prediction CSVs are committed, CI can re-score them deterministically with zero API calls and fail if the champion's floor regresses or any case flips pass→fail. A prompt change that silently degrades 77.1% cannot merge.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 920 300" role="img" aria-label="Ship path: a pull request must pass six CI gates — lint and types, 56-plus tests, the offline eval-regression gate, frontend typecheck and build, docker build, and terraform plan. Merging to main triggers the deploy workflow: GitHub OIDC assumes an AWS role with no stored keys, builds and pushes the image to ECR, App Runner auto-deploys it, terraform apply reconciles, and a live smoke test asserts demo mode before the deploy is declared good.">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <!-- PR row -->
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="20" y="45" width="100" height="46" rx="3"/>
+        <rect x="180" y="20" width="470" height="100" rx="4"/>
+        <rect x="710" y="45" width="130" height="46" rx="3"/>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="12.5" fill="currentColor" text-anchor="middle">
+        <text x="70" y="65">pull</text><text x="70" y="81">request</text>
+        <text x="775" y="65">merge to</text><text x="775" y="81" font-family="'IBM Plex Mono',monospace">main</text>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor">
+        <text x="196" y="40" font-weight="600">ci.yml — every gate blocks merge</text>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="11.5" fill="currentColor">
+        <text x="196" y="62">ruff + format + mypy      pytest (56+, zero-network)</text>
+        <text x="196" y="84" style="fill: var(--accent)" font-weight="600">offline eval gate: champion floor + no pass→fail flips</text>
+        <text x="196" y="106">frontend tsc + vitest + build      docker build      tf plan</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#arr3)">
+        <line x1="120" y1="68" x2="176" y2="68"/>
+        <line x1="650" y1="68" x2="706" y2="68"/>
+        <path d="M775,91 L775,150 L70,150 L70,181"/>
+      </g>
+      <!-- deploy row -->
+      <g fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="20" y="185" width="130" height="52" rx="3"/>
+        <rect x="200" y="185" width="140" height="52" rx="3"/>
+        <rect x="390" y="185" width="150" height="52" rx="3"/>
+        <rect x="590" y="185" width="130" height="52" rx="3"/>
+      </g>
+      <g fill="none" style="stroke: var(--accent)" stroke-width="1.8">
+        <rect x="770" y="185" width="120" height="52" rx="3"/>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="12" fill="currentColor" text-anchor="middle">
+        <text x="85" y="206">GitHub OIDC</text><text x="85" y="222" font-size="10.5">assume role · no keys</text>
+        <text x="270" y="206">build + push</text><text x="270" y="222" font-size="10.5">ECR · :sha + :latest</text>
+        <text x="465" y="206">App Runner</text><text x="465" y="222" font-size="10.5">auto-deploy + tf apply</text>
+        <text x="655" y="206">smoke gate</text><text x="655" y="222" font-size="10.5">mode=demo · ask→403</text>
+      </g>
+      <g font-family="'Public Sans',sans-serif" font-size="12.5" style="fill: var(--accent)" text-anchor="middle">
+        <text x="830" y="215" font-weight="600">live</text>
+      </g>
+      <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#arr3)">
+        <line x1="150" y1="211" x2="196" y2="211"/>
+        <line x1="340" y1="211" x2="386" y2="211"/>
+        <line x1="540" y1="211" x2="586" y2="211"/>
+        <line x1="720" y1="211" x2="766" y2="211"/>
+      </g>
+      <g font-family="'IBM Plex Mono',monospace" font-size="11" fill="currentColor" opacity="0.75">
+        <text x="20" y="272">deploy-aws.yml · needs: ci (unlike the siblings — chain it) · smoke failure fails the workflow, image rollback = retag previous :sha</text>
+      </g>
+    </svg>
+    <figcaption>Every gate is deterministic and key-free except the final smoke test against the live URL. Scored (token-burning) eval runs stay deliberate <code>make</code>-style targets in dev — CI only enforces what is already committed.</figcaption>
+  </figure>
+
+  <div class="measure">
+    <p>One deliberate improvement over the siblings: their deploy workflow does not depend on CI passing. Chain them here (<code>workflow_run</code> or a shared job) so a red main cannot ship.</p>
+  </div>
+</section>
+
+<!-- ============ 8. AWS ============ -->
+<section>
+  <p class="eyebrow">08 · AWS footprint</p>
+  <h2>Small, keyless, alarmed</h2>
+  <div class="measure">
+    <p>Copy transcript-rag-agent's demo stack nearly verbatim — it is the minimal footprint that still counts as a real deployment:</p>
+    <ul>
+      <li><strong>ECR</strong> private repo, lifecycle policy keeping the last 5 images (short rollback window, not an archive).</li>
+      <li><strong>App Runner</strong> — 1 vCPU-class small instance; ConvFinQA has no torch/embedding stack, so 512 CPU / 1 GB should hold comfortably (verify RSS after baking the 21 MB dataset + packs; record the measured number in the tf comment, as the sibling does).</li>
+      <li><strong>No VPC, no database, no Secrets Manager</strong> — the container is read-only by construction and holds no keys.</li>
+      <li><strong>Terraform</strong> under <code>infra/terraform/{bootstrap,demo}</code>, reusing the existing tfstate bucket and OIDC/IAM role pattern (same AWS account, new role + state key). Defaults in <code>variables.tf</code> <em>are</em> the live config — tfvars stays local.</li>
+      <li><strong>Alarms:</strong> 5xx alarm (&gt;10 over 10 min) + the account billing alarm. X-Ray off; Logfire covers tracing if a token is ever added — the demo can run without it.</li>
+      <li><strong>Cost:</strong> the sibling's identical stack runs at roughly $5–15/month (App Runner smallest instance + ECR storage + data egress). Demo mode itself is the biggest cost control — zero inference on the public deployment, by construction.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 9. ROADMAP ============ -->
+<section>
+  <p class="eyebrow">09 · Delivery plan</p>
+  <h2>Seven phases, strictly ordered</h2>
+  <div class="measure">
+    <p>Each phase leaves main shippable and ends with a verifiable exit criterion. Estimates assume focused solo work; total ≈ <strong>3 weeks</strong>.</p>
+  </div>
+
+  <div class="phase">
+    <div class="no">0<small>1–2 days</small></div>
+    <div>
+      <h3>Repo hygiene &amp; correctness</h3>
+      <div class="cols2"><ul>
+        <li>Untrack <code>frontend/node_modules</code> (4,223 files) + <code>test-results</code>; commit <code>uv.lock</code></li>
+        <li>Re-enable ruff check + format + add mypy to CI; fix the 34 existing violations</li>
+        <li>Delete the leaked <code>api_predictions_v2.csv</code> stub; fix Playwright webServer cmd</li>
+      </ul><ul>
+        <li>Anchor <code>data/</code> and <code>runs/</code> paths to the package root, not cwd</li>
+        <li>Make <code>Settings</code> boot keyless (required only when an LLM call happens)</li>
+        <li>Fix doc drift: model names, spec paths, <code>/eval/runs</code>; drop dead deps (<code>anthropic</code>, <code>mcp</code>, <code>claude-agent-sdk</code>)</li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> CI green with lint + types on; fresh clone runs tests with no key and no placeholder hack.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">1<small>2–3 days</small></div>
+    <div>
+      <h3>Resilience &amp; serving hardening</h3>
+      <div class="cols2"><ul>
+        <li>One LLM choke-point module: tenacity retry + backoff + jitter, hard timeouts, 429 handling, per-session token budget</li>
+        <li>Unify <code>run_turn</code>/<code>stream_turn</code> into one generator (batch path consumes the stream)</li>
+      </ul><ul>
+        <li>Concurrency cap + per-IP rate-limit middleware (ported from data-qa-agent)</li>
+        <li>CORS/origins from env; cache <code>/eval</code> CSV loads; owner-token auth on future admin writes</li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> provider outage degrades to a clean error, not a hang; the duplicated pipeline flow is gone.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">2<small>2–3 days</small></div>
+    <div>
+      <h3>MLflow tracking &amp; bundle registry</h3>
+      <div class="cols2"><ul>
+        <li><code>bundle_fingerprint()</code> module; stamp eval CSVs + serving sessions</li>
+        <li>Run-trace store: persist per-stage IO + tokens + latency for every serving and eval turn</li>
+        <li>Instrument eval runner, GEPA, and s7 harness with MLflow runs (file store)</li>
+        <li>Backfill the two committed GEPA runs + v1/v2/v3_1 evals</li>
+      </ul><ul>
+        <li>Registry: <code>convfinqa-pipeline</code> with champion/challenger aliases</li>
+        <li>Regression comparator script: floor + no pass→fail flips; wire into CI as the offline eval gate</li>
+        <li>Snapshot exporter → committed <code>mlflow_snapshot.json</code></li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> <code>mlflow ui</code> shows the full experiment history; a deliberately regressed prompt fails CI.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">3<small>4–5 days</small></div>
+    <div>
+      <h3>Traces, experiments &amp; research console</h3>
+      <div class="cols2"><ul>
+        <li><code>/admin/experiments</code> + <code>/traces</code> APIs (live store in dev, snapshot in demo)</li>
+        <li>Landing page, mode-aware via <code>/healthz</code>: dev → live app; demo → "Enter demo" read-only</li>
+        <li>Trace viewer: per-turn stage timeline — IO, tool calls, tokens, latency, gold comparison</li>
+        <li>Data &amp; answers explorer: split badges + all versions' answers side by side</li>
+      </ul><ul>
+        <li>Experiments table + accuracy trend + run detail/diff views</li>
+        <li>Champion/challenger registry view; owner-gated, comparator-gated promote (inert in demo)</li>
+        <li>Research console: launch s7 / GEPA-smoke rounds as background jobs with SSE progress (dev only); rules browser</li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> any answer can be traced stage by stage in the UI; a research round launched from the browser lands as the new challenger in the experiments tab.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">4<small>2–3 days</small></div>
+    <div>
+      <h3>Demo mode</h3>
+      <div class="cols2"><ul>
+        <li><code>DEMO_MODE</code> setting + <code>_demo_blocked()</code> at the LLM choke point</li>
+        <li>Pack recorder CLI + 6–10 curated showcase conversations (PR-reviewed JSON)</li>
+        <li>SSE replay with fuzzy question matching + honest miss</li>
+      </ul><ul>
+        <li><code>/healthz</code> mode + <code>/demo/questions</code>; DemoGate, chip rail, landing demo state</li>
+        <li>Demo test suite ("LLM untouched outside demo") + stdlib smoke script</li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> <code>DEMO_MODE=1</code> locally with no key in the env: full walkthrough works, streaming looks live.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">5<small>2–3 days</small></div>
+    <div>
+      <h3>Container, IaC, deploy</h3>
+      <div class="cols2"><ul>
+        <li>Multi-stage Dockerfile (node build → python-slim; bake dist, packs, eval snapshots, mlflow export); FastAPI serves the SPA</li>
+        <li>docker-compose with <code>DEMO_MODE</code> toggle for local parity</li>
+      </ul><ul>
+        <li>Terraform demo stack (ECR, App Runner, alarms) on the existing bootstrap</li>
+        <li><code>deploy-aws.yml</code>: OIDC → build/push → apply → smoke gate; chained on CI</li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> push to main ships the demo to a public URL; smoke asserts <code>mode=demo</code> and <code>ask→403</code>.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="no">6<small>1–2 days</small></div>
+    <div>
+      <h3>Observability, cost &amp; polish</h3>
+      <div class="cols2"><ul>
+        <li>Logfire spans + token/cost accounting on eval + harness paths (replace <code>print()</code>)</li>
+        <li>Guardrail/limit trigger counters; cost-per-conversation metric</li>
+      </ul><ul>
+        <li>README: demo URL, architecture diagram, metric hygiene ("73.0% → 77.1% on a 770-example held-out set"), keep the v3_1 negative result visible</li>
+        <li>Split the four 400+ LOC modules; tests for <code>harness.run_case</code></li>
+      </ul></div>
+      <p class="exit"><strong>Exit:</strong> a cold reader can trace any answer to its bundle, cost, and eval history.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. DECISIONS ============ -->
+<section>
+  <p class="eyebrow">10 · Calls to confirm</p>
+  <h2>Recommended defaults</h2>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Decision</th><th>Recommendation</th><th>Why · the alternative</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend hosting</td><td><strong>Baked into the container</strong>, FastAPI-served</td><td>No DB means no reason for the S3+CloudFront split data-qa-agent needed; one service, one deploy. Alternative: S3+CloudFront if a custom domain/CDN ever matters.</td></tr>
+      <tr><td>MLflow backend</td><td><strong>File store + committed snapshot</strong></td><td>Zero infra, works in the keyless demo. Alternative: a tracking server on App Runner (~$5+/mo, needs auth) — only if remote logging from a VM becomes routine.</td></tr>
+      <tr><td>Sessions</td><td><strong>Keep in-memory</strong> behind a small interface</td><td>Demo runs one instance; Redis is a later swap, not a prerequisite. </td></tr>
+      <tr><td>AWS account &amp; state</td><td><strong>Reuse the existing bootstrap</strong> (account 089…188, shared tfstate bucket, new role + state key)</td><td>Same region (ap-southeast-2), same OIDC pattern, nothing new to secure.</td></tr>
+      <tr><td>Provider fallback</td><td><strong>Retry/timeout now; second provider later</strong></td><td>The demo never calls a provider, so multi-provider matters only for dev/eval reliability. Wire the choke point so adding one is a config change.</td></tr>
+      <tr><td>eval HTML in git</td><td><strong>Stop committing renders</strong>; keep CSVs</td><td>CSVs are the reproducibility cache; 5–6 MB HTML files are regenerable output. Regenerate on demand (or in the admin portal).</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="srcnote">Sources: deep review of this repo (pipeline, serving, eval, diagnosis modules and CI); data-qa-agent (demo replay, rate limiting, Terraform/OIDC deploy, agent-version stamping); transcript-rag-agent (keyless single-container App Runner demo, committed-runs eval gate, MLflow usage); ai-engineer-fit <span class="mono">.lavish/s37, s36, s07</span> (production-readiness checklist and the existing ConvFinQA scorecard row).</p>
+</section>
+
+</div>

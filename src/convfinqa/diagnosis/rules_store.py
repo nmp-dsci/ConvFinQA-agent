@@ -30,10 +30,12 @@ def _suffix() -> str:
 
 
 def rules_path(agent: AgentName) -> Path:
+    """Path to the promoted-rules JSONL store for `agent` in the active variant."""
     return Path(settings.rules_dir) / f"rules_{agent}{_suffix()}.jsonl"
 
 
 def attempts_path(agent: AgentName) -> Path:
+    """Path to the rule-attempts JSONL store for `agent` in the active variant."""
     return Path(settings.rules_dir) / f"rule_attempts_{agent}{_suffix()}.jsonl"
 
 
@@ -78,6 +80,7 @@ def read_rules(agent: AgentName) -> list[Rule]:
 
 
 def read_attempts(agent: AgentName, *, limit: int | None = None) -> list[RuleAttempt]:
+    """Read this agent's rule attempts, most recent last, capped at `limit`."""
     raw = _read_lines(attempts_path(agent))
     out: list[RuleAttempt] = []
     for entry in raw:
@@ -115,7 +118,7 @@ def append_rule(
             if isinstance(existing_id, str) and existing_id:
                 return existing_id
     rule_id = f"{agent[:4]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
-    entry = Rule(
+    new_rule = Rule(
         rule_id=rule_id,
         agent=agent,
         rule=rule_text,
@@ -128,7 +131,7 @@ def append_rule(
     path = rules_path(agent)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as f:
-        f.write(entry.model_dump_json() + "\n")
+        f.write(new_rule.model_dump_json() + "\n")
     return rule_id
 
 
@@ -167,7 +170,7 @@ def append_attempt(
     attempt_id = (
         f"{agent[:4]}-att-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
     )
-    entry = RuleAttempt(
+    new_attempt = RuleAttempt(
         attempt_id=attempt_id,
         agent=agent,
         rule=rule_text,
@@ -183,7 +186,7 @@ def append_attempt(
     path = attempts_path(agent)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as f:
-        f.write(entry.model_dump_json() + "\n")
+        f.write(new_attempt.model_dump_json() + "\n")
     return attempt_id
 
 
@@ -198,4 +201,5 @@ def reset_rules(agent: AgentName | None = None) -> None:
 
 
 def all_rules() -> dict[AgentName, list[Rule]]:
+    """Promoted rules for every agent, keyed by agent name."""
     return {a: read_rules(a) for a in AGENTS}

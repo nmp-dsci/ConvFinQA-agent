@@ -194,7 +194,9 @@ def write_diagnostic_html(
     prompts_version: str | None = None,
     variant: str | None = None,
 ) -> Path:
+    """Render the s7 diagnostic CSV as the sticky-inspector HTML report."""
     from convfinqa.config import settings as _s
+
     if title is None:
         title = f"diagnostic_results_{variant or _s.variant}"
     # Resolved fields for the subtitle under the h1.

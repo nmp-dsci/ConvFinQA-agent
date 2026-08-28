@@ -1,60 +1,80 @@
-"""Pydantic AI backend: LM provider + four pipeline agents."""
+"""Pydantic AI backend: the four pipeline agents, built lazily.
+
+Agents are constructed on first use, not at import. Two reasons, both
+load-bearing: constructing a model demands an API key, and the keyless clone /
+demo container must still import this module; and building them lazily is what
+lets `DEMO_MODE` refuse at the choke point rather than at import, where the
+failure would be a stack trace at startup instead of a typed 501.
+"""
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
 from convfinqa.config import settings
+from convfinqa.llm import LM_MINI_MODEL, get_model
 from convfinqa.pipeline.prompts_loader import PROMPTS
 from convfinqa.pipeline.stages import CalcOut, PreprocessOut, RetrievedValues, TriageOut
 from convfinqa.pipeline.tools import CALCULATOR_TOOLS
 
-_deepseek_provider = OpenAIProvider(
-    base_url="https://api.deepseek.com/v1",
-    api_key=settings.deepseek_api_key.get_secret_value(),
-)
-# DeepSeek model identifiers — migrated to v4 names ahead of the 2026-07-24
-# deprecation of the legacy `deepseek-chat` / `deepseek-reasoner` aliases.
-# - LM_MINI = `deepseek-v4-flash` (was `deepseek-chat`): 284B/13B MoE, fast,
-#   used by the four production sub-agents on every turn.
-# - LM_MAX  = `deepseek-v4-pro` by default via settings (was `deepseek-reasoner`):
-#   1.6T/49B MoE, slower + more expensive, used by the s7 harness's diagnostic
-#   router + four specialist Fix agents where reasoning quality matters most.
-LM_MINI = OpenAIChatModel("deepseek-v4-flash", provider=_deepseek_provider)
-LM_MAX = OpenAIChatModel(settings.lm_max_model, provider=_deepseek_provider)
-
-triage_agent = Agent(LM_MINI, output_type=TriageOut, instructions=PROMPTS["triage"])
-preprocess_agent = Agent(
-    LM_MINI, output_type=PreprocessOut, instructions=PROMPTS["preprocess"]
-)
-retriever_agent = Agent(
-    LM_MINI, output_type=RetrievedValues, instructions=PROMPTS["retriever"]
-)
-calculator_agent = Agent(
-    LM_MINI, output_type=CalcOut, instructions=PROMPTS["calculator"]
-)
-
-for _fn in CALCULATOR_TOOLS:
-    calculator_agent.tool_plain(_fn)
+# Re-exported for callers that name the models explicitly (the s7 harness picks
+# LM_MAX for its router and fix agents).
+LM_MINI_NAME = LM_MINI_MODEL
 
 
-def make_agents(version_prompts: dict[str, str]) -> dict[str, Agent]:
+def lm_mini() -> Any:
+    """The fast model the four pipeline agents run on, every turn."""
+    return get_model(LM_MINI_MODEL)
+
+
+def lm_max() -> Any:
+    """The flagship model used where reasoning quality is the product (s7)."""
+    return get_model(settings.lm_max_model)
+
+
+def make_agents(version_prompts: dict[str, str]) -> dict[str, Agent[None, Any]]:
     """Build a fresh set of four pipeline agents from a prompts dict."""
-    calc = Agent(LM_MINI, output_type=CalcOut, instructions=version_prompts["calculator"])
+    model = lm_mini()
+    calc: Agent[None, Any] = Agent(
+        model, output_type=CalcOut, instructions=version_prompts["calculator"]
+    )
     for fn in CALCULATOR_TOOLS:
         calc.tool_plain(fn)
     return {
-        "triage": Agent(LM_MINI, output_type=TriageOut, instructions=version_prompts["triage"]),
+        "triage": Agent(
+            model, output_type=TriageOut, instructions=version_prompts["triage"]
+        ),
         "preprocess": Agent(
-            LM_MINI, output_type=PreprocessOut, instructions=version_prompts["preprocess"]
+            model,
+            output_type=PreprocessOut,
+            instructions=version_prompts["preprocess"],
         ),
         "retriever": Agent(
-            LM_MINI, output_type=RetrievedValues, instructions=version_prompts["retriever"]
+            model,
+            output_type=RetrievedValues,
+            instructions=version_prompts["retriever"],
         ),
         "calculator": calc,
     }
+
+
+_default_agents: dict[str, Agent[None, Any]] | None = None
+
+
+def default_agents() -> dict[str, Agent[None, Any]]:
+    """The four agents for the currently-resolved prompt bundle, built once."""
+    global _default_agents
+    if _default_agents is None:
+        _default_agents = make_agents(PROMPTS)
+    return _default_agents
+
+
+def reset_default_agents() -> None:
+    """Drop the cached agents. For tests that swap prompts or settings."""
+    global _default_agents
+    _default_agents = None
 
 
 _make_agents = make_agents

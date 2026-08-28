@@ -1,0 +1,97 @@
+name: Deploy (AWS demo)
+
+# Merging to main ships the demo: build and push the image (App Runner
+# auto-deploys :latest), reconcile Terraform, then smoke-test the live URL.
+# Auth is GitHub OIDC into the convfinqa-github-deploy role — no stored AWS keys.
+#
+# Unlike the sibling projects, this workflow *waits for CI* before it runs. Their
+# deploy fires on push regardless, which means a red main can ship; `workflow_run`
+# with the conclusion check below closes that.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC token for AWS
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-2
+  DEPLOY_ROLE_ARN: arn:aws:iam::089783391188:role/convfinqa-github-deploy
+  SERVICE_NAME: convfinqa-demo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # A manual dispatch has no upstream run to inspect; a triggered one must
+    # have passed. Never ship a red main.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ubuntu-latest no longer preinstalls terraform.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false # the wrapper breaks `terraform output -raw`
+
+      - name: Terraform apply (ECR before the first push)
+        working-directory: infra/terraform/demo
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve -target=aws_ecr_repository.demo
+
+      - name: Build & push demo image (linux/amd64)
+        run: ./scripts/aws_build_push.sh
+
+      - name: Terraform apply (full)
+        working-directory: infra/terraform/demo
+        run: terraform apply -input=false -auto-approve
+
+      - name: Wait for App Runner to reach RUNNING
+        run: |
+          ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceArn" \
+            --output text)
+          echo "service: $ARN"
+          for _ in $(seq 1 60); do
+            STATUS=$(aws apprunner describe-service --service-arn "$ARN" \
+              --query "Service.Status" --output text)
+            echo "status: $STATUS"
+            [ "$STATUS" = "RUNNING" ] && exit 0
+            if [ "$STATUS" = "CREATE_FAILED" ] || [ "$STATUS" = "DELETE_FAILED" ]; then
+              exit 1
+            fi
+            sleep 20
+          done
+          echo "timed out waiting for RUNNING" >&2
+          exit 1
+
+      - name: Smoke test the live URL
+        run: |
+          URL=$(terraform -chdir=infra/terraform/demo output -raw service_url)
+          ./scripts/demo_smoke.sh "$URL"
+
+      - name: Report the deployed URL
+        run: |
+          URL=$(terraform -chdir=infra/terraform/demo output -raw service_url)
+          echo "### Demo deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "$URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Rollback: retag a previous \`:sha\` image as \`:latest\` in ECR." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,39 @@
+# Local parity with the deployment, and the toggle between the two modes.
+#
+#   docker compose up demo   # exactly what ships: no keys, replayed chat
+#   docker compose up dev    # same image, live model, your key mounted
+#
+# `demo` is the default because it is the one that must be verified before every
+# deploy — if it works here with no environment at all, it works in App Runner.
+
+services:
+  demo:
+    build:
+      context: .
+      args:
+        CODE_SHA: ${CODE_SHA:-local}
+    image: convfinqa-demo
+    ports:
+      - "8080:8080"
+    # Deliberately no env_file and no environment overrides: the point of this
+    # service is to prove the image needs neither.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if b'demo' in urllib.request.urlopen('http://localhost:8080/healthz').read() else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dev:
+    build:
+      context: .
+      args:
+        CODE_SHA: ${CODE_SHA:-local}
+    image: convfinqa-demo
+    ports:
+      - "8081:8080"
+    environment:
+      # The same image with the gate off. This is the whole difference between
+      # the two deployments — one variable and the presence of a key.
+      DEMO_MODE: "0"
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY to run the dev service}
+      OWNER_TOKEN: ${OWNER_TOKEN:-}

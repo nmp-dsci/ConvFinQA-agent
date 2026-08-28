@@ -1,0 +1,378 @@
+{
+  "snapshot_version": 1,
+  "exported_at": "2026-08-28T00:35:25.813395+00:00",
+  "runs": [
+    {
+      "run_id": "c46f69d989304ad09c8ecaf552b7f36a",
+      "run_name": "s7-v3_2",
+      "kind": "s7",
+      "bundle_id": "b2b19c714e0f",
+      "status": "FINISHED",
+      "start_time": 1787876735137,
+      "end_time": 1787876735163,
+      "params": {
+        "prompts_version": "v3_2",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "variant": "v3_2",
+        "backfilled": "True"
+      },
+      "metrics": {
+        "cases_diagnosed": 94.0,
+        "cases_resolved": 0.0,
+        "cases_unresolved": 94.0,
+        "rules_triage": 0.0,
+        "rules_preprocess": 0.0,
+        "rules_retriever": 0.0,
+        "rules_calculator": 0.0
+      },
+      "tags": {
+        "kind": "s7",
+        "bundle_id": "b2b19c714e0f",
+        "bundle_version": "v3_2",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "124345a58b864105906f0545b9be08dc",
+      "run_name": "s7-v3_1",
+      "kind": "s7",
+      "bundle_id": "010add94fe49",
+      "status": "FINISHED",
+      "start_time": 1787876735108,
+      "end_time": 1787876735131,
+      "params": {
+        "prompts_version": "v3_1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "variant": "v3_1",
+        "backfilled": "True"
+      },
+      "metrics": {
+        "cases_diagnosed": 95.0,
+        "cases_resolved": 0.0,
+        "cases_unresolved": 95.0,
+        "rules_triage": 3.0,
+        "rules_preprocess": 24.0,
+        "rules_retriever": 7.0,
+        "rules_calculator": 5.0
+      },
+      "tags": {
+        "kind": "s7",
+        "bundle_id": "010add94fe49",
+        "bundle_version": "v3_1",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "e58b494a809a4737bb4c8fd361224561",
+      "run_name": "gepa_smoke_20260429_204159",
+      "kind": "gepa",
+      "bundle_id": "a20e2d7fae85",
+      "status": "FINISHED",
+      "start_time": 1787876735087,
+      "end_time": 1787876735101,
+      "params": {
+        "prompts_version": "v3_1",
+        "gepa_overlay": "gepa_smoke_20260429_204159",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "gepa_mode": "smoke",
+        "backfilled": "True"
+      },
+      "metrics": {
+        "num_preds": 5.0
+      },
+      "tags": {
+        "kind": "gepa",
+        "bundle_id": "a20e2d7fae85",
+        "gepa_name": "gepa_smoke_20260429_204159",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "eac678926399495681cfed5b02ba9cb8",
+      "run_name": "gepa_real_20260502_005251",
+      "kind": "gepa",
+      "bundle_id": "beb94928f86c",
+      "status": "FINISHED",
+      "start_time": 1787876735039,
+      "end_time": 1787876735082,
+      "params": {
+        "prompts_version": "v3_1",
+        "gepa_overlay": "gepa_real_20260502_005251",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "gepa_mode": "real",
+        "backfilled": "True"
+      },
+      "metrics": {
+        "total_metric_calls": 1964.0,
+        "num_full_val_evals": 65.0,
+        "seed": 0.0,
+        "best_idx": 46.0,
+        "num_preds": 5.0,
+        "resumed": 1.0,
+        "trainset_size": 108.0,
+        "valset_size": 12.0,
+        "testset_size": 80.0,
+        "baseline_test_score": 56.47,
+        "optimized_test_score": 65.26,
+        "delta_pts": 8.790000000000006,
+        "best_candidate_idx": 46.0
+      },
+      "tags": {
+        "kind": "gepa",
+        "bundle_id": "beb94928f86c",
+        "gepa_name": "gepa_real_20260502_005251",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "a8dd8665d9684004b6f6732ad6cb4255",
+      "run_name": "eval-v3_1",
+      "kind": "eval",
+      "bundle_id": "010add94fe49",
+      "status": "FINISHED",
+      "start_time": 1787876735010,
+      "end_time": 1787876735032,
+      "params": {
+        "prompts_version": "v3_1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "backfilled": "True",
+        "source": "committed predictions CSV"
+      },
+      "metrics": {
+        "accuracy": 0.762338,
+        "n_questions": 770.0,
+        "accuracy_gold_turn_type_Number": 0.897887,
+        "accuracy_gold_turn_type_Program": 0.683128,
+        "accuracy_gold_conv_type_Type_I": 0.7875,
+        "accuracy_gold_conv_type_Type_II": 0.638462
+      },
+      "tags": {
+        "kind": "eval",
+        "bundle_id": "010add94fe49",
+        "bundle_version": "v3_1",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "4f91d36929c14a8cb28b376dd9d9b93e",
+      "run_name": "eval-v2",
+      "kind": "eval",
+      "bundle_id": "5bd47e9e3c23",
+      "status": "FINISHED",
+      "start_time": 1787876734947,
+      "end_time": 1787876734971,
+      "params": {
+        "prompts_version": "v2",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "backfilled": "True",
+        "source": "committed predictions CSV"
+      },
+      "metrics": {
+        "accuracy": 0.771429,
+        "n_questions": 770.0,
+        "accuracy_gold_turn_type_Number": 0.876761,
+        "accuracy_gold_turn_type_Program": 0.709877,
+        "accuracy_gold_conv_type_Type_I": 0.7875,
+        "accuracy_gold_conv_type_Type_II": 0.692308
+      },
+      "tags": {
+        "kind": "eval",
+        "bundle_id": "5bd47e9e3c23",
+        "bundle_version": "v2",
+        "backfilled": "true"
+      }
+    },
+    {
+      "run_id": "7c3cdcb453eb447a9800e1fa29ef88fb",
+      "run_name": "eval-v1",
+      "kind": "eval",
+      "bundle_id": "17676b0e5e5e",
+      "status": "FINISHED",
+      "start_time": 1787876734869,
+      "end_time": 1787876734905,
+      "params": {
+        "prompts_version": "v1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0ee36df",
+        "backfilled": "True",
+        "source": "committed predictions CSV"
+      },
+      "metrics": {
+        "accuracy": 0.72987,
+        "n_questions": 770.0,
+        "accuracy_gold_turn_type_Number": 0.852113,
+        "accuracy_gold_turn_type_Program": 0.658436,
+        "accuracy_gold_conv_type_Type_I": 0.751563,
+        "accuracy_gold_conv_type_Type_II": 0.623077
+      },
+      "tags": {
+        "kind": "eval",
+        "bundle_id": "17676b0e5e5e",
+        "bundle_version": "v1",
+        "backfilled": "true"
+      }
+    }
+  ],
+  "registry": {
+    "model": "convfinqa-pipeline",
+    "aliases": {
+      "champion": "v2"
+    },
+    "versions": [
+      {
+        "version": "v3_1",
+        "registered_at": "2026-08-28T00:15:19.037294+00:00",
+        "source": "manual",
+        "bundle_id": "010add94fe49",
+        "bundle": {
+          "prompts_version": "v3_1",
+          "gepa_overlay": null,
+          "lm_mini": "deepseek-v4-flash",
+          "lm_max": "deepseek-v4-pro",
+          "dataset_hash": "d012d251fcb9",
+          "code_sha": "0ee36df"
+        },
+        "runs": [
+          "ea3caf7a72d24a608273c8e5d60001ff",
+          "a8dd8665d9684004b6f6732ad6cb4255"
+        ],
+        "metrics": {
+          "accuracy": 0.762338,
+          "n_questions": 770.0
+        },
+        "notes": ""
+      },
+      {
+        "version": "v2",
+        "registered_at": "2026-08-28T00:15:18.986156+00:00",
+        "source": "manual",
+        "bundle_id": "5bd47e9e3c23",
+        "bundle": {
+          "prompts_version": "v2",
+          "gepa_overlay": null,
+          "lm_mini": "deepseek-v4-flash",
+          "lm_max": "deepseek-v4-pro",
+          "dataset_hash": "d012d251fcb9",
+          "code_sha": "0ee36df"
+        },
+        "runs": [
+          "8292242f6dcf48b5a440c9c346fc1305",
+          "4f91d36929c14a8cb28b376dd9d9b93e"
+        ],
+        "metrics": {
+          "accuracy": 0.771429,
+          "n_questions": 770.0
+        },
+        "notes": ""
+      },
+      {
+        "version": "v1",
+        "registered_at": "2026-08-28T00:15:18.930515+00:00",
+        "source": "manual",
+        "bundle_id": "17676b0e5e5e",
+        "bundle": {
+          "prompts_version": "v1",
+          "gepa_overlay": null,
+          "lm_mini": "deepseek-v4-flash",
+          "lm_max": "deepseek-v4-pro",
+          "dataset_hash": "d012d251fcb9",
+          "code_sha": "0ee36df"
+        },
+        "runs": [
+          "e4822714d7ac4565aa88574aecfd9dbf",
+          "7c3cdcb453eb447a9800e1fa29ef88fb"
+        ],
+        "metrics": {
+          "accuracy": 0.72987,
+          "n_questions": 770.0
+        },
+        "notes": ""
+      }
+    ],
+    "history": [
+      {
+        "at": "2026-08-28T00:15:19.117895+00:00",
+        "event": "promote",
+        "version": "v2",
+        "previous_champion": null,
+        "actor": "backfill",
+        "forced": false,
+        "reason": "first registered version becomes champion by default",
+        "comparison": null
+      }
+    ]
+  },
+  "versions": [
+    {
+      "version": "v1",
+      "accuracy": 0.72987,
+      "n_questions": 770,
+      "holdout_accuracy": 0.728155,
+      "holdout_n_questions": 309,
+      "slices": {
+        "gold_turn_type": {
+          "Number": 0.852113,
+          "Program": 0.658436
+        },
+        "gold_conv_type": {
+          "Type I": 0.751563,
+          "Type II": 0.623077
+        }
+      }
+    },
+    {
+      "version": "v2",
+      "accuracy": 0.771429,
+      "n_questions": 770,
+      "holdout_accuracy": 0.776699,
+      "holdout_n_questions": 309,
+      "slices": {
+        "gold_turn_type": {
+          "Number": 0.876761,
+          "Program": 0.709877
+        },
+        "gold_conv_type": {
+          "Type I": 0.7875,
+          "Type II": 0.692308
+        }
+      }
+    },
+    {
+      "version": "v3_1",
+      "accuracy": 0.762338,
+      "n_questions": 770,
+      "holdout_accuracy": 0.734628,
+      "holdout_n_questions": 309,
+      "slices": {
+        "gold_turn_type": {
+          "Number": 0.897887,
+          "Program": 0.683128
+        },
+        "gold_conv_type": {
+          "Type I": 0.7875,
+          "Type II": 0.638462
+        }
+      }
+    }
+  ]
+}

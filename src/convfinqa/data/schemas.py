@@ -41,7 +41,9 @@ class ConversationHistory(BaseModel):
 
     def append(self, question: str, answer: str, report_id: str) -> None:
         """Append a question/answer/report_id triple to the history."""
-        self.pairs.append(HistoryTurn(question=question, answer=answer, report_id=report_id))
+        self.pairs.append(
+            HistoryTurn(question=question, answer=answer, report_id=report_id)
+        )
 
     def as_text(self) -> str:
         """Format the history as a flat text block for inclusion in agent prompts."""
