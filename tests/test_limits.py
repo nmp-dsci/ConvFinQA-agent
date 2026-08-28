@@ -14,12 +14,19 @@ from convfinqa.serving.limits import (
 )
 
 
+class _Client:
+    def __init__(self, host: str) -> None:
+        self.host = host
+
+
 class _Request:
     """Minimal stand-in for a Starlette request."""
 
-    def __init__(self, headers: dict[str, str] | None = None) -> None:
+    def __init__(
+        self, headers: dict[str, str] | None = None, client: _Client | None = None
+    ) -> None:
         self.headers = headers or {}
-        self.client = None
+        self.client = client
 
 
 @pytest.mark.asyncio
@@ -112,6 +119,24 @@ def test_client_key_prefers_forwarded_for() -> None:
 
     request = _Request({"x-forwarded-for": "203.0.113.9, 10.0.0.1"})
     assert client_key(request) == "203.0.113.9"  # type: ignore[arg-type]
+
+
+def test_client_key_ignores_forwarded_for_when_proxy_is_untrusted() -> None:
+    """With `trusted_proxy=False`, a caller cannot spoof the rate-limit key by
+    sending its own X-Forwarded-For header — the socket peer is used instead."""
+    from convfinqa.config import settings
+    from convfinqa.serving.limits import client_key
+
+    original = settings.trusted_proxy
+    settings.trusted_proxy = False
+    try:
+        request = _Request(
+            {"x-forwarded-for": "203.0.113.9, 10.0.0.1"},
+            client=_Client("198.51.100.7"),
+        )
+        assert client_key(request) == "198.51.100.7"  # type: ignore[arg-type]
+    finally:
+        settings.trusted_proxy = original
 
 
 def test_settings_boot_without_a_key() -> None:

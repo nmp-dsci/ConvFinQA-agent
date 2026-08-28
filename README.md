@@ -597,12 +597,15 @@ cd frontend
 npm run dev
 ```
 
-Vite proxies these backend prefixes and both `server.proxy` and `preview.proxy` must stay in sync:
+Vite proxies these backend prefixes (`BACKEND_PREFIXES` in `frontend/vite.config.ts`, feeding both `server.proxy` and `preview.proxy`):
 
 - `/healthz`
 - `/reports`
 - `/sessions`
 - `/eval`
+- `/admin`
+- `/traces`
+- `/demo`
 
 ## Quality Gates
 
@@ -621,8 +624,8 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 | Gate | State |
 |---|---|
 | ruff check + format | clean |
-| mypy (strict-ish, 71 files) | clean |
-| pytest | **101 passed**, zero network calls, no API key required |
+| mypy (strict-ish, 72 files) | clean |
+| pytest | **105 passed**, zero network calls, no API key required |
 | frontend typecheck + vitest + build | clean, 11 unit tests |
 | eval-regression gate | passes; champion `v2` at 77.14% against a 76.64% floor |
 

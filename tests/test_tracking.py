@@ -157,6 +157,36 @@ def test_empty_comparison_is_not_promotable() -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# MLflow write failures
+# ---------------------------------------------------------------------------
+
+
+def test_recorder_logs_rather_than_swallows_a_failed_write(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A gap in MLflow history should be visible, not silent.
+
+    Before this fix, `_Recorder` wrapped every write in `contextlib.suppress`,
+    so a broken store dropped metrics without a trace. It must now log a
+    warning that names the run and the failing key.
+    """
+    from convfinqa.tracking.mlflow_log import _Recorder
+
+    class _BrokenMlflow:
+        def log_metric(self, *args: object, **kwargs: object) -> None:
+            raise RuntimeError("store unavailable")
+
+    recorder = _Recorder(_BrokenMlflow(), run_id="run-123")
+    with caplog.at_level("WARNING", logger="convfinqa.tracking"):
+        recorder.metric("holdout_accuracy", 0.777)
+
+    assert any(
+        "failed to log metric" in r.message and "run-123" in r.message
+        for r in caplog.records
+    )
+
+
 def test_first_version_becomes_champion(tmp_path: Path) -> None:
     """A system with no champion cannot serve, so the first one is adopted."""
     path = tmp_path / "registry.json"
