@@ -8,7 +8,7 @@ PROFILE_ARGS=()
 if [[ -z "${GITHUB_ACTIONS:-}" ]]; then
   PROFILE_ARGS=(--profile "${AWS_PROFILE:-data-qa}")
 fi
-REGION="${AWS_REGION:-ap-southeast-2}"
+REGION="${AWS_REGION:-ap-southeast-1}"
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text "${PROFILE_ARGS[@]}")"
 REPO="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/convfinqa-demo"
 SHA="$(git rev-parse --short HEAD)"

@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ap-southeast-2
+  AWS_REGION: ap-southeast-1
   DEPLOY_ROLE_ARN: arn:aws:iam::089783391188:role/convfinqa-github-deploy
   SERVICE_NAME: convfinqa-demo
 

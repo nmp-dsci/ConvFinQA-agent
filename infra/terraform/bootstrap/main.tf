@@ -29,8 +29,22 @@ provider "aws" {
 }
 
 variable "region" {
-  type    = string
-  default = "ap-southeast-2"
+  description = "Region the demo stack runs in. See ecr_regions for why this is not the only one that matters."
+  type        = string
+  default     = "ap-southeast-1"
+}
+
+variable "ecr_regions" {
+  description = <<-EOT
+    Regions the deploy role may manage ECR repositories in.
+
+    ECR is regional and IAM ARNs embed the region, so a single-region grant
+    silently locks CI out the moment the demo moves. It lists every region the
+    stack has lived in rather than just the current one, so a rollback does not
+    need a bootstrap re-apply with admin credentials to succeed.
+  EOT
+  type        = list(string)
+  default     = ["ap-southeast-1", "ap-southeast-2"]
 }
 
 variable "project" {
@@ -112,7 +126,8 @@ data "aws_iam_policy_document" "deploy" {
     sid     = "EcrRepo"
     actions = ["ecr:*"]
     resources = [
-      "arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/${var.project}-*",
+      for r in var.ecr_regions :
+      "arn:aws:ecr:${r}:${data.aws_caller_identity.current.account_id}:repository/${var.project}-*"
     ]
   }
 
