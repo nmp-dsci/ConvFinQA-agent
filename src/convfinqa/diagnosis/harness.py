@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -82,7 +83,7 @@ def _assemble_current_prompts(base_version: str = "v2") -> dict[str, str]:
     base = load_prompts(base_version)
     rules_by_agent = all_rules()
     merged = assemble_prompts(base, rules_by_agent)
-    return dict(merged)
+    return {str(agent): text for agent, text in merged.items()}
 
 
 def _stage_io_from_router_payload(
@@ -94,7 +95,7 @@ def _stage_io_from_router_payload(
 def _build_fix_payload(
     payload: RouterPayload,
     *,
-    router_diagnosis,
+    router_diagnosis: RouterDiagnosis,
     current_prompts: dict[str, str],
     prior_attempts: list[FixAttempt],
 ) -> FixPayload:
@@ -246,7 +247,7 @@ async def run_case(
             and cached_attempt is not None
             and bool(cached_attempt.patch_applied.strip())
         )
-        if propose_cache_hit:
+        if propose_cache_hit and cached_attempt is not None:
             log.info(
                 "[%s] attempt %d/%d — propose: cached (rule=%r)",
                 agent,
@@ -335,7 +336,7 @@ async def run_case(
             and cached_attempt.verify_result is not None
             and cached_attempt.patch_applied.strip() == fix.rule.strip()
         )
-        if verify_cache_hit:
+        if verify_cache_hit and cached_attempt is not None:
             log.info(
                 "[%s] verify: cached (result=%s first_failing_turn=%s)",
                 agent,
@@ -532,9 +533,9 @@ def join_full_df_columns(
     return sub
 
 
-def case_results_to_rows(results: list[CaseResult]) -> list[dict]:
+def case_results_to_rows(results: list[CaseResult]) -> list[dict[str, Any]]:
     """Flatten CaseResults to one dict per (case, attempt) for the CSV/HTML."""
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     for r in results:
         attempts = r.attempts or [
             FixAttempt(

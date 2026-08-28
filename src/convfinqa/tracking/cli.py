@@ -100,8 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "backfill":
-        result = backfill_mod.backfill(champion=args.champion or None)
-        _print(result)
+        _print(backfill_mod.backfill(champion=args.champion or None))
         return 0
 
     if args.command == "register":
@@ -110,9 +109,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "compare":
-        result = compare(args.baseline, args.candidate)
-        _print(result.as_dict())
-        return 0 if result.promotable else 1
+        comparison = compare(args.baseline, args.candidate)
+        _print(comparison.as_dict())
+        return 0 if comparison.promotable else 1
 
     if args.command == "promote":
         outcome = registry.promote(args.version, force=args.force, actor="cli")

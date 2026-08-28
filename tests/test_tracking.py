@@ -278,3 +278,45 @@ def test_holdout_accuracy_is_reported_separately_from_overall() -> None:
     held = holdout_accuracy(df)
     assert held["n_questions"] < len(df)
     assert held["accuracy"] != accuracy(df)
+
+
+# ---------------------------------------------------------------------------
+# Cost accounting
+# ---------------------------------------------------------------------------
+
+
+def test_turn_usage_rolls_up_stage_metrics() -> None:
+    """Per-stage tokens and latency sum to a turn total with a price attached."""
+    from convfinqa.tracking.cost import turn_usage
+
+    capture = {
+        "triage": {
+            "metrics": {"input_tokens": 100, "output_tokens": 20, "latency_ms": 300.0}
+        },
+        "preprocess": {
+            "metrics": {"input_tokens": 400, "output_tokens": 80, "latency_ms": 900.0}
+        },
+    }
+    usage = turn_usage(capture)
+    assert usage["input_tokens"] == 500
+    assert usage["output_tokens"] == 100
+    assert usage["latency_ms"] == pytest.approx(1200.0)
+    assert usage["n_stages"] == 2
+    assert usage["cost_usd"] > 0
+
+
+def test_usage_degrades_on_captures_without_metrics() -> None:
+    """Committed CSVs predate per-stage metrics; they must contribute zero, not fail."""
+    from convfinqa.tracking.cost import aggregate, turn_usage
+
+    assert turn_usage({"triage": {"output": {}}})["total_tokens"] == 0
+    totals = aggregate([{}, {"triage": None}])
+    assert totals["cost_usd"] == 0
+    assert totals["n_turns"] == 2
+
+
+def test_unknown_model_falls_back_rather_than_raising() -> None:
+    """A model id with no published price must not break a run's accounting."""
+    from convfinqa.tracking.cost import cost_usd
+
+    assert cost_usd(1_000_000, 0, "some-future-model") > 0

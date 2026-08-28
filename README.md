@@ -1,10 +1,35 @@
 # ConvFinQA Agent
 
-An AI engineering project for [ConvFinQA](https://github.com/czyssrs/ConvFinQA): multi-turn financial QA over report text and tables. The system evaluates, optimises, serves, and visualises a four-stage agent pipeline.
+A production gen-AI system for [ConvFinQA](https://github.com/czyssrs/ConvFinQA): multi-turn financial QA over report text and tables. A four-stage agent pipeline, plus the surfaces that make it operable — per-turn tracing, experiment tracking, a champion/challenger registry with an enforced promotion contract, an automated prompt-research loop, and a keyless public demo.
+
+Two deployments, one build:
+
+| | dev | demo (public) |
+|---|---|---|
+| Chat | live against the champion bundle | replayed from recorded conversations |
+| Splits, answers, traces, experiments | live | live — same committed artifacts |
+| Promote / launch research | owner-token gated | visible, inert |
+| API keys present | yes | **none, by construction** |
+
+`DEMO_MODE` is baked into the image, so no infrastructure change can turn the public URL into a billable one.
 
 ## Evaluation Results
 
-Cached Pydantic AI evaluator across prompt versions (770-question held-out sample). Reproduces offline from committed `evaluation/predictions/pydantic_predictions_<version>.csv` — no API calls when `REUSE_CACHE=1`.
+Cached Pydantic AI evaluator across prompt versions. Reproduces offline from committed `evaluation/predictions/pydantic_predictions_<version>.csv` — no API calls when `REUSE_CACHE=1`.
+
+### A note on what "held out" means here
+
+The scored set is all 200 sampled conversations (770 questions), and **GEPA trained on 120 of them**. So the 770-question figure mixes conversations the optimizer saw with ones it did not, and is reported as *overall*, never as held out. The genuinely never-seen subset is 80 conversations / **309 questions**:
+
+| version | never-seen (309 q) | overall (770 q) |
+|---------|-------------------:|----------------:|
+| v1      | 72.8%              | 73.0%           |
+| **v2**  | **77.7%** ← champion | 77.1%         |
+| v3_1    | 73.5%              | 76.2%           |
+
+The v1 → v2 improvement is slightly *larger* on never-seen data (+4.9 pp) than the overall figure suggests (+4.2 pp); v3_1's regression is correspondingly larger. Both numbers are surfaced in the app, and split membership is inspectable under **Data & answers** — `GET /eval/splits`.
+
+Note also that two 60/40 "train" splits exist in the codebase with the same seed but different shuffles (`data.loader.train_report_ids` uses a pandas `.sample()`; `data.loader.optimizer_split()` reproduces the DSPy backend's `random.Random(42).shuffle()`). They agree on only 78 of 120 conversations. **GEPA ran against `optimizer_split()`**, so that is the one every held-out claim is measured against.
 
 ```bash
 REUSE_CACHE=1 uv run convfinqa-eval
@@ -72,6 +97,89 @@ This result is what motivated [`ai_specs/s8-optimisation-testing.md`](ai_specs/s
 
 `case_results_<variant>.jsonl` is **overwritten** by each run rather than merged (`--force` is a documented no-op). Both committed `case_results` files were last written by a diagnose/propose pass, so every record carries `verify_result: null` and `resolved: false` — that reflects the last pass, not the full v3_1 run. The verification metadata that actually matters survives in the rules store: every rule in `rules_<agent>_v3_1.jsonl` carries `verified_at` and the `verified_on` case it was verified against.
 
+## Production surfaces
+
+The frontend is the operator console, not just a chat window. Six tabs, all
+reading the same backend:
+
+| Tab | What it answers |
+|---|---|
+| **Chat** | Pick a filing, ask freely or step through the dataset's own questions, watch the four stages stream. |
+| **Data & answers** | Which conversations the optimizer saw, and every question with gold beside each version's answer — filterable to just the turns where versions disagree. |
+| **Traces** | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
+| **Experiments** | Every eval / GEPA / research run, the accuracy trend, and a question-by-question diff of any two versions with the pass→fail flip list. |
+| **Research** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
+| **Eval** | The per-slice accuracy tables. |
+
+## Tracking, versioning and promotion
+
+A "model version" here is a **bundle**, not a checkpoint — prompts + GEPA
+overlay + both model ids + dataset hash + code SHA, versioned together and
+stamped on every run, CSV and serving session (`convfinqa.tracking.bundle`).
+
+The promotion contract, enforced in `tracking/registry.py` and
+`tracking/comparator.py`:
+
+1. **Every bundle is registered** — hand-edited prompts, an s7 round, a GEPA run,
+   no difference. Specs are never deleted, so failed challengers keep their
+   evidence as long as champions do.
+2. **It is evaluated** on the never-seen split.
+3. **The comparator decides.** First version is champion by default; after that,
+   promotion needs overall accuracy ≥ champion **and no per-question pass→fail
+   flips**. The second condition is the load-bearing one — a change that fixes
+   twelve number turns and breaks nine program turns nets out positive and is
+   still a regression.
+4. **Promotion is append-only** — an alias move recorded with timestamp,
+   comparator verdict and the runs behind it.
+
+```bash
+uv run convfinqa-mlflow status                    # config, aliases, versions
+uv run convfinqa-mlflow compare v2 v3_1           # exit 1 if not promotable
+uv run convfinqa-mlflow promote v3_1              # refused unless it passes
+uv run convfinqa-mlflow backfill                  # rebuild history from git
+uv run convfinqa-mlflow snapshot                  # export for the demo image
+uv run mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
+```
+
+Logging lives *inside* the eval/GEPA/s7 runners rather than beside them, so a
+run cannot happen without being recorded — an experiment history with silent
+gaps is worse than none.
+
+## Demo mode
+
+```bash
+DEMO_MODE=1 uv run python -m uvicorn convfinqa.serving.app:create_app \
+  --factory --workers 1 --port 8765          # works with no API key at all
+uv run convfinqa-demo-pack --n 8             # rebuild the recorded pack
+```
+
+The pack is reconstructed from committed prediction CSVs — every row already
+carries the full per-stage IO — so recording it costs **zero API calls**.
+Replay emits the same SSE events as the live path, paced so a real 30–60 s turn
+plays in about four seconds. Below the fuzzy-match threshold it declines rather
+than serving the nearest recording: confidently returning another filing's
+number would be the worst failure a system about numerical accuracy could have.
+
+## Container & deploy
+
+```bash
+docker compose up demo     # exactly what ships: no keys, replayed chat
+docker compose up dev      # same image, live model, your key
+./scripts/demo_smoke.sh http://localhost:8080
+```
+
+One container serves the API and the built SPA from the same origin. Push to
+`main` → CI must pass → `deploy-aws.yml` assumes an AWS role via GitHub OIDC
+(no stored keys), builds and pushes to ECR, App Runner auto-deploys `:latest`,
+Terraform reconciles, and the smoke test asserts `mode=demo`, a registered
+champion, the committed evidence, and a 403 on an admin write.
+
+Infrastructure is ECR + App Runner + a 5xx alarm — no VPC, no database, no
+Secrets Manager. Measured 225 MiB RSS at rest, 315 MiB with every prediction CSV
+cached, so the 1 GB instance is the honest floor. Roughly $5–15/month; demo mode
+is the real cost control, since the public deployment performs no inference.
+
+
 ## Current Layout
 
 The repository uses a `src/convfinqa/` package layout. No Python modules remain at the repo root — everything imports through `convfinqa.*`.
@@ -86,7 +194,10 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `src/convfinqa/evaluation/` | Metrics, cache, evaluation runners, reporting, API evaluation import paths. |
 | `src/convfinqa/prompts/` | Versioned prompt modules (`v1`, `v2`, generated `v3_1`, `v3_2`, …). |
 | `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). CLI implementation lives in `diagnosis/cli.py`. |
-| `src/convfinqa/serving/` | FastAPI app and Typer CLI package paths. |
+| `src/convfinqa/llm.py` | **The single LLM choke point.** Every model is built here; retry/timeout policy and the demo gate live here and nowhere else. |
+| `src/convfinqa/tracking/` | Bundle fingerprint, trace store, MLflow logging, comparator, registry, backfill, snapshot, CI gate. |
+| `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation`, `traces`, `admin`), session store, limits, research runner. |
+| `src/convfinqa/serving/demo_pack/` | Recorded conversations + replay, so the keyless demo streams like the live app. |
 | `src/convfinqa/optimization/` | GEPA and prompt optimisation entry points. |
 | `scripts/` | Installed command entry points. `diagnose_failures.py` is a thin shim over `convfinqa.diagnosis.cli:main`. |
 | `ai_specs/` | Design specs — `s7-prompt-optimisation.md` (implemented), `s8-optimisation-testing.md` (specified, not implemented). |
@@ -94,7 +205,11 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `evaluation/predictions/` | Cached prediction CSVs + dark-themed HTML reports + joined CSVs. Tracked in git so accuracy reproduces offline. |
 | `evaluation/diagnostics/` | s7 harness stores (`rules_*`, `rule_attempts_*`, `diagnostic_results_*`, …). Tracked in git. |
 | `runs/` | GEPA optimization artifacts (`optimized_runner.json`). Tracked in git so prior runs are usable on any clone. |
+| `evaluation/registry.json`, `evaluation/mlflow_snapshot.json` | Bundle registry + exported experiment history. Tracked, and baked into the demo image. |
+| `infra/terraform/` | `bootstrap/` (run once: the OIDC deploy role) and `demo/` (ECR + App Runner + alarm). |
+| `Dockerfile`, `docker-compose.yml` | The demo image, and the local dev/demo toggle. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
+| `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshot is what ships. |
 
 ## Pipeline
 
@@ -492,30 +607,36 @@ Vite proxies these backend prefixes and both `server.proxy` and `preview.proxy` 
 ## Quality Gates
 
 ```bash
-uv run pytest tests/ -q
-uv run ruff check src/ scripts/ tests/
-uv run mypy src/convfinqa
+uv run ruff check --no-fix src scripts tests
+uv run ruff format --check src scripts tests
+uv run mypy
+uv run pytest tests -q
+uv run python -m convfinqa.tracking.gate      # offline eval-regression gate
+cd frontend && npm run typecheck && npm run test:unit && npm run build
 ```
 
-Current validated state:
+Every one of these runs in CI on every pull request, plus a Docker build and
+`terraform fmt`/`validate`. Current state — all green:
 
-- **pytest: `56 passed`** ✅
-- **Ruff: 10 errors** ⚠️ — all missing-docstring (`D103` public function, `D102` public method), entirely within `src/convfinqa/diagnosis/`: `rules_store.py` (4), `assembler.py` (2), `aggregator.py`, `cli.py`, `models.py`, `results_html.py`. Cosmetic; fix by adding docstrings.
-- **mypy: 48 errors across 10 files** ⚠️ — up from 22 as the diagnosis package grew. Breakdown:
+| Gate | State |
+|---|---|
+| ruff check + format | clean |
+| mypy (strict-ish, 71 files) | clean |
+| pytest | **101 passed**, zero network calls, no API key required |
+| frontend typecheck + vitest + build | clean, 11 unit tests |
+| eval-regression gate | passes; champion `v2` at 77.14% against a 76.64% floor |
 
-  | File | Errors |
-  |---|---:|
-  | `pipeline/runner.py` | 13 |
-  | `diagnosis/harness.py` | 12 |
-  | `diagnosis/agents.py` | 9 |
-  | `diagnosis/rules_store.py` | 4 |
-  | `backends/pydantic.py` | 4 |
-  | `evaluation/reporting.py` | 2 |
-  | `serving/app.py`, `evaluation/runner.py`, `evaluation/api_runner.py`, `diagnosis/aggregator.py` | 1 each |
+The **eval-regression gate** is the load-bearing one. Because prediction CSVs
+are committed, it re-scores them deterministically with no API calls, and fails
+the build if the champion drops below its registered floor, if any CSV's
+`correct` column stops agreeing with re-scoring its own answers, or — for a
+registered challenger — it prints the exact questions that flipped pass→fail.
 
-  Dominant causes are unchanged from before: untyped function bodies, `str | Model` union attribute access, bare `dict` without type parameters, and `Optional` attribute access (e.g. `harness.py:333` `Item "None" of "FixAttempt | None" has no attribute "first_failing_turn"`). Not blocking; track and fix incrementally.
-- **Cached eval reproduces offline with zero API calls**: `v1=73.0%`, `v2=77.1%`, `v3_1=76.2%`
-- Backend health and `/eval/runs` smoke pass under `convfinqa.serving.app:create_app`
+Two notes on the mypy config, since both were real bugs:
+`packages = ["src"]` pointed at a directory that is not a package, so every
+`convfinqa.*` import resolved to `Any` and the strict settings applied to almost
+nothing; and `Settings` boots with no key, so CI needs no placeholder secret —
+the absence of a key is itself part of what the suite verifies.
 
 ## Notes for Contributors
 

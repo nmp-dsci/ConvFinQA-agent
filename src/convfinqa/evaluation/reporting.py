@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as _html
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -161,7 +162,7 @@ def print_accuracy_table(csv_paths: dict[str, Path]) -> None:
         df["_ok"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
         dfs[v] = df
 
-    def _row(label: str, masks: dict[str, pd.Series]) -> tuple:
+    def _row(label: str, masks: dict[str, pd.Series]) -> tuple[Any, ...]:
         count = int(masks[versions[0]].sum())
         accs = []
         for v in versions:
@@ -171,7 +172,7 @@ def print_accuracy_table(csv_paths: dict[str, Path]) -> None:
             accs.append(correct / total if total else 0.0)
         return (label, count, *accs)
 
-    rows: list[tuple] = []
+    rows: list[tuple[Any, ...]] = []
     rows.append(_row("Overall", {v: pd.Series([True] * len(dfs[v])) for v in versions}))
     for tt in ["Number", "Program"]:
         rows.append(

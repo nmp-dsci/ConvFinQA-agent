@@ -82,7 +82,8 @@ async def list_experiments() -> dict[str, Any]:
 @router.get("/experiments/{run_id}")
 async def get_experiment(run_id: str) -> dict[str, Any]:
     """One run in full."""
-    for run in _experiments_source()["runs"]:
+    runs: list[dict[str, Any]] = _experiments_source()["runs"]
+    for run in runs:
         if run.get("run_id") == run_id:
             return run
     raise HTTPException(status_code=404, detail=f"Unknown run_id: {run_id}")
@@ -203,7 +204,7 @@ class ResearchRequest(BaseModel):
 @router.get("/research/status")
 async def research_status(request: Request) -> dict[str, Any]:
     """Current round and recent history. Readable in demo; launch is not."""
-    status: dict[str, Any] = request.app.state.research.status()
+    status: dict[str, Any] = dict(request.app.state.research.status())
     status["can_launch"] = not demo_mode_enabled() and settings.owner_token is not None
     status["mode"] = "demo" if demo_mode_enabled() else "dev"
     return status
@@ -230,7 +231,8 @@ async def research_start(body: ResearchRequest, request: Request) -> dict[str, A
         ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return job.as_dict()
+    payload: dict[str, Any] = job.as_dict()
+    return payload
 
 
 @router.post("/research/cancel", dependencies=[Depends(require_owner)])

@@ -218,7 +218,7 @@ async def _evaluate_api_async(
     base_url: str,
     timeout: float,
     examples: list[Any],
-    transport: httpx.AsyncBaseTransport | httpx.BaseTransport | None,
+    transport: httpx.AsyncBaseTransport | None,
     max_concurrency: int,
     out_path: Path,
     initial_rows: list[list[Any]],
@@ -278,7 +278,7 @@ def evaluate_api(
     base_url: str = "http://127.0.0.1:8765",
     timeout: float = 120.0,
     examples: list[Any] | None = None,
-    transport: httpx.AsyncBaseTransport | httpx.BaseTransport | None = None,
+    transport: httpx.AsyncBaseTransport | None = None,
     max_concurrency: int = 8,
     reuse_existing: bool = True,
 ) -> Path:

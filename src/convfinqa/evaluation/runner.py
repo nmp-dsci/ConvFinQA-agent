@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -94,7 +95,9 @@ async def _conv_task(case: ConvInput) -> ConvOutput:
     return ConvOutput(preds=preds, programs=programs, stage_captures=captures)
 
 
-def make_task_fn(agents: dict[str, Agent]):
+def make_task_fn(
+    agents: dict[str, Agent[None, Any]],
+) -> Callable[[ConvInput], Awaitable[ConvOutput]]:
     """Return a pydantic-evals task function that uses the given agents."""
 
     async def _task(case: ConvInput) -> ConvOutput:
@@ -297,6 +300,30 @@ async def evaluate_cached(
     return await evaluate(examples, max_concurrency=max_concurrency)
 
 
+def _cost_metrics(df: pd.DataFrame) -> dict[str, float]:
+    """Token and cost totals for a scored run, from its recorded stage metrics.
+
+    Older CSVs predate per-stage metrics and simply contribute nothing, so this
+    degrades to zeros rather than failing a run that is otherwise fine.
+    """
+    from convfinqa.tracking.cost import aggregate
+
+    captures: list[dict[str, Any]] = []
+    for row in df.itertuples():
+        capture: dict[str, Any] = {}
+        for stage in ("triage", "preprocess", "retriever", "calculator"):
+            raw = getattr(row, f"{stage}_io", "")
+            if isinstance(raw, str) and raw.strip():
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, dict):
+                    capture[stage] = parsed
+        captures.append(capture)
+    return aggregate(captures)
+
+
 def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None:
     """Record this evaluation as an MLflow run and register the bundle version.
 
@@ -333,6 +360,8 @@ def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None
                 metrics[f"accuracy_{column}_{label}"] = round(
                     float(group["correct"].mean()), 6
                 )
+
+    metrics.update(_cost_metrics(df))
 
     with mlflow_log.run(
         f"eval-{version}",

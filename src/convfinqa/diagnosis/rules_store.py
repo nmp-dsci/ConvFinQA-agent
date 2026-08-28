@@ -118,7 +118,7 @@ def append_rule(
             if isinstance(existing_id, str) and existing_id:
                 return existing_id
     rule_id = f"{agent[:4]}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
-    entry = Rule(
+    new_rule = Rule(
         rule_id=rule_id,
         agent=agent,
         rule=rule_text,
@@ -131,7 +131,7 @@ def append_rule(
     path = rules_path(agent)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as f:
-        f.write(entry.model_dump_json() + "\n")
+        f.write(new_rule.model_dump_json() + "\n")
     return rule_id
 
 
@@ -170,7 +170,7 @@ def append_attempt(
     attempt_id = (
         f"{agent[:4]}-att-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{_short_uuid()}"
     )
-    entry = RuleAttempt(
+    new_attempt = RuleAttempt(
         attempt_id=attempt_id,
         agent=agent,
         rule=rule_text,
@@ -186,7 +186,7 @@ def append_attempt(
     path = attempts_path(agent)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as f:
-        f.write(entry.model_dump_json() + "\n")
+        f.write(new_attempt.model_dump_json() + "\n")
     return attempt_id
 
 

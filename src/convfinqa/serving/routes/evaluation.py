@@ -8,6 +8,7 @@ per-version results a visitor would otherwise have to take on trust.
 
 from __future__ import annotations
 
+import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from convfinqa.serving import evaldata
@@ -81,12 +82,14 @@ async def get_answers(
     if not versions:
         return []
 
-    frames = {v: evaldata.load_joined(v) for v in versions}
-    frames = {v: df for v, df in frames.items() if df is not None}
+    loaded = {v: evaldata.load_joined(v) for v in versions}
+    frames: dict[str, pd.DataFrame] = {
+        v: df for v, df in loaded.items() if df is not None
+    }
     if not frames:
         return []
 
-    base = next(iter(frames.values()))
+    base: pd.DataFrame = next(iter(frames.values()))
     if report_id:
         base = base[base["report_id"] == report_id]
     base = base.sort_values(["report_id", "turn_index"]).head(limit)
