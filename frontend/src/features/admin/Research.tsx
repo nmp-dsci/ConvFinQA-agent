@@ -335,7 +335,15 @@ export default function Research() {
               )}
             >
               {c.name}{' '}
-              <span className="opacity-70">{view === 'rules' ? c.rules : c.attempts}</span>
+              {/*
+                The count was `opacity-70`, which on the selected chip put amber
+                at 70% over `--amber-soft` — 3.77:1 dark, 2.90:1 light, both
+                under AA. Opacity is not a colour: it moves the foreground
+                toward whatever is behind it, so it defeats a token that was
+                chosen against that background. Weight carries the same
+                hierarchy without touching contrast.
+              */}
+              <span className="font-normal">{view === 'rules' ? c.rules : c.attempts}</span>
             </button>
           ))}
         </div>

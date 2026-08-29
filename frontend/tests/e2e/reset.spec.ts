@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { BACKEND, enterChatFromBoard } from './enter';
 
-const BACKEND = process.env.PW_BACKEND_URL ?? 'http://127.0.0.1:8765';
 const RID = 'Single_VLO/2011/page_126.pdf-1';
 
 test('reset conversation drops server-side history', async ({ page, request }) => {
   await page.addInitScript((apiBase: string) => {
     window.localStorage.setItem('convfinqa.apiBase', apiBase);
   }, BACKEND);
-  await page.goto('/');
+  await enterChatFromBoard(page);
 
   await page.getByTestId('topbar-change-report').click();
   await page.getByTestId('report-picker-input').fill(RID);

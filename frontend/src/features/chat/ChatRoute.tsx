@@ -151,7 +151,15 @@ export function ChatRoute() {
 
   return (
     <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-ground">
+      {/*
+        Both panes are <aside>, so both expose the `complementary` landmark.
+        Without names a screen-reader's landmark list reads "complementary,
+        complementary" and the reader has to enter each one to find out which
+        is which — axe's `landmark-unique`, and a real navigation cost on a
+        three-pane layout whose whole point is moving between the panes.
+      */}
       <aside
+        aria-label="Sessions"
         className={cn(
           'z-30 w-[210px] shrink-0 flex-col border-r border-line bg-ground',
           'max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:shadow-xl',
@@ -219,6 +227,7 @@ export function ChatRoute() {
       )}
 
       <aside
+        aria-label="Trace inspector"
         style={wide ? { width } : undefined}
         className={cn(
           'z-30 shrink-0 flex-col border-l border-line bg-ground',

@@ -95,7 +95,20 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
+      {/*
+        `tabIndex={0}` on both scroll containers: a region that scrolls but
+        holds no focusable child cannot be reached by keyboard at all, so a
+        reader who does not use a mouse simply cannot see the bottom of a long
+        filing or the right-hand columns of a wide table. axe's
+        `scrollable-region-focusable`, and it only fires at narrow widths —
+        where it matters most.
+      */}
+      <div
+        role="region"
+        aria-label="Filing text and table"
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3"
+      >
         {doc.isPending && <p className="text-[12px] text-faint">Loading the filing…</p>}
         {doc.isError && (
           <p className="text-[12px] text-bad">
@@ -127,16 +140,32 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                 )}
               </div>
 
-              <div className="overflow-x-auto rounded-md border border-line">
+              <div
+                role="region"
+                aria-label="Filing table"
+                tabIndex={0}
+                className="overflow-x-auto rounded-md border border-line"
+              >
                 <table className="min-w-full border-collapse text-[11px]">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-10 border-b border-line bg-panel-2 px-2 py-1 text-left font-medium">
-                        &nbsp;
+                      {/*
+                        The corner cell. It is empty by design — it sits above
+                        the row labels and left of the column labels — but an
+                        empty <th> is announced as an unnamed column header, so
+                        it carries a name only a screen reader hears.
+                      */}
+                      <th
+                        scope="col"
+                        className="sticky left-0 z-10 border-b border-line bg-panel-2 px-2 py-1 text-left font-medium"
+                      >
+                        <span className="sr-only">Row label</span>
+                        <span aria-hidden>&nbsp;</span>
                       </th>
                       {colKeys.map((col) => (
                         <th
                           key={col}
+                          scope="col"
                           className="border-b border-l border-line bg-panel-2 px-2 py-1 text-left font-medium whitespace-nowrap"
                         >
                           {col}
@@ -147,7 +176,10 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                   <tbody>
                     {rowKeys.map((row) => (
                       <tr key={row}>
-                        <th className="sticky left-0 z-10 border-b border-line bg-panel px-2 py-1 text-left font-medium text-muted">
+                        <th
+                          scope="row"
+                          className="sticky left-0 z-10 border-b border-line bg-panel px-2 py-1 text-left font-medium text-muted"
+                        >
                           {row}
                         </th>
                         {colKeys.map((col) => {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { BACKEND, enterChatFromBoard } from './enter';
 
-const BACKEND = process.env.PW_BACKEND_URL ?? 'http://127.0.0.1:8765';
 const RID_A = 'Single_VLO/2011/page_126.pdf-1';
 const RID_B = 'Single_AES/2003/page_168.pdf-1';
 
@@ -8,7 +8,7 @@ test('unread badge appears on inactive conversation, clears on click', async ({ 
   await page.addInitScript((apiBase: string) => {
     window.localStorage.setItem('convfinqa.apiBase', apiBase);
   }, BACKEND);
-  await page.goto('/');
+  await enterChatFromBoard(page);
 
   // Open A and ask a question, wait for first answer.
   await page.getByTestId('topbar-change-report').click();

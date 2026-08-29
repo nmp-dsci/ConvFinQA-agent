@@ -89,7 +89,10 @@ export function HudTile({
       {loading ? (
         <div className="h-[27px] w-20 animate-pulse rounded bg-panel-2" aria-label="loading" />
       ) : (
-        <div className={cn('type-hud truncate', absent ? 'text-faint' : VALUE_TONE[tone])}>
+        <div
+          data-testid="hud-value"
+          className={cn('type-hud truncate', absent ? 'text-faint' : VALUE_TONE[tone])}
+        >
           {value}
         </div>
       )}
@@ -97,7 +100,9 @@ export function HudTile({
       {loading ? (
         <div className="h-3 w-full animate-pulse rounded bg-panel-2" />
       ) : absent ? (
-        <p className="type-meta text-faint">{reason ?? 'not measured'}</p>
+        <p data-testid="hud-reason" className="type-meta text-faint">
+          {reason ?? 'not measured'}
+        </p>
       ) : (
         meta && <div className="type-meta">{meta}</div>
       )}
@@ -117,7 +122,13 @@ export function HudTile({
         here. The tile names the page its rows live on, in the form the reader
         will see in the address bar.
       */}
-      <span className="type-num mt-auto pt-1.5 text-[10px] tracking-[0.06em] text-faint/80 group-hover:text-amber">
+      {/*
+        Full `text-faint`, not `text-faint/80`: at 80% opacity over `--panel`
+        this line measured 4.37:1 in dark and 3.72:1 in light, under the 4.5:1
+        AA threshold, even after the token itself was corrected. Alpha on top of
+        an already-quiet colour is how a contrast fix silently fails to apply.
+      */}
+      <span className="type-num mt-auto pt-1.5 text-[10px] tracking-[0.06em] text-faint group-hover:text-amber">
         {drill}
       </span>
     </Link>

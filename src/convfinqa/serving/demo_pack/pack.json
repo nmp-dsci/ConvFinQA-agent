@@ -1,12 +1,12 @@
 {
-  "built_at": "2026-08-28T00:17:29.924615+00:00",
+  "built_at": "2026-08-29T10:53:23.898612+00:00",
   "bundle": {
     "prompts_version": "v2",
     "gepa_overlay": null,
     "lm_mini": "deepseek-v4-flash",
     "lm_max": "deepseek-v4-pro",
     "dataset_hash": "d012d251fcb9",
-    "code_sha": "0ee36df"
+    "code_sha": "f2740f3"
   },
   "turns": [
     {

@@ -33,7 +33,43 @@ reports="$(curl -fsS --max-time 20 "$BASE/demo/reports" \
   | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
 [[ "$reports" -gt 0 ]] || fail "demo pack is empty"
 
-# 5. The gate holds: an admin write is refused.
+# 5. The metrics endpoint answers, and answers with all three source groups.
+#
+#    This is the honesty contract in wire form. `serving`, `demo` and `eval`
+#    describe three different populations — a live turn, a recording replayed at
+#    a watchable pace, and an eval turn at concurrency 8 on a warm cache — and
+#    the endpoint must never blend them. It must also return all three on a cold
+#    container, before anyone has replayed anything: an absent group reads as
+#    "no data" when it means "no turns yet", and a frontend that has to branch on
+#    presence is a frontend that will eventually render the wrong empty state.
+#
+#    Note what is deliberately NOT asserted: nothing about latency or cost being
+#    populated. They are `null` with `n_measured: 0` until a metered eval run is
+#    paid for, and the board renders that as an em dash with a reason. Asserting
+#    a number here would be asserting a lie.
+metrics="$(curl -fsS --max-time 20 "$BASE/metrics/production")" \
+  || fail "/metrics/production unreachable"
+echo "$metrics" | python3 -c '
+import json, sys
+
+body = json.load(sys.stdin)
+sources = body.get("sources")
+if not isinstance(sources, dict):
+    sys.exit("no sources object")
+missing = [s for s in ("serving", "demo", "eval") if s not in sources]
+if missing:
+    sys.exit(f"source groups missing: {missing}")
+for name in ("serving", "demo", "eval"):
+    group = sources[name]
+    for key in ("n_turns", "latency_ms", "cost_usd", "accuracy", "errors", "series"):
+        if key not in group:
+            sys.exit(f"source {name} is missing {key}")
+    buckets = group["series"]
+    if len(buckets) != 24:
+        sys.exit(f"source {name} has {len(buckets)} series buckets, expected 24 hourly")
+' || fail "/metrics/production payload is not the three-source shape: $metrics"
+
+# 6. The gate holds: an admin write is refused.
 code="$(curl -s -o /tmp/smoke_promote.json -w '%{http_code}' --max-time 20 \
   -X POST "$BASE/admin/registry/promote" \
   -H 'Content-Type: application/json' -d '{"version":"v2"}')"

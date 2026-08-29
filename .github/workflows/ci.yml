@@ -84,8 +84,55 @@ jobs:
         run: npm run test:unit
       - name: Build
         run: npm run build
-      # Playwright e2e (npm run test:e2e) needs a running backend and a browser
-      # download; it stays a local target.
+
+  e2e:
+    name: Frontend — Playwright e2e
+    runs-on: ubuntu-latest
+    # This job exists because its absence had a cost. Four of the six specs sat
+    # red at HEAD — they opened `/` and immediately reached for chat controls,
+    # and `/` had become the status board — and nothing in CI noticed, because
+    # the frontend job only type-checked, unit-tested and built. A suite nothing
+    # runs is documentation, not a gate.
+    #
+    # What this job runs, and why it is not all six: no DEEPSEEK_API_KEY is set
+    # here, deliberately, exactly as in the python job. `smoke`, `reset`,
+    # `unread` and `concurrent` each stream a real turn through the four agents,
+    # so they need a model and cannot run keyless — running them here would buy
+    # a red build, not a signal. `landing.spec.ts` needs no model and covers the
+    # part that actually rotted: the status board, the landing → chat entry path
+    # every other spec now depends on, and the honesty rule that an unmeasured
+    # metric renders as an em dash rather than a zero.
+    #
+    # Playwright's own `webServer` boots both halves (the backend with
+    # `--workers 1`, which is load-bearing — session state is in-process), so
+    # there is no hand-rolled boot here to drift out of sync with the config.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Playwright — landing / board / entry path
+        working-directory: frontend
+        run: npm run test:e2e -- landing.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: frontend/test-results/
+          retention-days: 7
 
   docker:
     name: Docker — build the demo image

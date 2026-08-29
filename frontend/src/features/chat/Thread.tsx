@@ -77,13 +77,21 @@ export function Thread({
       */}
       <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-3 py-1">
         <span className="mono-caps shrink-0">filing</span>
-        <span
+        {/*
+          An <h1>, not a <span>: the thread is about exactly one filing, and
+          that filing's id is the page's subject. Without it the chat has no
+          level-one heading at all, which is what axe flagged and what leaves a
+          screen-reader user with no way to answer "what am I looking at" other
+          than reading the transcript. The text is unchanged — `smoke.spec.ts`
+          asserts this element's text equals the report id exactly.
+        */}
+        <h1
           data-testid="active-report-id"
           title={rid}
-          className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-text"
+          className="min-w-0 flex-1 truncate font-mono text-[11.5px] font-normal text-text"
         >
           {rid}
-        </span>
+        </h1>
         <ModeChip />
 
         <button

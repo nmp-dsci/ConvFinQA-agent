@@ -26,8 +26,24 @@
   --line: #32363d;
   --line-2: #434850;
   --text: #e8e9ea;
-  --muted: #a0a5ad;
-  --faint: #868c96;
+  /*
+   * `--muted` and `--faint` were lightened one step from the palette Phase 0
+   * laid down (`#a0a5ad` / `#868c96`). axe found `--faint` failing WCAG AA on
+   * every surface it is used on — 4.03:1 on `--panel-2` and 3.57:1 over
+   * `--amber-soft`, against the 4.5:1 small-text threshold — and `--faint` is
+   * the colour of every `.mono-caps` micro-label and every "why this tile is
+   * empty" line on the board. A reason a reader cannot read is not a reason.
+   *
+   * `--muted` moved with it only to keep the three-step hierarchy legible:
+   * text → muted → faint. Its old value already passed on its own.
+   *
+   * Worst measured ratio after the change: faint 4.65:1 (over `--amber-soft`),
+   * muted 6.26:1. Any future edit to these two must be re-checked against
+   * `--ground`, `--panel`, `--panel-2` *and* `--amber-soft` — the amber wash is
+   * the tightest surface in the set and the easiest to forget.
+   */
+  --muted: #b6bbc2;
+  --faint: #9ba1ab;
   --amber: #f0a93f;
   --amber-ink: #1d1405;
   --amber-soft: rgba(240, 169, 63, 0.13);
@@ -48,8 +64,17 @@
   --line: #dedad6;
   --line-2: #c6c1bb;
   --text: #22252a;
-  --muted: #61656c;
-  --faint: #6f747c;
+  /*
+   * Same fix, darker rather than lighter (see the dark block above). The light
+   * theme was the worse of the two: `--faint` at `#6f747c` measured 3.68:1 on
+   * `--panel-2` and 3.99:1 on `--ground`. Note that `--faint` had to move past
+   * where `--muted` sat, so `--muted` moved too — leaving it would have made
+   * "faint" the *more* prominent of the two and inverted the hierarchy.
+   *
+   * Worst measured ratio after the change: faint 4.72:1, muted 5.51:1.
+   */
+  --muted: #55595f;
+  --faint: #5f636a;
   --amber: #8f5309;
   --amber-ink: #fdf6ec;
   --amber-soft: rgba(143, 83, 9, 0.11);
