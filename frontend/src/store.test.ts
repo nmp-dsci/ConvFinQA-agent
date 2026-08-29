@@ -71,11 +71,52 @@ describe('SSE reducer', () => {
   });
 
   it('does not resurrect an errored turn on `done`', () => {
+    // `unknown` is the real fallback the backend classifies to — the literal
+    // `"error"` this fixture used predates `convfinqa/error_codes.py`.
     const result = apply(blank(), [
-      { event: 'error', error: 'boom', code: 'error' },
+      { event: 'error', error: 'boom', code: 'unknown' },
       { event: 'done', turn_index: 0 },
     ]);
     expect(result.status).toBe('error');
+  });
+
+  it('records a fuzzy replay match so the turn can say what it played', () => {
+    const result = apply(blank(), [
+      {
+        event: 'matched',
+        matched_question: 'what is the net change in cash from operations from 2008 to 2009?',
+        asked_question: 'how much did operating cash move between 2008 and 2009?',
+        score: 0.71,
+      },
+      { event: 'answer', answer: '227.0' },
+      { event: 'done', turn_index: 0, trace_id: 't1' },
+    ]);
+    expect(result.matchedQuestion).toMatch(/net change in cash/);
+    expect(result.askedQuestion).toMatch(/operating cash move/);
+    expect(result.matchScore).toBe(0.71);
+  });
+
+  it('leaves matchedQuestion unset on an exact match', () => {
+    // The server sends no `matched` frame when the question was recorded
+    // verbatim, and `done` carries an empty string rather than omitting it.
+    const result = apply(blank(), [
+      { event: 'answer', answer: '227.0' },
+      { event: 'done', turn_index: 0, matched_question: '' },
+    ]);
+    expect(result.matchedQuestion).toBeUndefined();
+  });
+
+  it('does not let `done` clear a match the `matched` frame already set', () => {
+    const result = apply(blank(), [
+      {
+        event: 'matched',
+        matched_question: 'recorded question',
+        asked_question: 'paraphrase',
+        score: 0.66,
+      },
+      { event: 'done', turn_index: 0 },
+    ]);
+    expect(result.matchedQuestion).toBe('recorded question');
   });
 });
 

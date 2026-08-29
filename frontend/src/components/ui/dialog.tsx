@@ -29,12 +29,19 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+// forwardRef, unlike the rest of this file: Radix's <Presence> clones the
+// portal's children with a ref, and shadcn ships these components written for
+// React 19 where a plain function component accepts one. Under the React 18
+// this app is on it does not, and the mismatch surfaces as a console error
+// every time a dialog opens. The wrapper is the only child Presence reaches
+// that is ours rather than Radix's, so it is the only one that needs this.
+const DialogOverlay = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+>(function DialogOverlay({ className, ...props }, ref) {
   return (
     <DialogPrimitive.Overlay
+      ref={ref}
       data-slot="dialog-overlay"
       className={cn(
         "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
@@ -43,7 +50,7 @@ function DialogOverlay({
       {...props}
     />
   )
-}
+})
 
 function DialogContent({
   className,

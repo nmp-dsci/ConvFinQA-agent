@@ -3,10 +3,24 @@ import { create } from 'zustand';
 import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import * as api from './api';
 import { SessionGoneError } from './api';
+import { listDemoReports } from './lib/api';
 import type { Conversation, Message, SSEEvent, StageName } from './types';
 
 // AbortControllers are not serializable — keep out of persisted state.
 const ABORT_CONTROLLERS = new Map<string, AbortController>();
+
+/** One question a "run all" pass will ask, with the gold to score it against. */
+export interface RunnableQuestion {
+  question: string;
+  gold?: string;
+  goldProgram?: string;
+}
+
+/** A conversation the recorded pack can replay, offered as a worked example. */
+export interface ExampleConversation {
+  reportId: string;
+  nQuestions: number;
+}
 
 interface State {
   reports: string[];
@@ -15,13 +29,21 @@ interface State {
   activeReportId: string | null;
   conversations: Record<string, Conversation>;
   pickerOpen: boolean;
+  /**
+   * The demo pack's conversations, offered in the sessions pane so a visitor's
+   * first view is not an empty list. Server state, so never persisted: the pack
+   * is rebuilt from committed CSVs and a stale copy in localStorage would offer
+   * conversations the deployment can no longer replay.
+   */
+  examples: ExampleConversation[];
 }
 
 interface Actions {
   loadReports: () => Promise<void>;
+  loadExamples: () => Promise<void>;
   selectReport: (rid: string) => Promise<void>;
   ask: (rid: string, question: string, gold?: string, goldProgram?: string) => Promise<void>;
-  runAllGold: (rid: string) => Promise<void>;
+  runAllGold: (rid: string, questions?: RunnableQuestion[]) => Promise<void>;
   resetConversation: (rid: string) => Promise<void>;
   markRead: (rid: string) => void;
   hydrateSession: (rid: string) => Promise<string>;
@@ -82,6 +104,7 @@ export const useStore = create<Store>()(
       activeReportId: null,
       conversations: {},
       pickerOpen: false,
+      examples: [],
 
       openPicker: () => {
         set({ pickerOpen: true });
@@ -103,6 +126,22 @@ export const useStore = create<Store>()(
           set({ reportsLoading: false, reportsError: msg });
           // eslint-disable-next-line no-console
           console.error('loadReports failed', e);
+        }
+      },
+
+      loadExamples: async () => {
+        try {
+          const packed = await listDemoReports();
+          set({
+            examples: packed.map((r) => ({
+              reportId: r.report_id,
+              nQuestions: r.n_questions,
+            })),
+          });
+        } catch {
+          // A deployment without a pack is a normal state, not an error worth
+          // a banner — the pane simply has no examples to offer.
+          set({ examples: [] });
         }
       },
 
@@ -259,17 +298,28 @@ export const useStore = create<Store>()(
         }
       },
 
-      runAllGold: async (rid) => {
-        let questions;
-        try {
-          questions = await api.getQuestions(rid);
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error('getQuestions failed', e);
-          return;
+      runAllGold: async (rid, questions) => {
+        // The caller supplies the list when it already knows which questions
+        // this deployment can answer — in demo mode that is the recorded set,
+        // not the dataset's, and running the dataset's would be a column of
+        // refusals. Falling back to the dataset keeps every existing caller
+        // (and the e2e specs) working unchanged.
+        let list = questions;
+        if (!list) {
+          try {
+            list = (await api.getQuestions(rid)).map((q) => ({
+              question: q.question,
+              gold: q.gold_answer,
+              goldProgram: q.gold_program,
+            }));
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('getQuestions failed', e);
+            return;
+          }
         }
-        for (const q of questions) {
-          await get().ask(rid, q.question, q.gold_answer, q.gold_program);
+        for (const q of list) {
+          await get().ask(rid, q.question, q.gold, q.goldProgram);
         }
       },
 
@@ -416,11 +466,24 @@ export function applyEvent(message: Message, event: SSEEvent): Message {
     }
     case 'answer':
       return { ...message, text: event.answer };
+    case 'matched':
+      // Arrives before any stage frame. Recording it on the message — rather
+      // than as a transient toast — is what keeps the substitution visible in
+      // the transcript afterwards, including in a screenshot of it.
+      return {
+        ...message,
+        matchedQuestion: event.matched_question,
+        askedQuestion: event.asked_question,
+        matchScore: event.score,
+      };
     case 'done':
       return {
         ...message,
         status: message.status === 'error' ? 'error' : 'done',
         traceId: event.trace_id,
+        // `done` repeats the match so a client that joined late still learns
+        // of it; never let the repeat clear what the `matched` frame set.
+        matchedQuestion: message.matchedQuestion || event.matched_question || undefined,
       };
     case 'error':
       // `code` is the stable contract; `error` is prose that may change.
