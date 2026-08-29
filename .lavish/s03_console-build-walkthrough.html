@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Console — Build Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Design source: (2) the project's own system — and specifically the system
+   THIS BUILD delivered. frontend/src/tokens.css is the origin of every value
+   below, so the walkthrough is rendered in the palette it is reporting on.
+   Two themes from one set of token names, monotonic elevation, state as shape:
+   the same three rules the build was held to.
+   --------------------------------------------------------------------------- */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1080px;
+}
+:root[data-theme="light"]{
+  --ground:#eeecea; --panel:#faf9f8; --panel-2:#e6e3e0;
+  --line:#dedad6; --line-2:#c6c1bb;
+  --text:#22252a; --muted:#55595f; --faint:#5f636a;
+  --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --amber-line:rgba(143,83,9,.4);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --good-line:rgba(23,112,73,.38); --info-line:rgba(29,84,171,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+section{padding:60px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(32px,5vw,50px);line-height:1.08;letter-spacing:-.026em;margin:0 0 20px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,30px);line-height:1.18;letter-spacing:-.018em;margin:0 0 16px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:34px 0 10px;letter-spacing:-.004em;font-weight:600}
+h4{font-family:var(--mono);font-size:10.5px;margin:24px 0 8px;color:var(--faint);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+p{margin:0 0 14px;max-width:72ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:72ch}
+li{margin:0 0 8px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18.5px;color:var(--muted);max-width:66ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.grid{display:grid;gap:14px}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:28px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px}
+.metric .v{font-family:var(--mono);font-size:27px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:600px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.warn{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.chip.bad{color:var(--bad);border-color:rgba(239,130,130,.45)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px}
+.callout.bad{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px}
+figure img{width:100%;height:auto;display:block;border:1px solid var(--line-2);border-radius:10px;background:var(--panel)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:74ch}
+.shots{display:grid;gap:16px}
+@media(min-width:820px){.shots.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc{display:grid;gap:8px;margin:28px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.phase{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:20px 22px;margin:0 0 20px}
+.phase .hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+.phase .hd .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.1em;font-weight:600}
+.phase .hd h3{margin:0;font-size:18px}
+.phase .hd .sha{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:auto}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13.5px;margin:12px 0 0}
+.kv dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding-top:4px}
+.kv dd{margin:0;color:var(--muted)}
+.wave{display:grid;gap:10px;margin:0 0 18px}
+@media(min-width:700px){.wave{grid-template-columns:90px minmax(0,1fr)}}
+.wave .lbl{font-family:var(--mono);font-size:10.5px;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;padding-top:14px}
+.wave .items{display:grid;gap:10px}
+@media(min-width:700px){.wave .items.p2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wave .it{background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:10px 13px;font-size:13.5px}
+.wave .it b{display:block;font-family:var(--mono);font-size:10.5px;color:var(--amber);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.ledger td:first-child{font-weight:600}
+.foot{color:var(--faint);font-size:13px;margin-top:26px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<section>
+  <p class="eyebrow">Build walkthrough · s03 · branch frontend-redesign-console</p>
+  <h1>The Console, built — seven phases, and what is actually true about each</h1>
+  <p class="lede">
+    You approved Option B and asked for the whole plan built: phases 0 through 6, subagents doing
+    the work, me orchestrating, and a walkthrough at the end with screenshots of the app running in
+    dev. All seven phases landed. This page is the debrief — what each phase delivered, a picture of
+    it running, the command output that proves it, and the things that are still broken or unmeasured,
+    stated rather than buried.
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v">7</div><div class="l">phases delivered, 0 through 6</div></div>
+    <div class="metric"><div class="v">9</div><div class="l">commits on the branch</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">149</div><div class="l">python tests passing</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">99</div><div class="l">frontend unit tests, from 11</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">28</div><div class="l">screenshots, 0 problems</div></div>
+    <div class="metric"><div class="v" style="color:var(--amber)">3</div><div class="l">things still broken, all named</div></div>
+  </div>
+  <p class="small muted" style="margin-top:16px">
+    Rendered in the palette this build produced — <code>frontend/src/tokens.css</code> is the origin of
+    every colour on this page, including the two contrast values Phase 6 had to change.
+  </p>
+  <nav class="toc">
+    <a href="#how"><span class="n">01</span>How it was orchestrated</a>
+    <a href="#p0"><span class="n">02</span>Phase 0 — Foundation</a>
+    <a href="#p1"><span class="n">03</span>Phase 1 — Backend</a>
+    <a href="#p2"><span class="n">04</span>Phase 2 — Landing</a>
+    <a href="#p3"><span class="n">05</span>Phase 3 — Chat</a>
+    <a href="#p4"><span class="n">06</span>Phase 4 — Admin</a>
+    <a href="#p5"><span class="n">07</span>Phase 5 — System</a>
+    <a href="#p6"><span class="n">08</span>Phase 6 — Ship</a>
+    <a href="#gate"><span class="n">09</span>The verification gate</a>
+    <a href="#ledger"><span class="n">10</span>The honesty ledger</a>
+    <a href="#next"><span class="n">11</span>What is left, and what it costs</a>
+  </nav>
+</section>
+
+<!-- ══════════════════ 01 HOW ══════════════════ -->
+<section id="how">
+  <p class="eyebrow">01 · How it was orchestrated</p>
+  <h2>Four waves, seven agents, one shared contract</h2>
+  <p>
+    The risk in parallel agents is not capability, it is collision — two agents editing one router,
+    or each re-deriving the same design decision differently. So before any agent started I wrote a
+    <strong>shared build brief</strong> that every phase read first: the token system with both themes,
+    the three non-negotiable design rules, the full route table with a named owner per directory, the
+    repo's hard invariants, the three-layer demo gate, the fifteen pinned test ids, and the honesty
+    rules. Each phase appended what it learned, so later phases built against reality rather than
+    against my original assumptions — which were wrong in several places.
+  </p>
+  <div class="wave">
+    <div class="lbl">Wave A</div>
+    <div class="items p2">
+      <div class="it"><b>Phase 0 · Foundation</b>Tailwind 4, tokens, shadcn, router, query, shell. Frontend only.</div>
+      <div class="it"><b>Phase 1 · Backend</b>Metrics, error codes, fuzzy replay, thinking-mode fix. Python only.</div>
+    </div>
+  </div>
+  <div class="wave">
+    <div class="lbl">Wave B</div>
+    <div class="items p2">
+      <div class="it"><b>Phase 2 · Landing</b>Owns <code>router.tsx</code> and typography.</div>
+      <div class="it"><b>Phase 3 · Chat</b>Owns <code>store.ts</code> and the chat components.</div>
+    </div>
+  </div>
+  <div class="wave">
+    <div class="lbl">Wave C</div>
+    <div class="items p2">
+      <div class="it"><b>Phase 4 · Admin</b>Owns <code>features/admin/</code> and <code>package.json</code>.</div>
+      <div class="it"><b>Phase 5 · System</b>Owns <code>features/system/</code>. No dependencies added.</div>
+    </div>
+  </div>
+  <div class="wave">
+    <div class="lbl">Wave D</div>
+    <div class="items">
+      <div class="it"><b>Phase 6 · Ship</b>E2E repair, the missing CI gate, smoke assertions, accessibility. Alone — nothing else in flight.</div>
+    </div>
+  </div>
+  <p>
+    Disjoint file ownership held: no phase overwrote another's work, and the only cross-boundary edits
+    were two identical <code>forwardRef</code> fixes to vendored shadcn overlays, made independently by
+    Phases 3 and 4 because each hit the same console error.
+  </p>
+  <div class="callout info">
+    <strong>Three defects were found by agents checking each other's assumptions</strong>
+    <p>Phase 0 discovered four e2e specs were already red at <code>HEAD</code>. Phase 4 discovered the
+    supply-chain guard Phase 0 wrote made <code>npm install</code> impossible. Phase 5 discovered the
+    DeepSeek fix Phase 1 landed was on a function with no production caller. None of these would have
+    surfaced from a single agent building straight through.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 02 PHASE 0 ══════════════════ -->
+<section id="p0">
+  <p class="eyebrow">02 · Phase 0</p>
+  <h2>Foundation — the plumbing nobody sees</h2>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 0</span><h3>Tailwind 4, tokens, shadcn, router, query, shell</h3><span class="sha">55bbdf9</span></div>
+    <p class="small">
+      Tailwind 3→4 with a CSS-first config, <code>tokens.css</code> defining both themes from one set of
+      names, a pre-paint theme stamp so there is no flash, 14 vendored shadcn components wired to the
+      Console palette by alias, react-router 7 with the complete route table, TanStack Query, the 52 px
+      nav rail and top bar, self-hosted IBM Plex, and a <code>vite:preloadError</code> reload guard.
+    </p>
+    <dl class="kv">
+      <dt>Verified</dt><dd>typecheck clean · 11/11 unit · build OK, admin in 7 lazy chunks (133 kB gz entry) · <code>npm ci</code> clean · every route resolves · 0 console errors</dd>
+      <dt>Refused</dt><dd>Setting <code>html{font-size:12.5px}</code> for the Console base scale — it rescales every rem-based utility in the untouched components by ~22%. Deferred typography to Phase 2 to do per-component instead of quietly shrinking the app.</dd>
+    </dl>
+  </div>
+  <div class="callout">
+    <strong>It ran the tests at HEAD before trusting them</strong>
+    <p>In a throwaway worktree — not a stash — it found <strong>four of the six Playwright specs were
+    already failing before any of this work began</strong>. <code>App.tsx</code> gated <code>/</code>
+    behind a <code>sessionStorage</code> "entered" flag while every spec opens <code>/</code> and
+    immediately reaches for conversation controls. Without that baseline the same four failures later
+    in the build would have looked like a regression we caused.</p>
+  </div>
+  <h4>Two traps it hit and solved</h4>
+  <ul class="small">
+    <li><strong>An absent backend route returns HTML with status 200</strong>, not 404, because FastAPI
+      serves the SPA from a catch-all. Clients must guard on content-type, not status alone.</li>
+    <li><strong><code>/admin</code> is both an API prefix and a UI prefix.</strong> In dev the Vite proxy
+      sent <code>/admin/evaluations</code> to FastAPI, which fell to its SPA catch-all and returned the
+      <em>built</em> index.html referencing dist hashes the dev server does not have — a blank page with
+      nothing wrong in either log. Fixed with a document-request bypass.</li>
+  </ul>
+</section>
+
+<!-- ══════════════════ 03 PHASE 1 ══════════════════ -->
+<section id="p1">
+  <p class="eyebrow">03 · Phase 1</p>
+  <h2>Backend — and the two lies it refused to tell</h2>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 1</span><h3>Production metrics, error codes, fuzzy replay, thinking-mode fix, program accuracy</h3><span class="sha">2820103</span></div>
+    <p class="small">
+      <code>GET /metrics/production</code> aggregating the trace store grouped by source;
+      <code>ErrorCode</code> as an enum written where errors are caught; latency/token persistence;
+      fuzzy replay matching; champion-resolved <code>prompts_version</code>; program-accuracy scoring
+      using the paper's normalisation; and the DeepSeek thinking-mode fix that had broken every live turn.
+    </p>
+    <dl class="kv">
+      <dt>Verified</dt><dd>pytest <strong>107 → 149 passing</strong> · ruff + mypy clean · endpoint returns valid JSON in dev and demo, including on an empty store · <code>/healthz</code> now reports <code>prompts_version: v2</code> beside <code>champion: v2</code></dd>
+      <dt>Not done</dt><dd>Re-recording the 8 demo filings — that needs a metered eval run, which costs money and was not authorised</dd>
+    </dl>
+  </div>
+  <div class="callout good">
+    <strong>It changed zeros to nulls, which is the whole point of the project</strong>
+    <p>The live demo was showing <code>p50: 0.0, n_measured: 3</code> — unmeasured turns presenting as
+    measured zeros, a falsehood in the flattering direction. The store now writes <strong>null, not
+    0</strong>, and every surface renders <code>—</code> with a reason. A tile that says "not measured"
+    is worth more than a tile that says a fast-looking lie.</p>
+  </div>
+  <div class="callout">
+    <strong>It caught a bad threshold I specified</strong>
+    <p>I asked for fuzzy replay matching at similarity 0.35. At that threshold <em>"what is the weather
+    today"</em> matched a real financial question at 0.444 — because every question in the corpus opens
+    "what was the…", so the boilerplate carries the score. It added a shared-content-word guard.
+    Paraphrases now score 0.64–0.80 and pass; off-topic is refused.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 04 PHASE 2 ══════════════════ -->
+<section id="p2">
+  <p class="eyebrow">04 · Phase 2</p>
+  <h2>Landing — the status board</h2>
+  <figure>
+    <img src="s03_assets/landing__demo__dark.png" alt="The landing status board in demo mode, dark theme: headline left with three recorded-conversation cards, and on the right a lamp strip and six HUD tiles. Execution accuracy 77.1% and never-seen accuracy 77.7% sit in separate tiles; p50 latency and cost per turn show an em dash with the reason 'not yet measured — awaiting a metered eval run'.">
+    <figcaption>
+      <strong>The public demo, exactly as a visitor sees it.</strong> The mode lamp is a dashed amber ring
+      reading <code>replay · keyless</code>; the gate lamp reads <code>v3_1 refused</code>. Accuracy 77.1%
+      (all 770 scored questions) and never-seen 77.7% (309 questions no optimizer ever saw) are two
+      separate tiles and are never averaged. p50 latency and cost per turn show <code>—</code> with the
+      reason, not a zero. The sources block at the bottom states that replay timing is not production
+      latency. Every number is fetched; none is hardcoded.
+    </figcaption>
+  </figure>
+  <div class="shots two">
+    <figure>
+      <img src="s03_assets/landing__dev__dark.png" alt="The same landing board in dev mode, where the mode lamp is a solid ring and the latency and cost tiles carry real measured numbers.">
+      <figcaption><strong>Dev mode.</strong> Solid lamp, real measured latency and cost from locally served turns.</figcaption>
+    </figure>
+    <figure>
+      <img src="s03_assets/landing__demo__light.png" alt="The landing board in the light theme, showing warm paper surfaces rather than grey-on-white, with the amber accent deepened to hold contrast.">
+      <figcaption><strong>Light theme</strong>, from the same token names. No component branches on theme.</figcaption>
+    </figure>
+  </div>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 2</span><h3>Status board, HUD tiles, recorded conversations</h3><span class="sha">63a2819</span></div>
+    <dl class="kv">
+      <dt>Verified</dt><dd>34 unit tests · headless across 4 theme×mode combinations × 3 backend states · 0 console errors in all 12 runs · no overflow at 1440 or 420</dd>
+      <dt>Consequence</dt><dd>Moving the landing page to <code>/</code> — your requirement #1 — broke all six e2e specs. Phase 2 edited no spec file and reported the failures precisely, leaving the repair to Phase 6.</dd>
+    </dl>
+  </div>
+  <p class="small">
+    It verified <em>two distinct empty states</em> rather than one: a cold demo container says "no turns
+    replayed in the last 24 h", while after a replayed turn it switches to "awaiting a metered eval run"
+    — and error rate correctly flips to a <em>measured</em> 0.0%, which is a different fact from unmeasured.
+    Sparklines stay absent below two measured points instead of drawing a flat line that implies data.
+  </p>
+</section>
+
+<!-- ══════════════════ 05 PHASE 3 ══════════════════ -->
+<section id="p3">
+  <p class="eyebrow">05 · Phase 3</p>
+  <h2>Chat — reasoning that is always visible</h2>
+  <figure>
+    <img src="s03_assets/chat__demo__dark.png" alt="The chat console in demo mode: a sessions pane on the left grouped by day with seeded example conversations labelled recorded, the thread in the centre, and a docked trace inspector on the right. Recorded suggestion chips sit above the composer, whose placeholder reads 'Ask in your own words — the demo plays the closest recorded question'.">
+    <figcaption>
+      <strong>Three panes, with the trace inspector docked rather than hidden behind a click.</strong>
+      The sessions pane seeds recorded examples labelled <code>recorded</code>, so a first-time visitor's
+      list is never empty. The bundle fingerprint sits at the foot of the inspector. The composer invites
+      free text and tells the truth about what will happen to it.
+    </figcaption>
+  </figure>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 3</span><h3>Sessions, thread, docked inspector, filing drawer, palette</h3><span class="sha">3905620</span></div>
+    <dl class="kv">
+      <dt>Verified</dt><dd>Live turns with a real key showed genuine per-stage numbers — 6.9 s, 16,217 tokens, $0.0046 for a turn; demo turns show <code>—</code> with the reason. Filing drawer highlights 2 retrieved cells. Matched banner fires on a paraphrase at score 0.76. 0 console errors at 1440/1280/420.</dd>
+      <dt>Proved</dt><dd>That the spec failures were <em>entry navigation only</em> — it copied all six specs with <code>goto('/chat')</code> and got <strong>6/6 green in 45.6 s</strong>, including the ≥80% gold threshold and the server-side session assertions.</dd>
+    </dl>
+  </div>
+  <div class="callout">
+    <strong>It declined to overstate the evidence feature</strong>
+    <p>Retrieved-cell highlighting is by <strong>value, not coordinate</strong> — <code>RetrievedValues</code>
+    is <code>{question, answer}</code> and the retriever never names the cell it came from. The panel says so
+    in a caption instead of implying a provenance the system does not actually have.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 06 PHASE 4 ══════════════════ -->
+<section id="p4">
+  <p class="eyebrow">06 · Phase 4</p>
+  <h2>Admin — five instrument pages, read-only in public</h2>
+  <div class="shots two">
+    <figure>
+      <img src="s03_assets/admin__demo__dark.png" alt="The admin overview in demo mode, showing lamps, HUD tiles and the gate and recent-turns tables.">
+      <figcaption><strong>Overview</strong> in the public demo — the gate result per bundle and the latest turns with their cost.</figcaption>
+    </figure>
+    <figure>
+      <img src="s03_assets/evaluations__dev__dark.png" alt="The evaluations page showing splits, slices and per-answer comparison against gold.">
+      <figcaption><strong>Evaluations</strong> — splits, slices, every answer against gold, with the flips drawer.</figcaption>
+    </figure>
+    <figure>
+      <img src="s03_assets/experiments__dev__dark.png" alt="The experiments page showing runs, the registry with champion and challenger aliases, and promotion history.">
+      <figcaption><strong>Experiments</strong> — runs, registry, promotion history.</figcaption>
+    </figure>
+    <figure>
+      <img src="s03_assets/traces__dev__dark.png" alt="The traces page listing every turn served with filters for source, correctness and error code.">
+      <figcaption><strong>Traces</strong> — every turn, stage by stage. Named Traces, not Observability, per your turns-only decision.</figcaption>
+    </figure>
+  </div>
+  <figure>
+    <img src="s03_assets/research__demo__dark.png" alt="The research page in demo mode, with the rules browser populated and the research console visible but wrapped in a disabled fieldset explaining why it cannot run.">
+    <figcaption>
+      <strong>Research, in the public demo.</strong> The console is visible and explicitly disabled with a
+      reason rather than hidden — a visitor can see the machinery exists and see that it is switched off.
+    </figcaption>
+  </figure>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 4</span><h3>Overview, evaluations, experiments, traces, research</h3><span class="sha">335c30a</span></div>
+    <dl class="kv">
+      <dt>Verified</dt><dd>7 pages × 2 themes × {1440, 420} × dev/demo · 0 console errors · 0 overflow · admin stays lazy — grep confirmed <strong>0 hits</strong> for <code>recharts</code> and <code>getCoreRowModel</code> in the entry bundle</dd>
+      <dt>Gate proven</dt><dd>All three layers. Forged writes return <strong>403</strong>; with a valid owner token plus <code>DEMO_MODE=1</code> they return <strong>501</strong>. All nine reads return 200.</dd>
+    </dl>
+  </div>
+  <div class="callout good">
+    <strong>A test that would have passed while lying</strong>
+    <p>It asserts <code>:disabled</code> rather than <code>el.disabled</code>. The IDL property reflects
+    only the element's own attribute, so a button disabled by an ancestor <code>&lt;fieldset&gt;</code>
+    reports <code>false</code> — the naive check would have declared the demo gate broken while it worked,
+    or worse, passed a build where it did not.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 07 PHASE 5 ══════════════════ -->
+<section id="p5">
+  <p class="eyebrow">07 · Phase 5</p>
+  <h2>System — the debrief, and three uncomfortable findings</h2>
+  <div class="shots two">
+    <figure>
+      <img src="s03_assets/system__dev__dark.png" alt="The system debrief page, dark theme: masthead with live champion and bundle, a sticky twelve-item contents rail, and the ConvFinQA paper section with dataset statistics and the benchmark table.">
+      <figcaption><strong>The debrief.</strong> Twelve sections, a sticky contents rail, live values in the masthead.</figcaption>
+    </figure>
+    <figure>
+      <img src="s03_assets/system__dev__light.png" alt="The same system page in the light theme.">
+      <figcaption>Same page, light theme — and it still renders with the backend stopped.</figcaption>
+    </figure>
+  </div>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 5</span><h3>Paper benchmark, architecture, contract, observability, open work</h3><span class="sha">1e9bd25</span></div>
+    <p class="small">
+      The ConvFinQA paper as structured data with every statistic carrying its table number; the benchmark
+      against FinQANet, GPT-3 and the human ceiling by slice; four hand-authored SVG diagrams; the bundle
+      fingerprint; the two-number rule; the promotion contract; GEPA and s7; observability; deploy; and open work.
+    </p>
+    <dl class="kv">
+      <dt>Verified</dt><dd>69 unit tests including 15 that assert the page cannot drift — every stat cited, distributions summing to 100, no hardcoded figure describing this system in the baseline table · verified at 1440/1280/420 × both themes × dev / demo / <strong>backend stopped</strong></dd>
+      <dt>Live values</dt><dd>champion <code>v2</code>, bundle <code>5d670d89f423</code>, 77.14 exe / 77.67 never-seen / 35.27 prog over 770 q; gate reads <strong>v3_1 refused, −0.9pp, 68 pass→fail flips</strong></dd>
+    </dl>
+  </div>
+  <div class="callout bad">
+    <strong>Finding 1 — the promotion contract has never actually been used</strong>
+    <p><code>evaluation/registry.json</code> holds exactly one event: the champion, written by the
+    <em>backfill</em>, with <code>actor: "backfill"</code> and <code>comparison: null</code>. There is no
+    challenger alias, so <code>gate.py</code>'s challenger branch is dead code today. The comparator and
+    gate are real — they refuse v3_1 on demand — but <strong>no version has ever been promoted through the
+    contract.</strong> The plan implied otherwise. The page does not.</p>
+  </div>
+  <div class="callout bad">
+    <strong>Finding 2 — the DeepSeek fix was on the wrong function</strong>
+    <p>Phase 1 fixed <code>llm.py::get_model</code>, which covers every pydantic-ai path — live chat and
+    evals genuinely work again. But I then reported <code>dspy_lm_kwargs()</code> as the remaining break.
+    That function <strong>has no production caller at all</strong>. GEPA actually runs through
+    <code>backends/dspy.py::_lm()</code>, and neither sends the required <code>extra_body</code>. A fix
+    must touch <code>_lm()</code>; fixing the function I named would have changed nothing.</p>
+  </div>
+  <div class="callout bad">
+    <strong>Finding 3 — the calculator's tool loop has no cap</strong>
+    <p>No <code>retries=</code>, no <code>UsageLimits</code>, no maximum tool calls anywhere in
+    <code>src/convfinqa/</code>. The only bound is 120 s per stage plus 4 transport attempts. That is a
+    genuine runaway-cost risk, and it is stated in the architecture section rather than omitted from a
+    page whose purpose is explaining how this was productionised.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 08 PHASE 6 ══════════════════ -->
+<section id="p6">
+  <p class="eyebrow">08 · Phase 6</p>
+  <h2>Ship — repairing the tests without weakening them</h2>
+  <div class="phase">
+    <div class="hd"><span class="n">PHASE 6</span><h3>E2E repair, CI e2e gate, smoke metrics, accessibility</h3><span class="sha">3071f17</span></div>
+    <dl class="kv">
+      <dt>Delivered</dt><dd>A shared <code>enterChatFromBoard()</code> helper; four specs changed by one or two lines each; <code>landing.spec.ts</code> rewritten from 2 tests to 7; a new Playwright job in CI; a <code>/metrics/production</code> assertion in the smoke script; 24 new store and error tests</dd>
+      <dt>Verified</dt><dd><strong>11/11 e2e passing</strong> · unit 69 → <strong>99</strong> · axe <strong>246 violating nodes → 0</strong> across 6 pages × 2 themes, plus 7 interactive states at 1440 and 420 · 15/15 test ids present · demo pack rebuilds cleanly</dd>
+    </dl>
+  </div>
+  <div class="callout good">
+    <strong>Not one assertion was deleted</strong>
+    <p>The four streaming specs differ only in their first two lines — <code>concurrent</code>'s ≥80% gold
+    threshold, <code>reset</code>'s server-side 404-then-<code>n_turns==1</code> checks, <code>unread</code>'s
+    badge lifecycle and <code>smoke</code>'s full run-all are byte-identical. Both original
+    <code>landing.spec</code> tests survive verbatim in a second describe block, now running on
+    <code>/chat</code> because that is where the copy moved. Deleting an assertion to turn a suite green
+    would have made the whole build worthless.</p>
+  </div>
+  <h4>The honesty rule is now enforced by CI</h4>
+  <p class="small">
+    Two of the seven new landing tests exist purely to protect the null-metric rule. The first holds the
+    board to whatever <code>/metrics/production</code> actually returns. The second <em>intercepts</em> the
+    route and returns 27 turns with null latency and cost, pinning the exact failure mode — "turns were
+    served but nothing was timed" — in every environment, and additionally asserting that turns-served still
+    renders <code>27</code>, because a <em>measured</em> zero is a different fact from an absent one.
+  </p>
+  <div class="callout">
+    <strong>Why the CI job runs one spec, not six</strong>
+    <p>CI has no model key, deliberately. The four streaming specs each need a live turn, so running them
+    keyless would buy a red build rather than a signal. <code>landing.spec.ts</code> needs no model and
+    covers precisely what rotted: the board, the landing→chat entry path all four other specs now depend
+    on, and the null-metric rule. If a key is ever added to CI secrets it is a one-line change.</p>
+  </div>
+  <div class="callout bad">
+    <strong>Disclosure: this phase spent about $0.02 of your money</strong>
+    <p>I instructed it to make no paid model calls. It checked the shell environment and <code>.env</code>,
+    found no key, and concluded the streaming specs could not reach a model — then ran them twice, roughly
+    20 turns. <code>src/convfinqa/config.py</code> sets <code>env_file = Path.home() / ".env"</code>, and
+    <code>~/.env</code> holds the key. It disclosed this unprompted. The upside is that
+    <strong>11/11 green is a real measured result rather than an inference</strong>; the lesson is that
+    "no key in the shell" does not mean "no key" in this repo.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 09 GATE ══════════════════ -->
+<section id="gate">
+  <p class="eyebrow">09 · The verification gate</p>
+  <h2>Every check, run by me after all seven phases landed</h2>
+  <p>
+    These are not the agents' self-reports. I re-ran the full gate on the merged branch, and captured the
+    screenshots on this page from the running app in the same session.
+  </p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Check</th><th>Command</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Python tests</td><td class="mono">uv run pytest</td><td><span class="chip good">149 passed</span></td></tr>
+      <tr><td>Python lint</td><td class="mono">uv run ruff check</td><td><span class="chip good">all checks passed</span></td></tr>
+      <tr><td>Python types</td><td class="mono">uv run mypy</td><td><span class="chip good">74 files, no issues</span></td></tr>
+      <tr><td>Frontend types</td><td class="mono">npm run typecheck</td><td><span class="chip good">clean</span></td></tr>
+      <tr><td>Frontend unit</td><td class="mono">npm run test:unit</td><td><span class="chip good">99 passed</span></td></tr>
+      <tr><td>Frontend build</td><td class="mono">npm run build</td><td><span class="chip good">OK · admin lazy</span></td></tr>
+      <tr><td>E2E, keyless subset</td><td class="mono">npx playwright test landing.spec.ts</td><td><span class="chip good">7 passed</span></td></tr>
+      <tr><td>E2E, full suite <span class="muted">(Phase 6, with a key)</span></td><td class="mono">npm run test:e2e</td><td><span class="chip good">11 passed</span></td></tr>
+      <tr><td>Pinned test ids</td><td class="mono">grep sweep, all 15</td><td><span class="chip good">15/15 present</span></td></tr>
+      <tr><td>Accessibility</td><td class="mono">axe wcag2aa + wcag21aa</td><td><span class="chip good">0 violations</span></td></tr>
+      <tr><td>Demo smoke</td><td class="mono">scripts/demo_smoke.sh</td><td><span class="chip good">pass · writes refused</span></td></tr>
+      <tr><td>Screenshots</td><td class="mono">28 captures, 8 surfaces × modes × themes</td><td><span class="chip good">0 overflow · 0 console errors</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <figure>
+    <img src="s03_assets/landing__demo__dark__narrow.png" alt="The landing board at 420 pixels wide, with the tiles stacked into a single column and no horizontal scrolling." style="max-width:380px">
+    <figcaption>
+      420 px. Every capture in the run asserted <code>scrollWidth − clientWidth === 0</code> alongside taking
+      the picture, so the no-overflow claim comes from the same run that produced the screenshots.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════ 10 LEDGER ══════════════════ -->
+<section id="ledger">
+  <p class="eyebrow">10 · The honesty ledger</p>
+  <h2>What is true, what is not, and what is simply unmeasured</h2>
+  <p>
+    A demo whose numbers cannot be trusted is worse than no demo. This is the complete list of things the
+    app does <em>not</em> know, or cannot currently do, as of this build.
+  </p>
+  <div class="scroll-x">
+  <table class="ledger">
+    <thead><tr><th>Claim</th><th>Status</th><th>Where it is stated in the app</th></tr></thead>
+    <tbody>
+      <tr><td>Execution accuracy 77.1% / never-seen 77.7%</td><td><span class="chip good">true, fetched</span></td><td>Separate tiles, never averaged</td></tr>
+      <tr><td>Program accuracy 35.3%</td><td><span class="chip warn">true but needs framing</span></td><td>Sub-line on the landing tile; the full explanation lives on the System page — the pipeline reuses prior conversation answers while gold re-derives from raw values</td></tr>
+      <tr><td>Latency, tokens, cost in the demo</td><td><span class="chip bad">unmeasured</span></td><td><code>—</code> plus "awaiting a metered eval run" on every surface. <code>pack.json</code> carries 174 empty <code>metrics</code> objects — all of them</td></tr>
+      <tr><td>Replay timing as production latency</td><td><span class="chip bad">would be false</span></td><td>Sources block states it; the endpoint groups by source so replayed and served turns are never summed</td></tr>
+      <tr><td>The promotion contract, exercised</td><td><span class="chip bad">never happened</span></td><td>System page section 07 — one backfilled event, no challenger alias</td></tr>
+      <tr><td>GEPA / DSPy runnable</td><td><span class="chip bad">broken</span></td><td>System page open work — <code>backends/dspy.py::_lm()</code> lacks the thinking-mode <code>extra_body</code></td></tr>
+      <tr><td>Calculator tool loop bounded</td><td><span class="chip bad">uncapped</span></td><td>System page section 03 — only 120 s/stage and 4 transport attempts</td></tr>
+      <tr><td>Retrieved-cell provenance</td><td><span class="chip warn">by value, not coordinate</span></td><td>Caption in the filing drawer</td></tr>
+      <tr><td>Rules browser empty on v3_2</td><td><span class="chip good">true, and correct</span></td><td>That s7 round diagnosed 94 cases and landed 0 rules; the browser defaults to the server's variant so it does not open on an empty one</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <strong>One change to the palette you signed off</strong>
+    <p>Phase 6's accessibility pass found <code>--faint</code> failing WCAG AA on every surface it is used
+    on — 4.03:1 on <code>--panel-2</code> in dark, 3.68:1 in light — and <code>--faint</code> is the colour
+    of every mono-caps micro-label and every "why this tile is empty" line. A reason a reader cannot read is
+    not a reason. Four values moved: dark <code>--muted #a0a5ad→#b6bbc2</code> and
+    <code>--faint #868c96→#9ba1ab</code>; light <code>--muted #61656c→#55595f</code> and
+    <code>--faint #6f747c→#5f636a</code>. I verified the measurements independently: the new values clear
+    AA on real surfaces and the text→muted→faint hierarchy still holds in both themes. Every other token is
+    untouched. <strong>Flagging it because you approved the original palette personally.</strong></p>
+  </div>
+</section>
+
+<!-- ══════════════════ 11 NEXT ══════════════════ -->
+<section id="next">
+  <p class="eyebrow">11 · What is left</p>
+  <h2>Four things, in the order I would do them</h2>
+  <ol>
+    <li>
+      <strong>Fix GEPA.</strong> Add the thinking-mode <code>extra_body</code> to
+      <code>backends/dspy.py::_lm()</code> — and decide whether <code>dspy_lm_kwargs()</code>, which has no
+      production caller, should be deleted rather than fixed. Small, and it unblocks all optimisation work.
+    </li>
+    <li>
+      <strong>Cap the calculator loop.</strong> A <code>UsageLimits</code> or max-tool-calls bound. This is
+      the only finding in the build with an unbounded cost failure mode.
+    </li>
+    <li>
+      <strong>Run one metered eval, then rebuild the pack.</strong>
+      <code class="mono">REUSE_CACHE=0 uv run convfinqa-eval</code> then
+      <code class="mono">uv run convfinqa-demo-pack --n 8</code>. This is the only way the latency, token and
+      cost tiles ever carry numbers. It costs real money, so it is your call — the app is honest without it,
+      just emptier. Everything is already wired to light up the moment the data exists.
+    </li>
+    <li>
+      <strong>Exercise the promotion contract once</strong>, so the registry holds a real comparison rather
+      than a backfilled default and the challenger branch stops being dead code.
+    </li>
+  </ol>
+  <h4>Running it yourself</h4>
+  <p class="small mono" style="color:var(--muted)">
+    uv run python -m uvicorn convfinqa.serving.app:create_app --factory --workers 1 --port 8765<br>
+    cd frontend &amp;&amp; npm run dev &nbsp;<span style="color:var(--faint)"># → localhost:5173</span><br>
+    DEMO_MODE=1 uv run python -m uvicorn convfinqa.serving.app:create_app --factory --workers 1 --port 8766
+  </p>
+  <p class="foot">
+    Branch <code>frontend-redesign-console</code>, 9 commits, not merged and not pushed — that is your call.
+    The shared build brief every agent worked from, the screenshot harness, and all 28 captures are in this
+    session's scratchpad. The plan this was built from is <code>.lavish/s02_frontend-redesign-plan.html</code>.
+  </p>
+</section>
+
+</div>
+</body>
+</html>
