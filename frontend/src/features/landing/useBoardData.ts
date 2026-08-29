@@ -221,7 +221,7 @@ export function useBoardData(recordedLimit = 3): BoardData {
     gateCandidate,
     recorded: recordedQuery.data,
     recordedLoading: recordedQuery.isLoading,
-    loading: versionsQuery.isLoading && experimentsQuery.isLoading,
+    loading: versionsQuery.isLoading || experimentsQuery.isLoading,
     error: firstError ? String((firstError as Error).message ?? firstError) : null,
   };
 }
