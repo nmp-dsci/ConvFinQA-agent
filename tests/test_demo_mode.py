@@ -144,6 +144,113 @@ def test_fuzzy_match_tolerates_rewording() -> None:
     assert missed is None
 
 
+@pytest.mark.asyncio
+async def test_a_paraphrase_is_answered_and_the_swap_is_declared() -> None:
+    """The 404 a visitor used to get for their own wording, fixed honestly.
+
+    Answering a paraphrase is only acceptable *because* the stream says which
+    recording answered it — the banner is what buys the looser threshold.
+    """
+    from convfinqa.data.schemas import ConversationHistory
+
+    events = [
+        event
+        async for event in replay.replay_turn(
+            "total revenue 2009",
+            "r1",
+            ConversationHistory(),
+            pack=_pack(),
+            pace=False,
+        )
+    ]
+    matched = [e for e in events if e["event"] == "matched"]
+    assert matched, "a non-exact match must announce itself"
+    assert matched[0]["matched_question"] == "what was the total revenue in 2009?"
+    assert events[0]["event"] == "matched"
+    assert any(e["event"] == "answer" for e in events)
+
+
+@pytest.mark.asyncio
+async def test_an_exact_match_announces_nothing() -> None:
+    """No banner when nothing was swapped — a notice for every turn is noise."""
+    from convfinqa.data.schemas import ConversationHistory
+
+    events = [
+        event
+        async for event in replay.replay_turn(
+            "what was the total revenue in 2009?",
+            "r1",
+            ConversationHistory(),
+            pack=_pack(),
+            pace=False,
+        )
+    ]
+    assert not [e for e in events if e["event"] == "matched"]
+
+
+def test_fuzzy_match_still_refuses_shared_boilerplate() -> None:
+    """Every question here opens "what was the ...", so similarity alone is not enough.
+
+    At the replay threshold, "what is the weather today" scores above the floor
+    against a real question purely on words that mean nothing. Requiring a shared
+    *content* word is what keeps the looser threshold from answering questions
+    the pack has no business answering.
+    """
+    with pytest.raises(replay.NoRecordingError):
+        replay.resolve("r1", "what was the weather today", _pack())
+    assert not replay.shares_subject(
+        "what was the weather today", "what was the total revenue in 2009?"
+    )
+    assert replay.shares_subject(
+        "revenue please", "what was the total revenue in 2009?"
+    )
+
+
+def test_replay_capture_carries_the_recorded_stage_metrics() -> None:
+    """A replayed turn must not reach the trace store looking free and instant.
+
+    The numbers stored are the ones from when the turn actually ran. The replay's
+    own four-second pacing is a presentation choice and is never recorded as a
+    latency.
+    """
+    capture = replay.capture_from_events(
+        [
+            {"event": "stage_start", "stage": "triage"},
+            {
+                "event": "stage_output",
+                "stage": "triage",
+                "output": {"turn_type": "program"},
+                "metrics": {
+                    "latency_ms": 4200.0,
+                    "input_tokens": 9000,
+                    "output_tokens": 300,
+                    "total_tokens": 9300,
+                },
+            },
+            {
+                "event": "tool_call",
+                "stage": "calculator",
+                "tool": "add",
+                "args": {"a": 1, "b": 2},
+            },
+            {
+                "event": "stage_output",
+                "stage": "calculator",
+                "output": {"answer": "3"},
+                "metrics": {"latency_ms": 800.0},
+            },
+        ]
+    )
+    assert capture["triage"]["metrics"]["latency_ms"] == 4200.0
+    assert capture["calculator"]["trajectory"][0]["tool"] == "add"
+
+    from convfinqa.tracking.cost import turn_usage
+
+    usage = turn_usage(capture)
+    assert usage["latency_ms"] == 5000.0
+    assert usage["cost_usd"] > 0
+
+
 def test_similarity_is_bounded() -> None:
     """Similarity stays in [0, 1] and is 1.0 only for identical text."""
     assert similarity("a b c", "a b c") == 1.0
@@ -219,6 +326,65 @@ async def test_demo_ask_stream_replays_end_to_end(demo_mode: None) -> None:
     assert frames, "no SSE frames received"
     assert any(f.get("event") == "answer" for f in frames)
     assert frames[-1]["event"] == "done"
+
+
+def test_demo_ask_reports_what_it_matched(demo_mode: None) -> None:
+    """A paraphrase over the real route comes back answered *and* labelled."""
+    pack = load_pack()
+    if not pack.turns:
+        pytest.skip("no committed demo pack")
+    turn = pack.turns[0]
+    paraphrase = " ".join(turn.question.rstrip("?").split()[2:])
+
+    with _client() as client:
+        session = client.post("/sessions", json={"report_id": turn.report_id}).json()
+        body = client.post(
+            f"/sessions/{session['session_id']}/ask", json={"question": paraphrase}
+        ).json()
+
+    assert body["answer"] == turn.answer
+    assert body["matched_question"] == turn.question
+
+
+def test_demo_turns_are_traced_as_demo_with_their_stages(
+    demo_mode: None, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A replayed turn is recorded, labelled `demo`, with its stages intact.
+
+    `source` is the whole reason `/metrics/production` can be honest — a replay
+    filed as `serving` would put a paced four-second stream into the latency a
+    real user is quoted.
+    """
+    from convfinqa.config import settings
+    from convfinqa.tracking import traces
+
+    pack = load_pack()
+    if not pack.turns:
+        pytest.skip("no committed demo pack")
+    turn = pack.turns[0]
+
+    monkeypatch.setattr(settings, "trace_capture_enabled", True, raising=False)
+    monkeypatch.setattr(traces, "default_db_path", lambda: tmp_path / "demo.db")
+    traces.reset_store()
+    try:
+        with _client() as client:
+            session = client.post(
+                "/sessions", json={"report_id": turn.report_id}
+            ).json()
+            client.post(
+                f"/sessions/{session['session_id']}/ask",
+                json={"question": turn.question},
+            )
+        store = traces.get_store()
+        assert store is not None
+        rows = store.list_turns(limit=5)
+        assert rows and rows[0]["source"] == "demo"
+        record = store.get_turn(str(rows[0]["trace_id"]))
+        assert record is not None
+        # The stage structure a live turn produces, rebuilt from the recording.
+        assert "triage" in record["capture"]
+    finally:
+        traces.reset_store()
 
 
 def test_demo_questions_endpoint(demo_mode: None) -> None:

@@ -46,7 +46,11 @@ CREATE TABLE IF NOT EXISTS turns (
     bundle        TEXT,                   -- JSON fingerprint
     latency_ms    REAL,
     total_tokens  INTEGER,
+    input_tokens  INTEGER,
+    output_tokens INTEGER,
+    cost_usd      REAL,
     error         TEXT,
+    error_code    TEXT,                   -- convfinqa.error_codes.ErrorCode
     capture       TEXT NOT NULL           -- JSON per-stage IO
 );
 CREATE INDEX IF NOT EXISTS idx_turns_report  ON turns(report_id);
@@ -54,6 +58,16 @@ CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session_id);
 CREATE INDEX IF NOT EXISTS idx_turns_created ON turns(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_turns_bundle  ON turns(bundle_id);
 """
+
+# Columns added after the table shipped. A dev machine already has a `traces.db`
+# written by the original schema, and `CREATE TABLE IF NOT EXISTS` will not
+# widen it — so widen it here rather than asking anyone to delete their history.
+_ADDED_COLUMNS: dict[str, str] = {
+    "input_tokens": "INTEGER",
+    "output_tokens": "INTEGER",
+    "cost_usd": "REAL",
+    "error_code": "TEXT",
+}
 
 _lock = threading.Lock()
 
@@ -72,8 +86,19 @@ class TraceStore:
         self._conn = sqlite3.connect(str(self.path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
+        self._migrate()
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Add any column this build knows about that the file predates."""
+        existing = {
+            str(row["name"])
+            for row in self._conn.execute("PRAGMA table_info(turns)").fetchall()
+        }
+        for column, sql_type in _ADDED_COLUMNS.items():
+            if column not in existing:
+                self._conn.execute(f"ALTER TABLE turns ADD COLUMN {column} {sql_type}")
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:
@@ -100,18 +125,28 @@ class TraceStore:
         correct: bool | None = None,
         bundle: dict[str, Any] | None = None,
         error: str = "",
+        error_code: str = "",
     ) -> str:
         """Persist one turn; return its trace id.
 
         Never raises into the caller: a trace that fails to write must not fail
         the turn that produced it. The answer is the product; the trace is not.
+
+        `error_code` is the stable classification (`convfinqa.error_codes`) and
+        `error` the original message. Both are stored: the code is what a
+        dashboard groups by, the message is what a human reads.
         """
         trace_id = uuid4().hex
         try:
             from convfinqa.tracking.bundle import bundle_fingerprint, bundle_id
+            from convfinqa.tracking.cost import turn_usage
 
             spec = bundle if bundle is not None else bundle_fingerprint()
-            latency, tokens = _rollup(capture)
+            # A turn whose stages recorded nothing stores NULLs, not zeros: an
+            # unmeasured turn must not be averaged in as a free, instant one.
+            measured = has_stage_metrics(capture)
+            latency, tokens = _rollup(capture) if measured else (None, None)
+            usage = turn_usage(capture) if measured else {}
             with self._write() as conn:
                 conn.execute(
                     """
@@ -119,8 +154,9 @@ class TraceStore:
                         trace_id, created_at, source, session_id, report_id,
                         turn_index, question, answer, program, gold_answer,
                         correct, bundle_id, bundle, latency_ms, total_tokens,
-                        error, capture
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        input_tokens, output_tokens, cost_usd,
+                        error, error_code, capture
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         trace_id,
@@ -138,7 +174,11 @@ class TraceStore:
                         json.dumps(spec),
                         latency,
                         tokens,
+                        int(usage["input_tokens"]) if usage else None,
+                        int(usage["output_tokens"]) if usage else None,
+                        usage["cost_usd"] if usage else None,
                         error,
+                        error_code or "",
                         json.dumps(capture, default=str),
                     ),
                 )
@@ -172,7 +212,7 @@ class TraceStore:
             f"""
             SELECT trace_id, created_at, source, session_id, report_id, turn_index,
                    question, answer, program, gold_answer, correct, bundle_id,
-                   latency_ms, total_tokens, error
+                   latency_ms, total_tokens, cost_usd, error, error_code
             FROM turns {where}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
             """,
@@ -210,6 +250,31 @@ class TraceStore:
             "total_tokens": int(row["total_tokens"] or 0),
         }
 
+    def metric_rows(
+        self, *, since: str | None = None, limit: int = 50_000
+    ) -> list[dict[str, Any]]:
+        """The narrow projection `/metrics/production` aggregates over.
+
+        Deliberately not the whole row: `capture` and `bundle` are the two heavy
+        columns and neither contributes to a headline number. Cost is read from
+        the column rather than recomputed from the capture, so the aggregation
+        stays a scan of scalars even when the store holds tens of thousands of
+        turns.
+        """
+        clause = "WHERE created_at >= ?" if since else ""
+        params: list[Any] = [since] if since else []
+        params.append(max(1, limit))
+        rows = self._conn.execute(
+            f"""
+            SELECT created_at, source, latency_ms, total_tokens, input_tokens,
+                   output_tokens, cost_usd, correct, error, error_code
+            FROM turns {clause}
+            ORDER BY created_at DESC LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def close(self) -> None:
         """Close the underlying connection."""
         self._conn.close()
@@ -222,6 +287,22 @@ def _loads(raw: Any, fallback: Any) -> Any:
         return json.loads(raw)
     except json.JSONDecodeError:
         return fallback
+
+
+def has_stage_metrics(capture: dict[str, Any]) -> bool:
+    """True when at least one stage of this turn recorded any metrics.
+
+    The difference between "this turn cost nothing" and "nobody wrote down what
+    this turn cost" has to survive into the database, or a dashboard reads the
+    second as the first. Artefacts recorded before per-stage metrics existed —
+    the committed prediction CSVs, and the demo pack built from them — are
+    exactly that second case, and they must land as NULL rather than as zero.
+    """
+    for stage in ("triage", "preprocess", "retriever", "calculator"):
+        entry = capture.get(stage)
+        if isinstance(entry, dict) and entry.get("metrics"):
+            return True
+    return False
 
 
 def _rollup(capture: dict[str, Any]) -> tuple[float, int]:

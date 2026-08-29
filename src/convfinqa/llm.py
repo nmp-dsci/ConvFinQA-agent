@@ -24,6 +24,7 @@ from typing import Any, TypeVar
 import httpx
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.settings import ModelSettings
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -41,6 +42,25 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 #   MAX  = `deepseek-v4-pro`  (1.6T/49B MoE): the s7 diagnostic router and the
 #          four specialist Fix agents, where reasoning quality is the product.
 LM_MINI_MODEL = "deepseek-v4-flash"
+
+# DeepSeek v4 turned thinking mode *on by default*, and a thinking-mode request
+# rejects the `tool_choice` pydantic-ai sends for every structured `output_type`:
+#
+#     400 — "Thinking mode does not support this tool_choice"
+#
+# Every stage of the pipeline uses a structured output, so with thinking left at
+# its default *every live turn fails on triage* — the first model call it makes.
+# Disabling thinking at the one place models are built means no call site has to
+# know this, and a stage added later inherits the fix rather than rediscovering
+# the 400. The knob is provider-specific, hence `extra_body` rather than the
+# typed `thinking` field, which pydantic-ai maps to a different wire shape.
+DISABLE_THINKING_BODY: dict[str, Any] = {"thinking": {"type": "disabled"}}
+
+
+def model_settings() -> ModelSettings:
+    """Default per-model settings applied to every model this module builds."""
+    return ModelSettings(extra_body=dict(DISABLE_THINKING_BODY))
+
 
 T = TypeVar("T")
 
@@ -170,7 +190,11 @@ def get_provider() -> OpenAIProvider:
 
 def get_model(model_name: str | None = None) -> OpenAIChatModel:
     """Return a chat model for `model_name`, defaulting to the mini pipeline model."""
-    return OpenAIChatModel(model_name or LM_MINI_MODEL, provider=get_provider())
+    return OpenAIChatModel(
+        model_name or LM_MINI_MODEL,
+        provider=get_provider(),
+        settings=model_settings(),
+    )
 
 
 def reset_provider() -> None:

@@ -332,7 +332,11 @@ def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None
     experiment history can be trusted to have no silent gaps.
     """
     from convfinqa.tracking import mlflow_log, registry
-    from convfinqa.tracking.comparator import accuracy, load_predictions
+    from convfinqa.tracking.comparator import (
+        accuracy,
+        load_predictions,
+        program_accuracy,
+    )
 
     try:
         df = load_predictions(version)
@@ -355,6 +359,10 @@ def _log_eval_run(version: str, csv_path: Path, *, n_conversations: int) -> None
         "holdout_accuracy": held_out["accuracy"],
         "holdout_n_questions": float(held_out["n_questions"]),
     }
+    # Program accuracy beside execution accuracy: a run that gains the second
+    # while losing the first has learned answers rather than reasoning, and the
+    # experiment table should be able to show that.
+    metrics.update(program_accuracy(df))
     for column in ("gold_turn_type", "gold_conv_type"):
         if column not in df.columns:
             continue

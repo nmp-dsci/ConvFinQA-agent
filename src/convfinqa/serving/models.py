@@ -76,6 +76,11 @@ class AskResponse(BaseModel):
     turn_index: int
     history: list[HistoryItem]
     trace_id: str = ""
+    # Set only in demo mode, and only when the asked question was resolved to a
+    # *different* recorded one. The UI owes the visitor a banner when it is set:
+    # answering a paraphrase silently would present one question's number as
+    # another's.
+    matched_question: str = ""
 
 
 class AccuracySlice(BaseModel):
@@ -159,7 +164,9 @@ class TraceSummary(BaseModel):
     bundle_id: str | None
     latency_ms: float | None
     total_tokens: int | None
+    cost_usd: float | None = None
     error: str | None
+    error_code: str | None = None
 
 
 class DemoQuestion(BaseModel):

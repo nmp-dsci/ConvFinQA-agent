@@ -139,9 +139,22 @@ class DemoPack:
         for turn in candidates:
             if normalise(turn.question) == target:
                 return turn, 1.0
-        best = max(candidates, key=lambda t: similarity(t.question, question))
-        score = similarity(best.question, question)
+        best, score = self.nearest(report_id, question)
         return (best, score) if score >= MATCH_THRESHOLD else (None, score)
+
+    def nearest(self, report_id: str, question: str) -> tuple[PackedTurn | None, float]:
+        """Closest recorded turn within `report_id` and its score — no threshold.
+
+        The threshold is a policy, not a property of the match, so it lives with
+        the caller that has to decide. `match()` keeps the strict one it always
+        had; the replay path applies a looser one and *tells the visitor what it
+        matched*, which is what makes the looser threshold safe.
+        """
+        candidates = self.turns_for(report_id)
+        if not candidates:
+            return None, 0.0
+        best = max(candidates, key=lambda t: similarity(t.question, question))
+        return best, similarity(best.question, question)
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form."""

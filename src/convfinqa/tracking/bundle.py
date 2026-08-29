@@ -71,10 +71,33 @@ def dataset_hash() -> str:
 
 
 def prompts_version() -> str:
-    """The prompt bundle in force, resolved the same way the pipeline resolves it."""
+    """The prompt bundle in force: the pin, else the champion, else the newest.
+
+    The middle step is the one that matters. Falling straight through to
+    `prompts.latest()` meant `/healthz` reported `champion: v2` beside
+    `prompts_version: v3_1` — two fields describing the same deployment and
+    disagreeing, because "newest prompt file on disk" and "the bundle that was
+    promoted" are different questions. `v3_1` exists as a file precisely because
+    it was *tried and not promoted*; describing the landing page with it named a
+    bundle nothing was serving.
+
+    The explicit pin still wins: `PROMPTS_VERSION` is how an operator overrides
+    the registry on purpose, and an override that the registry could veto would
+    not be an override.
+    """
     import convfinqa.prompts as prompts_pkg
 
-    return settings.prompts_version or prompts_pkg.latest()
+    if settings.prompts_version:
+        return settings.prompts_version
+
+    # Imported lazily: `registry` imports this module, so a top-level import
+    # here would be a cycle.
+    from convfinqa.tracking import registry
+
+    champion = registry.champion()
+    if champion and champion in prompts_pkg.latest_all():
+        return champion
+    return prompts_pkg.latest()
 
 
 def gepa_overlay() -> str | None:
