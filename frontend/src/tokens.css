@@ -1,0 +1,223 @@
+/*
+ * The Console — design tokens.
+ *
+ * Three rules bind every component in this app:
+ *
+ *  1. Both themes are defined from the *same* token names. No component may
+ *     branch on theme. If you need a colour, add a token to BOTH blocks below.
+ *  2. Elevation is monotonic: --ground -> --panel -> --panel-2, ~4% lightness
+ *     each. Nothing inside a panel may be darker than the panel. The nav rail,
+ *     sessions pane and inspector sit at --ground; the chat thread is the one
+ *     lit surface at --panel. Recessed input wells at --ground are the single
+ *     allowed exception.
+ *  3. State is a shape, not only a colour. Lamps: solid ring = live/good,
+ *     dashed amber ring = demo/replay, red = failed. That survives
+ *     colour-blindness and print.
+ *
+ * `data-theme` is stamped on <html> before first paint by the inline script in
+ * index.html, so there is no flash and no theme-dependent JS in the render path.
+ */
+
+:root,
+[data-theme='dark'] {
+  --ground: #191b1f;
+  --panel: #212429;
+  --panel-2: #2a2e34;
+  --line: #32363d;
+  --line-2: #434850;
+  --text: #e8e9ea;
+  --muted: #a0a5ad;
+  --faint: #868c96;
+  --amber: #f0a93f;
+  --amber-ink: #1d1405;
+  --amber-soft: rgba(240, 169, 63, 0.13);
+  --amber-line: rgba(240, 169, 63, 0.45);
+  --good: #4ecb9d;
+  --bad: #ef8282;
+  --info: #74adf2;
+  --violet: #ab92f2;
+  --good-line: rgba(78, 203, 157, 0.4);
+  --good-glow: rgba(78, 203, 157, 0.65);
+  --info-line: rgba(116, 173, 242, 0.4);
+}
+
+[data-theme='light'] {
+  --ground: #eeecea;
+  --panel: #faf9f8;
+  --panel-2: #e6e3e0;
+  --line: #dedad6;
+  --line-2: #c6c1bb;
+  --text: #22252a;
+  --muted: #61656c;
+  --faint: #6f747c;
+  --amber: #8f5309;
+  --amber-ink: #fdf6ec;
+  --amber-soft: rgba(143, 83, 9, 0.11);
+  --amber-line: rgba(143, 83, 9, 0.4);
+  --good: #177049;
+  --bad: #a83229;
+  --info: #1d54ab;
+  --violet: #5a37a8;
+  --good-line: rgba(23, 112, 73, 0.38);
+  --good-glow: rgba(23, 112, 73, 0.5);
+  --info-line: rgba(29, 84, 171, 0.35);
+}
+
+/*
+ * Typography and chrome metrics. Theme-independent, so they live outside the
+ * two colour blocks — the rule above is about colour, and a font stack that
+ * changed with the theme would be a bug, not a feature.
+ *
+ * IBM Plex Sans for anything a person reads; IBM Plex Mono for telemetry —
+ * numbers, ids, programs — and for the uppercase mono-caps micro-labels.
+ * Both are self-hosted via @fontsource (imported from main.tsx); no CDN.
+ */
+:root {
+  --font-ui:
+    'IBM Plex Sans Variable', 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-mono:
+    'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Width of the icon nav rail. Referenced by the shell grid. */
+  --rail-w: 52px;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+/*
+ * The bridge. This block ONLY aliases the tokens above to Tailwind colour
+ * names so `bg-ground`, `text-muted`, `border-line` resolve. It never defines
+ * a colour of its own — every value here is a `var()` pointing at a token.
+ *
+ * `inline` matters: it inlines `var(--ground)` into the utility rather than
+ * emitting a second indirection, so a utility follows `data-theme` live.
+ */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-line: var(--amber-line);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-info: var(--info);
+  --color-violet: var(--violet);
+  --color-good-line: var(--good-line);
+  --color-good-glow: var(--good-glow);
+  --color-info-line: var(--info-line);
+
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+
+  /*
+   * Legacy compatibility aliases, kept only until phases 2-4 rewrite the
+   * components that still use the pre-redesign palette names. They are
+   * aliases like everything else in this block — each one points at a token,
+   * so the old class names inherit the new palette and follow the theme
+   * instead of pinning the old hard-coded dark hexes. Delete a line here the
+   * moment its last `bg-*`/`text-*` caller is gone.
+   */
+  --color-bg: var(--ground);
+  --color-panel2: var(--panel-2);
+  --color-textMain: var(--text);
+  --color-textMuted: var(--muted);
+  --color-accent: var(--panel-2);
+  --color-accent2: var(--good);
+  --color-danger: var(--bad);
+  --color-bubbleUser: var(--amber-soft);
+  --color-bubbleAssistant: var(--panel-2);
+
+  /*
+   * shadcn/ui's semantic palette, aliased onto the same tokens. This is how
+   * the vendored components in components/ui/ end up wearing the Console
+   * palette instead of shadcn's default neutral one, without editing every
+   * class name in them — so `shadcn add <x>` keeps producing a component that
+   * already matches, and a future upgrade diffs cleanly.
+   *
+   * The one name we cannot alias is `muted`: in shadcn `muted` is a *surface*
+   * and `muted-foreground` the text on it, whereas in the Console `--muted` is
+   * the secondary *text* colour and `text-muted` has to keep meaning that. So
+   * `--color-muted` stays our text token and the handful of `bg-muted` uses in
+   * components/ui/ were rewritten to `bg-panel-2` at vendor time.
+   */
+  --color-background: var(--ground);
+  --color-foreground: var(--text);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--panel-2);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--amber);
+  --color-primary-foreground: var(--amber-ink);
+  --color-secondary: var(--panel-2);
+  --color-secondary-foreground: var(--text);
+  --color-accent-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-destructive: var(--bad);
+  --color-destructive-foreground: var(--ground);
+  --color-border: var(--line);
+  --color-input: var(--line-2);
+  --color-ring: var(--amber-line);
+
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 7px;
+  --radius-xl: 10px;
+}
+
+@layer base {
+  /*
+   * Tailwind v4 changed the default border and placeholder colours to
+   * `currentColor`. Restoring a sane default here keeps every existing
+   * `border`/`border-b` without an explicit colour rendering as a hairline
+   * rather than as a text-coloured slab.
+   */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--line);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--faint);
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--ground);
+    color: var(--text);
+  }
+
+  /* Telemetry is monospaced everywhere, by tag as well as by utility. */
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+}
+
+/* An uppercase mono micro-label — the Console's section marker. */
+.mono-caps {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
