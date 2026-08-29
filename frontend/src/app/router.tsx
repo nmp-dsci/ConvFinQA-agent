@@ -63,10 +63,17 @@ function NotFound() {
  *  - The chat conversation route is a splat (`chat/*`), not `chat/:reportId`.
  *    Report ids contain slashes — `Single_VLO/2011/page_126.pdf-1` — so a
  *    single dynamic segment would only ever match the first third of one.
- *  - `/` currently renders chat. The six Playwright specs all open `/` and
- *    immediately reach for the conversation controls, and the marketing
- *    landing lives at `/welcome` until Phase 2 rebuilds it and decides where
- *    the front door belongs. Moving it back to `/` is a one-line change here.
+ *  - `/` is the landing board and chat lives at `/chat` only. Phase 0 had it
+ *    the other way round to keep the Playwright specs green, but four of the
+ *    six were already red at HEAD for the same reason (the old `App.tsx` gated
+ *    `/` behind a sessionStorage "entered" flag while every spec opened `/`
+ *    and immediately reached for conversation controls). A public demo whose
+ *    front door is the product's own chat window has no front door, so the
+ *    board takes `/` and Phase 6 updates the specs to enter through the
+ *    landing CTA — which is what a visitor does, and why `landing-enter` and
+ *    `landing-cta` exist as test ids at all.
+ *  - `/welcome` is kept as a redirect rather than deleted: it shipped in
+ *    Phase 0 and any link already pointing at it should land on the board.
  */
 export const router = createBrowserRouter([
   {
@@ -74,8 +81,8 @@ export const router = createBrowserRouter([
     element: <Shell />,
     errorElement: <RouteError />,
     children: [
-      { index: true, element: <ChatRoute /> },
-      { path: 'welcome', element: <LandingRoute /> },
+      { index: true, element: <LandingRoute /> },
+      { path: 'welcome', element: <Navigate to="/" replace /> },
       { path: 'chat', element: <ChatRoute /> },
       { path: 'chat/*', element: <ChatRoute /> },
       {

@@ -81,6 +81,94 @@
 
   /* Width of the icon nav rail. Referenced by the shell grid. */
   --rail-w: 52px;
+
+  /*
+   * The Console type scale.
+   *
+   * The plan calls for a 12.5px base. It is NOT applied as
+   * `html { font-size: 12.5px }`: that rescales every rem-based Tailwind
+   * utility in the app at once — padding, gaps, icon sizes, the vendored
+   * shadcn components — and shrinks screens nobody has converted yet by ~22%.
+   * So the scale is a set of *named steps* applied per component instead. A
+   * component opts in by class; nothing is rescaled behind anyone's back.
+   *
+   * Steps are px, not rem, on purpose: these are absolute typographic sizes in
+   * a dense instrument panel, not a document that should reflow with the
+   * reader's root size. The one exception is the display step, which is
+   * viewport-fluid so the board headline fits a 420px phone without a
+   * per-breakpoint override.
+   */
+  --fs-micro: 10px; /* mono-caps micro-labels */
+  --fs-meta: 11px; /* tile sub-labels, source lines */
+  --fs-small: 12px; /* dense secondary prose */
+  --fs-body: 13px; /* default reading size */
+  --fs-lede: 15px; /* the one paragraph under a headline */
+  --fs-h2: 19px; /* panel headings */
+  --fs-hud: 27px; /* the number on a HUD tile */
+  --fs-display: clamp(25px, 3.1vw, 34px);
+}
+
+/* Prose. IBM Plex Sans, because a person reads it. */
+.type-display {
+  font-family: var(--font-ui);
+  font-size: var(--fs-display);
+  line-height: 1.14;
+  letter-spacing: -0.021em;
+  font-weight: 500;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.type-h2 {
+  font-family: var(--font-ui);
+  font-size: var(--fs-h2);
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.type-lede {
+  font-family: var(--font-ui);
+  font-size: var(--fs-lede);
+  line-height: 1.55;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.type-body {
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+.type-small {
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+.type-meta {
+  font-family: var(--font-ui);
+  font-size: var(--fs-meta);
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* Telemetry. IBM Plex Mono, tabular figures, because it is a measurement. */
+.type-hud {
+  font-family: var(--font-mono);
+  font-size: var(--fs-hud);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.type-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 [data-theme='dark'] {
@@ -216,7 +304,7 @@
 /* An uppercase mono micro-label — the Console's section marker. */
 .mono-caps {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--faint);

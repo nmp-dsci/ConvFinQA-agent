@@ -93,9 +93,34 @@ export function getExperimentRun(runId: string): Promise<RunRecord> {
   return getJson<RunRecord>(`/admin/experiments/${encodeURIComponent(runId)}`);
 }
 
-/** `GET /admin/versions` — every version with a predictions CSV on disk. */
-export function listVersions(): Promise<string[]> {
-  return getJson<string[]>('/admin/versions');
+/**
+ * `GET /admin/versions` — every version with a committed predictions CSV.
+ *
+ * Phase 1 changed this from `list[str]` to a row per version carrying both
+ * accuracies. Both are here because they disagree: `exe_acc` is "did the final
+ * number come out right" (~77%), `prog_acc` is "was the program the same shape
+ * as gold" (~35%). The gap is real and expected — the pipeline answers a turn
+ * from prior *answers* (`divide(132, 111)`) where gold re-derives from raw
+ * values (`subtract(243, 111), divide(#0, 111)`) — so a surface showing the
+ * second number owes the reader that explanation.
+ *
+ * Note what is NOT here: holdout accuracy. Splitting `optimizer_train` from
+ * `never_seen` needs `/admin/experiments`, which computes both. Never present
+ * `exe_acc` as a held-out figure.
+ */
+export interface VersionAccuracyRow {
+  version: string;
+  /** Execution accuracy over all 770 scored questions — seen and unseen mixed. */
+  exe_acc: number;
+  /** Program accuracy over the program turns only. */
+  prog_acc: number;
+  n_questions: number;
+  n_program_turns: number;
+  n_program_correct: number;
+}
+
+export function listVersions(): Promise<VersionAccuracyRow[]> {
+  return getJson<VersionAccuracyRow[]>('/admin/versions');
 }
 
 /** `GET /admin/rules/variants` — the s7 rule-store variants present. */

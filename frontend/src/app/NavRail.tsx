@@ -24,9 +24,9 @@ interface RailItem {
 
 const ITEMS: RailItem[] = [
   {
-    to: '/welcome',
+    to: '/',
     label: 'Overview',
-    hint: 'What this system is and how it is measured',
+    hint: 'The status board: what this system is and how it is measured',
     icon: Sparkles,
   },
   {
@@ -34,7 +34,6 @@ const ITEMS: RailItem[] = [
     label: 'Chat',
     hint: 'Ask a question about a filing',
     icon: MessageSquare,
-    matches: ['/'],
   },
   {
     to: '/admin',
@@ -87,7 +86,10 @@ export function NavRail() {
 
   function isActive(item: RailItem): boolean {
     if (item.matches?.includes(pathname)) return true;
-    if (item.to === '/admin') return pathname === '/admin';
+    // `/` is a prefix of every path, so it can only ever match exactly. Same
+    // reasoning for `/admin`, which is both the overview page and the parent
+    // of five others.
+    if (item.to === '/' || item.to === '/admin') return pathname === item.to;
     return pathname === item.to || pathname.startsWith(`${item.to}/`);
   }
 

@@ -62,4 +62,6 @@ export const qk = {
   ruleVariants: ['admin', 'rules', 'variants'] as const,
   researchStatus: ['admin', 'research', 'status'] as const,
   productionMetrics: ['metrics', 'production'] as const,
+  /** The landing board's recorded-conversation cards (pack + first questions). */
+  recordedConversations: (limit: number) => ['landing', 'recorded', limit] as const,
 };
