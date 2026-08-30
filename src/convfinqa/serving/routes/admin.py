@@ -24,7 +24,13 @@ from convfinqa.config import DIAGNOSTICS_DIR, settings
 from convfinqa.llm import demo_mode_enabled
 from convfinqa.serving.limits import require_owner
 from convfinqa.tracking import mlflow_log, registry, snapshot
-from convfinqa.tracking.comparator import available_versions, compare
+from convfinqa.tracking.comparator import (
+    accuracy,
+    available_versions,
+    compare,
+    load_predictions,
+    program_accuracy,
+)
 
 router = APIRouter(prefix="/admin")
 
@@ -112,9 +118,37 @@ async def compare_versions(
 
 
 @router.get("/versions")
-async def list_versions() -> list[str]:
-    """Versions with committed predictions."""
-    return available_versions()
+async def list_versions() -> list[dict[str, Any]]:
+    """Versions with committed predictions, with both accuracies side by side.
+
+    `exe_acc` is the headline: did the final number come out right. `prog_acc`
+    is the one that says how much of it was reasoning — the ConvFinQA paper
+    reports both, and a version that gains execution accuracy while losing
+    program accuracy has learned the answers rather than the method. Showing
+    only the first would hide exactly the failure this system is meant to
+    surface.
+
+    Computed from the committed CSVs on the fly. No API calls, and no cached
+    number to go stale against the predictions it describes.
+    """
+    out: list[dict[str, Any]] = []
+    for version in available_versions():
+        try:
+            df = load_predictions(version)
+        except (FileNotFoundError, ValueError):
+            continue
+        programs = program_accuracy(df)
+        out.append(
+            {
+                "version": version,
+                "exe_acc": round(accuracy(df), 6),
+                "prog_acc": programs["program_accuracy"],
+                "n_questions": int(len(df)),
+                "n_program_turns": int(programs["n_program_turns"]),
+                "n_program_correct": int(programs["n_program_correct"]),
+            }
+        )
+    return out
 
 
 class PromoteRequest(BaseModel):

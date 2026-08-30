@@ -19,7 +19,7 @@ A multi-agent system that answers multi-turn questions about financial reports (
 3. **LLM choke point** — `src/convfinqa/llm.py`. The only place a model is constructed. Owns the demo gate (`guard_llm_call()`), the retry/timeout policy, and `lm_mini()`/`lm_max()` factories. Backends never hold module-level model objects, and agents are built lazily — importing any module must never require an API key.
 4. **Tracking & registry** — `src/convfinqa/tracking/`. Bundle fingerprinting, MLflow logging, trace store, champion/challenger comparator, registry, backfill, snapshot export, and the CI eval-regression gate.
 5. **FastAPI server** — `convfinqa.serving.app:create_app`, routed through `serving/routes/` (`chat`, `evaluation`, `traces`, `admin`), backed by `serving/sessions.py` (in-memory session store), `serving/limits.py` (rate limiting), `serving/research.py` (s7/GEPA launch), and `serving/demo_pack/` (recorded replay for `DEMO_MODE`).
-6. **React frontend** — `frontend/`. Six tabs: Chat, Data & answers, Traces, Experiments, Research, Eval.
+6. **React frontend** — `frontend/`. A status-board landing at `/`, a sessions/thread-inspector chat at `/chat`, and an instrument-style admin section at `/admin` (Overview, Evaluations, Experiments, Traces + detail, Research, System) — all six admin pages are visible read-only in the public demo, gated by a route filter, a real `<fieldset disabled>`, and a server 501/403.
 7. **Container & infra** — `Dockerfile` (serves API + built SPA from one origin), `docker-compose.yml` (`demo` / `dev` toggle), `infra/terraform/` (`bootstrap/` OIDC role, `demo/` ECR + App Runner + alarm), `.github/workflows/deploy-aws.yml` (keyless deploy chained on CI).
 
 ## File Layout
@@ -44,12 +44,13 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `src/convfinqa/llm.py` | **The single LLM choke point.** `guard_llm_call()` (demo gate), `_RetryTransport` (retry/timeout policy), `get_provider()`/`get_model()`, `lm_mini()`/`lm_max()` factories, `dspy_lm_kwargs()`. Nothing else may construct a model. |
 | `src/convfinqa/tracking/` | `bundle.py` (fingerprint: prompts + GEPA overlay + model ids + dataset hash + code SHA), `mlflow_log.py`, `traces.py` (per-stage IO trace store), `comparator.py` (promotion contract), `registry.py` (champion/challenger aliases, append-only history), `backfill.py`, `snapshot.py` (demo image export), `gate.py` (CI eval-regression gate), `cost.py` (token/cost accounting), `cli.py` (`convfinqa-mlflow`). |
 | `src/convfinqa/serving/app.py` | Package FastAPI entry point (`create_app`, `app`); mounts `serving/routes/`. |
-| `src/convfinqa/serving/routes/` | `chat.py` (turns, SSE streaming), `evaluation.py` (splits, eval runs, `/eval/*`), `traces.py` (`/traces/*`), `admin.py` (owner-token-gated promotion/research writes). |
+| `src/convfinqa/serving/routes/` | `chat.py` (turns, SSE streaming), `evaluation.py` (splits, eval runs, `/eval/*`), `traces.py` (`/traces/*`), `admin.py` (owner-token-gated promotion/research writes), `metrics.py` (`/metrics/production` — turn-level counts, latency/cost/accuracy, hourly series, per `serving`/`demo`/`eval` source group). |
+| `src/convfinqa/error_codes.py` | Closed `ErrorCode` vocabulary (`llm_unavailable`, `not_available_demo`, `no_recording`, `rate_limited`, `timeout`, `unknown`) a failed turn is classified into, alongside its free-text message. |
 | `src/convfinqa/serving/sessions.py` | In-memory session store. Requires `--workers 1`. |
 | `src/convfinqa/serving/limits.py` | Global in-flight cap + per-IP rate window; rejects rather than queues. |
 | `src/convfinqa/serving/models.py` | Shared Pydantic request/response models for the API. |
-| `src/convfinqa/serving/research.py` | Launches s7 / GEPA smoke runs from the frontend Research tab and streams progress. |
-| `src/convfinqa/serving/evaldata.py` | Backs the Data & answers tab: splits, per-question gold vs. per-version answers. |
+| `src/convfinqa/serving/research.py` | Launches s7 / GEPA smoke runs from the admin Research page (`/admin/research`) and streams progress. |
+| `src/convfinqa/serving/evaldata.py` | Backs the admin Evaluations page (`/admin/evaluations`): splits, per-question gold vs. per-version answers. |
 | `src/convfinqa/serving/demo_pack/` | `pack.json` (recorded conversations, rebuilt from committed prediction CSVs), `store.py`, `replay.py` (paced SSE replay), `cli.py` (`convfinqa-demo-pack`, and `events_from_row` — the other half of the `pipeline/runner.py::turn_events` contract). |
 | `src/convfinqa/serving/cli.py` | Package Typer CLI implementation. |
 | `scripts/` | Installed console script entry points. |
@@ -65,7 +66,7 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `infra/terraform/demo/` | ECR + App Runner + a 5xx alarm. Reconciled by `deploy-aws.yml` after each push to `main`. |
 | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform) and the local `demo`/`dev` toggle. |
 | `.github/workflows/ci.yml`, `.github/workflows/deploy-aws.yml` | CI (lint, mypy, pytest, frontend checks, eval-regression gate, Docker build, `terraform fmt`/`validate`) and the keyless AWS deploy chained on CI passing. |
-| `frontend/` | Vite + React + Zustand + Tailwind operator console: Chat, Data & answers, Traces, Experiments, Research, Eval tabs. |
+| `frontend/` | Vite + React + Zustand + Tailwind operator console ("The Console"): landing status board at `/`, chat at `/chat`, admin section at `/admin` (Overview, Evaluations, Experiments, Traces, Research, System), IBM Plex type, terminal-amber accent, dark-first with a light variant. |
 | `tests/` | pytest suite, including `test_demo_mode.py` (pins the no-model-at-import-time invariant), `test_tracking.py`, `test_limits.py`. |
 
 ## Four-Stage Pipeline
@@ -219,11 +220,13 @@ Rule of thumb: if regenerating it costs an API call, commit it. If it can be reb
 Every backend path prefix must be listed in `BACKEND_PREFIXES` in `frontend/vite.config.ts`, which feeds both `server.proxy` and `preview.proxy`:
 
 ```ts
-const BACKEND_PREFIXES = ['/healthz', '/reports', '/sessions', '/eval', '/admin', '/traces', '/demo']
+const BACKEND_PREFIXES = ['/healthz', '/reports', '/sessions', '/eval', '/admin', '/traces', '/demo', '/metrics']
 const proxy = Object.fromEntries(BACKEND_PREFIXES.map((p) => [p, API_BASE]))
 ```
 
 If a new backend route prefix is added, add it to `BACKEND_PREFIXES` or the browser can receive HTML 404s instead of JSON.
+
+`/admin` is both an API prefix and a UI route prefix (the admin console lives at `/admin/*`), so the proxy must hand document requests (`sec-fetch-dest: document` / `accept: text/html`) back to Vite's client router instead of forwarding them to FastAPI — otherwise a browser navigating to `/admin/evaluations` gets proxied, matches no backend route, and falls through to a built `index.html` that references dist asset hashes the dev server doesn't serve. `bypassDocumentRequests()` in `vite.config.ts` is what does this.
 
 ## Environment Variables
 

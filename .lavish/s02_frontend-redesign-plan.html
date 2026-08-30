@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConvFinQA — Frontend Redesign Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Design source for the page chrome: (2) the project's own system —
+   frontend/tailwind.config.ts — the same palette s00 and s01 used, so the three
+   planning artifacts read as one set. The two candidate designs are the SUBJECT
+   of this page, so each option's mocks are scoped to its own proposed tokens
+   (.optA / .optB) and framed as browser windows, independent of the chrome.
+
+   29 Aug revision — surface rework. Three near-black families were competing:
+   the chrome's teal-black, the frame's neutral grey, and the Console's blue-black.
+   Now there is one ladder. The chrome keeps the project's hues but sits three
+   lightness steps off pure black; the frame borrows the chrome's own tokens and
+   reads as an elevated window (border + shadow) rather than a hole; and each
+   option's surfaces step monotonically upward from ground to panel to raised, so
+   no inner card is darker than the panel it sits on.
+   --------------------------------------------------------------------------- */
+:root{
+  --bg:#0f1c23; --panel:#18242c; --panel2:#27343d;
+  --accent:#005c4b; --accent2:#00a884;
+  --text:#e6ebed; --muted:#8d9ba5; --danger:#ef6d7c; --warn:#eab54a;
+  --line:rgba(233,237,239,.075); --line2:rgba(233,237,239,.13);
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --maxw:980px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,4.6vw,46px);line-height:1.12;letter-spacing:-.022em;margin:0 0 18px;text-wrap:balance}
+h2{font-size:clamp(23px,3vw,30px);line-height:1.2;letter-spacing:-.016em;margin:0 0 14px;text-wrap:balance}
+h3{font-size:17px;margin:32px 0 10px;letter-spacing:-.005em}
+h4{font-size:13px;margin:22px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+p{margin:0 0 14px;max-width:70ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:70ch}
+li{margin:0 0 7px}
+a{color:var(--accent2)}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);padding:1.5px 5px;border-radius:4px;color:var(--text);overflow-wrap:anywhere}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);margin:0 0 10px}
+.lede{font-size:18px;color:var(--muted);max-width:64ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:0 0 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.grid{display:grid;gap:14px}
+@media(min-width:720px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;border:1px solid var(--line2);background:var(--panel2);color:var(--muted);white-space:nowrap}
+.chip.good{background:rgba(0,168,132,.15);color:var(--accent2);border-color:rgba(0,168,132,.4)}
+.chip.warn{background:rgba(240,180,41,.13);color:var(--warn);border-color:rgba(240,180,41,.35)}
+.chip.bad{background:rgba(241,92,109,.13);color:var(--danger);border-color:rgba(241,92,109,.35)}
+.scroll-x{overflow-x:auto;margin:0 0 16px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tr.hi td{background:rgba(0,168,132,.06)}
+figure{margin:0 0 18px}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:70ch}
+svg{max-width:100%;height:auto;display:block}
+.metrics{display:flex;flex-wrap:wrap;gap:28px;margin:26px 0 12px}
+.metric .v{font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:4px}
+.callout{border-left:2px solid var(--accent2);background:var(--panel);padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 16px}
+.callout.warn{border-left-color:var(--warn)}
+.callout.bad{border-left-color:var(--danger)}
+.callout strong{display:block;margin-bottom:5px}
+.callout p:last-child{margin-bottom:0}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:700px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--accent2)}
+.toc a .n{font-family:var(--mono);font-size:11px;color:var(--accent2);flex:0 0 auto}
+
+/* Research cards */
+.finding{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.finding h3{margin:0 0 8px;font-size:15px}
+.finding .cite{font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.finding .cite b{color:var(--accent2);font-weight:500}
+.finding blockquote{margin:6px 0 8px;padding:0 0 0 12px;border-left:2px solid var(--line2);color:var(--text);font-size:13.5px;line-height:1.55}
+.finding .so{font-size:13px;color:var(--muted);margin:8px 0 0}
+.finding .so b{color:var(--text);font-weight:600}
+
+/* Scorecard */
+.bar{position:relative;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;min-width:80px}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent2);border-radius:4px}
+.bar.b2 i{background:#79b8ff}
+.bar.b0 i{background:#6e7681}
+.score{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.total td{font-weight:600;border-top:1px solid var(--line2)}
+
+/* Browser frame for mocks */
+.frame{border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--panel);margin:0 0 8px;box-shadow:0 18px 40px -26px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.03) inset}
+.frame .bar-{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:var(--panel2);border-bottom:1px solid var(--line2)}
+.frame .tbtn{font-family:var(--mono);font-size:10px;color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:5px;padding:3px 9px;cursor:pointer;white-space:nowrap;margin-left:auto}
+.frame .tbtn:hover{border-color:var(--accent2)}
+.frame .tbtn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.flipall{font-family:var(--mono);font-size:11px;color:var(--accent2);background:transparent;border:1px solid rgba(0,168,132,.4);border-radius:6px;padding:5px 10px;cursor:pointer;margin:0 0 14px}
+.flipall:hover{background:rgba(0,168,132,.1)}
+.flipall:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.frame .dots i{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(233,237,239,.22);margin-right:5px}
+.frame .url{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--text);background:rgba(0,0,0,.24);border-radius:5px;padding:3px 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frame .tag{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.frame .view{overflow-x:auto}
+.screen{min-width:860px}
+.mockcap{font-size:13px;color:var(--muted);margin:0 0 26px;max-width:70ch}
+
+/* Current-state mock (today's palette) */
+.cur{background:#0b141a;color:#e9edef;font-family:var(--sans);font-size:12px}
+.cur .top{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#111b21;border-bottom:1px solid rgba(0,0,0,.4)}
+.cur .logo{width:24px;height:24px;border-radius:50%;background:#005c4b;display:grid;place-items:center;font-size:10px;font-weight:600}
+.cur .tabs{display:flex;border:1px solid rgba(0,0,0,.4);border-radius:6px;overflow:hidden;font-size:11px}
+.cur .tabs span{padding:3px 9px;background:#202c33;color:#8696a0}
+.cur .tabs span.on{background:#00a884;color:#0b141a;font-weight:600}
+.cur .body{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:230px}
+.cur .side{background:#111b21;border-right:1px solid rgba(0,0,0,.4);padding:10px 12px}
+.cur .side .row{font-family:var(--mono);font-size:11px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.3)}
+.cur .side .row small{display:block;color:#8696a0;font-family:var(--sans)}
+.cur .chat{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.cur .u{align-self:flex-end;background:#005c4b;border-radius:8px;padding:6px 10px;max-width:70%}
+.cur .a{align-self:flex-start;background:#202c33;border-radius:8px;padding:6px 10px;max-width:80%}
+.cur .pill{display:inline-block;font-size:9.5px;padding:1px 7px;border-radius:99px;background:#005c4b;margin-right:4px}
+.cur .ok{color:#00a884;font-size:11px}
+
+/* ====================== OPTION A — The Ledger ====================== */
+.optA{
+  --paper:#f6f3ec; --paper2:#efeadf; --paper3:#e7e1d2; --ink:#1e1c18; --ink2:#4a463d; --mutedA:#7a7466;
+  --rule:#dcd6c8; --rule2:#c8c0ad; --ledger:#1f6f4a; --ledger-soft:#e3efe8; --redink:#b3261e; --hl:#f3d27a; --hl-soft:#fbf0cf;
+  --sheet:#ffffff; --hl-ink:#6b5410; --band-ink:#5a4710; --band-strong:#3f3208;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif; --ui:'Source Sans 3','Segoe UI',system-ui,sans-serif; --data:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:12.5px;line-height:1.45;
+  transition:background-color 180ms ease,color 180ms ease;
+}
+/* The Ledger at night: same token names, every value re-chosen — nothing branches on theme */
+.optA[data-theme="dark"]{
+  --paper:#1c1a16; --paper2:#24211c; --paper3:#2d2a23; --ink:#ece7db; --ink2:#c9c2b3; --mutedA:#948d7c;
+  --rule:#35312a; --rule2:#454034; --ledger:#63b58f; --ledger-soft:rgba(99,181,143,.14); --redink:#e07a70; --hl:#c9a53a; --hl-soft:rgba(201,165,58,.16);
+  --sheet:#232019; --hl-ink:#e8cc6a; --band-ink:#e2d6b3; --band-strong:#fff1c4;
+}
+.optA .nav{display:flex;align-items:center;gap:18px;padding:10px 22px;border-bottom:1px solid var(--rule);background:var(--paper)}
+.optA .brand{font-family:var(--serif);font-weight:600;font-size:15px;letter-spacing:-.01em}
+.optA .nav a{color:var(--ink2);text-decoration:none;font-size:12.5px;font-weight:500}
+.optA .nav a.on{color:var(--ink);border-bottom:2px solid var(--ledger);padding-bottom:2px}
+.optA .nav .sp{flex:1}
+.optA .mode{font-family:var(--data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:var(--hl-soft);border:1px solid var(--hl);color:var(--hl-ink);padding:2px 8px;border-radius:3px;white-space:nowrap}
+.optA .btnA{background:var(--ink);color:var(--paper);border-radius:4px;padding:7px 14px;font-weight:600;font-size:12.5px;display:inline-block}
+.optA .btnA.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule2)}
+.optA .hero{display:grid;grid-template-columns:minmax(0,46%) minmax(0,54%);gap:0}
+.optA .hero .l{padding:34px 30px 30px 22px;border-right:1px solid var(--rule)}
+.optA .hero h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.08;letter-spacing:-.015em;margin:8px 0 12px;color:var(--ink)}
+.optA .hero h1 em{font-style:italic;font-weight:400;color:var(--ledger)}
+.optA .hero p{font-size:13px;color:var(--ink2);max-width:40ch;margin:0 0 14px}
+.optA .kicker{font-family:var(--data);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mutedA)}
+.optA .nums{display:flex;gap:26px;margin:14px 0 18px}
+.optA .nums .v{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.optA .nums .v span{color:var(--ledger)}
+.optA .nums .l{font-size:11px;color:var(--mutedA);margin-top:5px;max-width:20ch;line-height:1.35}
+.optA .hero .r{padding:22px 22px 18px 24px;background:var(--paper2)}
+.optA .filing{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:12px 14px;font-size:11.5px;color:var(--ink2)}
+.optA .filing .t{font-family:var(--serif);font-size:12.5px;color:var(--ink);font-weight:600;margin-bottom:6px}
+.optA table.ledger{border-collapse:collapse;width:100%;min-width:0;font-size:11.5px;margin:6px 0 4px}
+.optA table.ledger th{font-family:var(--data);font-size:10px;letter-spacing:.06em;color:var(--mutedA);border-bottom:1px solid var(--rule2);padding:4px 6px;text-transform:none}
+.optA table.ledger td{padding:4px 6px;border-bottom:1px solid var(--rule);color:var(--ink2)}
+.optA table.ledger td.n{font-family:var(--data);text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.optA table.ledger td.n.hit{background:var(--hl-soft);outline:1px solid var(--hl);font-weight:500}
+.optA .turn{margin-top:12px}
+.optA .q{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink);margin:0 0 6px}
+.optA .trail{font-family:var(--data);font-size:10.5px;color:var(--mutedA);display:flex;flex-wrap:wrap;gap:4px 10px;margin:0 0 8px}
+.optA .trail b{color:var(--ledger);font-weight:500}
+.optA .ans{display:flex;align-items:baseline;gap:10px}
+.optA .ans .a{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.optA .ans .g{font-family:var(--data);font-size:10.5px;color:var(--ledger)}
+.optA .ans .p{font-family:var(--data);font-size:10.5px;color:var(--mutedA)}
+.optA .band{display:flex;gap:22px;align-items:center;padding:12px 22px;background:var(--hl-soft);border-top:1px solid var(--hl);font-size:11.5px;color:var(--band-ink)}
+.optA .band b{font-weight:600;color:var(--band-strong)}
+.optA .band .f{font-family:var(--data);font-size:10.5px;white-space:nowrap}
+/* A chat */
+.optA .chatA{display:grid;grid-template-columns:minmax(0,44%) minmax(0,56%);min-height:340px}
+.optA .doc{padding:14px 18px;border-right:1px solid var(--rule);background:var(--sheet);overflow:hidden}
+.optA .doc .kicker{margin-bottom:6px}
+.optA .doc p.txt{font-family:var(--serif);font-size:11.5px;color:var(--ink2);line-height:1.5;margin:6px 0}
+.optA .doc p.txt mark{background:var(--hl-soft);color:var(--ink);padding:0 2px}
+.optA .conv{display:flex;flex-direction:column;background:var(--paper)}
+.optA .conv .hd{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--rule);font-size:11.5px;color:var(--ink2)}
+.optA .conv .hd .ttl{font-family:var(--data);font-size:11px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.optA .conv .hd .cnt{border:1px solid var(--rule2);border-radius:3px;padding:2px 8px;font-size:11px;white-space:nowrap}
+.optA .msgs{padding:12px 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.optA .uq{align-self:flex-end;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink);background:var(--paper2);border:1px solid var(--rule);padding:6px 10px;border-radius:4px;max-width:80%}
+.optA .aa{max-width:92%}
+.optA .aa .row{display:flex;align-items:baseline;gap:10px}
+.optA .aa .row .a{font-family:var(--serif);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.optA .aa .row .g{font-family:var(--data);font-size:10px;color:var(--ledger)}
+.optA .aa .row .g.miss{color:var(--redink)}
+.optA .aa .marg{font-family:var(--data);font-size:10px;color:var(--mutedA);margin-top:3px;display:flex;flex-wrap:wrap;gap:3px 8px}
+.optA .aa .marg b{color:var(--ledger);font-weight:500}
+.optA .aa .marg u{text-decoration:underline dotted;text-underline-offset:2px;cursor:pointer}
+.optA .comp{border-top:1px solid var(--rule);padding:10px 16px 12px;background:var(--paper)}
+.optA .sugg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.optA .sugg span{font-size:11px;border:1px solid var(--rule2);border-radius:99px;padding:2px 9px;color:var(--ink2);background:var(--sheet);white-space:nowrap}
+.optA .sugg .k{font-family:var(--data);font-size:10px;color:var(--hl-ink);background:var(--hl-soft);border-color:var(--hl)}
+.optA .input{display:flex;gap:8px;align-items:center}
+.optA .input .box{flex:1;min-width:0;border:1px solid var(--rule2);background:var(--sheet);border-radius:4px;padding:7px 10px;color:var(--mutedA);font-size:12px}
+/* A evidence */
+.optA .evid{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:330px}
+.optA .contents{padding:16px 14px 16px 22px;border-right:1px solid var(--rule)}
+.optA .contents .kicker{margin-bottom:8px}
+.optA .contents a{display:block;color:var(--ink2);text-decoration:none;font-size:12px;padding:4px 0;border-bottom:1px solid var(--rule)}
+.optA .contents a b{font-family:var(--data);font-size:10px;color:var(--mutedA);margin-right:8px;font-weight:400}
+.optA .contents a.on{color:var(--ink);font-weight:600}
+.optA .main{padding:16px 22px}
+.optA .main h2{font-family:var(--serif);font-weight:600;font-size:20px;margin:0 0 4px;letter-spacing:-.01em;color:var(--ink)}
+.optA .main .sub{font-size:11.5px;color:var(--mutedA);margin:0 0 10px;max-width:60ch}
+.optA table.rep{border-collapse:collapse;width:100%;min-width:0;font-size:11.5px}
+.optA table.rep th{font-family:var(--data);font-size:9.5px;letter-spacing:.06em;color:var(--mutedA);border-bottom:1px solid var(--ink);padding:5px 6px;text-align:right;text-transform:uppercase}
+.optA table.rep th:first-child{text-align:left}
+.optA table.rep td{padding:5px 6px;border-bottom:1px solid var(--rule);text-align:right;font-family:var(--data);font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.optA table.rep td:first-child{text-align:left;font-family:var(--ui);font-size:12px;color:var(--ink)}
+.optA table.rep tr.champ td{color:var(--ink);font-weight:500;background:var(--ledger-soft)}
+.optA .tagA{display:inline-block;font-family:var(--data);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:var(--ledger);color:var(--paper);margin-left:6px}
+.optA .prod{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 6px}
+.optA .prod .c{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;padding:8px 10px}
+.optA .prod .v{font-family:var(--serif);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.optA .prod .l{font-size:10.5px;color:var(--mutedA);line-height:1.3}
+.optA .note{font-size:10.5px;color:var(--mutedA);font-style:italic}
+/* A debrief */
+.optA .deb{padding:22px 26px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;min-height:220px}
+.optA .deb h2{font-family:var(--serif);font-size:24px;font-weight:600;margin:0 0 6px;letter-spacing:-.012em}
+.optA .deb p{font-size:12px;color:var(--ink2);max-width:52ch}
+.optA .deb ol{font-size:12px;color:var(--ink2);padding-left:18px;margin:8px 0 0;columns:2;column-gap:24px}
+.optA .deb ol li{margin:0 0 4px;break-inside:avoid}
+.optA .deb .art{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;padding:10px;font-family:var(--data);font-size:10px;color:var(--mutedA)}
+
+/* ====================== OPTION B — The Console ====================== */
+/* Surfaces climb one short step at a time: ground → panel → raised. Nothing inside
+   a panel is darker than the panel. The neutral carries a faint warm bias (hue ≈ 35°
+   at 5–8% saturation) so it sits with the amber instead of fighting it, and the
+   floor is three lightness steps off black so the frame edge is a seam, not a cliff. */
+.optB{
+  --ground:#191b1f; --panelB:#212429; --panelB2:#2a2e34; --lineB:#32363d; --lineB2:#434850;
+  --textB:#e8e9ea; --mutedB:#a0a5ad; --faint:#868c96; --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --amber-line:rgba(240,169,63,.45); --good-line:rgba(78,203,157,.4); --good-glow:rgba(78,203,157,.65); --info-line:rgba(116,173,242,.4);
+  --uiB:'IBM Plex Sans','Segoe UI',system-ui,sans-serif; --monoB:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  background:var(--ground);color:var(--textB);font-family:var(--uiB);font-size:12.5px;line-height:1.45;
+  transition:background-color 180ms ease,color 180ms ease;
+}
+/* The Console by day: warm paper rather than white, ink text, amber deepened to
+   hold its contrast — the same ladder, inverted, with the same short steps. */
+.optB[data-theme="light"]{
+  --ground:#eeecea; --panelB:#faf9f8; --panelB2:#e6e3e0; --lineB:#dedad6; --lineB2:#c6c1bb;
+  --textB:#22252a; --mutedB:#61656c; --faint:#6f747c; --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --amber-line:rgba(143,83,9,.4); --good-line:rgba(23,112,73,.38); --good-glow:rgba(23,112,73,.5); --info-line:rgba(29,84,171,.35);
+}
+.optB .lbl{font-family:var(--monoB);font-size:9.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--mutedB)}
+.optB .lamps{display:flex;flex-wrap:wrap;gap:6px}
+.optB .lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--monoB);font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--lineB2);background:var(--panelB2);color:var(--mutedB);white-space:nowrap}
+.optB .lamp::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--lineB2)}
+.optB .lamp.on{color:var(--good);border-color:var(--good-line)}
+.optB .lamp.on::before{background:var(--good);box-shadow:0 0 5px var(--good-glow)}
+.optB .lamp.amb{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.optB .lamp.amb::before{background:var(--amber)}
+.optB .lamp.inf{color:var(--info);border-color:var(--info-line)}
+.optB .lamp.inf::before{background:var(--info)}
+.optB .topB{display:flex;align-items:center;gap:14px;padding:9px 16px;border-bottom:1px solid var(--lineB);background:var(--ground)}
+.optB .brandB{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;letter-spacing:-.01em}
+.optB .brandB i{width:18px;height:18px;border-radius:4px;background:var(--amber);display:inline-block}
+.optB .topB .sp{flex:1}
+.optB .kbd{font-family:var(--monoB);font-size:10px;color:var(--mutedB);border:1px solid var(--lineB2);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.optB .board{display:grid;grid-template-columns:minmax(0,52%) minmax(0,48%);gap:0}
+.optB .board .l{padding:22px 20px 18px 22px;border-right:1px solid var(--lineB)}
+.optB .board h1{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:8px 0 8px}
+.optB .board h1 span{color:var(--amber)}
+.optB .board p{font-size:12.5px;color:var(--mutedB);max-width:44ch;margin:0 0 14px}
+.optB .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.optB .rc{background:var(--panelB);border:1px solid var(--lineB2);border-radius:6px;padding:9px 10px;min-width:0}
+.optB .rc .id{font-family:var(--monoB);font-size:10px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.optB .rc .q{font-size:11.5px;color:var(--textB);margin:4px 0 6px;line-height:1.35}
+.optB .rc .m{font-family:var(--monoB);font-size:9.5px;color:var(--faint)}
+.optB .btnB{display:inline-block;background:var(--amber);color:var(--amber-ink);font-weight:600;border-radius:5px;padding:7px 13px;font-size:12px}
+.optB .btnB.ghost{background:transparent;color:var(--textB);border:1px solid var(--lineB2)}
+.optB .board .r{padding:22px 22px 18px 20px;background:var(--panelB)}
+.optB .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px}
+.optB .hud{position:relative;background:var(--panelB2);border:1px solid var(--lineB2);border-radius:6px;padding:9px 10px;min-width:0}
+.optB .hud::before,.optB .hud::after{content:"";position:absolute;width:7px;height:7px;border-color:var(--amber);border-style:solid}
+.optB .hud::before{top:-1px;left:-1px;border-width:1px 0 0 1px;border-radius:6px 0 0 0}
+.optB .hud::after{bottom:-1px;right:-1px;border-width:0 1px 1px 0;border-radius:0 0 6px 0}
+.optB .hud .v{font-family:var(--monoB);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--textB)}
+.optB .hud .v.g{color:var(--good)}
+.optB .hud .v small{font-size:10px;color:var(--mutedB);font-weight:400;margin-left:3px}
+.optB .hud .l{font-size:10px;color:var(--mutedB);margin-top:4px;line-height:1.3}
+.optB .spark{height:18px;margin-top:5px}
+.optB .srcnote{font-family:var(--monoB);font-size:9.5px;color:var(--faint);margin-top:6px;line-height:1.4}
+.optB .pipe{display:flex;align-items:center;gap:6px;font-family:var(--monoB);font-size:10px;color:var(--mutedB);margin-top:10px;flex-wrap:wrap}
+.optB .pipe b{color:var(--textB);font-weight:500;border:1px solid var(--lineB2);border-radius:4px;padding:2px 7px;background:var(--panelB2)}
+.optB .pipe s{text-decoration:none;color:var(--faint)}
+/* B chat */
+.optB .shell{display:grid;grid-template-columns:52px 210px minmax(0,1fr) 290px;min-height:360px}
+.optB .rail{background:var(--ground);border-right:1px solid var(--lineB);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px}
+.optB .rail i{width:32px;height:32px;border-radius:7px;display:grid;place-items:center;font-family:var(--monoB);font-size:11px;color:var(--mutedB);font-style:normal}
+.optB .rail i.on{background:var(--amber-soft);color:var(--amber)}
+.optB .rail .sp{flex:1}
+.optB .sess{background:var(--ground);border-right:1px solid var(--lineB);padding:10px 10px;min-width:0}
+.optB .sess .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.optB .sess .grp{font-family:var(--monoB);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:8px 0 4px}
+.optB .sess .it{padding:6px 8px;border-radius:5px;font-size:11.5px;min-width:0}
+.optB .sess .it.on{background:var(--panelB2)}
+.optB .sess .it .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--monoB);font-size:10.5px;color:var(--textB)}
+.optB .sess .it .m{font-size:10px;color:var(--faint);margin-top:2px}
+.optB .thread{display:flex;flex-direction:column;min-width:0;background:var(--panelB)}
+.optB .thread .hd{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--lineB);font-size:11px;color:var(--mutedB)}
+.optB .thread .hd .t{font-family:var(--monoB);color:var(--textB);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.optB .msgsB{padding:12px 14px;display:flex;flex-direction:column;gap:12px;flex:1}
+.optB .ub{align-self:flex-end;background:var(--panelB2);border:1px solid var(--lineB2);border-radius:8px;padding:6px 10px;font-size:12px;max-width:80%}
+.optB .ab{display:flex;gap:8px;align-items:flex-start;max-width:96%}
+.optB .ab .av{width:18px;height:18px;border-radius:4px;background:var(--amber);flex:0 0 auto;margin-top:2px}
+.optB .ab .bd{min-width:0}
+.optB .ab .a{font-family:var(--monoB);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.optB .ab .a small{font-size:10px;color:var(--good);font-weight:500;margin-left:8px}
+.optB .ab .a small.miss{color:var(--bad)}
+.optB .ab .st{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.optB .ab .st span{font-family:var(--monoB);font-size:9.5px;color:var(--mutedB);border:1px solid var(--lineB2);border-radius:99px;padding:1px 7px}
+.optB .ab .st span.on{color:var(--amber);border-color:var(--amber-line)}
+.optB .ab .st span.skip{opacity:.45;text-decoration:line-through}
+.optB .compB{border-top:1px solid var(--lineB);padding:9px 14px 11px}
+.optB .compB .sg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.optB .compB .sg span{font-size:10.5px;border:1px solid var(--lineB2);border-radius:99px;padding:2px 8px;color:var(--mutedB);white-space:nowrap}
+.optB .compB .sg span.k{font-family:var(--monoB);color:var(--amber);border-style:dashed;border-color:var(--amber-line)}
+.optB .compB .in{display:flex;gap:8px;align-items:center}
+.optB .compB .box{flex:1;min-width:0;border:1px solid var(--lineB2);background:var(--ground);border-radius:6px;padding:7px 10px;color:var(--faint);font-size:12px}
+.optB .insp{background:var(--ground);border-left:1px solid var(--lineB);padding:10px 12px;min-width:0}
+.optB .insp .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.optB .stage{border-left:2px solid var(--amber);padding:4px 0 4px 10px;margin:0 0 6px}
+.optB .stage.skip{border-left-color:var(--lineB2);opacity:.5}
+.optB .stage .n{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;font-weight:500}
+.optB .stage .n b{font-family:var(--monoB);font-size:9.5px;color:var(--mutedB);font-weight:400;white-space:nowrap}
+.optB .stage .d{font-family:var(--monoB);font-size:9.5px;color:var(--mutedB);margin-top:2px;overflow-wrap:anywhere;line-height:1.4}
+.optB .stage .d i{color:var(--good);font-style:normal}
+.optB .tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.optB .tot div{background:var(--panelB2);border:1px solid var(--lineB2);border-radius:5px;padding:6px 7px}
+.optB .tot .v{font-family:var(--monoB);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.optB .tot .l{font-size:9.5px;color:var(--faint)}
+.optB .bid{font-family:var(--monoB);font-size:9.5px;color:var(--faint);margin-top:8px;overflow-wrap:anywhere}
+/* B admin */
+.optB .adm{display:grid;grid-template-columns:52px minmax(0,1fr);min-height:340px}
+.optB .page{padding:14px 18px;min-width:0}
+.optB .page h2{font-size:16px;font-weight:600;margin:0 0 2px;letter-spacing:-.01em}
+.optB .page .sub{font-size:11px;color:var(--mutedB);margin:0 0 10px}
+.optB .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
+.optB .pan{background:var(--panelB);border:1px solid var(--lineB);border-radius:6px;padding:10px 12px;min-width:0}
+.optB .pan .t{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.optB table.tb{border-collapse:collapse;width:100%;min-width:0;font-size:11px}
+.optB table.tb th{font-family:var(--monoB);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:4px 5px;border-bottom:1px solid var(--lineB2);text-align:right;font-weight:500}
+.optB table.tb th:first-child{text-align:left}
+.optB table.tb td{padding:4px 5px;border-bottom:1px solid var(--lineB);text-align:right;font-family:var(--monoB);font-size:10.5px;font-variant-numeric:tabular-nums;color:var(--mutedB)}
+.optB table.tb td:first-child{text-align:left;font-family:var(--uiB);color:var(--textB);font-size:11.5px}
+.optB table.tb tr.ch td{color:var(--textB);background:var(--amber-soft)}
+.optB .ok{color:var(--good)}
+.optB .no{color:var(--bad)}
+.optB .tiles.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* B system */
+.optB .sys{padding:18px 22px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;min-height:200px}
+.optB .sys h2{font-size:18px;font-weight:600;margin:0 0 6px}
+.optB .sys p{font-size:12px;color:var(--mutedB);max-width:52ch}
+.optB .sys ol{font-size:11.5px;color:var(--mutedB);padding-left:18px;margin:8px 0 0;columns:2;column-gap:20px}
+.optB .sys ol li{margin:0 0 4px;break-inside:avoid}
+.optB .sys .art{background:var(--panelB);border:1px solid var(--lineB2);border-radius:6px;padding:10px;font-family:var(--monoB);font-size:10px;color:var(--faint)}
+
+/* Token strips & type specimens */
+.tokens{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.sw{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px 5px 6px}
+.sw i{width:18px;height:18px;border-radius:4px;display:inline-block;border:1px solid rgba(255,255,255,.12)}
+.spec{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 16px}
+.spec .row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.spec .row:last-child{border-bottom:none}
+.spec .k{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* Side-by-side */
+.sbs th:first-child{width:150px}
+
+/* Decision forms */
+.decide{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:18px 20px;margin:0 0 16px}
+.decide h3{margin:0 0 6px}
+.decide .why{font-size:13px;color:var(--muted);margin:0 0 12px}
+.decide label{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:0 0 8px;cursor:pointer;font-size:14px}
+.decide label:hover{border-color:var(--accent2)}
+.decide label small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.decide input[type=radio],.decide input[type=checkbox]{margin-top:4px;accent-color:var(--accent2)}
+.decide textarea{width:100%;min-height:64px;background:var(--bg);color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font-family:var(--sans);font-size:13.5px;resize:vertical}
+.decide button{background:var(--accent2);color:var(--bg);border:none;border-radius:7px;padding:9px 14px;font-weight:600;font-size:13.5px;cursor:pointer;margin-top:10px}
+.decide button:focus-visible,.decide label:focus-within{outline:2px solid var(--accent2);outline-offset:2px}
+.decide .queued{font-family:var(--mono);font-size:11.5px;color:var(--accent2);margin:8px 0 0;min-height:1em}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section>
+  <p class="eyebrow">Plan · frontend redesign · s02 · main @ cc2217b</p>
+  <h1>A front door that proves the system, not just shows it</h1>
+  <p class="lede">
+    You asked for a full redesign: a demo landing page that works in dev and in production, a
+    production visitor who gets the chat, their previous chats and a read-only admin portal, and a
+    debrief page any stranger can land on. This page builds the rubric first, then puts two complete
+    directions in front of you — each mocked in its own design system, scored against the same rubric.
+    <strong>You picked B and settled the four questions it raised</strong>; sections 05, 06, 10 and 12 now
+    record those answers, and the plan below is the one that gets built.
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v">11</div><div class="l">rubric criteria, weighted to 100</div></div>
+    <div class="metric"><div class="v">2</div><div class="l">directions, fully mocked</div></div>
+    <div class="metric"><div class="v">14</div><div class="l">talks cited from 4,542 transcript chunks</div></div>
+    <div class="metric"><div class="v">2</div><div class="l">sibling frontends studied</div></div>
+    <div class="metric"><div class="v" style="color:var(--warn)">1</div><div class="l">live-serving blocker found</div></div>
+    <div class="metric"><div class="v" style="color:var(--accent2)">B</div><div class="l">direction chosen · 29 Aug</div></div>
+    <div class="metric"><div class="v" style="color:var(--accent2)">12.5<span style="font-size:16px;font-weight:400"> d</span></div><div class="l">to build it, all decisions taken</div></div>
+  </div>
+  <nav class="toc">
+    <a href="#s1"><span class="n">01</span>Goal, current state, gap</a>
+    <a href="#s2"><span class="n">02</span>What the research says</a>
+    <a href="#s3"><span class="n">03</span>The rubric &amp; scorecard</a>
+    <a href="#s4"><span class="n">04</span>Shared architecture</a>
+    <a href="#sB"><span class="n">05</span>The benchmark: the ConvFinQA paper</a>
+    <a href="#sO"><span class="n">06</span>Observability, and where the line is</a>
+    <a href="#s5"><span class="n">07</span>Option A — The Ledger (not chosen)</a>
+    <a href="#s6"><span class="n">08</span>Option B — The Console (chosen)</a>
+    <a href="#s7"><span class="n">09</span>Side by side</a>
+    <a href="#s8"><span class="n">10</span>Implementation plan</a>
+    <a href="#s9"><span class="n">11</span>Risks &amp; open questions</a>
+    <a href="#s10"><span class="n">12</span>Decisions</a>
+  </nav>
+</section>
+
+<!-- ═══════════════════════════ 01 GOAL ═══════════════════════════ -->
+<section id="s1">
+  <p class="eyebrow">01 · Goal, current state, gap</p>
+  <h2>What the redesign has to deliver</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Your requirements, as stated</h4>
+      <ol class="small" style="margin-bottom:0">
+        <li>A <strong>demo page as the landing page</strong>, working in dev and in production.</li>
+        <li>In production a visitor gets <strong>demo mode only</strong>: the chat interface, their previous chats, and the admin portal showing the evaluations that were done.</li>
+        <li>The portal shows <strong>production metrics</strong> and <strong>evaluation / optimisation metrics</strong>.</li>
+        <li>A <strong>system plan / debrief page</strong> so anyone can understand the complete structure of what was built.</li>
+        <li>A <strong>rubric</strong> for what makes a good demo-into-chat frontend, informed by how other AI engineers build, then <strong>two options</strong>.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Who opens the link</h4>
+      <p class="small">The portfolio context (<code>ai-engineer-fit/</code>) names the gaps this project exists to close: <em>Technical presentation / demo skills</em> (48%), <em>Model evaluation / monitoring</em> (40%), <em>React</em> (20%). Two readers, two clocks:</p>
+      <ul class="small" style="margin-bottom:0">
+        <li><strong>The skimmer</strong> — recruiter or hiring manager, ~20 seconds, wants one intuitive number and something moving.</li>
+        <li><strong>The engineer</strong> — will interview you, ~5 minutes, wants to see the traces, the eval discipline and how it was shipped.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Where the frontend is today (verified against <code>frontend/src</code>)</h3>
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">localhost:5173 — after "Enter demo"</span><span class="tag">today · React 18 · Tailwind 3 · no router</span></div>
+    <div class="view"><div class="screen cur">
+      <div class="top"><span class="logo">CF</span>
+        <span class="tabs"><span class="on">Chat</span><span>Data &amp; answers</span><span>Traces</span><span>Experiments</span><span>Research</span><span>Eval</span></span>
+        <span style="flex:1"></span><span class="chip warn" style="font-size:10px">demo · read only</span></div>
+      <div class="body">
+        <div class="side"><div style="font-weight:600;margin-bottom:6px">Conversations <span style="float:right;color:#8696a0;font-weight:400">+ New</span></div>
+          <div class="row">Double_MAR/2010/page_55.pdf<small>227.0 · 2m ago</small></div>
+          <div class="row">Double_AAPL/2007/page_70.pdf<small>(no messages yet)</small></div></div>
+        <div class="chat">
+          <div class="u">what is the net change in cash from operations from 2008 to 2009?</div>
+          <div class="a"><span class="pill">triage</span><span class="pill">preprocess</span><span class="pill">retriever</span><span class="pill">calculator</span><div style="font-size:14px;margin-top:4px">227.0</div><div class="ok">✓ matches gold (227)</div></div>
+          <div style="margin-top:auto;display:flex;gap:6px"><div style="flex:1;background:#202c33;border-radius:6px;padding:6px 10px;color:#8696a0">Ask about this filing…</div><div style="background:#00a884;color:#0b141a;border-radius:6px;padding:6px 10px;font-weight:600">Send</div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">Six equal tabs, one accent, everything the same weight. Functional and honest, but nothing tells a stranger what matters, and no view has a URL.</p>
+
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Requirement</th><th>Today</th><th>Target (both options)</th></tr></thead>
+    <tbody>
+      <tr><td>Landing page</td><td>Shown once per session (<code>sessionStorage</code>), a text overview with an "Enter" button; nothing moves</td><td>A real route (<code>/</code>) that works keyless in dev and prod, with a recorded answer already playing and one primary action</td></tr>
+      <tr><td>Navigation</td><td>Tab state in React; no URLs, nothing deep-linkable, browser back does nothing</td><td><code>react-router</code>; every page has a URL you can paste into an application</td></tr>
+      <tr><td>Previous chats</td><td>Persisted per browser via Zustand <code>persist</code> → <code>localStorage</code> (survives reload) ✓</td><td>Keep; add date grouping, search, and seeded example conversations on first visit</td></tr>
+      <tr><td>Reasoning visible</td><td>Stage chips inside the bubble; click to expand one stage at a time</td><td>Trace beside the answer (A: marginalia + filing highlights; B: docked inspector)</td></tr>
+      <tr><td>Eval &amp; optimisation metrics</td><td>Present across Data / Experiments / Eval tabs, tables only, no charts</td><td>One "Evidence"/"Admin" area, charts where a trend exists, every number links to its rows</td></tr>
+      <tr><td>Production metrics</td><td><strong>None recorded anywhere.</strong> <code>/traces/stats</code> returns <code>avg_latency_ms: 0</code>; the demo pack's <code>metrics</code> are <code>{}</code>; the eval CSVs' <code>*_io</code> columns carry no latency or tokens</td><td>New <code>/metrics/production</code> (p50/p95 latency, cost/turn, tokens, error rate) fed by the trace store; recorded turns carry real dev-time metrics, labelled as such</td></tr>
+      <tr><td>Debrief page</td><td>Partly on the landing page; the real walkthrough lives in <code>.lavish/s01</code> and the README</td><td>A route (<code>/debrief</code> or <code>/admin/system</code>) with the architecture, the promotion contract, the version timeline and "how to make a new version"</td></tr>
+      <tr><td>Design system</td><td>10 Tailwind colours, no type scale, no spacing/radius/motion tokens, dark only</td><td>Two-layer tokens (primitive → semantic), light + dark, one radius and motion scale, shadcn/ui primitives vendored into the repo</td></tr>
+      <tr><td>Component library</td><td>None — every control hand-rolled</td><td>shadcn/ui on Tailwind v4 (the sibling <code>data-qa-agent</code> already did this migration)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout bad">
+    <strong>Found while measuring: live serving is broken in dev today</strong>
+    <p>DeepSeek <code>v4-flash</code> now defaults to "thinking" mode, and that mode rejects the <code>tool_choice</code> pydantic-ai sends for every structured <code>output_type</code>. The first stage of any live turn returns <code>400 "Thinking mode does not support this tool_choice"</code>. I verified the fix with a raw request — adding <code>"thinking": {"type": "disabled"}</code> to the body makes the same call succeed — and used it as a scratch-only override to measure the numbers on this page. It is a one-line change in <code>llm.py::get_model</code> (<code>settings=ModelSettings(extra_body=…)</code>) plus a test. Until it lands, dev chat, <code>convfinqa-eval</code> and the s7 harness all fail on their first model call. The public demo is unaffected — it makes no model calls. Decision at the bottom of the page.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 02 RESEARCH ═══════════════════════════ -->
+<section id="s2">
+  <p class="eyebrow">02 · What the research says</p>
+  <h2>How the engineers in the transcript corpus actually build frontends</h2>
+  <p>
+    Method: 29 queries (18 semantic via MiniLM, 11 BM25) over the <code>transcript-rag-agent</code>
+    store — 4,542 chunks from 135 videos — then full-text reads around the strongest hits.
+    41 videos surfaced; 14 speak directly to frontends, demos, or what a reviewer needs.
+    Each finding below carries the channel, talk and timestamp so you can open the clip.
+  </p>
+
+  <div class="grid g2">
+    <div class="finding">
+      <h3>1 · The stack consensus is React + Vite + shadcn/ui, FastAPI behind it</h3>
+      <blockquote>"A combination of three things that I recommend: React, Vite, and shadcn UI… you import that code into your project. So rather than it being stored in your node_modules and being a dependency, you import that code into your project. So now your coding agents can also start to work with it."</blockquote>
+      <p class="cite"><b>Dave Ebbelaar</b> — The Best AI Automation Stack to Learn in 2026 @6:56–9:02 · also Build a Full-Stack GenAI Project in 4 Hours @23:20 ("plain React SPA in TypeScript on Vite, FastAPI") and @70:19 ("use a template so we know we have the proper setup… Tailwind and shadcn") · <b>Thomas Hass</b> — How To Vibe-Code Databricks Apps @2:22 (APX = shadcn + Tailwind + FastAPI; "avoid starting from scratch")</p>
+      <p class="so"><b>So:</b> adopt shadcn/ui vendored into <code>frontend/src/components/ui</code> on Tailwind v4, keep FastAPI serving the SPA. Ebbelaar also pins dependencies with a 7-day minimum release age — worth copying into <code>.npmrc</code>.</p>
+    </div>
+    <div class="finding">
+      <h3>2 · Chat table stakes are specific and small</h3>
+      <blockquote>"Enter should directly hit send… Shift-Enter for a new line. Entering a new message should automatically scroll to the bottom… stream responses to the UI — it feels a lot faster because the output is streamed word by word."</blockquote>
+      <p class="cite"><b>Jason Ku</b> (Meta) — A Meta Engineer's Agentic Engineering Workflow @3:16–5:21, @10:08 (typing-dots spinner "matches what most people are used to") · <b>Dave Ebbelaar</b> — 4 Hours @152:13 ("sidebar with the conversations… hide it, open it… what does the chat interaction look like with all of the citations and the loop while users are waiting")</p>
+      <p class="so"><b>So:</b> rubric criterion 3. Both options: Enter/Shift-Enter, stick-to-bottom with a "jump to latest" pill, per-stage streaming, a collapsible conversation list.</p>
+    </div>
+    <div class="finding">
+      <h3>3 · Evidence opens in place, next to the answer</h3>
+      <blockquote>"When you click on the inline citations it opens a new browser tab. Can you make sure clicking an inline citation opens the right citation on the right bar? … show the neighbouring chunks around it to give a little bit more context."</blockquote>
+      <p class="cite"><b>Dave Ebbelaar</b> — 4 Hours @171:02–173:19; @12:06 ("we always want to reference sources so we can backtrack and fact-check") · <b>Apoorva Joshi</b> (MongoDB) — AI System Design: From Idea to Production @17:25–18:38 ("how does the system explain itself? … by providing citations")</p>
+      <p class="so"><b>So:</b> the retrieved cells light up in the filing itself; the stage trace opens beside the answer, never in a new tab. This is where ConvFinQA can beat generic chat UIs — the evidence is a table, and tables can be highlighted.</p>
+    </div>
+    <div class="finding">
+      <h3>4 · Consistency comes from tokens, not from prompts</h3>
+      <blockquote>"Instead of padding 16 pixels and this specific hex number, the design token would be spacing-medium and brand-primary… once you fix one thing, it affects the entire thing. The fix is applied everywhere."</blockquote>
+      <p class="cite"><b>Ras Mic</b> — Building beautiful UI using AI (My design workflow) @0:55 (the dashboard "looks nothing like the homepage"), @1:56, @18:57–21:05 · These UI libraries + AI @10:35–11:31 ("extract the design system from this component… if AI is your foundation it becomes a problem") · <b>Chris Raroque</b> — How I Make Apps FEEL Premium @12:05 ("AI's first output is the starting line, not the finish line… premium is felt more than seen")</p>
+      <p class="so"><b>So:</b> two-layer tokens with a pre-paint theme script — exactly what <code>data-qa-agent/frontend/src/styles.css</code> does. The redesign ships a token file first and components second.</p>
+    </div>
+    <div class="finding">
+      <h3>5 · A demo has to show the system, not the happy path</h3>
+      <blockquote>"It looked great as a demo, leadership would get happy, they would sign it off… after a few weeks people would start asking 'what the hell is AI doing?' … the observability gap, the evaluation gap, the governance gap."</blockquote>
+      <p class="cite"><b>Sandipan Bhaumik</b> (Databricks, AI Engineer) — The Production AI Playbook @2:22–3:30; @15:50 (tracing data "served to auditors, to regulators, to online monitoring") · <b>Kamelia Aryafar</b> — Scalable GenAI in Production @10:04 ("demos are the happy path"), @11:01 ("latency is a product decision, not an engineering one"), @23:48 ("stop building demos… start building systems")</p>
+      <p class="so"><b>So:</b> traces and production metrics are landing-page content, not admin-only. The demo's job is to make the observability, evaluation and governance answers visible in the first screen.</p>
+    </div>
+    <div class="finding">
+      <h3>6 · Show the data behind every score</h3>
+      <blockquote>"I have these five metrics and now for every data point I have this nice dashboard with five scores… but the reality is that you as an engineer have no idea of the data that's flowing through your system. That is a big red flag."</blockquote>
+      <p class="cite"><b>Dave Ebbelaar</b> — How to Systematically Setup LLM Evals @30:49; @31:55 (compare prompts and models side by side); @39:13 ("track everything in Langfuse… then look at those traces") · <b>Elizabeth</b> (Arize) — LLM-as-a-Judge 101 @36:35 (Phoenix)</p>
+      <p class="so"><b>So:</b> rubric criterion 5. Every metric tile links to its rows; the never-seen vs overall distinction stays in the type, not a footnote; flips (pass→fail) are a first-class list.</p>
+    </div>
+    <div class="finding">
+      <h3>7 · The production metrics that matter</h3>
+      <blockquote>"What's your system's average token cost, token usage, average number of turns in a conversation… once accuracy looks good, cost, latency, and reliability become absolutely non-negotiable as you move to production."</blockquote>
+      <p class="cite"><b>Apoorva Joshi</b> (MongoDB) — @23:41–24:52 · <b>Randall Hunt</b> (Caylent) — POC to PROD @15:01 ("speed matters, but UX matters more"; a metric "can just be a boolean — was this inference successful or not")</p>
+      <p class="so"><b>So:</b> the production panel is p50/p95 latency, cost per turn, tokens per turn, error rate and correct-vs-gold — with the source of each number printed under it. In the demo, replayed timing is recorded-in-dev timing and says so.</p>
+    </div>
+    <div class="finding">
+      <h3>8 · The reviewer's twenty seconds</h3>
+      <blockquote>"A success rate of 95% is very intuitive; an F1 score of 39 is perhaps not… if you have done a good job in those first seven — or now even twenty — seconds… make it as easy as possible."</blockquote>
+      <p class="cite"><b>Boris Meinardus</b> — This Simple RESUME got me 5 ML Interviews @4:27–5:33 · <b>Marina Wyss</b> — How to Get Your First AI Engineering Job @7:49–8:41 ("end-to-end… some kind of user interface with relevant monitoring and logging… ideally make some kind of interactive UI") · <b>Stefan Masnikovic</b> — @5:46 ("your portfolio is the technical proof")</p>
+      <p class="so"><b>So:</b> rubric criteria 1 and 9. One intuitive number first (77.7% on questions no optimiser saw), then the movement (a replayed answer), then the depth. The debrief must read without opening the repo.</p>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:16px">
+    <strong>What the corpus does not say</strong>
+    <p>Zero relevant hits for Streamlit, Gradio or Chainlit as a demo UI (Streamlit appears only inside Databricks Apps), for Next.js as the frontend of an AI app, for CopilotKit / assistant-ui, for Recharts / d3, or for Braintrust / Logfire. The observability names that do appear are Langfuse (Ebbelaar) and Arize Phoenix. Read that as: the engineers in this corpus ship plain React + Vite + shadcn and point at an external trace tool — this app keeps its in-app trace store and links out to Logfire, which is a stronger position, not a weaker one.</p>
+  </div>
+
+  <h3>What the two sibling frontends already solved</h3>
+  <p class="small muted">Surveyed in full: <code>data-qa-agent/frontend</code> ("Data Pilot": React 19, Vite 6, Tailwind v4, shadcn/ui, radix-ui, TanStack Query, react-router 7, visx, cmdk, lucide, Playwright + axe) and <code>transcript-rag-agent/frontend</code> ("transcript·lab": React 19, Vite 7, three runtime dependencies, hand-rolled CSS variables, hash routing, Vitest).</p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Pattern worth lifting</th><th>Where it lives</th><th>Option A</th><th>Option B</th></tr></thead>
+    <tbody>
+      <tr><td>Two-layer tokens (primitives → semantic) with identical names in both themes; theme stamped on <code>&lt;html data-theme&gt;</code> by a pre-paint inline script</td><td><code>data-qa-agent/frontend/src/styles.css</code>:9–147, <code>index.html</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td>shadcn/ui on Tailwind v4 with an <code>@theme inline</code> bridge that only <em>aliases</em> the tokens</td><td><code>data-qa-agent/frontend/src/tailwind.css</code>, <code>components.json</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td>Flat route table + <code>ADMIN_ROUTES</code> + <code>DEMO_BLOCKED_ROUTES</code>; unmatched paths normalise to the chat</td><td><code>data-qa-agent/frontend/src/app/App.tsx</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td>Three-layer demo gate: route filter → <code>&lt;fieldset disabled&gt;</code> with a visible chip → server 501 <code>not_available_demo</code></td><td><code>data-qa-agent</code> DemoGate.tsx + <code>agent_client.py</code>; ConvFinQA already has layers 2 and 3</td><td>keep</td><td>keep</td></tr>
+      <tr><td>Recorded replay that resolves free text to the closest recorded question and says so in a banner</td><td><code>data-qa-agent/services/backend-api/app/demo_replay.py</code> (<code>difflib</code> + Jaccard, threshold 0.35)</td><td>✓ (today: 404 <code>no_recording</code>)</td><td>✓</td></tr>
+      <tr><td>Live trace vs persisted trace sharing one visual vocabulary</td><td><code>transcript-rag-agent/frontend/src/chat/AgentTrace.tsx</code> / <code>AnswerTrace.tsx</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td>Stage-progress primitive that maps live events onto named stops</td><td><code>data-qa-agent/frontend/src/ui/flightdeck.tsx</code> (FlightPath)</td><td>quiet ledger line</td><td>inspector timeline</td></tr>
+      <tr><td>Breakdown drawer that shows the judge's <em>arithmetic</em>, not just the score</td><td><code>transcript-rag-agent/frontend/src/eval/BreakdownDrawer.tsx</code></td><td>flips drawer</td><td>flips drawer</td></tr>
+      <tr><td>"How this was built" page populated from the running server's own config</td><td><code>transcript-rag-agent/frontend/src/design/SystemDesignView.tsx</code></td><td>Debrief</td><td>System</td></tr>
+      <tr><td>Honest-uncertainty badges (<code>thin</code>, <code>self-graded</code>, <code>capped</code>)</td><td><code>transcript-rag-agent</code> scoreboard</td><td>"seen by optimiser" badge</td><td>same</td></tr>
+      <tr><td>Hover-expanding 56→196px icon rail; ⌘K palette; mobile bottom tabs from the same nav list</td><td><code>data-qa-agent/frontend/src/app/NavRail.tsx</code>, <code>CommandPalette.tsx</code></td><td>—</td><td>✓</td></tr>
+      <tr><td>Ops page: annunciator lamps + HUD tiles, reusing the same chart/table components as the product</td><td><code>data-qa-agent/frontend/src/features/ops/OpsPage.tsx</code></td><td>—</td><td>✓</td></tr>
+      <tr><td>Single no-scroll landing composition; impact chips that are product properties, "not counters that would be a lie on a fresh install"</td><td><code>data-qa-agent</code> Login.tsx; <code>transcript-rag-agent</code> Landing.tsx</td><td>✓ (cover)</td><td>✓ (board)</td></tr>
+      <tr><td>Stale-chunk safety net after deploys (<code>vite:preloadError</code> → one reload)</td><td><code>data-qa-agent/frontend/src/main.tsx</code></td><td>✓</td><td>✓</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 03 RUBRIC ═══════════════════════════ -->
+<section id="s3">
+  <p class="eyebrow">03 · The rubric</p>
+  <h2>What makes a good demo-into-chat frontend, weighted</h2>
+  <p>Eleven criteria. Weights reflect the two readers above: the first three seconds-to-value criteria and the two evidence criteria carry the most; craft and maintainability are real but secondary. Each criterion names what a 5 and a 1 look like so the scores below are checkable, and names the research it comes from.</p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>#</th><th>Criterion</th><th class="num">Weight</th><th>A 5 looks like</th><th>A 1 looks like</th><th>Grounded in</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Ten-second clarity</strong></td><td class="num">12</td><td>A stranger reads what it is, sees one intuitive number with its denominator, and knows what to click</td><td>A wall of equal tabs; the number is an F1-style figure with no denominator</td><td>Meinardus; Wyss; Aryafar "stop building demos"</td></tr>
+      <tr><td>2</td><td><strong>Zero-friction entry</strong></td><td class="num">12</td><td>Something is already answering when the page loads; one click opens a real recorded answer; the replay says it is a replay</td><td>Pick a report, then pick a question, then wait</td><td>data-qa-agent "Enter demo →"; Bhaumik happy-path warning</td></tr>
+      <tr><td>3</td><td><strong>Chat ergonomics</strong></td><td class="num">10</td><td>Enter/Shift-Enter, stick-to-bottom, per-stage streaming, typing indicator, previous chats grouped and resumable, keyboard cancel</td><td>Enter inserts a newline; new messages appear off-screen; history lost on reload</td><td>Jason Ku; Ebbelaar 4h @152</td></tr>
+      <tr><td>4</td><td><strong>Reasoning transparency</strong></td><td class="num">10</td><td>Stages, tool calls and retrieved values visible beside the answer; the evidence highlights in the source; progressive disclosure</td><td>A final number with no trail, or a JSON dump</td><td>Ebbelaar citations; Joshi "explain itself"; transcript-lab traces</td></tr>
+      <tr><td>5</td><td><strong>Evidence &amp; metric honesty</strong></td><td class="num">12</td><td>Never-seen vs overall in the same type size; every score links to its rows; flips listed; slices shown</td><td>One flattering accuracy, no denominator, no way to see the rows</td><td>Ebbelaar evals red flag; README's two-number rule</td></tr>
+      <tr><td>6</td><td><strong>Production operability visible</strong></td><td class="num">10</td><td>p50/p95 latency, cost/turn, tokens, error rate, traces browsable, bundle fingerprint on every answer, sources labelled</td><td>No latency or cost anywhere; traces only in a vendor dashboard</td><td>Joshi; Aryafar latency; Bhaumik tracing</td></tr>
+      <tr><td>7</td><td><strong>Mode clarity &amp; safety</strong></td><td class="num">6</td><td>Dev vs demo unmistakable on every screen; writes visibly inert (real disabled fieldset); no key in the container</td><td>A demo that looks live, or hidden controls that silently no-op</td><td>data-qa-agent 3-layer gate; transcript-lab middleware</td></tr>
+      <tr><td>8</td><td><strong>Navigation &amp; deep links</strong></td><td class="num">6</td><td>≤2 levels; every page has a URL; back button works; mobile has a real nav</td><td>Tab state only; refresh loses the page</td><td>data-qa-agent route table</td></tr>
+      <tr><td>9</td><td><strong>Debrief legibility</strong></td><td class="num">8</td><td>A stranger can reconstruct the system: diagram, contract, versions, deploy path, how to make a new version — without the repo</td><td>"See README"</td><td>Wyss; Bhaumik three gaps; transcript-lab System Design</td></tr>
+      <tr><td>10</td><td><strong>Visual craft &amp; identity</strong></td><td class="num">8</td><td>Tokens, a type scale, both themes, a look you would remember; focus states, contrast, reduced motion respected</td><td>Framework defaults; dark only; no focus ring</td><td>Ras Mic; Raroque; data-qa-agent axe gate</td></tr>
+      <tr><td>11</td><td><strong>Maintainability &amp; agent-friendliness</strong></td><td class="num">6</td><td>Vendored shadcn primitives, pinned deps, unit + e2e tests, one build for both modes</td><td>Hand-rolled everything or a dependency per widget; a separate demo build</td><td>Ebbelaar "import the code"; Hass toolkit</td></tr>
+      <tr class="total"><td></td><td>Total</td><td class="num">100</td><td colspan="3"></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Scorecard — today, Option A, Option B</h3>
+  <p class="small muted">Scores 1–5 per criterion, weighted. The two options are scored on the designs as mocked below, not on ambition; a difference of a few points is inside judgement noise.</p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Criterion</th><th class="num">W</th><th class="num">Today</th><th class="num">A · Ledger</th><th class="num">B · Console</th><th>Why they differ</th></tr></thead>
+    <tbody>
+      <tr><td>1 Ten-second clarity</td><td class="num">12</td><td class="num">3</td><td class="num">5</td><td class="num">4</td><td>A is a cover page with one claim and one number; B's board has more to parse</td></tr>
+      <tr><td>2 Zero-friction entry</td><td class="num">12</td><td class="num">2</td><td class="num">5</td><td class="num">5</td><td>Both open on a recorded answer already resolved; one click continues it</td></tr>
+      <tr><td>3 Chat ergonomics</td><td class="num">10</td><td class="num">3</td><td class="num">4</td><td class="num">5</td><td>B's sessions list + docked inspector is the more complete chat shell</td></tr>
+      <tr><td>4 Reasoning transparency</td><td class="num">10</td><td class="num">3</td><td class="num">4</td><td class="num">5</td><td>B keeps the whole trace on screen; A reveals it as marginalia on demand</td></tr>
+      <tr><td>5 Evidence honesty</td><td class="num">12</td><td class="num">4</td><td class="num">5</td><td class="num">4</td><td>A's report typography makes denominators part of the number; B's tiles need the table beside them</td></tr>
+      <tr><td>6 Production operability</td><td class="num">10</td><td class="num">2</td><td class="num">3</td><td class="num">5</td><td>B's landing <em>is</em> the ops view; A has a production section on page 5 of Evidence</td></tr>
+      <tr><td>7 Mode clarity</td><td class="num">6</td><td class="num">4</td><td class="num">4</td><td class="num">5</td><td>B's lamp row states mode on every screen; A uses a highlighter band</td></tr>
+      <tr><td>8 Navigation &amp; deep links</td><td class="num">6</td><td class="num">1</td><td class="num">4</td><td class="num">5</td><td>Both get a router; B's rail gives every admin page a URL of its own</td></tr>
+      <tr><td>9 Debrief legibility</td><td class="num">8</td><td class="num">2</td><td class="num">5</td><td class="num">4</td><td>Long-form is A's native form; B's System page is denser</td></tr>
+      <tr><td>10 Visual craft</td><td class="num">8</td><td class="num">2</td><td class="num">5</td><td class="num">4</td><td>A is the more distinctive identity; the console look is well-trodden</td></tr>
+      <tr><td>11 Maintainability</td><td class="num">6</td><td class="num">3</td><td class="num">4</td><td class="num">4</td><td>Same foundation; B adds cmdk and resizable panels</td></tr>
+      <tr class="total"><td>Weighted total</td><td class="num">100</td>
+        <td class="num score">53.6</td><td class="num score">88.4</td><td class="num score">90.8</td>
+        <td><div style="display:grid;gap:5px;min-width:160px"><div class="bar b0"><i style="width:53.6%"></i></div><div class="bar"><i style="width:88.4%"></i></div><div class="bar b2"><i style="width:90.8%"></i></div></div></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 04 SHARED ═══════════════════════════ -->
+<section id="s4">
+  <p class="eyebrow">04 · Shared architecture</p>
+  <h2>What both options are built on</h2>
+  <p>The two directions differ in tone, layout and emphasis, not in plumbing. Everything in this section is the same either way, so it can start before you choose.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 330" role="img" aria-label="One SPA build is served by FastAPI; /healthz reports the mode; in dev the chat goes to the live model through llm.py, in the public demo it replays pack.json with no key present and every write returns 501 or 403" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.2" style="color:#e9edef">
+        <rect x="20" y="120" width="150" height="70" rx="8"/>
+        <rect x="230" y="105" width="190" height="100" rx="8"/>
+        <path d="M480 155 L540 115 L600 155 L540 195 z"/>
+        <rect x="680" y="30" width="240" height="96" rx="8" style="color:#00a884"/>
+        <rect x="680" y="200" width="240" height="106" rx="8" style="color:#f0b429"/>
+        <line x1="170" y1="155" x2="228" y2="155" marker-end="url(#ar)"/>
+        <line x1="420" y1="155" x2="478" y2="155" marker-end="url(#ar)"/>
+        <path d="M600 150 C640 150 640 78 678 78" marker-end="url(#ar)"/>
+        <path d="M600 160 C640 160 640 253 678 253" marker-end="url(#ar)"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12.5" fill="currentColor" text-anchor="middle" style="color:#e9edef">
+        <text x="95" y="150">Vite build</text>
+        <text x="95" y="168" font-family="IBM Plex Mono,monospace" font-size="11" opacity=".7">frontend/dist</text>
+        <text x="325" y="138">FastAPI, one process</text>
+        <text x="325" y="156" font-size="11" opacity=".75">serves the SPA + the API</text>
+        <text x="325" y="174" font-family="IBM Plex Mono,monospace" font-size="11" opacity=".7">spa_fallback → index.html</text>
+        <text x="325" y="191" font-size="11" opacity=".75">so deep links work in prod</text>
+        <text x="540" y="150" font-family="IBM Plex Mono,monospace" font-size="11">/healthz</text>
+        <text x="540" y="166" font-size="11" opacity=".75">mode?</text>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="#00a884" text-anchor="middle">
+        <text x="800" y="52" font-weight="600">dev · you, locally</text>
+        <text x="800" y="72" font-size="11" opacity=".9">chat → llm.py → deepseek-v4-flash</text>
+        <text x="800" y="90" font-size="11" opacity=".9">admin writes: owner token</text>
+        <text x="800" y="108" font-size="11" opacity=".9">key present in ~/.env</text>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="#f0b429" text-anchor="middle">
+        <text x="800" y="222" font-weight="600">demo · anyone, public URL</text>
+        <text x="800" y="242" font-size="11" opacity=".9">chat → replay pack.json (55 turns, 8 filings)</text>
+        <text x="800" y="260" font-size="11" opacity=".9">reads live: evals, traces, registry, splits</text>
+        <text x="800" y="278" font-size="11" opacity=".9">writes: fieldset disabled → 501 / 403</text>
+        <text x="800" y="296" font-size="11" opacity=".9">DEMO_MODE baked into the image · no key at all</text>
+      </g>
+      <g font-family="IBM Plex Mono,monospace" font-size="10.5" fill="currentColor" opacity=".7" style="color:#e9edef" text-anchor="middle">
+        <text x="199" y="147">serve</text>
+        <text x="449" y="147">on load</text>
+        <text x="640" y="100">"dev"</text>
+        <text x="640" y="235">"demo"</text>
+      </g>
+    </svg>
+    <figcaption>One build, two visitors. Nothing in the frontend is conditional on the deployment except what <code>/healthz</code> reports, which is already how the current app works (<code>modeStore.ts</code>). The redesign keeps that invariant and adds URLs.</figcaption>
+  </figure>
+
+  <h3>Routes</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Path</th><th>Page</th><th>Dev</th><th>Public demo</th><th>Data it reads</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td>Landing / demo page</td><td>live badge, "Open app"</td><td>demo badge, "Open the demo"; recorded answer plays on load</td><td><code>/healthz</code>, <code>/demo/reports</code>, <code>/demo/questions</code>, <code>/admin/versions</code>, <code>/metrics/production</code></td></tr>
+      <tr><td><code>/chat</code>, <code>/chat/:reportId</code></td><td>Chat + previous conversations</td><td>live turns</td><td>replayed turns, suggestions = recorded questions</td><td><code>/reports/*</code>, <code>/sessions/*/ask/stream</code>; conversations in <code>localStorage</code></td></tr>
+      <tr><td><code>/admin</code> (A: <code>/evidence</code>)</td><td>Overview: champion, gate, production strip</td><td>✓</td><td>✓ read-only</td><td><code>/admin/registry</code>, <code>/admin/versions</code>, <code>/metrics/production</code></td></tr>
+      <tr><td><code>/admin/evaluations</code></td><td>Splits, slices, every answer vs gold, flips between two versions</td><td>✓</td><td>✓</td><td><code>/eval/splits</code>, <code>/eval/answers</code>, <code>/admin/compare</code></td></tr>
+      <tr><td><code>/admin/experiments</code></td><td>Runs (eval / GEPA / s7), registry, promotion history</td><td>✓ + promote</td><td>✓, promote inert</td><td><code>/admin/experiments</code>, <code>/admin/registry</code></td></tr>
+      <tr><td><code>/admin/traces</code>, <code>/admin/traces/:id</code></td><td>Every turn answered, stage by stage, with its latency, cost and correctness; production metrics — see 06</td><td>✓</td><td>✓</td><td><code>/traces</code>, <code>/traces/:id</code>, <code>/traces/eval/…</code>, <code>/metrics/production</code> (new)</td></tr>
+      <tr><td><code>/admin/research</code></td><td>Rules browser + research console</td><td>✓ launch</td><td>✓ visible, launch inert</td><td><code>/admin/rules</code>, <code>/admin/research/*</code></td></tr>
+      <tr><td><code>/debrief</code> (B: <code>/admin/system</code>)</td><td>The system, explained: the paper's benchmark vs this system (see 05), architecture, contract, versions, deploy, how to make a new version</td><td>✓</td><td>✓</td><td><code>/healthz</code>, <code>/admin/versions</code>, <code>/eval/runs/…/summary</code>, static paper figures</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Unknown paths normalise to <code>/</code>. Admin routes are visible in the demo (that is the point of the portal) but every write is a disabled fieldset with a chip, and the server refuses anyway. <code>frontend/vite.config.ts::BACKEND_PREFIXES</code> gains <code>/metrics</code>.</p>
+
+  <h3>Backend work the redesign needs (small, shared)</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Change</th><th>Why</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /metrics/production</code> — turns, p50/p95 latency, cost per turn (via <code>tracking/cost.py</code>), tokens, error rate, correct-vs-gold, grouped by <code>source</code> (serving / demo / eval), plus a 24-h series</td><td>The trace store already stores latency and tokens per turn; nothing reads them. This is the production panel's only data source.</td><td>~80 lines + tests</td></tr>
+      <tr><td>Persist stage <code>metrics</code> into the eval CSV <code>*_io</code> columns and the demo pack; re-record the 8 demo filings (55 turns, ≈ $0.17) so replayed turns carry real dev-time latency and tokens; replay records them with <code>source="demo"</code></td><td>Today the pack's <code>metrics</code> are <code>{}</code>, so the public demo can never show a latency or a cost. Recorded numbers are honest if labelled "measured in dev".</td><td>~40 lines + one re-record</td></tr>
+      <tr><td>Fuzzy match free-text questions to the closest recorded one (threshold ~0.35) and return <code>matched_question</code> for the banner</td><td>Typing a paraphrase currently 404s with <code>no_recording</code>; a visitor should still get the nearest real answer, told what was matched.</td><td>~30 lines</td></tr>
+      <tr><td><code>llm.py::get_model</code> — disable DeepSeek thinking mode per request</td><td>Live dev serving is broken today (see 01).</td><td>1 line + test</td></tr>
+      <tr><td>Resolve <code>/healthz.bundle.prompts_version</code> from the champion alias when <code>PROMPTS_VERSION</code> is unset</td><td>The live demo reports <code>prompts_version: v3_1</code> beside <code>champion: v2</code> because the fingerprint follows <code>prompts.latest()</code>. The landing page must describe the champion's bundle, not the newest file.</td><td>~10 lines — open question 3</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Foundation, either way</h3>
+  <ul class="small">
+    <li><strong>Tailwind v4 + shadcn/ui (new-york, radix-ui)</strong> vendored into <code>frontend/src/components/ui</code>; Tailwind's <code>@theme inline</code> aliases the token file rather than redefining colours.</li>
+    <li><strong>Tokens first</strong>: <code>frontend/src/tokens.css</code> with primitives → semantic names, light and dark, radius scale 4/6/8/12, motion 120/180/260 ms, one easing; <code>prefers-reduced-motion</code> collapses all three.</li>
+    <li><strong>react-router 7</strong>, flat route table, lazy-loaded admin pages, <code>vite:preloadError</code> reload guard.</li>
+    <li><strong>TanStack Query</strong> for every read; Zustand stays for the chat session and mode (already persisted).</li>
+    <li><strong>Fonts self-hosted</strong> via <code>@fontsource</code> — no runtime call to Google Fonts from the app.</li>
+    <li><strong>Tests</strong>: keep every existing <code>data-testid</code>; rewrite <code>landing.spec.ts</code> for the route-based landing; add <code>@axe-core/playwright</code> on the four primary pages; Vitest stays for the stores.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════ 05 BENCHMARK ═══════════════════════════ -->
+<section id="sB">
+  <p class="eyebrow">05 · The benchmark</p>
+  <h2>The ConvFinQA paper is the yardstick, and the debrief says so</h2>
+  <p>
+    You asked for the debrief to measure this project against the original paper — Chen, Li, Smiley, Ma,
+    Shah &amp; Wang, <em>ConvFinQA: Exploring the Chain of Numerical Reasoning in Conversational Finance
+    Question Answering</em>, EMNLP 2022 (arXiv 2210.03849; the PDF is committed at <code>data/2210.03849v1.pdf</code>).
+    Every number below is read from the paper's Tables 2–6 and 9. The System page carries this section with
+    live values for our side, so the comparison updates when a challenger is promoted.
+  </p>
+
+  <h3>Headline: where this system lands among the paper's baselines</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>System</th><th>Trained / tuned on</th><th class="num">Exe Acc</th><th class="num">Prog Acc</th><th>Evaluated on</th></tr></thead>
+    <tbody>
+      <tr><td>Human expert (two annotators, &gt;85% agreement)</td><td>—</td><td class="num">89.44</td><td class="num">86.34</td><td>200-question sample</td></tr>
+      <tr class="hi"><td><strong>This project · v2 champion</strong> (four DeepSeek v4-flash agents, prompts tuned by GEPA + s7)</td><td>120 conversations (prompts only; no weights)</td><td class="num"><strong>77.1</strong> overall · <strong>77.7</strong> never-seen</td><td class="num">not scored yet</td><td>770 q / 200 conv. sampled from the public split</td></tr>
+      <tr><td>FinQANet-Gold (RoBERTa-large, <em>gold</em> retrieval given)</td><td>3,037 conversations, full fine-tune</td><td class="num">77.32</td><td class="num">76.46</td><td>434-conversation test set</td></tr>
+      <tr><td>FinQANet (RoBERTa-large) — the paper's best real system</td><td>3,037 conversations, full fine-tune</td><td class="num">68.90</td><td class="num">68.24</td><td>test set</td></tr>
+      <tr><td>FinQANet (RoBERTa-base / BERT-large / BERT-base)</td><td>same</td><td class="num">64.95 / 61.14 / 55.03</td><td class="num">64.16 / 60.55 / 54.57</td><td>test set</td></tr>
+      <tr><td>T5-large / GPT-2-medium (generative)</td><td>same</td><td class="num">58.66 / 58.19</td><td class="num">57.05 / 57.00</td><td>test set</td></tr>
+      <tr><td>GPT-3 175B, few-shot, best setting (Program-normal, 20 exemplars, gold retrieval)</td><td>20 exemplars</td><td class="num">50.30</td><td class="num">45.10</td><td>test set</td></tr>
+      <tr><td>GPT-3 175B, few-shot, Program-normal 10 exemplars / CoT / Answer-only</td><td>10 exemplars</td><td class="num">48.85 / 40.63 / 24.09</td><td class="num">42.14 / 33.84 / —</td><td>test set</td></tr>
+      <tr><td>General crowd (MTurk)</td><td>—</td><td class="num">46.90</td><td class="num">45.52</td><td>200-question sample</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout warn">
+    <strong>Read the comparison honestly — four caveats the debrief prints beside the table</strong>
+    <p><strong>Different questions.</strong> The paper scores the 434-conversation test set, whose gold answers were never released; our 200 conversations are sampled from the public train/dev files, so the two sets do not overlap and are not the same difficulty draw. <strong>Different tolerance.</strong> The paper's execution accuracy is an exact match on the executed program; ours is a numeric match with rounding tolerance (<code>numeric_match</code>), which is slightly kinder. <strong>Different era.</strong> A 2026 hosted LLM in a four-agent pipeline with no fine-tuning versus a 2022 fine-tuned RoBERTa pipeline — the comparison shows what the paradigm shift bought, not that this codebase beats FinQANet on its own terms. <strong>Program accuracy is not scored here yet.</strong> Every turn's <code>pred_program</code> is captured; scoring it against the gold program (normalising argument order and constants) is a small Phase 1 addition and gives the second column.</p>
+  </div>
+
+  <h3>By question type — the paper's breakdown (Table 4, Table 6) beside ours</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Slice</th><th class="num">FinQANet RoBERTa-large</th><th class="num">GPT-3 Program-normal</th><th class="num">This project · v2</th><th class="num">v1 → v2 → v3_1</th></tr></thead>
+    <tbody>
+      <tr><td>Number-selection questions</td><td class="num">82.54</td><td class="num">35.32</td><td class="num"><strong>87.7</strong></td><td class="num">85.2 → 87.7 → 89.8</td></tr>
+      <tr><td>Program questions</td><td class="num">62.14</td><td class="num">55.56</td><td class="num"><strong>71.0</strong></td><td class="num">65.8 → 71.0 → 68.3</td></tr>
+      <tr><td>Type I · simple conversations</td><td class="num">72.37</td><td class="num">52.22</td><td class="num"><strong>78.8</strong></td><td class="num">75.2 → 78.8 → 78.8</td></tr>
+      <tr><td>Type II · hybrid conversations</td><td class="num">60.99</td><td class="num">41.16</td><td class="num"><strong>69.2</strong></td><td class="num">62.3 → 69.2 → 63.8</td></tr>
+      <tr><td>Type II · second half (the paper's hardest slice)</td><td class="num">52.38</td><td class="num">22.85</td><td class="num">—</td><td class="num">slice to add: needs the source-question boundary from the dataset</td></tr>
+      <tr><td>Per-turn (turn 1 → turn 6, Figure 5)</td><td class="num">75.6 → 34.4</td><td class="num">72.8 → 25.2</td><td class="num">charted</td><td class="num"><code>by_q_order</code> slices already exist in <code>/eval/runs/…/summary</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Our slice figures are from the committed <code>pydantic_predictions_v2.csv</code> over all 770 questions; the paper's are test-set figures for its best fine-tuned model and its best prompted GPT-3 setting. The debrief renders this as one grouped bar chart per slice with the paper's bars in a neutral tone and ours in amber, and a per-turn line against Figure 5's curve.</p>
+
+  <h3>The paper's six findings, and what this system does about each</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>What the paper found (§5.3, §6.3)</th><th>What this project does</th><th>Evidence the debrief links to</th></tr></thead>
+    <tbody>
+      <tr><td>"The model excels at number selection questions" — 82.5% for FinQANet</td><td>Triage routes look-ups down a two-stage path (triage → retriever) that skips planning and calculation</td><td>87.7% on number questions; the inspector shows the skipped stages</td></tr>
+      <tr><td>"The model suffers from the lack of domain knowledge" — wrong facts, wrong values, wrong operations</td><td>Retriever prompt rules promoted by the s7 harness (diagnose → fix → verify) target exactly these buckets, per version</td><td><code>rules_retriever_&lt;variant&gt;.jsonl</code> in the Research page; diagnosis categories per case</td></tr>
+      <tr><td>"The model struggles with long reasoning chains… if any turn is wrong, there is a very minor chance the subsequent turns are correct"</td><td>History is threaded as the system's own prior answers, so a later turn depends on what was actually said; per-turn accuracy is a first-class slice</td><td><code>by_q_order</code> slice vs Figure 5; the MAR conversation replay (7 dependent turns, 7 correct)</td></tr>
+      <tr><td>GPT-3 "often fails to make correct references to the context" — asked for "the subsequent year", it returns the previous year's value</td><td>A dedicated preprocess stage rewrites "this / that / the sum of both" into explicit sub-questions before anything is retrieved</td><td>The live example: "what percentage change does <em>this</em> represent?" → <code>divide(227, 641.0)</code></td></tr>
+      <tr><td>GPT-3 "performs better for its familiar program format" — <code>a1 + a2</code> beats the original DSL</td><td>The calculator never writes DSL text; it calls <code>add / subtract / multiply / divide / exp / greater</code> as tools, and the program is reconstructed from the tool loop</td><td>Tool loop in every trace; program accuracy once scored</td></tr>
+      <tr><td>GPT-3 "simply mimics the reasoning steps given in one exemplar but ignores the actual context"</td><td>No exemplars at all: instructions are optimised by GEPA and s7 against 120 conversations and measured on 80 the optimiser never saw</td><td>Never-seen 77.7% vs overall 77.1% — the generalisation number the paper could not report for GPT-3</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small">A detail worth putting on the page: the paper's first FinQANet error case (Figure 6) is a cash-flows-from-operations conversation ending in "what percentage did this change represent in relation to the 2008 total?" — the same shape as the Marriott conversation this demo replays. FinQANet subtracted the wrong pair; v2 answers it correctly, with the trail on screen.</p>
+
+  <h3>What the paper's dataset section contributes to the debrief</h3>
+  <ul class="small">
+    <li>3,892 conversations, 14,115 questions, 2,066 report pages; 3,037 / 421 / 434 train / dev / test; 2,715 simple and 1,177 hybrid conversations (Table 2).</li>
+    <li>Over 60% of questions depend on an earlier one — longest dependency distance 0: 39.5%, 1: 28.0%, 2: 19.0%, 3: 12.5%, 4+: 1.0% (Figure 4).</li>
+    <li>34.73% number selection; 35.10% / 25.41% / 4.75% one-, two-, three-plus-step programs; 59.18% table-only, 25.56% text-only, 15.26% both; operations 40.49% subtract, 33.43% divide, 18.80% add, 6.92% multiply.</li>
+    <li>These become the dataset panel of the debrief, next to our sample's own distribution, so a reader can see the 200 conversations are representative.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════ 06 OBSERVABILITY ═══════════════════════════ -->
+<section id="sO">
+  <p class="eyebrow">06 · Observability</p>
+  <h2>What the app observes today, what the Console will show, and where you drew the line</h2>
+  <p>
+    Your question was three questions. <strong>Is the new frontend capturing observability?</strong> It surfaces
+    two of the three layers the app has. <strong>How is the app doing observability?</strong> Three layers, verified
+    below. <strong>Can it be folded into this app?</strong> Yes — and you scoped it: <strong>turns only</strong>.
+    The per-turn trace store stays as it is and grows a production-metrics endpoint; per-call span capture is
+    not built. The audit below is unchanged; the proposal that follows it is now the decided scope, with what
+    that costs stated plainly.
+  </p>
+  <div class="callout">
+    <strong>Decided 29 Aug — turns, not spans</strong>
+    <p style="margin-bottom:0" class="small">Keep the per-turn trace store as it is, add <code>/metrics/production</code>,
+    skip per-call spans and service counters. The Console's admin rail keeps the name <em>Traces</em>. Phase 1 loses the
+    span processor and the <code>spans</code> table; Phase 4 loses the Spans and Service tabs. Total drops from
+    13.5 days to <strong>12.5</strong>. The escape hatch stays open: every span already exists in-process, so setting
+    <code>LOGFIRE_TOKEN</code> in dev turns them on with no code change at all.</p>
+  </div>
+
+  <h3>Today, verified against the code</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Layer</th><th>What it records</th><th>Where it goes</th><th>Who can see it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · OpenTelemetry via the Logfire SDK</strong><br><span class="small muted"><code>serving/app.py</code>:99–101, <code>pipeline/runner.py</code>:132–268, <code>routes/chat.py</code>:301–337</span></td><td>Every FastAPI request; every pydantic-ai agent run (each model request, its tokens, each tool call, retries); one <code>turn</code> span per answer with <code>turn_type</code>, <code>conv_type</code>, <code>answer</code>, <code>program</code>; <code>stream error</code> events</td><td><code>logfire.configure(send_to_logfire="if-token-present")</code> — exported only when <code>LOGFIRE_TOKEN</code> is set. It is not set locally (<code>~/.env</code> has no <code>LOGFIRE_*</code>) and never in the demo image, so today these spans are created and dropped</td><td>Nobody, at the moment</td></tr>
+      <tr><td><strong>2 · The in-app trace store</strong><br><span class="small muted"><code>tracking/traces.py</code>, SQLite + WAL at <code>.traces/traces.db</code></span></td><td>One row per turn: per-stage input/output/reasoning/tool trajectory (<code>capture</code>), latency, tokens, answer, gold, correct, bundle fingerprint, error, <code>source</code> = serving / demo / eval</td><td>Written by <code>routes/chat.py::_record</code> on every served or replayed turn; read by <code>/traces</code>, <code>/traces/:id</code>, <code>/traces/stats</code></td><td>Everyone — the Traces tab today, the Console's inspector and Traces page tomorrow. <strong>This is the layer the decision keeps.</strong></td></tr>
+      <tr><td><strong>3 · Experiment tracking</strong><br><span class="small muted"><code>tracking/mlflow_log.py</code>, <code>registry.py</code>, <code>evaluation/mlflow_snapshot.json</code></span></td><td>Eval, GEPA and s7 runs with metrics and artefacts; champion/challenger aliases; append-only promotion history</td><td>MLflow (SQLite) in dev; the committed snapshot in the demo</td><td>Everyone — Experiments</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 940 330" role="img" aria-label="Observability flow: every turn emits OpenTelemetry spans through the Logfire SDK and is also recorded in the in-app trace store. The span path is created in process but exported only when a Logfire token is set, and no token exists locally or in the demo image, so it reaches nothing today; the decision of 29 August leaves it that way. The trace store path is the one that is built out: it feeds the traces routes and a new production-metrics endpoint, which feed the Console." xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.2" style="color:#e6ebed">
+        <rect x="20" y="120" width="150" height="80" rx="8"/>
+        <rect x="250" y="26" width="210" height="86" rx="8" opacity=".45" stroke-dasharray="5 4"/>
+        <rect x="250" y="208" width="210" height="86" rx="8"/>
+        <rect x="560" y="34" width="180" height="66" rx="8" opacity=".45" stroke-dasharray="5 4"/>
+        <rect x="560" y="208" width="180" height="86" rx="8"/>
+        <rect x="800" y="120" width="120" height="140" rx="8" style="color:#00a884"/>
+        <line x1="170" y1="146" x2="248" y2="82" marker-end="url(#ar2)" opacity=".45" stroke-dasharray="5 4"/>
+        <line x1="170" y1="176" x2="248" y2="240" marker-end="url(#ar2)"/>
+        <line x1="460" y1="66" x2="558" y2="66" marker-end="url(#ar2)" opacity=".45" stroke-dasharray="5 4"/>
+        <line x1="460" y1="250" x2="558" y2="250" marker-end="url(#ar2)"/>
+        <line x1="740" y1="250" x2="798" y2="215" marker-end="url(#ar2)"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="currentColor" text-anchor="middle" style="color:#e6ebed">
+        <text x="95" y="152" font-weight="600">one turn</text>
+        <text x="95" y="170" font-size="11" opacity=".75">4 agents · &#8804; 8 model calls</text>
+        <text x="95" y="186" font-size="11" opacity=".75">+ 1 FastAPI request</text>
+        <text x="355" y="234" font-weight="600">TraceStore (SQLite)</text>
+        <text x="355" y="252" font-size="11" opacity=".75">one row per turn: capture, latency,</text>
+        <text x="355" y="269" font-size="11" opacity=".75">tokens, answer, gold, error, bundle</text>
+        <text x="355" y="286" font-family="IBM Plex Mono,monospace" font-size="10.5" opacity=".6">unchanged by this plan</text>
+        <text x="650" y="234" font-weight="600">/traces · /traces/stats</text>
+        <text x="650" y="252" font-size="11" opacity=".75">/metrics/production <tspan font-family="IBM Plex Mono,monospace" font-size="10">(new)</tspan></text>
+        <text x="650" y="270" font-size="11" opacity=".75">p50/p95 · cost · errors, by source</text>
+        <text x="650" y="287" font-size="10.5" opacity=".6">Phase 1 · ~120 lines with tests</text>
+        <text x="860" y="164" font-weight="600" style="fill:#00a884">Console</text>
+        <text x="860" y="185" font-size="11" style="fill:#00a884">landing tiles</text>
+        <text x="860" y="202" font-size="11" style="fill:#00a884">inspector</text>
+        <text x="860" y="219" font-size="11" style="fill:#00a884">Traces page</text>
+        <text x="860" y="236" font-size="11" style="fill:#00a884">lamps</text>
+      </g>
+      <g font-family="Inter,sans-serif" font-size="12" fill="currentColor" opacity=".55" text-anchor="middle" style="color:#e6ebed">
+        <text x="355" y="52" font-weight="600">Logfire SDK (OpenTelemetry)</text>
+        <text x="355" y="70" font-size="11">spans: request · agent run · model call · tool</text>
+        <text x="355" y="87" font-size="11">created in process on every turn</text>
+        <text x="355" y="104" font-family="IBM Plex Mono,monospace" font-size="10.5">no capture built — decided 29 Aug</text>
+        <text x="650" y="60" font-size="11">Logfire cloud</text>
+        <text x="650" y="78" font-size="10.5">only if LOGFIRE_TOKEN is set</text>
+        <text x="650" y="94" font-size="10.5">never in the demo image</text>
+      </g>
+      <g font-family="IBM Plex Mono,monospace" font-size="10.5" fill="currentColor" style="color:#e6ebed" text-anchor="middle">
+        <text x="205" y="96" opacity=".45">spans</text>
+        <text x="205" y="226" opacity=".7">record()</text>
+        <text x="509" y="58" opacity=".45">export</text>
+        <text x="509" y="242" opacity=".7">read</text>
+      </g>
+    </svg>
+    <figcaption>Two paths leave every turn. The dashed one is real code that reaches nothing — the spans are constructed and dropped, because no token exists here or in the demo. The decision of 29 August leaves it dashed and builds out the solid one instead: the trace store already holds everything a turn did, so the only new piece is the endpoint that aggregates it.</figcaption>
+  </figure>
+
+  <h3>Signal by signal: is the Console capturing it?</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Signal</th><th>Exists today</th><th>Where the Console shows it</th><th>Decided scope</th></tr></thead>
+    <tbody>
+      <tr><td>Per-stage input, output, reasoning, tool loop</td><td>✓ TraceStore <code>capture</code></td><td>Inspector; Traces; trace deep links</td><td>none</td></tr>
+      <tr><td>Per-stage and per-turn latency, tokens</td><td>✓ recorded for live turns; empty in every committed artefact</td><td>Inspector totals, landing tiles, sparklines</td><td>Phase 1: persist into eval CSVs and the demo pack; re-record 8 filings</td></tr>
+      <tr><td>Cost per turn / per conversation</td><td>✓ derivable (<code>tracking/cost.py</code>), never read</td><td>Tiles, per-turn column in Recent turns</td><td>Phase 1: <code>/metrics/production</code></td></tr>
+      <tr><td>Correct vs gold, by source</td><td>✓ <code>correct</code> column</td><td>Lamps, tiles, Evaluations</td><td>none</td></tr>
+      <tr><td>Errors and their cause (timeouts, provider 4xx/5xx, demo refusals)</td><td>✓ <code>error</code> column + <code>logfire.error</code></td><td>Error-rate tile; Traces filter</td><td>Phase 1: classify the error code (<code>llm_unavailable</code>, <code>not_available_demo</code>, <code>no_recording</code>, rate-limited) so the tile can break it down</td></tr>
+      <tr class="hi"><td>Each model request: latency, tokens, retries, HTTP status, cache hits</td><td>Logfire spans only — dropped today</td><td><strong>Nowhere.</strong> Per-stage totals in the inspector are the closest the Console gets</td><td><strong>Not built</strong> — decided 29 Aug. Recovered any time by setting <code>LOGFIRE_TOKEN</code> in dev; no code change</td></tr>
+      <tr class="hi"><td>HTTP route latency and status; rate-limit and in-flight rejections</td><td>FastAPI instrumentation → Logfire only; limiter has no counters</td><td><strong>Nowhere.</strong> App Runner's own metrics stay the source</td><td><strong>Not built</strong> — decided 29 Aug. Same escape hatch; two counters in <code>limits.py</code> are half a day whenever it matters</td></tr>
+      <tr><td>Traces across a whole conversation (turn → turn)</td><td>✓ via <code>session_id</code></td><td>Sessions pane badge "3 turns · 3 ✓"; Traces grouped by session</td><td>none</td></tr>
+      <tr><td>Deploy / uptime / container restarts</td><td>App Runner only</td><td>System page: build SHA, boot time, bundle</td><td>Out of scope for the app; App Runner keeps it</td></tr>
+      <tr><td>Alerting</td><td>none</td><td>—</td><td>Out of scope; Logfire alerts if a token is ever set</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>What gets built, now that the line is drawn</h3>
+  <ol class="small">
+    <li><strong><code>/metrics/production</code></strong> (<code>serving/routes/metrics.py</code>, ~120 lines with tests): aggregates the trace store, grouped by <code>source</code> so live and replayed turns never blend — turns, p50/p95 latency, tokens and cost per turn (<code>tracking/cost.py</code>, which already computes it and is read by nothing), accuracy against gold where gold exists, and error counts by code. This is the endpoint behind the landing tiles, the sparklines and the admin overview.</li>
+    <li><strong>Latency and tokens where they are missing</strong>: they are recorded for live turns and empty in every committed artefact, so the demo would show zeros. Phase 1 persists them into the <code>*_io</code> columns and the demo pack, and re-records the eight filings so a visitor sees real measured numbers with a "recorded in dev" source line.</li>
+    <li><strong>Error codes, classified</strong> (<code>llm_unavailable</code>, <code>not_available_demo</code>, <code>no_recording</code>, rate-limited): today <code>error</code> is free text, so an error-rate tile can count but not explain. One enum, written at the two places errors are caught.</li>
+    <li><strong>Traces page</strong> in the rail, keeping its name: the turns list with filters (source, correct, error, session), the per-turn stage detail already in the inspector, and deep links at <code>/admin/traces/:id</code>. No Spans tab, no Service tab.</li>
+    <li><strong>Logfire stays where it is</strong>: configured, constructing spans, exporting nothing without a token. Set <code>LOGFIRE_TOKEN</code> in a dev shell and the full model-call and request tree appears in Logfire immediately — that is the whole recovery path, and it costs nothing to keep open.</li>
+  </ol>
+  <div class="callout warn">
+    <strong>What you give up, stated plainly</strong>
+    <p class="small" style="margin-bottom:0">A visitor to the public demo will see <em>what the system did</em> — every turn, every stage, every tool call, its latency, cost and correctness — but not <em>what each model request did</em>: no per-call latency histogram, no retry counts, no cache-hit rate, no HTTP route or rate-limiter view. For the demo's purpose that is a fair trade: the trace store already carries the per-stage tool trajectory, which is the part a reader actually wants to inspect. It becomes the wrong trade the day this serves real traffic and someone has to answer "why was that turn slow" — at which point the span processor is a day's work on an interface that already exists in process.</p>
+  </div>
+  <p class="small muted">Net effect on the plan: Phase 1 drops from 2 days to 1.5 and loses <code>tracking/spans.py</code>, the <code>spans</code> table and <code>/spans</code>; Phase 4 drops from 3 days to 2.5 and ships Traces rather than a three-tab Observability page; Phase 6 drops <code>/spans</code> from the smoke script. Total: <strong>12.5 days</strong>.</p>
+</section>
+
+<!-- ═══════════════════════════ 07 OPTION A ═══════════════════════════ -->
+<section id="s5">
+  <p class="eyebrow">07 · Option A · not chosen — kept for reference</p>
+  <h2>The Ledger — an annual report with its own audit trail</h2>
+  <p>
+    The product is about filings, so the interface reads like one: paper ground, a serif for claims and
+    numbers, tabular figures, hairline rules, and a highlighter for what the retriever actually read.
+    The landing page is a cover — one claim, one number, and the demo already answering in the margin.
+    Evidence is a numbered report; the debrief is its narrative. Light-first, with a dark variant —
+    both ship: one token set, every value re-chosen for the night ledger, no component branches on
+    theme. Flip any frame with the switch in its title bar, or all four at once here.
+  </p>
+  <button type="button" class="flipall" data-scope="s5" data-first="light">Show all four frames in dark</button>
+  <div class="tokens">
+    <span class="sw"><i style="background:#f6f3ec"></i>paper #f6f3ec</span>
+    <span class="sw"><i style="background:#efeadf"></i>paper-2 #efeadf</span>
+    <span class="sw"><i style="background:#1e1c18"></i>ink #1e1c18</span>
+    <span class="sw"><i style="background:#7a7466"></i>muted #7a7466</span>
+    <span class="sw"><i style="background:#dcd6c8"></i>rule #dcd6c8</span>
+    <span class="sw"><i style="background:#1f6f4a"></i>ledger green #1f6f4a</span>
+    <span class="sw"><i style="background:#b3261e"></i>red ink #b3261e</span>
+    <span class="sw"><i style="background:#f3d27a"></i>highlighter #f3d27a</span>
+    <span class="sw"><i style="background:#1c1a16"></i>dark ground #1c1a16</span>
+    <span class="sw"><i style="background:#63b58f"></i>dark accent #63b58f</span>
+  </div>
+  <div class="spec">
+    <div class="row"><span class="k">display</span><span style="font-family:'Newsreader',Georgia,serif;font-size:22px;font-weight:600;letter-spacing:-.01em">Newsreader 600 — claims, answers, section titles <em style="font-weight:400;color:var(--accent2)">and italics for questions</em></span></div>
+    <div class="row"><span class="k">ui / body</span><span style="font-family:'Source Sans 3',sans-serif;font-size:15px">Source Sans 3 — controls, captions, table labels; 13/14/16 px steps</span></div>
+    <div class="row"><span class="k">data</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px">JetBrains Mono — 641.0 · 868.0 · subtract(B, A) · tabular-nums everywhere digits align</span></div>
+    <div class="row"><span class="k">shape / motion</span><span class="small">Radius 3–4 px only; no shadows; 120/180 ms fades; the single animation is the highlighter sweeping across a retrieved cell</span></div>
+  </div>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/  — public demo</span><span class="tag">A · landing = cover</span></div>
+    <div class="view"><div class="screen optA" data-theme="light">
+      <div class="nav"><span class="brand">ConvFinQA</span><a class="on" href="#s5">Demo</a><a href="#s5">Evidence</a><a href="#s5">Debrief</a><span class="sp"></span><span class="mode">Public demo · replays recordings · no key</span></div>
+      <div class="hero">
+        <div class="l">
+          <div class="kicker">Multi-turn financial QA · SEC filings</div>
+          <h1>Ask a 10-K a question it has to <em>compute</em>.</h1>
+          <p>Four agents answer questions that depend on earlier answers — "what percentage change does <em>this</em> represent?" — and every answer carries the trail that produced it.</p>
+          <div class="nums">
+            <div><div class="v"><span>77.7%</span></div><div class="l">correct on the 309 questions no optimiser ever saw</div></div>
+            <div><div class="v">77.1%</div><div class="l">across all 770 scored questions</div></div>
+          </div>
+          <span class="btnA">Open the demo</span>&nbsp;&nbsp;<span class="btnA ghost">Read the debrief</span>
+        </div>
+        <div class="r">
+          <div class="kicker">Playing now · Marriott 10-K 2010, p.55 · recorded turn 1 of 7</div>
+          <div class="filing" style="margin-top:8px">
+            <div class="t">Liquidity and capital resources</div>
+            <table class="ledger"><thead><tr><th>$ millions</th><th style="text-align:right">2010</th><th style="text-align:right">2009</th><th style="text-align:right">2008</th></tr></thead>
+              <tbody><tr><td>cash from operations</td><td class="n">1,151</td><td class="n hit">868</td><td class="n hit">641</td></tr>
+                     <tr><td>depreciation expense</td><td class="n">138</td><td class="n">151</td><td class="n">155</td></tr>
+                     <tr><td>amortization expense</td><td class="n">40</td><td class="n">34</td><td class="n">35</td></tr></tbody></table>
+          </div>
+          <div class="turn">
+            <p class="q">"what is the net change in cash from operations from 2008 to 2009?"</p>
+            <div class="trail"><span><b>triage</b> program · 2.0s</span><span><b>preprocess</b> subtract(B, A) · 1.4s</span><span><b>retriever</b> 641, 868 · 1.4s</span><span><b>calculator</b> subtract(868, 641) · 1.9s</span></div>
+            <div class="ans"><span class="a">227</span><span class="g">✓ gold 227</span><span class="p">6.7s · 11,102 tokens · $0.003</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="band"><span><b>What you are looking at.</b> This deployment holds no API key and makes no model calls; the chat replays 55 turns recorded in development through the same events a live turn emits. Everything else reads the committed evaluation artefacts live.</span><span class="f">8 filings · bundle 42951b98 · build cc2217b</span></div>
+    </div></div>
+  </div>
+  <p class="mockcap">The cover. Left: the claim, the two honest numbers with their denominators in the same breath, one primary action. Right: a recorded turn replaying on load — the retrieved cells glow in the table as the retriever "reads" them, then the answer settles. In dev the band turns green and reads "live against the champion".</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/chat/Double_MAR/2010/page_55.pdf</span><span class="tag">A · chat = filing beside conversation</span></div>
+    <div class="view"><div class="screen optA" data-theme="light">
+      <div class="nav"><span class="brand">ConvFinQA</span><a class="on" href="#s5">Demo</a><a href="#s5">Evidence</a><a href="#s5">Debrief</a><span class="sp"></span><span class="mode">Public demo</span></div>
+      <div class="chatA">
+        <div class="doc">
+          <div class="kicker">The filing · Marriott International · 10-K 2010 · page 55</div>
+          <p class="txt">… liquidity and capital resources — cash requirements and our credit facilities. Our credit facility, which expires on May 14, 2012, and associated letters of credit, provide for $2.4 billion of aggregate effective borrowings …</p>
+          <table class="ledger"><thead><tr><th>$ millions</th><th style="text-align:right">2010</th><th style="text-align:right">2009</th><th style="text-align:right">2008</th></tr></thead>
+            <tbody><tr><td>cash from operations</td><td class="n">1,151</td><td class="n hit">868</td><td class="n hit">641</td></tr>
+                   <tr><td>depreciation expense</td><td class="n">138</td><td class="n">151</td><td class="n">155</td></tr>
+                   <tr><td>amortization expense</td><td class="n">40</td><td class="n">34</td><td class="n">35</td></tr></tbody></table>
+          <p class="txt">Our ratio of current assets to current liabilities was roughly <mark>1.4 to 1.0</mark> at year-end 2010 and 1.2 to 1.0 at year-end 2009. We minimize working capital through cash management, strict credit-granting policies, and aggressive collection efforts …</p>
+          <div class="note">Highlighted: the cells the retriever returned for the selected answer. Click any answer to move the highlight.</div>
+        </div>
+        <div class="conv">
+          <div class="hd"><span class="ttl">Double_MAR/2010/page_55.pdf</span><span class="cnt">Conversations · 3 ▾</span><span class="cnt">Reset</span></div>
+          <div class="msgs">
+            <div class="uq">what is the net change in cash from operations from 2008 to 2009?</div>
+            <div class="aa"><div class="row"><span class="a">227</span><span class="g">✓ gold 227</span></div>
+              <div class="marg"><span><b>triage</b> program</span><span><b>plan</b> subtract(B, A)</span><span><b>read</b> <u>641</u>, <u>868</u></span><span><b>calc</b> subtract(868, 641) → 227.0</span><span>6.7s · $0.003</span></div></div>
+            <div class="uq">what percentage change does this represent?</div>
+            <div class="aa"><div class="row"><span class="a">35.4%</span><span class="g">✓ gold 35%</span></div>
+              <div class="marg"><span><b>triage</b> program</span><span><b>plan</b> divide(227, 641.0) — "this" resolved to the previous answer</span><span><b>calc</b> 227 ÷ 641 → 0.354</span><span>9.0s · $0.004</span></div></div>
+            <div class="uq">what about the cash from operations in 2010?</div>
+            <div class="aa"><div class="row"><span class="a">1,151</span><span class="g">✓ gold 1151</span></div>
+              <div class="marg"><span><b>triage</b> program <span style="color:var(--redink)">(a look-up sent down the program path — 4 stages for a read)</span></span><span>9.0s · $0.003</span></div></div>
+          </div>
+          <div class="comp">
+            <div class="sugg"><span class="k">recorded</span><span>and in 2009?</span><span>what is the net change from 2009 to 2010?</span><span>what percentage change does this represent?</span></div>
+            <div class="input"><div class="box">Ask about this filing — Enter sends, Shift-Enter for a new line</div><span class="btnA">Ask</span></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">The workbench. The filing stays on the left the whole time, and the retrieved values light up in it — the strongest version of "citations open in place" this dataset allows. Answers sit on the paper with their trail as marginalia; the third turn shows an honest routing wobble rather than hiding it. Previous conversations open from the "Conversations" control as a list grouped by day; on narrow screens the filing becomes a tab.</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/evidence#1-versions</span><span class="tag">A · evidence = numbered report</span></div>
+    <div class="view"><div class="screen optA" data-theme="light">
+      <div class="nav"><span class="brand">ConvFinQA</span><a href="#s5">Demo</a><a class="on" href="#s5">Evidence</a><a href="#s5">Debrief</a><span class="sp"></span><span class="mode">Public demo</span></div>
+      <div class="evid">
+        <div class="contents"><div class="kicker">Contents</div>
+          <a class="on" href="#s5"><b>1</b>Versions &amp; promotion</a><a href="#s5"><b>2</b>Evaluation by slice</a><a href="#s5"><b>3</b>Every answer vs gold</a><a href="#s5"><b>4</b>Experiments &amp; runs</a><a href="#s5"><b>5</b>Traces</a><a href="#s5"><b>6</b>Production</a><a href="#s5"><b>7</b>Research rules</a></div>
+        <div class="main">
+          <h2>1 · Versions &amp; promotion</h2>
+          <div class="sub">Three prompt bundles scored on the same 770 questions. The never-seen column is the only one that supports a generalisation claim; the optimiser trained on 120 of the 200 conversations.</div>
+          <table class="rep"><thead><tr><th>Bundle</th><th>never-seen (309)</th><th>overall (770)</th><th>Number</th><th>Program</th><th>Type I</th><th>Type II</th></tr></thead>
+            <tbody><tr><td>v1</td><td>72.8%</td><td>73.0%</td><td>85.2%</td><td>65.8%</td><td>75.2%</td><td>62.3%</td></tr>
+                   <tr class="champ"><td>v2 <span class="tagA">champion</span></td><td>77.7%</td><td>77.1%</td><td>87.7%</td><td>71.0%</td><td>78.8%</td><td>69.2%</td></tr>
+                   <tr><td>v3_1</td><td>73.5%</td><td>76.2%</td><td>89.8%</td><td>68.3%</td><td>78.8%</td><td>63.8%</td></tr></tbody></table>
+          <div class="note" style="margin-top:6px">Promotion requires accuracy ≥ champion <b>and</b> no per-question pass→fail flip. v3_1 fixed 17 questions and broke 24 — refused. <u>Open the flips ›</u></div>
+          <h2 style="margin-top:16px;font-size:16px">6 · Production</h2>
+          <div class="prod">
+            <div class="c"><div class="v">9.0s</div><div class="l">p50 latency per turn · p95 11.6s</div></div>
+            <div class="c"><div class="v">$0.0031</div><div class="l">per turn · $0.022 per conversation</div></div>
+            <div class="c"><div class="v">10.8k</div><div class="l">tokens per turn · 4 stages</div></div>
+            <div class="c"><div class="v">7 / 7</div><div class="l">matched gold on this filing</div></div>
+          </div>
+          <div class="note">Measured in development on 29 Aug 2026, champion v2 on deepseek-v4-flash, 7 turns. The public demo replays these turns and reports their recorded timings — it makes no live calls.</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">Evidence as a report. A left contents rail, numbered sections, and one table per claim; the promotion contract sits under the table it governs. Section 6 is the production strip with its provenance printed underneath — the honesty the research keeps asking for.</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/debrief</span><span class="tag">A · debrief = long-form</span></div>
+    <div class="view"><div class="screen optA" data-theme="light">
+      <div class="nav"><span class="brand">ConvFinQA</span><a href="#s5">Demo</a><a href="#s5">Evidence</a><a class="on" href="#s5">Debrief</a><span class="sp"></span><span class="mode">Public demo</span></div>
+      <div class="deb">
+        <div>
+          <div class="kicker">Debrief · what was built and why</div>
+          <h2>From a research repo to a system you can operate</h2>
+          <p>How four agents answer a dependent question; what a "model version" means when every model is an API; the promotion contract; the keyless demo; and the exact steps to make the next version.</p>
+          <ol><li>What the system does, in one worked turn</li><li>Architecture: pipeline, choke point, stores</li><li>The bundle fingerprint</li><li>Evaluation and the two-number rule</li><li>The promotion contract</li><li>GEPA and auto-research (s7)</li><li>Tracing: in-app and Logfire</li><li>Demo mode and deployment</li><li>How to make a new version</li><li>What is left to do</li></ol>
+        </div>
+        <div class="art">architecture figure<br>triage → preprocess → retriever → calculator<br>llm.py · TraceStore · MLflow · registry<br><span style="color:var(--ledger)">rendered inline SVG, live numbers from /healthz</span></div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">The debrief is the s01 walkthrough made public: a contents list, inline figures, and live numbers pulled from <code>/healthz</code> and <code>/admin/versions</code> so it cannot drift from the deployment.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Libraries</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li>Foundation (shared): React 18, Vite, Tailwind v4, shadcn/ui, react-router 7, TanStack Query, Zustand</li>
+        <li>TanStack Table for the answers explorer (770 rows, sortable, filterable)</li>
+        <li>Recharts for the few charts that exist (slice bars, trend across versions) — small, fast to build</li>
+        <li>lucide-react icons; <code>@fontsource</code> Newsreader / Source Sans 3 / JetBrains Mono</li>
+        <li>No animation library; the highlighter sweep is one CSS keyframe</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Costs and risks specific to A</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li><strong>Cell highlighting</strong> needs a mapping from retriever answers to table cells — a small matcher on value + row label; text values fall back to a mark in the prose.</li>
+        <li>The filing pane competes with the conversation on narrow screens; below 900 px it becomes a tab.</li>
+        <li>Production metrics live on page 6 of Evidence — the operability story is a click deeper than in B.</li>
+        <li>Serif display type must be self-hosted and subset, or the first paint flashes system serif.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 08 OPTION B ═══════════════════════════ -->
+<section id="s6">
+  <p class="eyebrow">08 · Option B · chosen 29 Aug</p>
+  <h2>The Console — the control room for an agentic system in production</h2>
+  <p>
+    The landing page is a status board: the system is running, here is its champion, its accuracy, its
+    latency and its cost, and here is a recorded conversation you can step into. Chat is three panes with
+    the trace inspector always docked. Admin is a rail of instrument pages. Terminal amber on a warm
+    charcoal ground, IBM Plex throughout, mono-caps labels for anything that is telemetry. Dark-first, with a
+    light variant — both ship, from the same token names; the amber deepens so it still carries on paper.
+    Flip any frame with the switch in its title bar, or all four at once here.
+  </p>
+  <div class="callout">
+    <strong>Surfaces, revised 29 Aug</strong>
+    <p class="small" style="margin-bottom:0">
+      The first pass put a near-black ground (<code>#0c0f14</code>) under mid-grey panels, so every panel
+      edge read as a hard step and inner tiles punched dark holes back through them. Three fixes, all in
+      tokens: the floor came up three lightness steps and picked up a faint warm bias so it sits with the
+      amber rather than against it; the steps between <em>ground → panel → raised</em> narrowed to roughly
+      4% lightness each; and elevation became monotonic — nothing inside a panel is darker than the panel.
+      In the shell that means the rail, sessions pane and inspector sit at ground while the thread is the
+      one lit surface, the way an editor treats its chrome. The page around the mocks moved with it, so the
+      frames now read as windows on one ground instead of three competing blacks.
+    </p>
+  </div>
+  <button type="button" class="flipall" data-scope="s6" data-first="dark">Show all four frames in light</button>
+  <div class="tokens">
+    <span class="sw"><i style="background:#191b1f"></i>ground #191b1f</span>
+    <span class="sw"><i style="background:#212429"></i>panel #212429</span>
+    <span class="sw"><i style="background:#2a2e34"></i>raised #2a2e34</span>
+    <span class="sw"><i style="background:#e8e9ea"></i>text #e8e9ea</span>
+    <span class="sw"><i style="background:#a0a5ad"></i>muted #a0a5ad</span>
+    <span class="sw"><i style="background:#f0a93f"></i>terminal amber #f0a93f</span>
+    <span class="sw"><i style="background:#4ecb9d"></i>good #4ecb9d</span>
+    <span class="sw"><i style="background:#ef8282"></i>bad #ef8282</span>
+    <span class="sw"><i style="background:#74adf2"></i>info #74adf2</span>
+    <span class="sw"><i style="background:#eeecea"></i>light ground #eeecea</span>
+    <span class="sw"><i style="background:#8f5309"></i>light accent #8f5309</span>
+  </div>
+  <div class="spec">
+    <div class="row"><span class="k">ui</span><span style="font-family:'IBM Plex Sans',sans-serif;font-size:15px">IBM Plex Sans 400/500/600 — everything a person reads; 12.5 px base like the sibling apps</span></div>
+    <div class="row"><span class="k">telemetry</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px">IBM Plex Mono — numbers, ids, programs, and <span style="font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600">mono-caps labels</span> reserved for instrument text, never prose</span></div>
+    <div class="row"><span class="k">state in form</span><span class="small">Lamps: solid ring = live/good, dashed amber ring = demo/replay, red = failed. Demo is a shape, not just a colour, so it survives colour-blindness and print.</span></div>
+    <div class="row"><span class="k">shape / motion</span><span class="small">Radius 5–7 px; corner ticks on HUD tiles; 120/180/260 ms; the one ambient motion is a sparkline drawing in on load</span></div>
+  </div>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/  — public demo</span><span class="tag">B · landing = status board</span></div>
+    <div class="view"><div class="screen optB" data-theme="dark">
+      <div class="topB"><span class="brandB"><i></i>ConvFinQA</span>
+        <span class="lamps"><span class="lamp amb">demo · replay</span><span class="lamp on">keyless</span><span class="lamp inf">champion v2</span><span class="lamp on">gate pass</span></span>
+        <span class="sp"></span><span class="kbd">⌘K</span></div>
+      <div class="board">
+        <div class="l">
+          <div class="lbl">Multi-turn financial QA · four-agent pipeline</div>
+          <h1>A system that answers <span>dependent</span> questions about SEC filings — and shows its work.</h1>
+          <p>Step into a recorded conversation. Every turn replays the real stage events, tool calls and timings captured in development.</p>
+          <div class="lbl" style="margin-bottom:6px">Try a recorded conversation</div>
+          <div class="cards">
+            <div class="rc"><div class="id">MAR · 10-K 2010 · p.55</div><div class="q">what is the net change in cash from operations from 2008 to 2009?</div><div class="m">7 turns · 7 correct</div></div>
+            <div class="rc"><div class="id">AAPL · 10-K 2007 · p.70</div><div class="q">what was the total of net sales in 2007?</div><div class="m">7 turns</div></div>
+            <div class="rc"><div class="id">TSCO · 10-K 2017 · p.73</div><div class="q">what was the change in comparable store sales?</div><div class="m">7 turns</div></div>
+          </div>
+          <span class="btnB">Open the chat</span>&nbsp;&nbsp;<span class="btnB ghost">Admin portal</span>&nbsp;&nbsp;<span class="btnB ghost">System</span>
+        </div>
+        <div class="r">
+          <div class="lbl">Champion v2 · bundle 42951b98 · build cc2217b</div>
+          <div class="tiles">
+            <div class="hud"><div class="v g">77.7%</div><div class="l">never-seen accuracy · 309 q</div></div>
+            <div class="hud"><div class="v">77.1%</div><div class="l">overall · 770 q</div></div>
+            <div class="hud"><div class="v">+4.9<small>pp</small></div><div class="l">v1 → v2 on never-seen</div></div>
+            <div class="hud"><div class="v">9.0s</div><div class="l">p50 latency · p95 11.6s</div><svg class="spark" viewBox="0 0 100 18" preserveAspectRatio="none" aria-hidden="true" style="color:var(--amber)"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="0,9 14,4 28,10 42,10 56,12 70,6 84,8 100,7"/></svg></div>
+            <div class="hud"><div class="v">$0.0031</div><div class="l">per turn · $3.13 / 1k turns</div><svg class="spark" viewBox="0 0 100 18" preserveAspectRatio="none" aria-hidden="true" style="color:var(--amber)"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="0,10 14,14 28,7 42,10 56,8 70,9 84,6 100,7"/></svg></div>
+            <div class="hud"><div class="v">10.8k</div><div class="l">tokens per turn</div></div>
+          </div>
+          <div class="srcnote">accuracy: committed eval CSVs · latency, cost, tokens: recorded in dev 29 Aug 2026 (v2, deepseek-v4-flash, 7 turns) — this deployment makes no live calls</div>
+          <div class="pipe"><b>triage</b>→<b>preprocess</b>→<b>retriever</b>→<b>calculator</b><s>· look-ups skip the middle two</s></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">The board. Mode lamps on every screen (dashed amber = replay), three recorded conversations you can open with one click, and the six numbers that answer "does it work, how fast, how much" — each with its source printed under the tiles. In dev the first lamp turns solid green and reads "live · v2".</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/chat/Double_MAR/2010/page_55.pdf</span><span class="tag">B · chat = sessions · thread · inspector</span></div>
+    <div class="view"><div class="screen optB" data-theme="dark">
+      <div class="shell">
+        <div class="rail"><i class="on">◫</i><i>≡</i><i>▤</i><i>⊞</i><i>⌁</i><i>⚗</i><span class="sp"></span><i>◐</i></div>
+        <div class="sess">
+          <div class="hd"><span class="lbl">Sessions</span><span class="kbd">+ new</span></div>
+          <div class="grp">Today</div>
+          <div class="it on"><div class="t">MAR · 2010 · p.55</div><div class="m">3 turns · 3 ✓ · 2m ago</div></div>
+          <div class="it"><div class="t">AAPL · 2007 · p.70</div><div class="m">1 turn · 14m ago</div></div>
+          <div class="grp">Examples</div>
+          <div class="it"><div class="t">TSCO · 2017 · p.73</div><div class="m">7 turns · recorded</div></div>
+          <div class="it"><div class="t">AMAT · 2012 · p.37</div><div class="m">7 turns · recorded</div></div>
+        </div>
+        <div class="thread">
+          <div class="hd"><span class="t">Double_MAR/2010/page_55.pdf</span><span class="lamp amb">replay</span><span class="kbd">filing</span><span class="kbd">reset</span></div>
+          <div class="msgsB">
+            <div class="ub">what is the net change in cash from operations from 2008 to 2009?</div>
+            <div class="ab"><span class="av"></span><div class="bd"><div class="a">227 <small>✓ gold 227</small></div>
+              <div class="st"><span class="on">triage · program</span><span class="on">preprocess</span><span class="on">retriever · 2 values</span><span class="on">calculator · 2 calls</span><span>6.7s</span></div></div></div>
+            <div class="ub">what percentage change does this represent?</div>
+            <div class="ab"><span class="av"></span><div class="bd"><div class="a">35.4% <small>✓ gold 35%</small></div>
+              <div class="st"><span class="on">triage · program</span><span class="on">preprocess · "this" → 227</span><span class="on">retriever</span><span class="on">calculator · divide</span><span>9.0s</span></div></div></div>
+            <div class="ub">what is the cash from operations in 2008?</div>
+            <div class="ab"><span class="av"></span><div class="bd"><div class="a">641 <small>✓ gold 641</small></div>
+              <div class="st"><span class="on">triage · number</span><span class="skip">preprocess</span><span class="on">retriever</span><span class="skip">calculator</span><span>2.9s</span></div></div></div>
+          </div>
+          <div class="compB">
+            <div class="sg"><span class="k">recorded</span><span>what about the cash from operations in 2010?</span><span>and in 2009?</span><span>what is the net change from 2009 to 2010?</span></div>
+            <div class="in"><div class="box">Ask about this filing…</div><span class="btnB">Send</span></div>
+          </div>
+        </div>
+        <div class="insp">
+          <div class="hd"><span class="lbl">Trace · turn 1</span><span class="kbd">expand all</span></div>
+          <div class="stage"><div class="n">triage <b>1,979 ms · 1,410 tok</b></div><div class="d">turn_type <i>program</i> · conv_type Type II — "requires two values and a subtraction"</div></div>
+          <div class="stage"><div class="n">preprocess <b>1,443 ms · 1,848 tok</b></div><div class="d">sub-questions: cash from operations in 2008; in 2009 · program <i>subtract(B, A)</i></div></div>
+          <div class="stage"><div class="n">retriever <b>1,441 ms · 2,836 tok</b></div><div class="d">2008 → <i>641.0</i> · 2009 → <i>868.0</i> · from table row "cash from operations"</div></div>
+          <div class="stage"><div class="n">calculator <b>1,877 ms · 5,008 tok</b></div><div class="d">→ subtract(868.0, 641.0) ← <i>227.0</i> · → final_result(227.0)</div></div>
+          <div class="tot"><div><div class="v">6.7s</div><div class="l">latency</div></div><div><div class="v">11,102</div><div class="l">tokens</div></div><div><div class="v">$0.0032</div><div class="l">cost</div></div></div>
+          <div class="bid">bundle 42951b988f74 · prompts v2 · deepseek-v4-flash · dataset d012d251fcb9 · code cc2217b</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">The three-pane chat. Sessions on the left grouped by day plus seeded recorded examples for a first visit; the thread in the middle with stage chips that mark skipped stages as skipped; the inspector docked on the right with every stage's timing, tokens, output and tool loop, and the bundle fingerprint the answer is attributable to. The inspector collapses to a drawer below 1100 px.</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/admin</span><span class="tag">B · admin = instrument pages</span></div>
+    <div class="view"><div class="screen optB" data-theme="dark">
+      <div class="adm">
+        <div class="rail"><i>◫</i><i class="on">≡</i><i>▤</i><i>⊞</i><i>⌁</i><i>⚗</i><span class="sp"></span><i>◐</i></div>
+        <div class="page">
+          <h2>Overview</h2><div class="sub">Champion, gate, and what production has been doing. Read-only in the demo — every write is a disabled control, and the server refuses anyway.</div>
+          <div class="lamps"><span class="lamp amb">mode · demo</span><span class="lamp inf">champion · v2</span><span class="lamp on">gate · pass</span><span class="lamp on">keys · none</span><span class="lamp">research · idle</span><span class="lamp on">traces · 10</span></div>
+          <div class="tiles four" style="margin-top:10px">
+            <div class="hud"><div class="v g">77.7%</div><div class="l">never-seen · v2 · 309 q</div></div>
+            <div class="hud"><div class="v">9.0s</div><div class="l">p50 latency · p95 11.6s</div></div>
+            <div class="hud"><div class="v">$0.0031</div><div class="l">cost per turn</div></div>
+            <div class="hud"><div class="v">0</div><div class="l">errors · 10 turns served</div></div>
+          </div>
+          <div class="two">
+            <div class="pan"><div class="t">Champion vs challengers <span class="kbd">/admin/experiments</span></div>
+              <table class="tb"><thead><tr><th>bundle</th><th>never-seen</th><th>overall</th><th>flips</th><th>gate</th></tr></thead>
+                <tbody><tr><td>v1</td><td>72.8%</td><td>73.0%</td><td>—</td><td>—</td></tr>
+                       <tr class="ch"><td>v2 · champion</td><td>77.7%</td><td>77.1%</td><td>—</td><td class="ok">pass</td></tr>
+                       <tr><td>v3_1</td><td>73.5%</td><td>76.2%</td><td>+17 / −24</td><td class="no">refused</td></tr></tbody></table></div>
+            <div class="pan"><div class="t">Recent turns <span class="kbd">/admin/traces</span></div>
+              <table class="tb"><thead><tr><th>filing · turn</th><th>answer</th><th>gold</th><th>ms</th><th>$</th></tr></thead>
+                <tbody><tr><td>MAR 2010 · 6</td><td>32.6%</td><td class="ok">33% ✓</td><td>9,159</td><td>.0041</td></tr>
+                       <tr><td>MAR 2010 · 5</td><td>283.0</td><td class="ok">283 ✓</td><td>8,421</td><td>.0033</td></tr>
+                       <tr><td>MAR 2010 · 4</td><td>868</td><td class="ok">868 ✓</td><td>11,603</td><td>.0035</td></tr>
+                       <tr><td>MAR 2010 · 3</td><td>1151.0</td><td class="ok">1151 ✓</td><td>9,050</td><td>.0026</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">Admin overview: lamps, four tiles, and the two tables an engineer opens first — the gate result per bundle and the latest turns with their cost. Evaluations, Experiments, Traces, Research and System are one rail click away, each with its own URL.</p>
+
+  <div class="frame">
+    <div class="bar-"><span class="dots"><i></i><i></i><i></i></span><span class="url">convfinqa.demo/admin/system</span><span class="tag">B · system = the debrief</span></div>
+    <div class="view"><div class="screen optB" data-theme="dark">
+      <div class="sys">
+        <div>
+          <div class="lbl">System · how it was built and how to operate it</div>
+          <h2>Four agents, one choke point, one contract</h2>
+          <p>The paper this benchmark comes from and where this system lands among its baselines; the pipeline; the bundle fingerprint that makes "a model version" mean something when every model is an API; the promotion contract that refused v3_1; the keyless demo; and the steps to ship the next version.</p>
+          <ol><li>The ConvFinQA paper: task, dataset, human ceiling</li><li>Benchmark: FinQANet · GPT-3 · this system, by slice</li><li>Pipeline and routing</li><li>llm.py — the only place a model is built</li><li>Bundle fingerprint</li><li>Evaluation: the two-number rule</li><li>Promotion contract &amp; CI gate</li><li>GEPA · s7 auto-research</li><li>Observability: what is captured, and what is not</li><li>Deploy: ECR → App Runner, OIDC</li><li>Make a new version (5 steps)</li><li>Open work</li></ol>
+        </div>
+        <div class="art">architecture figure<br>SPA → FastAPI → llm.py → DeepSeek<br>TraceStore · MLflow (sqlite) · registry.json<br><span style="color:var(--amber)">inline SVG; lamps and versions read live</span></div>
+      </div>
+    </div></div>
+  </div>
+  <p class="mockcap">The System page opens with the paper: the task in one worked turn, the dataset panel, the human ceiling (89.44%), then the benchmark table and slice chart from section 05 with our side read live from <code>/admin/versions</code> and <code>/eval/runs/…/summary</code>. Its lamps and version rows are the live ones — it cannot describe a deployment other than the one serving it.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Libraries</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li>Foundation (shared): React 18, Vite, Tailwind v4, shadcn/ui, react-router 7, TanStack Query, Zustand</li>
+        <li>TanStack Table + virtualiser for answers and traces (770+ rows)</li>
+        <li>Recharts for sparklines and slice bars (or lift <code>data-qa-agent</code>'s visx charts if their look is wanted)</li>
+        <li><code>react-resizable-panels</code> for the docked inspector; <code>cmdk</code> for ⌘K</li>
+        <li>lucide-react; <code>@fontsource</code> IBM Plex Sans / Mono</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Costs and risks specific to B</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li>The board is only as good as <code>/metrics/production</code> — the backend phase is on the critical path for the landing page, not just for admin.</li>
+        <li>Seven admin pages is more surface to build and to keep honest; each needs its own empty state for a fresh deployment ("no turns served yet" is normal).</li>
+        <li>Three panes need a deliberate mobile answer (inspector as a drawer, sessions as a sheet).</li>
+        <li>The console idiom is familiar — the identity has to come from the type and the lamps, or it reads as one more dark dashboard.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 09 SIDE BY SIDE ═══════════════════════════ -->
+<section id="s7">
+  <p class="eyebrow">09 · Side by side</p>
+  <h2>The same product, two arguments</h2>
+  <div class="scroll-x">
+  <table class="sbs">
+    <thead><tr><th></th><th>A · The Ledger</th><th>B · The Console</th></tr></thead>
+    <tbody>
+      <tr><td>The argument</td><td>"This system answers filings the way an analyst would — and shows its receipts."</td><td>"This system is running in production, and here are its instruments."</td></tr>
+      <tr><td>First reader served</td><td>The skimmer: one claim, one number, the demo already moving</td><td>The engineer: mode, champion, latency, cost on screen one</td></tr>
+      <tr><td>Landing page</td><td>Cover: claim + two numbers + a replaying turn in the margin</td><td>Board: lamps + three recorded conversations + six tiles</td></tr>
+      <tr><td>Chat</td><td>Filing beside conversation; retrieved cells highlight; trace as marginalia</td><td>Sessions · thread · docked inspector with every stage's timing and tool loop</td></tr>
+      <tr><td>Previous chats</td><td>A "Conversations" control opening a day-grouped list</td><td>Always-visible sessions pane, grouped, with seeded examples</td></tr>
+      <tr><td>Admin</td><td>One "Evidence" report with seven numbered sections and a contents rail</td><td>Six instrument pages on a rail, each its own URL</td></tr>
+      <tr><td>Debrief</td><td>Long-form <code>/debrief</code>, the s01 walkthrough made public</td><td><code>/admin/system</code>, same content, live lamps</td></tr>
+      <tr><td>Production metrics</td><td>Section 6 of Evidence, four figures with provenance</td><td>Landing tiles + admin overview + per-turn cost in the inspector</td></tr>
+      <tr><td>Themes</td><td>Light-first (paper), dark variant</td><td>Dark-first (console), light variant</td></tr>
+      <tr><td>Type</td><td>Newsreader · Source Sans 3 · JetBrains Mono</td><td>IBM Plex Sans · IBM Plex Mono</td></tr>
+      <tr><td>Distinctiveness</td><td>High — no other agent demo looks like a filing</td><td>Medium — the idiom is shared with Data Pilot and most trace tools</td></tr>
+      <tr><td>Build effort</td><td>≈ 10.5 engineer-days</td><td>≈ 11.5 engineer-days</td></tr>
+      <tr><td>Rubric total</td><td class="score">88.4</td><td class="score">90.8</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <strong>Decided: B — The Console (29 Aug)</strong>
+    <p>The rubric gave B 90.8 to A's 88.4, inside judgement noise; the deciding argument was that the portfolio's gaps to close are <em>monitoring and evaluation</em> and <em>demo skills</em>, and B's landing page is itself the monitoring demonstration. Two things carry over from A regardless: the retrieved-cell highlighting in the filing view (it is a data mapping, not a visual style) and the two-theme token discipline. A stays above as the reference design; the plumbing in 04 is identical, so nothing is lost if the skin is ever revisited.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 10 PLAN ═══════════════════════════ -->
+<section id="s8">
+  <p class="eyebrow">10 · Implementation plan · Option B</p>
+  <h2>Phases, in the order they unblock each other</h2>
+  <p class="small muted">Updated for all five decisions: B chosen; all six admin pages in the demo; the DeepSeek fix folded into Phase 1; the paper benchmark added to the System page; observability scoped to <strong>turns only</strong>, which took a day back out of Phases 1 and 4. The A column is kept only so the delta is visible.</p>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Files</th><th class="num">A (ref)</th><th class="num">B</th><th>Done when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0 · Foundation</strong></td><td>Tailwind 3→4; shadcn init (new-york, radix-ui, lucide); <code>tokens.css</code> (both themes) + pre-paint theme script; react-router 7 with the route table; TanStack Query; layout shell with the rail; <code>@fontsource</code> IBM Plex; <code>.npmrc</code> min-release-age</td><td><code>frontend/src/{tokens.css,tailwind.css,app/router.tsx,app/Shell.tsx,app/NavRail.tsx,components/ui/*}</code>, <code>index.html</code>, <code>vite.config.ts</code></td><td class="num">1.5 d</td><td class="num">1.5 d</td><td>Existing tabs render under real URLs with the old components; e2e smoke green</td></tr>
+      <tr><td><strong>1 · Backend</strong></td><td><code>/metrics/production</code> (turns, grouped by source); latency and tokens into <code>*_io</code> and the demo pack; re-record 8 filings; fuzzy replay match; <strong>thinking-mode fix in <code>llm.py</code></strong>; champion-resolved <code>prompts_version</code>; error-code classification; <strong>program-accuracy scoring</strong> for the benchmark. <span class="muted">No span capture — decided 29 Aug.</span></td><td><code>serving/routes/metrics.py</code>, <code>tracking/{traces,cost}.py</code>, <code>demo_pack/{cli,replay}.py</code>, <code>llm.py</code>, <code>tracking/bundle.py</code>, <code>evaluation/metrics.py</code>, tests</td><td class="num">1 d</td><td class="num">1.5 d</td><td>Dev chat works again; <code>curl /metrics/production</code> returns real p50/p95 and cost in dev and recorded values in the demo container; <code>prog_acc</code> appears in <code>/admin/versions</code></td></tr>
+      <tr><td><strong>2 · Landing</strong></td><td>Board with lamps, recorded-conversation cards, six tiles + sparklines; dev/demo lamp branch</td><td><code>features/landing/*</code></td><td class="num">1.5 d</td><td class="num">1.5 d</td><td>Loads keyless in both modes; a recorded answer resolves without a click; axe clean</td></tr>
+      <tr><td><strong>3 · Chat</strong></td><td>Sessions pane (day groups, seeded recorded examples), thread, docked inspector (resizable; per-stage capture), filing drawer with retrieved-cell highlighting, ⌘K</td><td><code>features/chat/*</code>, <code>store.ts</code></td><td class="num">2 d</td><td class="num">2.5 d</td><td>Every existing chat e2e passes (concurrent, reset, unread, smoke); replay banner on fuzzy match</td></tr>
+      <tr><td><strong>4 · Admin</strong></td><td>Overview, Evaluations (flips drawer), Experiments &amp; registry, <strong>Traces</strong> (turns list, filters, per-turn detail), Research — each its own URL; every write a disabled fieldset in the demo</td><td><code>features/admin/*</code>, TanStack Table, Recharts</td><td class="num">2 d</td><td class="num">2.5 d</td><td>Every number links to its rows; the public demo shows all six pages read-only</td></tr>
+      <tr><td><strong>5 · System page</strong></td><td><strong>Paper + benchmark section</strong> (dataset panel, baselines table, slice chart, per-turn line vs Figure 5, the six findings), architecture SVG, contract, version timeline, "make a new version", live values from <code>/healthz</code>, <code>/admin/versions</code>, <code>/eval/runs/…/summary</code></td><td><code>features/system/*</code>, paper figures as static assets</td><td class="num">1 d</td><td class="num">1.5 d</td><td>Readable with the API down (static content degrades, live values show "—")</td></tr>
+      <tr><td><strong>6 · Ship</strong></td><td>Rewrite <code>landing.spec.ts</code>; axe on four pages; Vitest for stores; rebuild demo pack; CI; deploy; <code>demo_smoke.sh</code> extended with <code>/metrics/production</code></td><td><code>frontend/tests/e2e/*</code>, <code>.github/workflows/*</code>, <code>scripts/demo_smoke.sh</code></td><td class="num">1.5 d</td><td class="num">1.5 d</td><td>All six CI gates green; smoke passes against the public URL</td></tr>
+      <tr class="total"><td>Total</td><td colspan="2"></td><td class="num">10.5 d</td><td class="num">12.5 d</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">Phases 0 and 1 can start today. The estimate assumes one engineer working with a coding agent, the way the sibling projects were built; the s7 harness pattern (diagnose → fix → verify) applies to UI work too — screenshot, grade, iterate.</p>
+  <h4>Test IDs to preserve (pinned by the six Playwright specs)</h4>
+  <p class="small"><code>landing-enter</code> · <code>landing-cta</code> · <code>landing-screen</code> · <code>sidebar-new-conversation</code> · <code>sidebar-row</code> · <code>unread-badge</code> · <code>active-report-id</code> · <code>topbar-change-report</code> · <code>toggle-document</code> · <code>reset-conversation</code> · <code>composer-input</code> · <code>composer-send</code> · <code>composer-run-all</code> · <code>suggestion-chips</code> · <code>stage-output-panel</code>. The elements move; the ids stay, so <code>concurrent</code>, <code>reset</code>, <code>unread</code> and <code>smoke</code> keep passing unchanged.</p>
+</section>
+
+<!-- ═══════════════════════════ 11 RISKS ═══════════════════════════ -->
+<section id="s9">
+  <p class="eyebrow">11 · Risks &amp; open questions</p>
+  <h2>What could go wrong, and what I could not decide for you</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4 style="margin-top:0">Risks</h4>
+      <ul class="small" style="margin-bottom:0">
+        <li><strong>Tailwind 3→4 touches every className.</strong> Mechanical, but wide; do it surface-by-surface behind the router as <code>data-qa-agent</code> did, deleting the old block in the same PR that converts a page.</li>
+        <li><strong>Replay timing can mislead.</strong> A recorded 6.7 s replayed in 2 s is not "2 s latency". Every production figure in the demo carries a "recorded in dev" source line; the trace store tags replayed turns <code>source="demo"</code> and the metrics endpoint groups by source.</li>
+        <li><strong>Bundle size.</strong> shadcn + radix + TanStack + Recharts adds roughly 150–250 KB gzipped; lazy-load the admin pages so the landing stays under 200 KB.</li>
+        <li><strong>The champion / prompts mismatch</strong> in <code>/healthz</code> would put the wrong version on the landing page if left as is.</li>
+        <li><strong>Stale chunks after deploy</strong> break lazy routes for open tabs — the <code>vite:preloadError</code> reload guard is a documented production incident in the sibling repo.</li>
+        <li><strong>React 18 → 19</strong> is not required for anything here; staying on 18 removes a migration from the critical path.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-top:0">Open questions</h4>
+      <ol class="small" style="margin-bottom:0">
+        <li>Should first-time visitors see seeded example conversations in their list, or only what they have asked? The mocks assume seeded examples, labelled "recorded".</li>
+        <li>Should <code>/healthz</code> report the champion's bundle rather than the newest prompt file? I believe yes; it changes what the landing page prints.</li>
+        <li>Charts: Recharts (fast to build) or lift <code>data-qa-agent</code>'s visx components (consistent portfolio look)? The plan assumes Recharts.</li>
+        <li>Is the ⌘K palette worth a dependency for a demo, or does it belong in a later pass?</li>
+        <li>Program accuracy: score with the paper's normalisation (argument order, constants) or a stricter exact match? The benchmark table needs one; the plan assumes the paper's.</li>
+        <li>The paper's "hybrid second part" slice needs the boundary between the two source FinQA questions per conversation; if the public dataset does not carry it, that row stays "—".</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 12 DECISIONS ═══════════════════════════ -->
+<section id="s10">
+  <p class="eyebrow">12 · Decisions</p>
+  <h2>All five taken</h2>
+  <div class="card" style="margin-bottom:16px">
+    <h4 style="margin-top:0">Decided 29 Aug, from this page</h4>
+    <ul class="small" style="margin-bottom:0">
+      <li><strong>Direction:</strong> Option B — The Console. Option A stays as the reference design; its cell highlighting and two-theme discipline carry over.</li>
+      <li><strong>Public-demo admin pages:</strong> all six — Evaluations, Experiments &amp; registry, Traces, Production metrics, Research (read-only), System.</li>
+      <li><strong>DeepSeek thinking-mode blocker:</strong> folded into Phase 1, not a separate PR. Dev stays unable to call the model until Phase 1 lands.</li>
+      <li><strong>Debrief content:</strong> the ConvFinQA paper is the benchmark — its baselines, slices, per-turn curve and six findings sit beside this system's numbers on the System page (section 05).</li>
+      <li><strong>Observability: turns only.</strong> The per-turn trace store stays as it is and gains <code>/metrics/production</code>; no per-call span capture, no service counters, and the rail page keeps the name Traces. Section 06 states what that gives up and how to get it back (set <code>LOGFIRE_TOKEN</code> — the spans already exist in process). Phases 1 and 4 shrank accordingly; the plan is <strong>12.5 days</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="callout">
+    <strong>Nothing is blocking Phase 0 or Phase 1</strong>
+    <p style="margin-bottom:0">Every decision this plan needed has been made. What remains are the six open
+    questions in section 11 — seeded example conversations, the <code>/healthz</code> champion mismatch, Recharts
+    versus visx, whether &#8984;K earns its dependency, the program-accuracy normalisation, and the paper's hybrid
+    second-part boundary. All six can be answered while building; none of them changes the shape of a phase.
+    Say the word and Phase 0 starts.</p>
+  </div>
+
+
+  <p class="small muted" style="margin-top:22px">Sources on disk: the transcript search scripts and full hit lists are in this session's scratchpad (<code>rag_search.py</code>, <code>rag_deep.py</code>, <code>rag_results.json</code>); the champion measurement is <code>champion_measure.json</code>. Nothing in the repository was changed to produce this page.</p>
+</section>
+
+</div>
+<script>
+(function () {
+  // Theme switches for the option mocks. Each mock carries data-theme; the option's
+  // CSS defines both palettes under the same token names, so flipping is one attribute.
+  function label(t) { return t === 'dark' ? '☾ dark — switch to light' : '☀ light — switch to dark'; }
+  function setTheme(screen, t) {
+    screen.dataset.theme = t;
+    var b = screen.closest('.frame').querySelector('.tbtn');
+    if (b) b.textContent = label(t);
+  }
+  document.querySelectorAll('.frame').forEach(function (frame) {
+    var screen = frame.querySelector('.screen[data-theme]');
+    if (!screen) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'tbtn'; b.textContent = label(screen.dataset.theme);
+    b.setAttribute('aria-label', 'Switch this mock between light and dark');
+    b.addEventListener('click', function () { setTheme(screen, screen.dataset.theme === 'dark' ? 'light' : 'dark'); });
+    frame.querySelector('.bar-').appendChild(b);
+  });
+  document.querySelectorAll('.flipall').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var screens = document.getElementById(btn.dataset.scope).querySelectorAll('.screen[data-theme]');
+      var to = screens[0].dataset.theme === 'dark' ? 'light' : 'dark';
+      screens.forEach(function (s) { setTheme(s, to); });
+      btn.textContent = to === 'dark' ? 'Show all four frames in light' : 'Show all four frames in dark';
+    });
+  });
+})();
+</script>
+</body>
+</html>

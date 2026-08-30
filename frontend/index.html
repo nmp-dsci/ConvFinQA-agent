@@ -1,11 +1,32 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ConvFinQA Agent</title>
+    <script>
+      // Stamp the theme before first paint. Reading localStorage here — rather
+      // than in a React effect — is what stops the dark-to-light flash on load;
+      // the tokens key off [data-theme], so the very first painted frame is
+      // already in the right palette. Kept tiny and dependency-free on purpose.
+      (function () {
+        var el = document.documentElement;
+        var theme = 'dark';
+        try {
+          var stored = window.localStorage.getItem('theme');
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+            theme = 'light';
+          }
+        } catch (err) {
+          // Private browsing or a blocked storage partition: fall back to dark.
+        }
+        el.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
-  <body class="bg-bg text-textMain h-screen overflow-hidden">
+  <body class="bg-ground text-text h-screen overflow-hidden">
     <div id="root" class="h-full"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

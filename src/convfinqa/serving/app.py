@@ -34,7 +34,7 @@ from convfinqa.serving.limits import (
 )
 from convfinqa.serving.models import HealthResponse
 from convfinqa.serving.research import ResearchRunner
-from convfinqa.serving.routes import admin, chat, evaluation, traces
+from convfinqa.serving.routes import admin, chat, evaluation, metrics, traces
 from convfinqa.serving.sessions import SessionStore
 
 FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
@@ -138,6 +138,9 @@ def create_app(
     app.include_router(evaluation.router)
     app.include_router(traces.router)
     app.include_router(admin.router)
+    # Read-only, so it is registered in demo mode too — the demo's own numbers,
+    # labelled `demo`, are part of what the demo is honest about.
+    app.include_router(metrics.router)
 
     _mount_frontend(app)
     return app

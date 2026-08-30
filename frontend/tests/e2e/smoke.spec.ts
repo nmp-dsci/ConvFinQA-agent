@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
-
-const BACKEND = process.env.PW_BACKEND_URL ?? 'http://127.0.0.1:8765';
+import { BACKEND, enterChatFromBoard } from './enter';
 
 /**
  * Happy-path smoke: opens the app from a clean state, opens the picker,
@@ -19,9 +18,13 @@ test('new conversation → first report → run all gold completes cleanly', asy
     window.localStorage.clear();
     window.localStorage.setItem('convfinqa.apiBase', apiBase);
   }, BACKEND);
-  await page.goto('/');
+  // In through the board, exactly as a visitor does.
+  await enterChatFromBoard(page);
 
-  // The landing CTA opens the picker on a fresh install.
+  // The chat's own CTA opens the picker on a fresh install. (The board at `/`
+  // also carries a `landing-cta`, but the two never co-render — one is a link
+  // into `/chat`, this one is the picker button — so neither locator is
+  // ambiguous under strict mode.)
   await page.getByTestId('landing-cta').click();
 
   await expect(page.getByTestId('report-picker-input')).toBeVisible();

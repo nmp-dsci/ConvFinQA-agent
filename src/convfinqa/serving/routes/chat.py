@@ -18,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from convfinqa.data.loader import _DOCS, qa_data
+from convfinqa.error_codes import classify
 from convfinqa.llm import DemoModeError, demo_mode_enabled
 from convfinqa.serving import evaldata
 from convfinqa.serving.demo_pack import replay
@@ -188,8 +189,11 @@ async def _turn_stream(
 ) -> AsyncIterator[dict[str, Any]]:
     """The one place demo and live diverge. Both yield the same event vocabulary."""
     if demo_mode_enabled():
+        # `capture` is threaded through so a replayed turn lands in the trace
+        # store with the stage metrics it was recorded with, rather than as a
+        # turn that apparently cost nothing.
         async for event in replay.replay_turn(
-            question, state.report_id, state.conversation
+            question, state.report_id, state.conversation, capture=capture
         ):
             yield event
         return
@@ -209,6 +213,7 @@ def _record_trace(
     program: str,
     turn_index: int,
     error: str = "",
+    error_code: str = "",
 ) -> str:
     """Persist the turn to the trace store. Never raises into the request."""
     from convfinqa.tracking.traces import get_store
@@ -236,6 +241,7 @@ def _record_trace(
         gold_answer=gold,
         correct=correct,
         error=error,
+        error_code=error_code,
     )
 
 
@@ -253,16 +259,39 @@ async def ask(session_id: str, body: AskRequest, request: Request) -> AskRespons
             capture: dict[str, Any] = {}
             answer = ""
             program = ""
+            matched_question = ""
             try:
                 async for event in _turn_stream(state, body.question, capture):
                     if event.get("event") == "answer":
                         answer = str(event.get("answer", ""))
                         program = str(event.get("program", ""))
+                    elif event.get("event") == "matched":
+                        matched_question = str(event.get("matched_question", ""))
             except DemoModeError as exc:
+                _record_trace(
+                    state,
+                    body.question,
+                    capture,
+                    "",
+                    "",
+                    turn_index,
+                    error=str(exc),
+                    error_code=classify(exc),
+                )
                 raise HTTPException(
                     status_code=501, detail={"code": exc.code, "message": str(exc)}
                 ) from exc
             except replay.NoRecordingError as exc:
+                _record_trace(
+                    state,
+                    body.question,
+                    capture,
+                    "",
+                    "",
+                    turn_index,
+                    error=str(exc),
+                    error_code=classify(exc),
+                )
                 raise HTTPException(
                     status_code=404, detail={"code": exc.code, "message": str(exc)}
                 ) from exc
@@ -275,6 +304,7 @@ async def ask(session_id: str, body: AskRequest, request: Request) -> AskRespons
                 turn_index=len(state.conversation.pairs) - 1,
                 history=history_items(state.conversation),
                 trace_id=trace_id,
+                matched_question=matched_question,
             )
     finally:
         await limiter.release()
@@ -298,6 +328,7 @@ async def ask_stream(
                 capture: dict[str, Any] = {}
                 answer = ""
                 program = ""
+                matched_question = ""
                 with logfire.span(
                     "ask {report_id} turn={turn_index}",
                     report_id=state.report_id,
@@ -311,6 +342,10 @@ async def ask_stream(
                                 answer = str(event.get("answer", ""))
                                 program = str(event.get("program", ""))
                                 logfire.info("answer", answer=answer)
+                            elif event.get("event") == "matched":
+                                matched_question = str(
+                                    event.get("matched_question", "")
+                                )
                             yield f"data: {json.dumps(event)}\n\n"
                         state.touch()
                         trace_id = _record_trace(
@@ -321,20 +356,13 @@ async def ask_stream(
                                 "event": "done",
                                 "turn_index": len(state.conversation.pairs) - 1,
                                 "trace_id": trace_id,
+                                "matched_question": matched_question,
                             }
                         )
                     except (DemoModeError, replay.NoRecordingError) as exc:
                         # Typed, actionable refusals — the frontend maps `code`
                         # to its own copy rather than showing a raw message.
-                        yield _frame(
-                            {
-                                "event": "error",
-                                "code": getattr(exc, "code", "error"),
-                                "error": str(exc),
-                            }
-                        )
-                    except Exception as exc:  # noqa: BLE001
-                        logfire.error("stream error", error=str(exc))
+                        code = classify(exc)
                         _record_trace(
                             state,
                             body.question,
@@ -343,9 +371,26 @@ async def ask_stream(
                             program,
                             turn_index,
                             error=str(exc),
+                            error_code=code,
                         )
                         yield _frame(
-                            {"event": "error", "code": "error", "error": str(exc)}
+                            {"event": "error", "code": code, "error": str(exc)}
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logfire.error("stream error", error=str(exc))
+                        code = classify(exc)
+                        _record_trace(
+                            state,
+                            body.question,
+                            capture,
+                            answer,
+                            program,
+                            turn_index,
+                            error=str(exc),
+                            error_code=code,
+                        )
+                        yield _frame(
+                            {"event": "error", "code": code, "error": str(exc)}
                         )
         finally:
             await limiter.release()

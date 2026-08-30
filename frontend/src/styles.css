@@ -1,6 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * Stylesheet entry point.
+ *
+ * Tailwind v4 is CSS-first: there is no tailwind.config.ts and no postcss
+ * pipeline. `@import "tailwindcss"` pulls in the preflight + utilities, and
+ * `tokens.css` supplies the design tokens plus the `@theme inline` bridge that
+ * turns them into Tailwind colour names.
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+/*
+ * Tell Tailwind where to scan for class names. The Vite plugin infers this
+ * from the module graph, but being explicit keeps utilities that only ever
+ * appear in a lazily-imported feature chunk from being tree-shaken away.
+ */
+@source './**/*.{ts,tsx}';
+@source '../index.html';
+
+/*
+ * shadcn/ui variants. `dark:` must follow our `data-theme` attribute rather
+ * than Tailwind's default `.dark` class, or vendored components would ignore
+ * the theme the pre-paint script chose.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 html,
 body,
@@ -8,13 +31,13 @@ body,
   height: 100%;
 }
 
-/* Native scrollbar tweaked for dark theme */
+/* Native scrollbars, tinted from the tokens so they follow the theme. */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2a3942;
+  background: var(--line-2);
   border-radius: 6px;
 }
 *::-webkit-scrollbar-track {

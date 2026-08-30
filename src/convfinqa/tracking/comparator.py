@@ -167,8 +167,78 @@ def load_predictions(version: str, model: str = "pydantic") -> pd.DataFrame:
 
 
 def accuracy(df: pd.DataFrame) -> float:
-    """Overall turn accuracy of a predictions frame."""
+    """Overall turn accuracy of a predictions frame — the *execution* accuracy."""
     return float(df["correct"].mean()) if len(df) else 0.0
+
+
+def _predicted_program(row: Any) -> str:
+    """The best available numeric program for one row.
+
+    `pred_program` is written by the preprocess stage over sub-question
+    placeholders (`multiply(divide(C, B), 100)`), so on its own it cannot be
+    compared to a gold program written over values. The calculator's recorded
+    trajectory is that same program with the retrieved numbers substituted in,
+    so it is the one to score when the placeholder form is all `pred_program`
+    holds. Preferring the parseable one rather than picking a column outright
+    keeps this working for runs from either shape.
+    """
+    from convfinqa.evaluation.metrics import parse_program, program_from_trajectory
+
+    declared = getattr(row, "pred_program", "")
+    parsed = parse_program(declared)
+    if parsed and all(
+        arg.startswith("#") or _is_numeric(arg) for _, args in parsed for arg in args
+    ):
+        return str(declared)
+
+    raw = getattr(row, "calculator_io", "")
+    if isinstance(raw, str) and raw.strip():
+        import json
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return str(declared or "")
+        if isinstance(payload, dict):
+            return program_from_trajectory(payload.get("trajectory"))
+    return str(declared or "")
+
+
+def _is_numeric(token: str) -> bool:
+    try:
+        float(token)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def program_accuracy(df: pd.DataFrame) -> dict[str, float]:
+    """Program accuracy of a predictions frame, beside its execution accuracy.
+
+    Scored only over turns whose *gold* entry is a real program. A number-
+    selection turn's gold "program" is the selected value itself, and the paper
+    does not score those — folding them in would either inflate the metric (by
+    counting trivial matches) or depress it (by counting them as misses),
+    depending on the convention, and neither number would mean anything.
+
+    Zero API calls: everything needed is already in the committed CSVs.
+    """
+    from convfinqa.evaluation.metrics import has_program, program_match
+
+    n_scored = 0
+    n_correct = 0
+    for row in df.itertuples():
+        gold = getattr(row, "gold_program", "")
+        if not has_program(gold):
+            continue
+        n_scored += 1
+        n_correct += int(program_match(_predicted_program(row), gold))
+
+    return {
+        "program_accuracy": round(n_correct / n_scored, 6) if n_scored else 0.0,
+        "n_program_correct": float(n_correct),
+        "n_program_turns": float(n_scored),
+    }
 
 
 def _slice_accuracies(df: pd.DataFrame, column: str) -> dict[str, float]:

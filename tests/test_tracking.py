@@ -249,6 +249,48 @@ def test_bundle_id_changes_with_the_spec() -> None:
     )
 
 
+def test_prompts_version_follows_the_champion_not_the_newest_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`/healthz` must not report a bundle nobody promoted.
+
+    `v3_1` exists on disk because it was tried and *not* promoted. Resolving the
+    unpinned version to "newest prompt module" made the health payload describe
+    the champion and the bundle with two different versions, side by side.
+    """
+    from convfinqa.config import settings
+    from convfinqa.tracking import bundle, registry
+
+    monkeypatch.setattr(settings, "prompts_version", None, raising=False)
+    monkeypatch.setattr(registry, "champion", lambda *a, **k: "v2")
+    assert bundle.prompts_version() == "v2"
+
+
+def test_explicit_prompts_version_still_beats_the_champion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An override the registry could veto would not be an override."""
+    from convfinqa.config import settings
+    from convfinqa.tracking import bundle, registry
+
+    monkeypatch.setattr(settings, "prompts_version", "v1", raising=False)
+    monkeypatch.setattr(registry, "champion", lambda *a, **k: "v2")
+    assert bundle.prompts_version() == "v1"
+
+
+def test_prompts_version_falls_back_when_champion_has_no_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A champion alias pointing at something with no prompt file degrades."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.config import settings
+    from convfinqa.tracking import bundle, registry
+
+    monkeypatch.setattr(settings, "prompts_version", None, raising=False)
+    monkeypatch.setattr(registry, "champion", lambda *a, **k: "v99_nonexistent")
+    assert bundle.prompts_version() == prompts_pkg.latest()
+
+
 # ---------------------------------------------------------------------------
 # Trace store
 # ---------------------------------------------------------------------------

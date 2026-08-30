@@ -18,7 +18,21 @@ export type SSEEvent =
   | { event: 'tool_call'; stage: StageName; tool: string; args: unknown }
   | { event: 'tool_return'; stage: StageName; tool: string; result: string }
   | { event: 'answer'; answer: string; program?: string }
-  | { event: 'done'; turn_index: number; trace_id?: string }
+  | { event: 'done'; turn_index: number; trace_id?: string; matched_question?: string }
+  /**
+   * Demo mode only, and always the *first* frame of the turn when it appears.
+   *
+   * The replay resolves a typed question to the nearest recorded one. When the
+   * match is not exact the server says so rather than letting the UI imply it
+   * answered the words that were typed — so this event is an honesty contract,
+   * not a nicety, and the thread must render it before the answer lands.
+   */
+  | {
+      event: 'matched';
+      matched_question: string;
+      asked_question: string;
+      score: number;
+    }
   | { event: 'error'; error: string; code?: string };
 
 export interface ToolTrace {
@@ -45,6 +59,14 @@ export interface Message {
   errorText?: string;
   errorCode?: string;
   traceId?: string;
+  /**
+   * Set only when the demo answered a *different* question than the one typed:
+   * the recorded question it played, the question actually asked, and the fuzzy
+   * score between them. Absent on an exact match and on every live turn.
+   */
+  matchedQuestion?: string;
+  askedQuestion?: string;
+  matchScore?: number;
   createdAt: number;
 }
 
@@ -186,7 +208,14 @@ export interface TraceSummary {
   bundle_id: string | null;
   latency_ms: number | null;
   total_tokens: number | null;
+  /**
+   * Null means "never measured", which is not the same as zero and must not
+   * render as one. The demo pack carries no cost, so demo turns are null here.
+   */
+  cost_usd?: number | null;
   error: string | null;
+  /** One of `src/convfinqa/error_codes.py::ErrorCode`. */
+  error_code?: string | null;
 }
 
 export interface StageCapture {

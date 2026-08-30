@@ -7,8 +7,8 @@ Two deployments, one build:
 | | dev | demo (public) |
 |---|---|---|
 | Chat | live against the champion bundle | replayed from recorded conversations |
-| Splits, answers, traces, experiments | live | live — same committed artifacts |
-| Promote / launch research | owner-token gated | visible, inert |
+| Splits, answers, traces, experiments, production metrics | live | live — same committed artifacts |
+| Promote / launch research (admin console) | owner-token gated | visible, **read-only** — route filter + disabled controls + server 501/403 |
 | API keys present | yes | **none, by construction** |
 
 `DEMO_MODE` is baked into the image, so no infrastructure change can turn the public URL into a billable one.
@@ -27,7 +27,7 @@ The scored set is all 200 sampled conversations (770 questions), and **GEPA trai
 | **v2**  | **77.7%** ← champion | 77.1%         |
 | v3_1    | 73.5%              | 76.2%           |
 
-The v1 → v2 improvement is slightly *larger* on never-seen data (+4.9 pp) than the overall figure suggests (+4.2 pp); v3_1's regression is correspondingly larger. Both numbers are surfaced in the app, and split membership is inspectable under **Data & answers** — `GET /eval/splits`.
+The v1 → v2 improvement is slightly *larger* on never-seen data (+4.9 pp) than the overall figure suggests (+4.2 pp); v3_1's regression is correspondingly larger. Both numbers are surfaced in the app, and split membership is inspectable under **Evaluations** (`/admin/evaluations`) — `GET /eval/splits`.
 
 Note also that two 60/40 "train" splits exist in the codebase with the same seed but different shuffles (`data.loader.train_report_ids` uses a pandas `.sample()`; `data.loader.optimizer_split()` reproduces the DSPy backend's `random.Random(42).shuffle()`). They agree on only 78 of 120 conversations. **GEPA ran against `optimizer_split()`**, so that is the one every held-out claim is measured against.
 
@@ -99,17 +99,34 @@ This result is what motivated [`ai_specs/s8-optimisation-testing.md`](ai_specs/s
 
 ## Production surfaces
 
-The frontend is the operator console, not just a chat window. Six tabs, all
-reading the same backend:
+The frontend is the operator console ("The Console"), not just a chat window —
+dark-first, IBM Plex type, a terminal-amber accent. A status-board landing at
+`/` is the front door; chat lives at `/chat`; everything else is an
+instrument-style admin section at `/admin`, all reading the same backend:
 
-| Tab | What it answers |
+| Route | What it answers |
 |---|---|
-| **Chat** | Pick a filing, ask freely or step through the dataset's own questions, watch the four stages stream. |
-| **Data & answers** | Which conversations the optimizer saw, and every question with gold beside each version's answer — filterable to just the turns where versions disagree. |
-| **Traces** | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
-| **Experiments** | Every eval / GEPA / research run, the accuracy trend, and a question-by-question diff of any two versions with the pass→fail flip list. |
-| **Research** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
-| **Eval** | The per-slice accuracy tables. |
+| **`/`** (landing) | The status board: pipeline health, recent activity, recorded conversations to jump into. |
+| **`/chat`** | Pick a filing, ask freely or step through the dataset's own questions, watch the four stages stream in a sessions/thread-inspector layout. |
+| **`/admin`** (Overview) | A jump-off point across the other admin pages. |
+| **`/admin/evaluations`** | Which conversations the optimizer saw, and every question with gold beside each version's answer — filterable to just the turns where versions disagree. |
+| **`/admin/experiments`** | Every eval / GEPA / research run, the accuracy trend, and a question-by-question diff of any two versions with the pass→fail flip list. |
+| **`/admin/traces`** (+ `/admin/traces/:traceId`) | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
+| **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
+| **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
+
+All six admin pages are visible **read-only** in the public demo — that is
+intentional exposure, not a leak. The demo gate is three layers: a route
+filter, a real `<fieldset disabled>` around every write control, and a server
+501/403 on the write itself, so viewing is always allowed and acting never is.
+
+Observability is scoped to turns only: the per-turn trace store (`Traces`)
+plus `GET /metrics/production` (turn counts, latency/cost/accuracy, hourly
+series, split by `serving` / `demo` / `eval` source). Per-call span capture and
+service-level counters are deliberately not built — Logfire/OTel spans are
+constructed and dropped in-process; setting `LOGFIRE_TOKEN` in dev is the
+recovery path, not a code change. Latency and cost tiles that have no metered
+data render an em dash with a reason rather than a flattering zero.
 
 ## Tracking, versioning and promotion
 
@@ -196,12 +213,13 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). CLI implementation lives in `diagnosis/cli.py`. |
 | `src/convfinqa/llm.py` | **The single LLM choke point.** Every model is built here; retry/timeout policy and the demo gate live here and nowhere else. |
 | `src/convfinqa/tracking/` | Bundle fingerprint, trace store, MLflow logging, comparator, registry, backfill, snapshot, CI gate. |
-| `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation`, `traces`, `admin`), session store, limits, research runner. |
+| `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation`, `traces`, `admin`, `metrics`), session store, limits, research runner. |
+| `src/convfinqa/error_codes.py` | Closed `ErrorCode` vocabulary a failed turn is classified into, alongside its free-text message. |
 | `src/convfinqa/serving/demo_pack/` | Recorded conversations + replay, so the keyless demo streams like the live app. |
 | `src/convfinqa/optimization/` | GEPA and prompt optimisation entry points. |
 | `scripts/` | Installed command entry points. `diagnose_failures.py` is a thin shim over `convfinqa.diagnosis.cli:main`. |
 | `ai_specs/` | Design specs — `s7-prompt-optimisation.md` (implemented), `s8-optimisation-testing.md` (specified, not implemented). |
-| `frontend/` | React/Vite UI. |
+| `frontend/` | React/Vite operator console — landing board, chat, admin section. See §Production surfaces. |
 | `evaluation/predictions/` | Cached prediction CSVs + dark-themed HTML reports + joined CSVs. Tracked in git so accuracy reproduces offline. |
 | `evaluation/diagnostics/` | s7 harness stores (`rules_*`, `rule_attempts_*`, `diagnostic_results_*`, …). Tracked in git. |
 | `runs/` | GEPA optimization artifacts (`optimized_runner.json`). Tracked in git so prior runs are usable on any clone. |
@@ -606,6 +624,7 @@ Vite proxies these backend prefixes (`BACKEND_PREFIXES` in `frontend/vite.config
 - `/admin`
 - `/traces`
 - `/demo`
+- `/metrics`
 
 ## Quality Gates
 
@@ -616,6 +635,7 @@ uv run mypy
 uv run pytest tests -q
 uv run python -m convfinqa.tracking.gate      # offline eval-regression gate
 cd frontend && npm run typecheck && npm run test:unit && npm run build
+cd frontend && npm run test:e2e -- landing.spec.ts   # keyless subset; CI's e2e job
 ```
 
 Every one of these runs in CI on every pull request, plus a Docker build and
@@ -625,8 +645,9 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 |---|---|
 | ruff check + format | clean |
 | mypy (strict-ish, 72 files) | clean |
-| pytest | **105 passed**, zero network calls, no API key required |
-| frontend typecheck + vitest + build | clean, 11 unit tests |
+| pytest | **149 passed**, zero network calls, no API key required |
+| frontend typecheck + vitest + build | clean, 99 unit tests |
+| Playwright e2e (`landing.spec.ts`, keyless) | 7/7 passing in CI; full local suite (needs `DEEPSEEK_API_KEY`) is 11/11 |
 | eval-regression gate | passes; champion `v2` at 77.14% against a 76.64% floor |
 
 The **eval-regression gate** is the load-bearing one. Because prediction CSVs

@@ -71,11 +71,129 @@ describe('SSE reducer', () => {
   });
 
   it('does not resurrect an errored turn on `done`', () => {
+    // `unknown` is the real fallback the backend classifies to — the literal
+    // `"error"` this fixture used predates `convfinqa/error_codes.py`.
     const result = apply(blank(), [
-      { event: 'error', error: 'boom', code: 'error' },
+      { event: 'error', error: 'boom', code: 'unknown' },
       { event: 'done', turn_index: 0 },
     ]);
     expect(result.status).toBe('error');
+  });
+
+  it('records a fuzzy replay match so the turn can say what it played', () => {
+    const result = apply(blank(), [
+      {
+        event: 'matched',
+        matched_question: 'what is the net change in cash from operations from 2008 to 2009?',
+        asked_question: 'how much did operating cash move between 2008 and 2009?',
+        score: 0.71,
+      },
+      { event: 'answer', answer: '227.0' },
+      { event: 'done', turn_index: 0, trace_id: 't1' },
+    ]);
+    expect(result.matchedQuestion).toMatch(/net change in cash/);
+    expect(result.askedQuestion).toMatch(/operating cash move/);
+    expect(result.matchScore).toBe(0.71);
+  });
+
+  it('leaves matchedQuestion unset on an exact match', () => {
+    // The server sends no `matched` frame when the question was recorded
+    // verbatim, and `done` carries an empty string rather than omitting it.
+    const result = apply(blank(), [
+      { event: 'answer', answer: '227.0' },
+      { event: 'done', turn_index: 0, matched_question: '' },
+    ]);
+    expect(result.matchedQuestion).toBeUndefined();
+  });
+
+  it('marks a stage started even when only its output frame arrives', () => {
+    // The pack replays `stage_output` without a preceding `stage_start` for a
+    // stage that finished inside one frame. A timeline that showed it as
+    // never-started would contradict the output sitting next to it.
+    const result = apply(blank(), [
+      { event: 'stage_output', stage: 'retriever', output: { values: [] } },
+    ]);
+    expect(result.stages?.retriever?.started).toBe(true);
+  });
+
+  it('ignores a tool return that matches no open call', () => {
+    // A stray return must not invent a call. The inspector renders one row per
+    // entry in `tools`, so a phantom here becomes a phantom tool call on screen.
+    const result = apply(blank(), [
+      { event: 'tool_return', stage: 'calculator', tool: 'divide', result: '2' },
+    ]);
+    expect(result.tools).toEqual([]);
+  });
+
+  it('leaves the message untouched by an event it does not know', () => {
+    // Forward compatibility: the server may grow a frame before this client
+    // does — as it did with `matched` — and an unknown frame must be inert
+    // rather than blanking the turn.
+    const before = apply(blank(), [{ event: 'answer', answer: '42' }]);
+    const after = applyEvent(before, { event: 'nonsense' } as unknown as SSEEvent);
+    expect(after).toEqual(before);
+  });
+
+  it('lets a late `error` fail a turn that had already reported done', () => {
+    // The reverse ordering of the test above. `done` then `error` is the shape
+    // a failure during teardown takes, and the turn must end up failed.
+    const result = apply(blank(), [
+      { event: 'answer', answer: '42' },
+      { event: 'done', turn_index: 0, trace_id: 'abc' },
+      { event: 'error', error: 'stream broke', code: 'timeout' },
+    ]);
+    expect(result.status).toBe('error');
+    expect(result.errorCode).toBe('timeout');
+    // The trace id survives, so a failed turn is still inspectable.
+    expect(result.traceId).toBe('abc');
+  });
+
+  it('keeps every classified code the backend can send, verbatim', () => {
+    // `src/convfinqa/error_codes.py` is the contract. The reducer must not
+    // normalise, remap or default any of these — the UI branches on the exact
+    // string to decide what it tells the reader and whether to offer a retry.
+    for (const code of [
+      'llm_unavailable',
+      'not_available_demo',
+      'no_recording',
+      'rate_limited',
+      'timeout',
+      'unknown',
+    ]) {
+      const result = apply(blank(), [{ event: 'error', error: 'boom', code }]);
+      expect(result.errorCode).toBe(code);
+      expect(result.status).toBe('error');
+    }
+  });
+
+  it('keeps a replay match visible on a turn that then failed', () => {
+    // The substitution happened whether or not the turn succeeded, and hiding
+    // it on failure would leave the transcript claiming the typed question was
+    // the one attempted.
+    const result = apply(blank(), [
+      {
+        event: 'matched',
+        matched_question: 'recorded question',
+        asked_question: 'paraphrase',
+        score: 0.7,
+      },
+      { event: 'error', error: 'nothing recorded past turn 3', code: 'no_recording' },
+    ]);
+    expect(result.matchedQuestion).toBe('recorded question');
+    expect(result.errorCode).toBe('no_recording');
+  });
+
+  it('does not let `done` clear a match the `matched` frame already set', () => {
+    const result = apply(blank(), [
+      {
+        event: 'matched',
+        matched_question: 'recorded question',
+        asked_question: 'paraphrase',
+        score: 0.66,
+      },
+      { event: 'done', turn_index: 0 },
+    ]);
+    expect(result.matchedQuestion).toBe('recorded question');
   });
 });
 

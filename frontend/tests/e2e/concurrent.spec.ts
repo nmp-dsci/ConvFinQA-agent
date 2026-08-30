@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { BACKEND, enterChatFromBoard } from './enter';
 
-const BACKEND = process.env.PW_BACKEND_URL ?? 'http://127.0.0.1:8765';
 const REPORT_A = 'Single_VLO/2011/page_126.pdf-1';
 const REPORT_B = 'Single_AES/2003/page_168.pdf-1';
 
@@ -16,8 +16,9 @@ test('runs gold questions for two reports concurrently', async ({ browser }) => 
     }, BACKEND);
   }
 
-  await a.goto('/');
-  await b.goto('/');
+  // Both visitors arrive on the status board and take the way in from there.
+  await enterChatFromBoard(a);
+  await enterChatFromBoard(b);
 
   for (const [page, rid] of [
     [a, REPORT_A],
