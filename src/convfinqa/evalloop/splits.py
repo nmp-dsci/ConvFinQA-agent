@@ -156,7 +156,8 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
         raise FileNotFoundError(
             f"No split manifest at {path}. Run `convfinqa-evalloop make-splits`."
         )
-    return json.loads(path.read_text())
+    manifest: dict[str, Any] = json.loads(path.read_text())
+    return manifest
 
 
 def split_report_ids(

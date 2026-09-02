@@ -5,9 +5,9 @@ Regenerate via `convfinqa-evalloop propose`.
 """
 
 from convfinqa.prompts.v3_1 import (
-    TRIAGE_PROMPT,
-    RETRIEVER_PROMPT,
     CALCULATOR_PROMPT,
+    RETRIEVER_PROMPT,
+    TRIAGE_PROMPT,
 )
 from convfinqa.prompts.v3_1 import PREPROCESS_PROMPT as _BASE
 

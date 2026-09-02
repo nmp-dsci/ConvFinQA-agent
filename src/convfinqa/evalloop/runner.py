@@ -80,7 +80,9 @@ async def _run_conversations(
     runner = ConversationRunner()
     sem = asyncio.Semaphore(max(1, concurrency))
 
-    async def one(ex: Any) -> tuple[Any, list[str], list[str], list[dict], str]:
+    async def one(
+        ex: Any,
+    ) -> tuple[Any, list[str], list[str], list[dict[str, Any]], str]:
         captures: list[dict[str, Any]] = []
         error = ""
         async with sem:

@@ -171,8 +171,8 @@ def main() -> None:
                     f"this comparison ran on {stats.get('evidence_split')!r}. "
                     "Train runs optimise; test runs promote."
                 )
-            outcome = promote_winner(result, stats)
-            print(json.dumps(outcome, indent=2, default=str))  # noqa: T201
+            promotion = promote_winner(result, stats)
+            print(json.dumps(promotion, indent=2, default=str))  # noqa: T201
 
     elif args.cmd == "diagnose":
         from convfinqa.evalloop import teacher
@@ -239,10 +239,10 @@ def main() -> None:
         if args.make:
             if not args.diagnoses:
                 ap.error("--make needs --diagnoses <file.jsonl> [...]")
-            out = kappa.make_sheet(args.diagnoses, out_path=args.out, n=args.n)
-            print(f"labelling sheet: {out}")  # noqa: T201
+            sheet_path = kappa.make_sheet(args.diagnoses, out_path=args.out, n=args.n)
+            print(f"labelling sheet: {sheet_path}")  # noqa: T201
             print("fill human_agent (triage|preprocess|retriever|calculator|gold),")  # noqa: T201
-            print("then score with: convfinqa-evalloop kappa --labels", out)  # noqa: T201
+            print("then score with: convfinqa-evalloop kappa --labels", sheet_path)  # noqa: T201
         elif args.labels:
             print(json.dumps(kappa.score_sheet(args.labels), indent=2))  # noqa: T201
         else:

@@ -38,7 +38,8 @@ def _now() -> str:
 def _lineage(doc: Any, agent: str) -> list[dict[str, Any]]:
     if doc.agent_prompts is None:
         doc.agent_prompts = {}
-    return doc.agent_prompts.setdefault(agent, [])
+    lineage: list[dict[str, Any]] = doc.agent_prompts.setdefault(agent, [])
+    return lineage
 
 
 def resolve(version: str) -> dict[str, dict[str, str]]:

@@ -57,12 +57,14 @@ def _mlflow() -> Any:
     uri = tracking_uri()
     mlflow.set_tracking_uri(uri)
     if mlflow.get_experiment_by_name(settings.mlflow_experiment) is None:
-        mlflow.create_experiment(settings.mlflow_experiment, **_artifact_kwargs(uri))
+        mlflow.create_experiment(
+            settings.mlflow_experiment, artifact_location=_artifact_location(uri)
+        )
     mlflow.set_experiment(settings.mlflow_experiment)
     return mlflow
 
 
-def _artifact_kwargs(uri: str) -> dict[str, str]:
+def _artifact_location(uri: str) -> str | None:
     """Experiment artifact location: local store → local dir; server → proxied.
 
     Pinning a laptop `file://` path onto an experiment served over HTTP makes
@@ -70,10 +72,10 @@ def _artifact_kwargs(uri: str) -> dict[str, str]:
     A served experiment must use the server's own artifacts destination.
     """
     if uri.startswith("http"):
-        return {}
+        return None
     root = artifacts_dir()
     root.mkdir(parents=True, exist_ok=True)
-    return {"artifact_location": root.as_uri()}
+    return root.as_uri()
 
 
 def available() -> bool:
@@ -111,7 +113,9 @@ def run(
         mlflow = _mlflow()
         if experiment:
             if mlflow.get_experiment_by_name(experiment) is None:
-                mlflow.create_experiment(experiment, **_artifact_kwargs(tracking_uri()))
+                mlflow.create_experiment(
+                    experiment, artifact_location=_artifact_location(tracking_uri())
+                )
             mlflow.set_experiment(experiment)
     except Exception:  # noqa: BLE001
         yield _NullRecorder()

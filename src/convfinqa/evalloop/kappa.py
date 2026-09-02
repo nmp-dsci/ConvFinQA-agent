@@ -85,7 +85,9 @@ def score_sheet(sheet_path: Path | str) -> dict[str, Any]:
     return {
         "n_labelled": len(filled),
         "n_total": len(df),
-        "agreement": round(sum(a == b for a, b in zip(labels, preds, strict=True)) / len(labels), 4),
+        "agreement": round(
+            sum(a == b for a, b in zip(labels, preds, strict=True)) / len(labels), 4
+        ),
         "kappa": round(kappa, 4),
         "meets_bar": bool(kappa >= 0.7),
         "unknown_labels": unknown,
