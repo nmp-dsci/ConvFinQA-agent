@@ -54,15 +54,26 @@ def _mlflow() -> Any:
     """
     import mlflow
 
-    mlflow.set_tracking_uri(tracking_uri())
-    root = artifacts_dir()
-    root.mkdir(parents=True, exist_ok=True)
+    uri = tracking_uri()
+    mlflow.set_tracking_uri(uri)
     if mlflow.get_experiment_by_name(settings.mlflow_experiment) is None:
-        mlflow.create_experiment(
-            settings.mlflow_experiment, artifact_location=root.as_uri()
-        )
+        mlflow.create_experiment(settings.mlflow_experiment, **_artifact_kwargs(uri))
     mlflow.set_experiment(settings.mlflow_experiment)
     return mlflow
+
+
+def _artifact_kwargs(uri: str) -> dict[str, str]:
+    """Experiment artifact location: local store → local dir; server → proxied.
+
+    Pinning a laptop `file://` path onto an experiment served over HTTP makes
+    every artifact invisible in that server's UI (it cannot read this disk).
+    A served experiment must use the server's own artifacts destination.
+    """
+    if uri.startswith("http"):
+        return {}
+    root = artifacts_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    return {"artifact_location": root.as_uri()}
 
 
 def available() -> bool:
@@ -83,6 +94,7 @@ def run(
     overlay: str | None = None,
     params: dict[str, Any] | None = None,
     tags: dict[str, str] | None = None,
+    experiment: str | None = None,
 ) -> Iterator[Any]:
     """Open an MLflow run stamped with the bundle fingerprint.
 
@@ -90,9 +102,17 @@ def run(
     or a no-op recorder when MLflow is unavailable — the caller's code path is the
     same either way, which is what keeps the instrumentation out of the way of the
     thing being instrumented.
+
+    `experiment` overrides the default experiment for this run (and for any
+    traces started while it is active) — the optimisation loop logs under its
+    own experiment so eval history and teacher runs don't interleave.
     """
     try:
         mlflow = _mlflow()
+        if experiment:
+            if mlflow.get_experiment_by_name(experiment) is None:
+                mlflow.create_experiment(experiment, **_artifact_kwargs(tracking_uri()))
+            mlflow.set_experiment(experiment)
     except Exception:  # noqa: BLE001
         yield _NullRecorder()
         return

@@ -50,12 +50,10 @@ def test_strict_improvement_is_promotable() -> None:
     assert result.regressions == []
 
 
-def test_net_positive_with_a_regression_is_refused() -> None:
-    """The case the flip check exists for: two fixed, one broken, net positive.
-
-    Overall accuracy rises, so an accuracy-only gate would call this a win. It is
-    not — a capability that used to work now does not.
-    """
+def test_net_positive_with_a_regression_promotes_and_records_the_flip() -> None:
+    """Two fixed, one broken, net positive: promotable under the net-positive
+    rule — and the broken question and the McNemar p travel with the verdict,
+    so the trade is recorded rather than hidden."""
     base = _frame(
         [
             ("r1", 0, "1", "1", True),
@@ -74,16 +72,22 @@ def test_net_positive_with_a_regression_is_refused() -> None:
     assert result.accuracy_delta > 0
     assert result.accuracy_ok
     assert not result.no_regressions
-    assert not result.promotable
-    assert "flipped pass→fail" in result.reason()
+    assert result.promotable
+    assert result.pass_to_fail == 1 and result.fail_to_pass == 2
+    assert "net positive" in result.reason()
+    assert "McNemar" in result.reason()
+    d = result.as_dict()
+    assert d["mcnemar_p"] == pytest.approx(1.0)  # 2 vs 1 is pure coin-flip land
+    assert d["significant"] is False
 
 
-def test_equal_accuracy_with_no_flips_is_promotable() -> None:
-    """`>=`, not `>`: an identical-scoring bundle may still be promoted."""
+def test_equal_accuracy_is_not_net_positive() -> None:
+    """Strictly `>`: a bundle that changes nothing has demonstrated nothing."""
     base = _frame([("r1", 0, "1", "1", True), ("r1", 1, "2", "x", False)])
     cand = _frame([("r1", 0, "1", "1", True), ("r1", 1, "2", "y", False)])
     result = compare_frames(base, cand, baseline_version="v1", candidate_version="v2")
-    assert result.promotable
+    assert not result.promotable
+    assert "not net positive" in result.reason()
 
 
 def test_accuracy_drop_is_refused() -> None:
@@ -112,9 +116,9 @@ def test_accuracy_gate_uses_the_shared_question_set_not_full_frames() -> None:
     Baseline has an extra question the candidate never scored (r3); candidate has
     an extra question the baseline never scored (r4, wrong). Neither extra row is
     part of what was actually compared. A full-frame accuracy comparison would
-    let the candidate's unrelated r4 failure drag its overall accuracy down and
-    block a promotion that, on the questions both runs actually share, is a clean
-    match with zero flips.
+    let the candidate's unrelated r4 failure drag its overall accuracy down.
+    Under the net-positive rule a clean tie is not promotable either way — but
+    the verdict must say "no improvement", never "accuracy fell".
     """
     base = _frame(
         [
@@ -139,7 +143,8 @@ def test_accuracy_gate_uses_the_shared_question_set_not_full_frames() -> None:
     assert result.candidate_accuracy_all == pytest.approx(2 / 3)
     assert result.accuracy_ok
     assert result.no_regressions
-    assert result.promotable
+    assert not result.promotable  # a tie is no improvement
+    assert "not net positive" in result.reason()
     assert result.notes and "no counterpart" in result.notes[0]
 
 

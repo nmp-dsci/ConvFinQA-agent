@@ -54,15 +54,42 @@ class Flip:
         }
 
 
+ALPHA = 0.05
+
+
+def mcnemar_exact_p(pass_to_fail: int, fail_to_pass: int) -> float:
+    """Two-sided exact McNemar p from the discordant-pair counts.
+
+    Under "the two versions are equally good", each discordant question is a
+    fair coin between the two flip directions; the p is the binomial
+    probability of an imbalance at least this extreme.
+    """
+    from math import comb
+
+    n = pass_to_fail + fail_to_pass
+    if n == 0:
+        return 1.0
+    k = min(pass_to_fail, fail_to_pass)
+    tail = sum(comb(n, i) for i in range(k + 1)) / 2.0**n
+    return min(1.0, 2.0 * tail)
+
+
 @dataclass
 class ComparisonResult:
     """The verdict, plus every fact it was based on.
 
-    `baseline_accuracy`/`candidate_accuracy` (and the delta/ok flags derived from
-    them) are computed over the *shared* question set — the same population the
-    flip check uses — so the promotion gate's two halves describe one population.
-    `baseline_accuracy_all`/`candidate_accuracy_all` keep the full-frame headline
-    numbers for display; they never drive `promotable`.
+    The promotion rule is **net positive on the shared question set**: more
+    questions fixed than broken (equivalently, the paired accuracy delta is
+    positive). Individual pass→fail flips no longer veto on their own — they
+    are listed, counted, and fed into the exact McNemar p, which is recorded
+    on every verdict (and flagged when the sample cannot support significance)
+    so a small-sample promotion is read as what it is.
+
+    `baseline_accuracy`/`candidate_accuracy` (and the delta derived from them)
+    are computed over the *shared* question set — the same population the flip
+    counts use — so the rule's two halves describe one population.
+    `baseline_accuracy_all`/`candidate_accuracy_all` keep the full-frame
+    headline numbers for display; they never drive `promotable`.
     """
 
     baseline_version: str
@@ -89,32 +116,54 @@ class ComparisonResult:
 
     @property
     def no_regressions(self) -> bool:
-        """True when no question flipped from pass to fail."""
+        """True when no question flipped from pass to fail. Informational."""
         return not self.regressions
 
     @property
+    def pass_to_fail(self) -> int:
+        """Questions the candidate broke."""
+        return len(self.regressions)
+
+    @property
+    def fail_to_pass(self) -> int:
+        """Questions the candidate fixed."""
+        return len(self.improvements)
+
+    @property
+    def mcnemar_p(self) -> float:
+        """Exact McNemar p over the discordant pairs."""
+        return mcnemar_exact_p(self.pass_to_fail, self.fail_to_pass)
+
+    @property
+    def significant(self) -> bool:
+        """True when the flip imbalance clears α = 0.05."""
+        return self.mcnemar_p < ALPHA
+
+    @property
     def promotable(self) -> bool:
-        """Both conditions of the promotion contract, and a non-empty comparison."""
-        return self.accuracy_ok and self.no_regressions and self.n_compared > 0
+        """Net positive on the shared set, and a non-empty comparison."""
+        return self.accuracy_delta > ACCURACY_EPSILON and self.n_compared > 0
+
+    def _p_note(self) -> str:
+        p = self.mcnemar_p
+        tag = "significant" if self.significant else "not significant"
+        return f"McNemar p={p:.3f} ({tag} at α={ALPHA})"
 
     def reason(self) -> str:
         """One line explaining the verdict, suitable for a CI log or a UI badge."""
         if self.n_compared == 0:
             return "no overlapping questions to compare"
-        if not self.accuracy_ok:
+        flips = f"{self.fail_to_pass} fixed vs {self.pass_to_fail} broken"
+        if not self.promotable:
             return (
-                f"shared-question accuracy fell {self.baseline_accuracy:.1%} → "
-                f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%})"
-            )
-        if self.regressions:
-            return (
-                f"{len(self.regressions)} question(s) flipped pass→fail "
-                f"despite {self.accuracy_delta:+.2%} on the shared question set"
+                f"not net positive: {self.baseline_accuracy:.1%} → "
+                f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}) "
+                f"on the shared set, {flips}; {self._p_note()}"
             )
         return (
-            f"shared-question accuracy {self.baseline_accuracy:.1%} → "
-            f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}), "
-            f"{len(self.improvements)} fixed, 0 broken"
+            f"net positive: {self.baseline_accuracy:.1%} → "
+            f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}) "
+            f"on the shared set, {flips}; {self._p_note()}"
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -130,6 +179,10 @@ class ComparisonResult:
             "n_compared": self.n_compared,
             "accuracy_ok": self.accuracy_ok,
             "no_regressions": self.no_regressions,
+            "pass_to_fail": self.pass_to_fail,
+            "fail_to_pass": self.fail_to_pass,
+            "mcnemar_p": round(self.mcnemar_p, 6),
+            "significant": self.significant,
             "promotable": self.promotable,
             "reason": self.reason(),
             "regressions": [f.as_dict() for f in self.regressions],

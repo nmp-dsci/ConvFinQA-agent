@@ -67,6 +67,12 @@ _ADDED_COLUMNS: dict[str, str] = {
     "output_tokens": "INTEGER",
     "cost_usd": "REAL",
     "error_code": "TEXT",
+    # Eval-loop identity (s04 M1): which pass produced this turn, and under
+    # which registered version. NULL on rows that predate the loop.
+    "run_id": "TEXT",
+    "split": "TEXT",
+    "question_id": "TEXT",
+    "model_version_id": "TEXT",
 }
 
 _lock = threading.Lock()
@@ -99,6 +105,7 @@ class TraceStore:
         for column, sql_type in _ADDED_COLUMNS.items():
             if column not in existing:
                 self._conn.execute(f"ALTER TABLE turns ADD COLUMN {column} {sql_type}")
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_turns_run ON turns(run_id)")
 
     @contextmanager
     def _write(self) -> Iterator[sqlite3.Connection]:
@@ -126,6 +133,10 @@ class TraceStore:
         bundle: dict[str, Any] | None = None,
         error: str = "",
         error_code: str = "",
+        run_id: str | None = None,
+        split: str | None = None,
+        question_id: str | None = None,
+        model_version_id: str | None = None,
     ) -> str:
         """Persist one turn; return its trace id.
 
@@ -155,8 +166,9 @@ class TraceStore:
                         turn_index, question, answer, program, gold_answer,
                         correct, bundle_id, bundle, latency_ms, total_tokens,
                         input_tokens, output_tokens, cost_usd,
-                        error, error_code, capture
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        error, error_code, capture,
+                        run_id, split, question_id, model_version_id
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         trace_id,
@@ -180,6 +192,10 @@ class TraceStore:
                         error,
                         error_code or "",
                         json.dumps(capture, default=str),
+                        run_id,
+                        split,
+                        question_id,
+                        model_version_id,
                     ),
                 )
         except Exception:  # noqa: BLE001 — telemetry must never break serving

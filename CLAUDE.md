@@ -26,11 +26,13 @@ uv run pytest
 - **`convfinqa/llm.py` is the only place a model may be constructed.** The demo gate and the retry/timeout policy live there; a model built anywhere else silently bypasses both. Backends expose `lm_mini()` / `lm_max()` factories, never module-level model objects — importing a module must never require an API key, because the demo container has none.
 - **Nothing may build a model at import time.** This broke the deployment twice (`backends.pydantic`, then `backends.dspy`): a read-only route returned 500 purely because reading a dataset fact imported a module that constructed an LM. `tests/test_demo_mode.py::test_every_module_imports_without_a_key` pins it.
 - **"Held out" means `data.loader.optimizer_split()`, not `train_report_ids`.** Both are 60/40 splits seeded 42, but they agree on only 78 of 120 conversations, and GEPA ran against the former. The 770-question scored set spans conversations the optimizer saw; the never-seen subset is 309 questions. Report `holdout_accuracy` alongside — never blended into — the overall figure.
-- **Promotion requires accuracy ≥ champion AND no per-question pass→fail flips.** "Beats the champion" alone lets "fixed number turns, broke programs" through. Enforced in `tracking/comparator.py`, gated in CI by `tracking/gate.py`.
+- **Promotion requires a net-positive paired comparison** — more questions fixed than broken on the shared set — with every pass→fail flip listed and the exact McNemar p recorded on the verdict (flagged when not significant at α=0.05). Individual flips no longer veto on their own (rule changed 2026-09-02 at the owner's direction); they are evidence on the promotion record, and the diagnoser's first targets. Enforced in `tracking/comparator.py`, gated in CI by `tracking/gate.py`. The M2 teacher loop adds a second deliberate path (2026-09-02): a targeted challenger that changes ONE subagent promotes when that agent's first-fault count drops AND overall paired accuracy does not regress — recorded via `registry.promote(force=True, reason=...)` with the comparison attached, never silently. **Promotion evidence must come from the unseen test split** (protocol 2026-09-02): train runs optimise, test runs promote — both gate CLIs refuse `--promote` on train evidence. **Prompt versioning is per subagent** (M2.5): each agent has its own lineage in `registry.json → agent_prompts` (`t3.p3.r4.c3` compositions; content hash = truth, seq = human handle); bundles are lockfiles of four components; run names/params/traces carry the composition; `convfinqa-evalloop backfill-prompts` seeds it and `mirror-prompts` mirrors each agent into MLflow's prompt registry. Eval runs log a per-agent metric panel (`acc_triage_turn_type`, `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`, `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`, derived from gold, zero API calls) and `gate-targeted` judges the target on its deterministic metric, attribution as fallback.
 - **MLflow logging lives inside the runners**, not beside them. An operator who forgets to wrap a run produces an unrecorded result, and a history with silent gaps is worse than none.
+- **MLflow tracing follows the same rule** (added 2026-09-02): `tracking/tracing.py` owns it. The evalloop runner always calls `tracing.enable()` — every LLM call lands as a span (run → report → question → named agent stage → `Agent.run`) linked to the MLflow run; serving opts in with `MLFLOW_TRACING=1`. `tracing.span()` is a free no-op until `enable()` succeeds, so imports stay cheap and the demo container needs no tracking server. Never set `MLFLOW_USE_DEFAULT_TRACER_PROVIDER=false` to merge MLflow into Logfire's tracer provider — it crashes pydantic-ai runs; the two providers coexist by staying separate.
 - **Vite proxy** (`frontend/vite.config.ts`'s `BACKEND_PREFIXES`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`, `/admin`, `/traces`, `/demo`). Missing entries cause silent HTML-404 failures in the browser.
 - **`pred_program` column** must be present in every predictions CSV. `evaluate_cached` auto-detects its absence and forces a re-run.
 - **Cached evaluations are committed**, not regenerated. `evaluation/predictions/` (prediction CSVs, HTML reports, joined CSVs), `evaluation/diagnostics/` (s7 `rules_*_<variant>.jsonl` + `rule_attempts_*_<variant>.jsonl` + diagnostic results), and `runs/<gepa_name>/` (GEPA artifacts including `optimized_runner.json`) are tracked in git so v1/v2 accuracy and GEPA outcomes reproduce across machines with `REUSE_CACHE=1` and no API calls. Do not add these directories to `.gitignore`. If you change pipeline behaviour and need fresh numbers, regenerate the CSVs and commit them — do not leave the working tree dirty or rely on `REUSE_CACHE=0` to mask stale state.
+- **`archive/` holds retired experiment by-products** (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round), moved with `git mv` on 2026-08-31. Nothing reads it and `.dockerignore` excludes it; `archive/README.md` lists what moved and what stayed. Keep the GEPA prompts (`runs/*/optimized_runner.json`) and s7 stores (`rules_*_v3_1.jsonl`) where they are — code reads them.
 - **`.dspy_cache/`** (~366 MB DSPy LM cache), **`mlruns/`** and **`.traces/`** stay gitignored — they are dev state. What ships is the committed export: `evaluation/mlflow_snapshot.json` + `evaluation/registry.json`, regenerated with `convfinqa-mlflow snapshot`. Sync `.dspy_cache/` via `rsync` to share warm caches; never commit it.
 - **`DEMO_MODE` is baked into the Docker image**, not set in Terraform. Infrastructure must not be able to turn the public URL into a billable one. The demo container holds no API key at all.
 - **The demo pack is rebuilt from committed CSVs**, never from fresh API calls: `uv run convfinqa-demo-pack`. Its events must stay identical to what `pipeline/runner.py::turn_events` emits — `serving/demo_pack/cli.py::events_from_row` is the other half of that contract.
@@ -75,6 +77,31 @@ DEMO_MODE=1 uv run python -m uvicorn convfinqa.serving.app:create_app \
 docker compose up demo                    # exactly what ships
 ./scripts/demo_smoke.sh http://localhost:8080
 ```
+
+## Eval loop (M1) & teacher (M2)
+
+```bash
+uv run convfinqa-evalloop make-splits                  # committed split manifest (train/test/holdout)
+MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
+  uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
+uv run convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
+  --baseline-version v3_1 --candidate-version v4 --promote   # M1 net-positive rule
+
+# M2: diagnose first-wrong per report -> propose ONE-subagent challenger -> targeted gate
+uv run convfinqa-evalloop diagnose --csv <run.csv> --version v3_1
+uv run convfinqa-evalloop propose  --diagnoses <diagnoses.jsonl> --base-version v3_1 --new-version v4
+uv run convfinqa-evalloop gate-targeted --target-agent retriever \
+  --baseline-csv A.csv --candidate-csv B.csv --baseline-version v3_1 --candidate-version v4 --promote
+  # --promote requires test-split evidence; diagnoses args optional (attribution fallback)
+
+uv run convfinqa-evalloop backfill-prompts            # seed per-agent lineages from committed modules
+uv run convfinqa-evalloop mirror-prompts --version v4 # per-agent prompts into MLflow's Prompts tab
+```
+
+Teacher runs (diagnose/propose) log to the `convfinqa-optimization` MLflow experiment with
+full tracing; eval runs stay in `convfinqa`. Prior diagnoses are read back from MLflow as
+memory for the next teacher pass. Challenger prompt modules (`prompts/v4.py`, …) are
+generated by `convfinqa-evalloop propose` — do not hand-edit.
 
 ## Prompt-Improvement Harness (s7)
 

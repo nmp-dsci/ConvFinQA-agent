@@ -119,13 +119,36 @@ def bundle_fingerprint(
     `version` and `overlay` override the resolved values so an eval of a
     non-active version stamps the version it actually ran, not the ambient one.
     """
-    return {
-        "prompts_version": version or prompts_version(),
+    resolved = version or prompts_version()
+    spec = {
+        "prompts_version": resolved,
         "gepa_overlay": overlay if overlay is not None else gepa_overlay(),
         "lm_mini": "deepseek-v4-flash",
         "lm_max": settings.lm_max_model,
         "dataset_hash": dataset_hash(),
         "code_sha": code_sha(),
+    }
+    spec.update(_composition_fields(resolved))
+    return spec
+
+
+def _composition_fields(version: str) -> dict[str, str]:
+    """Per-agent prompt versions (M2.5), read-only — `t1.p1.r2.c1` and v_* keys.
+
+    Resolve, never register: fingerprinting happens in serving processes that
+    must not mutate the committed registry. Runners call
+    `prompt_ledger.ensure()` before fingerprinting so seqs already exist.
+    Degrades to nothing for a version whose module cannot be loaded.
+    """
+    try:
+        from convfinqa.tracking import prompt_ledger
+
+        comp = prompt_ledger.resolve(version)
+    except Exception:  # noqa: BLE001 — identity extras must never break a fingerprint
+        return {}
+    return {
+        "composition": prompt_ledger.composition_string(comp),
+        **{f"v_{a}": f"{v['seq']}@{v['hash']}" for a, v in comp.items()},
     }
 
 

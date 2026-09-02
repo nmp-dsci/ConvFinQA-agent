@@ -37,3 +37,26 @@ services:
       DEMO_MODE: "0"
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY to run the dev service}
       OWNER_TOKEN: ${OWNER_TOKEN:-}
+
+  # The tracking server (s04 §09b): registry, experiments, traces — always on.
+  #   docker compose up -d mlflow
+  # `restart: unless-stopped` revives it on every boot; the ./.mlflow volume
+  # (gitignored) keeps every run, model version and trace across upgrades.
+  # The app side is one env var: MLFLOW_TRACKING_URI=http://127.0.0.1:5000.
+  # Dev vs prod is a flag on the runs (environment tag), not a second server.
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.12.0
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/store/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./.mlflow:/mlflow
+      # Experiments created before 2026-09-02 pinned this laptop's file://
+      # artifacts path; mount it read-only at the same absolute path so the
+      # UI can still list those runs' artifacts. New experiments use the
+      # server's own artifacts destination and don't need this.
+      - ./mlruns/artifacts:/Users/nathanphillips/git/nmp-ai-portfolio/ConvFinQA-agent/mlruns/artifacts:ro
+    restart: unless-stopped

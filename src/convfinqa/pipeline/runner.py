@@ -32,6 +32,7 @@ from convfinqa.data.loader import _DOCS
 from convfinqa.data.schemas import ConversationHistory
 from convfinqa.llm import call_with_budget
 from convfinqa.pipeline.wire_format import render_chat_inputs as _render_chat_inputs
+from convfinqa.tracking import tracing
 
 
 def _coerce_args(args: Any) -> Any:
@@ -97,7 +98,8 @@ async def _run_stage(
 ) -> tuple[Any, dict[str, Any]]:
     """Run one agent under the global call budget; return (result, stage metrics)."""
     started = time.perf_counter()
-    result = await call_with_budget(lambda: agent.run(message))
+    with tracing.span(getattr(agent, "name", None) or "agent"):
+        result = await call_with_budget(lambda: agent.run(message))
     metrics: dict[str, Any] = {
         "latency_ms": round((time.perf_counter() - started) * 1000, 1),
         **_usage_of(result),
@@ -129,12 +131,22 @@ async def turn_events(
     if capture is not None:
         capture["history_text"] = hist_text
 
-    with logfire.span(
-        "turn {report_id}",
-        report_id=report_id,
-        question=question,
-        history_turns=len(conversation.pairs),
-    ) as span:
+    with (
+        logfire.span(
+            "turn {report_id}",
+            report_id=report_id,
+            question=question,
+            history_turns=len(conversation.pairs),
+        ) as span,
+        tracing.span(
+            f"q{len(conversation.pairs)}: {question[:60]}",
+            attributes={
+                "report_id": report_id,
+                "turn_index": len(conversation.pairs),
+                "question": question,
+            },
+        ),
+    ):
         # ---- Stage 1: triage -------------------------------------------------
         yield {"event": "stage_start", "stage": "triage"}
         triage_input: dict[str, Any] = {"question": question}
