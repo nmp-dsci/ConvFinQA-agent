@@ -8,7 +8,12 @@ The contract this file enforces, end to end:
    its evidence exactly as long as a champion does.
 2. **It is evaluated on the held-out set** the optimizer never saw.
 3. **The comparator decides promotion** — first version is champion by default;
-   after that, accuracy >= champion AND no pass->fail flips (see `comparator`).
+   after that, a net-positive paired comparison on the shared question set
+   (more questions fixed than broken; individual pass->fail flips no longer
+   veto on their own — see `comparator`). The M2 targeted-challenger path can
+   also promote via `registry.promote(force=True, reason=...)` when a target
+   agent's first-fault count drops and overall paired accuracy does not
+   regress, with the comparison attached rather than silently applied.
 4. **Promotion is an append-only event.** The alias moves, and a record is
    appended with timestamp, verdict, and the runs it was based on. Nothing is
    ever overwritten, so the history is the history.

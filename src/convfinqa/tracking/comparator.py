@@ -1,16 +1,14 @@
 """The regression comparator: what "better" has to mean before a promotion.
 
-Overall accuracy going up is not sufficient evidence that a change is an
-improvement. A prompt edit that fixes twelve number-retrieval turns and breaks
-nine program turns nets out positive and is still a regression for anyone who
-asks a multi-step question. So promotion requires both:
-
-    1. overall accuracy >= champion (never trade the headline number away), and
-    2. no per-question pass -> fail flips (never silently lose a capability).
-
-Rule 2 is what makes the gate load-bearing. It is also why the comparison is
-per-question rather than aggregate: the flip list is the evidence, and the CI
-gate prints it so a failed merge tells you exactly which questions broke.
+Overall accuracy going up is not enough evidence on its own to trust blindly,
+so the comparison is per-question rather than aggregate. Promotion requires a
+**net-positive paired comparison on the shared question set**: more questions
+fixed than broken (equivalently, the paired accuracy delta is positive), with
+the exact McNemar p recorded on the verdict (flagged when not significant at
+alpha=0.05). Individual pass -> fail flips no longer veto promotion on their
+own (rule changed 2026-09-02 at the owner's direction) — every flip is still
+listed and counted, and the CI gate prints the full list so a promotion or a
+failed merge tells you exactly which questions moved and in which direction.
 
 Everything here is deterministic and offline. It reads committed prediction CSVs
 and makes zero API calls, which is what lets it run on every pull request.
