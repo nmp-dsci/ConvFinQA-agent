@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reviewing the Teacher — Optimisation Run Guide (s05)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Design source (2): the project's own system — same tokens as s02/s03/s04. */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4); --bad-line:rgba(239,130,130,.45);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1100px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;min-width:0}
+section{padding:52px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.08;letter-spacing:-.026em;margin:0 0 18px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,28px);line-height:1.18;letter-spacing:-.018em;margin:0 0 14px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:30px 0 10px;letter-spacing:-.004em;font-weight:600}
+p{margin:0 0 14px;max-width:76ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:76ch}
+li{margin:0 0 7px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 16px}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18px;color:var(--muted);max-width:70ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;min-width:0}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:26px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px;max-width:340px}
+.metric .v{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.bad{color:var(--bad);border-color:var(--bad-line)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px;min-width:0}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px;min-width:0}
+figure img{width:100%;height:auto;display:block;border:1px solid var(--line-2);border-radius:8px}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:76ch}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.url{font-family:var(--mono);font-size:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;display:inline-block;margin:0 0 12px;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">s05 · Review guide · 2026-09-02</p>
+    <h1>Reviewing everything the teacher did</h1>
+    <p class="lede">
+      The M2 optimisation loop ran one full cycle today: it diagnosed v3_1's failures, changed <em>one</em>
+      subagent's prompt, and promoted the result. Every step left a reviewable record. This page walks the six
+      stations — with the actual MLflow screens — so you can audit the cycle end to end, or any future one.
+    </p>
+    <div class="metrics">
+      <div class="metric"><div class="v">6</div><div class="l">first-wrong questions diagnosed (one per failing report)</div></div>
+      <div class="metric"><div class="v">retriever</div><div class="l">target picked — 3 of 6 first-faults attributed to it</div></div>
+      <div class="metric"><div class="v">63.6% → 72.7%</div><div class="l">v3_1 → v4 on the same 44 questions (+9.1pp)</div></div>
+      <div class="metric"><div class="v">3 → 2</div><div class="l">retriever first-faults after the fix — targeted gate passed</div></div>
+    </div>
+    <div class="toc">
+      <a href="#experiment"><span class="n">01</span>The optimisation experiment</a>
+      <a href="#diagnose"><span class="n">02</span>A diagnose run: verdicts + artifacts</a>
+      <a href="#traces"><span class="n">03</span>The teacher's own LLM calls, traced</a>
+      <a href="#propose"><span class="n">04</span>The proposal and the generated prompt</a>
+      <a href="#gate"><span class="n">05</span>The challenger, the gate, the promotion</a>
+      <a href="#memory"><span class="n">06</span>Memory, checklist, and the CLI crib</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 01 EXPERIMENT ══════════════════ -->
+<section id="experiment">
+  <div class="wrap">
+    <p class="eyebrow">01 · Start here</p>
+    <h2>The optimisation experiment — everything the teacher does lives here</h2>
+    <span class="url">http://127.0.0.1:5000 → Experiments → <strong>convfinqa-optimization</strong></span>
+    <p>
+      Teacher work logs to its own MLflow experiment so it never interleaves with eval history
+      (<code>convfinqa</code> holds the eval runs). One optimisation cycle leaves exactly this shape:
+      a <code>diagnose-&lt;version&gt;</code> run per diagnosis pass and a <code>propose-&lt;new&gt;-&lt;agent&gt;</code>
+      run per challenger written. Three runs = one full cycle plus the follow-up diagnosis of the challenger.
+    </p>
+    <figure>
+      <img src="s05_assets/01_opt_experiment_runs.jpg" alt="convfinqa-optimization experiment run list showing diagnose-v3_1, propose-v4-retriever, diagnose-v4">
+      <figcaption>
+        Read bottom-up (chronological): <code>diagnose-v3_1</code> (39s — 6 teacher calls) →
+        <code>propose-v4-retriever</code> (4s — one prompt-writer call) → <code>diagnose-v4</code> (56s — 7 calls,
+        scoring the challenger's remaining failures). The run name alone tells you what happened and to which version.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════ 02 DIAGNOSE RUN ══════════════════ -->
+<section id="diagnose">
+  <div class="wrap">
+    <p class="eyebrow">02 · The verdicts</p>
+    <h2>Inside a diagnose run: who failed, how often, and the evidence file</h2>
+    <p>
+      Open <code>diagnose-v3_1-…</code>. The <strong>Overview</strong> tab is the summary of record: tags say what
+      kind of run it is (<code>kind: diagnose</code>, <code>stage: diagnose</code>), params say which CSV it read,
+      and the metrics are the per-agent fault counts the target decision is made from.
+    </p>
+    <figure>
+      <img src="s05_assets/03_diagnose_overview.jpg" alt="Diagnose run overview with tags kind:diagnose and metrics n_diagnosed=6, faults_triage=0">
+      <figcaption>
+        Metrics = the attribution table: <code>n_diagnosed 6</code>, then <code>faults_triage 0 ·
+        faults_preprocess 1 · faults_retriever 3 · faults_calculator 2</code>. The max is the target —
+        retriever. That single number is why v4 touches only the retriever prompt.
+      </figcaption>
+    </figure>
+    <figure>
+      <img src="s05_assets/02_diagnose_artifacts.jpg" alt="Diagnose run artifacts tab listing diagnoses.jsonl and summary.json">
+      <figcaption>
+        The <strong>Artifacts</strong> tab holds the evidence: <code>diagnoses.jsonl</code> (one verdict per case —
+        this exact filename is also what later teacher runs read back as memory), a timestamped copy, and
+        <code>summary.json</code> (counts + chosen target). The same files are committed in the repo under
+        <code>evaluation/diagnostics/evalloop/</code>, so the record survives without the tracking server.
+      </figcaption>
+    </figure>
+
+    <h3>What one verdict looks like</h3>
+    <p class="small muted">From <code>diagnoses_v3_1_20260902_200122.jsonl</code> — the HIG case, verbatim:</p>
+    <pre><code>{
+  "failed_agent": "retriever",
+  "failure_mode": "wrong-value-returned",
+  "what_went_wrong": "The triage correctly classified this as a 'number' lookup. The retriever
+      located the correct operating lease obligation (42.0) but then fabricated a subtraction of
+      'approximately $2 million' sublease income to produce 40.0. … The retriever introduced an
+      unrequested computation and returned a value not present in the report.",
+  "evidence": "retriever output: 'In 2017, the operating lease commitment is 42.0. … So net =
+      42.0 - 2 = 40.0.' — a subtraction the gold program does not call for; gold answer is 42.",
+  "proposed_rule": "When the turn type is 'number', return the value as printed in the source
+      cell; do not perform any arithmetic or adjustment unless the instruction explicitly
+      directs an operation…",
+  "gold_suspect": false,
+  "confidence": 0.9,
+  "report_id": "Double_HIG/2016/page_253.pdf", "turn_index": 0, "version": "v3_1"
+}</code></pre>
+
+    <h3>All six verdicts from this run</h3>
+    <div class="scroll-x">
+      <table>
+        <thead><tr><th>Report · first wrong turn</th><th>Failed agent</th><th>Failure mode</th><th class="num">Conf.</th></tr></thead>
+        <tbody>
+          <tr><td><code>Double_HIG/2016</code> q0</td><td><span class="chip bad">retriever</span></td><td>wrong-value-returned (invented a subtraction on a number lookup)</td><td class="num">0.90</td></tr>
+          <tr><td><code>Double_FRT/2007</code> q0</td><td><span class="chip bad">retriever</span></td><td>wrong-row-wrong-year-values</td><td class="num">0.90</td></tr>
+          <tr><td><code>Double_PNC/2009</code> q0</td><td><span class="chip bad">retriever</span></td><td>wrong-value-returned (estimate vs actual)</td><td class="num">0.70</td></tr>
+          <tr><td><code>Double_KIM/2010</code> q3</td><td><span class="chip info">calculator</span></td><td>missing-computation-wrong-scale</td><td class="num">0.85</td></tr>
+          <tr><td><code>Double_CMCSA/2015</code> q0</td><td><span class="chip info">calculator</span></td><td>missing-percentage-format</td><td class="num">0.85</td></tr>
+          <tr><td><code>Double_MMM/2007</code> q0</td><td><span class="chip good">preprocess</span></td><td>computed an increase the document reports directly</td><td class="num">0.90</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted">
+      Only <em>first</em> wrong turns are diagnosed — a wrong q3 that inherited a wrong q2 is cascade, not signal.
+      That is why 16 wrong questions collapse to 6 diagnosable cases.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════ 03 TRACES ══════════════════ -->
+<section id="traces">
+  <div class="wrap">
+    <p class="eyebrow">03 · The teacher is observable too</p>
+    <h2>Every teacher LLM call is a trace — same standard as the pipeline</h2>
+    <p>
+      The run's <strong>Traces</strong> tab lists one trace per diagnosed case
+      (<code>diagnose &lt;report&gt; q&lt;n&gt;</code>). Open one and the Chat view shows exactly what the teacher
+      was given and what it concluded — so when you doubt a verdict, you audit the reasoning, not just the label.
+    </p>
+    <figure>
+      <img src="s05_assets/04_diagnose_traces.jpg" alt="Six diagnosis traces with token counts and durations">
+      <figcaption>Six cases → six traces, ~2–4k tokens and ~6s each. The whole diagnosis pass cost ~16k teacher tokens.</figcaption>
+    </figure>
+    <figure>
+      <img src="s05_assets/05_diagnosis_chat.jpg" alt="Chat view of a diagnosis: case payload in, structured Diagnosis out">
+      <figcaption>
+        The PNC case: the User message carries the case payload (question, gold answer <code>117</code>, the
+        pipeline's <code>41</code>, all four stage captures); the Assistant returns the structured
+        <code>Diagnosis</code> — <code>failed_agent: "retriever"</code>,
+        <code>failure_mode: "wrong-value-returned-estimate-vs-actual"</code>. This is the trace to read when you
+        disagree with an attribution.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════ 04 PROPOSE ══════════════════ -->
+<section id="propose">
+  <div class="wrap">
+    <p class="eyebrow">04 · One agent changes</p>
+    <h2>The proposal: three merged rules, one generated module</h2>
+    <p>
+      <code>propose-v4-retriever</code> took the three retriever verdicts, merged their proposed rules through a
+      prompt-writer call (deduped against the current prompt, generalised — no company names), and wrote
+      <code>src/convfinqa/prompts/v4.py</code>. Its <code>proposal.json</code> artifact records the rules; the
+      registry entry records the hypothesis.
+    </p>
+    <figure>
+      <img src="s05_assets/06_propose_run.jpg" alt="propose-v4-retriever run overview, 4.2s, tags kind:propose">
+      <figcaption>4.2 seconds: one LLM call, one file written, one registry entry. Tags: <code>kind: propose · stage: propose</code>.</figcaption>
+    </figure>
+    <h3>The generated challenger — the whole diff is additive and single-agent</h3>
+    <pre><code># src/convfinqa/prompts/v4.py — generated, never hand-edited
+"""Generated by convfinqa.evalloop.teacher — do not hand-edit.
+Targeted challenger for v3_1: only the retriever prompt changes."""
+
+from convfinqa.prompts.v3_1 import (
+    TRIAGE_PROMPT,          # ← unchanged, imported
+    PREPROCESS_PROMPT,      # ← unchanged, imported
+    CALCULATOR_PROMPT,      # ← unchanged, imported
+)
+from convfinqa.prompts.v3_1 import RETRIEVER_PROMPT as _BASE
+
+RETRIEVER_PROMPT = _BASE + """
+## Targeted rules (v4, teacher-diagnosed)
+- When turn_type is "number", return the value as printed in the source cell without any
+  arithmetic or adjustment unless the instruction explicitly directs an operation; …
+- When a question asks for a metric across multiple periods … map each sub-question to its
+  own year's cell rather than reusing one period value; …
+- When a sentence pairs an estimate … verify which year the question targets and return the
+  value explicitly tied to that year, not the estimate, …
+"""</code></pre>
+    <p class="small muted">
+      Because the other three prompts are <em>imports</em>, a reviewer can prove at a glance that exactly one
+      subagent changed — which is what makes the challenger's result attributable.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════ 05 GATE ══════════════════ -->
+<section id="gate">
+  <div class="wrap">
+    <p class="eyebrow">05 · Did it work?</p>
+    <h2>The challenger run, the targeted gate, and the promotion record</h2>
+    <p>
+      The v4 eval run lives in the <code>convfinqa</code> experiment like any other (same 10 reports, same 44
+      questions, fully traced). Its Traces tab is where you check the fix <em>behaving</em> — open a report the
+      retriever used to get wrong and read the retriever span.
+    </p>
+    <figure>
+      <img src="s05_assets/07_challenger_traces.jpg" alt="evalloop-train10-v4 run traces: 10 traces with token counts">
+      <figcaption><code>evalloop-train10-v4-…</code> → Traces: one trace per report, 10 of 10, tagged <code>model_version_id: v4</code>.</figcaption>
+    </figure>
+    <figure>
+      <img src="s05_assets/08_challenger_tree.jpg" alt="Challenger trace tree: report, questions, named agent stages">
+      <figcaption>The same hierarchy every eval run gets: report → question → triage / preprocess / retriever / calculator → the LLM call.</figcaption>
+    </figure>
+    <h3>The gate verdict (M2's promotion rule)</h3>
+    <pre><code>$ convfinqa-evalloop gate-targeted --target-agent retriever … --promote
+{
+  "baseline_target_faults": 3,        ← retriever faults under v3_1
+  "candidate_target_faults": 2,       ← retriever faults under v4
+  "target_improved": true,            ← rule 1: the targeted subagent got better
+  "overall_delta": 0.090909,
+  "overall_not_regressed": true,      ← rule 2: overall must not get worse
+  "promotable_targeted": true,
+  "comparison": { "n_compared": 44, "pass_to_fail": 1, "fail_to_pass": 5,
+                  "mcnemar_p": 0.21875 }
+}</code></pre>
+    <p>
+      Promotion is by <em>subagent improvement</em>, not raw overall accuracy — so a genuine retriever fix is never
+      thrown away because a small shared set happened to tie overall. The full verdict lands on the registry
+      history, which is the permanent record of <em>why</em> v4 is champion:
+    </p>
+    <pre><code># evaluation/registry.json — history, last event (committed to git)
+{
+  "event": "promote", "version": "v4", "previous_champion": "v3_1",
+  "actor": "evalloop-teacher", "forced": true,
+  "reason": "targeted (M2): retriever first-faults 3 → 2 on the shared reports;
+             overall Δ +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875",
+  "comparison": { …full paired comparison, the 1 regression listed… }
+}</code></pre>
+    <div class="callout info">
+      <strong>Honest small-print</strong>
+      <p>
+        44 questions and p = 0.22 make this a <em>recorded bet</em>, not a proven win — the 200-question train pass
+        is where a promotion earns a significant p. And "subagent accuracy" is teacher attribution (there is no
+        per-stage gold), so the plan's κ ≥ 0.7 check against 30 hand labels remains the trust milestone.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════ 06 MEMORY + CHECKLIST ══════════════════ -->
+<section id="memory">
+  <div class="wrap">
+    <p class="eyebrow">06 · The loop remembers</p>
+    <h2>Memory, the review checklist, and the CLI crib</h2>
+    <p>
+      Every diagnose run downloads previous runs' <code>diagnoses.jsonl</code> from MLflow and tells the teacher
+      "these rules were already proposed — extend, don't repeat." You can verify it worked on any run:
+      <code>diagnose-v4</code>'s params show <code>n_prior_diagnoses: 6</code>. Past optimisation runs are therefore
+      not just history — they are input to the next cycle.
+    </p>
+    <p class="small muted">
+      The second diagnosis already set up cycle 2: v4's remaining first-faults are
+      <strong>preprocess 3 · retriever 2 · calculator 1 · triage 1</strong> → next target
+      <strong>preprocess</strong>, and one case (<code>Double_PNC/2009</code>) is flagged
+      <code>gold_suspect</code> — read its trace before letting it drive a rule.
+    </p>
+
+    <h3>Reviewer's checklist — before trusting any promotion</h3>
+    <div class="scroll-x">
+      <table>
+        <thead><tr><th>Check</th><th>Where</th><th>This cycle</th></tr></thead>
+        <tbody>
+          <tr><td>Fault counts justify the target</td><td>diagnose run → Overview metrics</td><td><span class="chip good">retriever 3/6</span></td></tr>
+          <tr><td>Verdicts read sensibly (spot-check 2–3)</td><td>diagnose run → Traces → Chat</td><td><span class="chip good">checked</span></td></tr>
+          <tr><td>Any <code>gold_suspect</code> cases excluded from rules</td><td><code>summary.json</code> / diagnoses file</td><td><span class="chip good">none in v3_1 pass</span></td></tr>
+          <tr><td>Challenger changes exactly one agent</td><td><code>prompts/v4.py</code> (imports prove it)</td><td><span class="chip good">retriever only</span></td></tr>
+          <tr><td>Rules are general, not case-specific</td><td>propose run → <code>proposal.json</code></td><td><span class="chip good">3 rules, no company names</span></td></tr>
+          <tr><td>Targeted gate: faults ↓ and overall Δ ≥ 0</td><td><code>gate-targeted</code> output / registry history</td><td><span class="chip good">3→2 · +9.09pp</span></td></tr>
+          <tr><td>Regressions inspected (what broke?)</td><td>registry history → comparison → regressions</td><td><span class="chip info">1 flip — next diagnosis input</span></td></tr>
+          <tr><td>Statistical honesty noted</td><td>McNemar p on the verdict</td><td><span class="chip bad">p=0.22 — small sample</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <h3>Run a full cycle</h3>
+        <pre><code>export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+
+# 1 baseline eval (if not already run)
+convfinqa-evalloop run --split train \
+  --version v4 --n-reports 10
+# 2 diagnose its failures
+convfinqa-evalloop diagnose \
+  --csv evaluation/predictions/evalloop/&lt;run&gt;.csv \
+  --version v4
+# 3 challenger changing ONE agent
+convfinqa-evalloop propose \
+  --diagnoses &lt;diagnoses.jsonl&gt; \
+  --base-version v4 --new-version v5
+# 4 run challenger, diagnose it, gate
+convfinqa-evalloop run --split train \
+  --version v5 --n-reports 10
+convfinqa-evalloop diagnose --csv &lt;v5.csv&gt; --version v5
+convfinqa-evalloop gate-targeted \
+  --target-agent preprocess … --promote</code></pre>
+      </div>
+      <div class="card">
+        <h3>Where everything lives</h3>
+        <ul class="small">
+          <li><strong>MLflow · convfinqa-optimization</strong> — diagnose/propose runs, teacher traces, artifacts</li>
+          <li><strong>MLflow · convfinqa</strong> — eval runs (baseline + challenger), pipeline traces</li>
+          <li><code>evaluation/diagnostics/evalloop/</code> — committed diagnosis files</li>
+          <li><code>evaluation/predictions/evalloop/</code> — committed run CSVs</li>
+          <li><code>src/convfinqa/prompts/v4.py</code> — the generated challenger (never hand-edit)</li>
+          <li><code>evaluation/registry.json</code> — versions, hypotheses, promotion history with evidence</li>
+        </ul>
+        <p class="small muted">
+          At 200-question scale the cadence is the same, four times over: one cycle per subagent
+          (triage → preprocess → retriever → calculator), test and deploy between each.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -19,6 +19,21 @@
  */
 
 import { ApiError, getApiBase } from '../../api';
+
+export interface DatasetRow {
+  split: string;
+  report_id: string;
+  turn_index: number;
+  question: string;
+  gold_answer: string;
+  gold_program: string;
+  turn_type: string;
+  conv_type: string;
+}
+
+export function getDataset(split: string): Promise<DatasetRow[]> {
+  return getJson<DatasetRow[]>(`/eval/dataset?split=${encodeURIComponent(split)}`);
+}
 import type { AnswerRow, BundleSpec, StageMetrics, TraceSummary } from '../../types';
 
 async function getJson<T>(path: string): Promise<T> {

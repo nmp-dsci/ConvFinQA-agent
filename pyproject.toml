@@ -39,6 +39,7 @@ convfinqa-optimize = "scripts.optimize:main"
 convfinqa-serve = "scripts.serve:main"
 convfinqa-diagnose = "convfinqa.diagnosis.cli:main"
 convfinqa-mlflow = "convfinqa.tracking.cli:main"
+convfinqa-evalloop = "convfinqa.evalloop.cli:main"
 convfinqa-demo-pack = "convfinqa.serving.demo_pack.cli:main"
 
 

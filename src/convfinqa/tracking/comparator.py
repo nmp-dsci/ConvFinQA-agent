@@ -1,16 +1,14 @@
 """The regression comparator: what "better" has to mean before a promotion.
 
-Overall accuracy going up is not sufficient evidence that a change is an
-improvement. A prompt edit that fixes twelve number-retrieval turns and breaks
-nine program turns nets out positive and is still a regression for anyone who
-asks a multi-step question. So promotion requires both:
-
-    1. overall accuracy >= champion (never trade the headline number away), and
-    2. no per-question pass -> fail flips (never silently lose a capability).
-
-Rule 2 is what makes the gate load-bearing. It is also why the comparison is
-per-question rather than aggregate: the flip list is the evidence, and the CI
-gate prints it so a failed merge tells you exactly which questions broke.
+Overall accuracy going up is not enough evidence on its own to trust blindly,
+so the comparison is per-question rather than aggregate. Promotion requires a
+**net-positive paired comparison on the shared question set**: more questions
+fixed than broken (equivalently, the paired accuracy delta is positive), with
+the exact McNemar p recorded on the verdict (flagged when not significant at
+alpha=0.05). Individual pass -> fail flips no longer veto promotion on their
+own (rule changed 2026-09-02 at the owner's direction) — every flip is still
+listed and counted, and the CI gate prints the full list so a promotion or a
+failed merge tells you exactly which questions moved and in which direction.
 
 Everything here is deterministic and offline. It reads committed prediction CSVs
 and makes zero API calls, which is what lets it run on every pull request.
@@ -54,15 +52,42 @@ class Flip:
         }
 
 
+ALPHA = 0.05
+
+
+def mcnemar_exact_p(pass_to_fail: int, fail_to_pass: int) -> float:
+    """Two-sided exact McNemar p from the discordant-pair counts.
+
+    Under "the two versions are equally good", each discordant question is a
+    fair coin between the two flip directions; the p is the binomial
+    probability of an imbalance at least this extreme.
+    """
+    from math import comb
+
+    n = pass_to_fail + fail_to_pass
+    if n == 0:
+        return 1.0
+    k = min(pass_to_fail, fail_to_pass)
+    tail = sum(comb(n, i) for i in range(k + 1)) / 2.0**n
+    return min(1.0, 2.0 * tail)
+
+
 @dataclass
 class ComparisonResult:
     """The verdict, plus every fact it was based on.
 
-    `baseline_accuracy`/`candidate_accuracy` (and the delta/ok flags derived from
-    them) are computed over the *shared* question set — the same population the
-    flip check uses — so the promotion gate's two halves describe one population.
-    `baseline_accuracy_all`/`candidate_accuracy_all` keep the full-frame headline
-    numbers for display; they never drive `promotable`.
+    The promotion rule is **net positive on the shared question set**: more
+    questions fixed than broken (equivalently, the paired accuracy delta is
+    positive). Individual pass→fail flips no longer veto on their own — they
+    are listed, counted, and fed into the exact McNemar p, which is recorded
+    on every verdict (and flagged when the sample cannot support significance)
+    so a small-sample promotion is read as what it is.
+
+    `baseline_accuracy`/`candidate_accuracy` (and the delta derived from them)
+    are computed over the *shared* question set — the same population the flip
+    counts use — so the rule's two halves describe one population.
+    `baseline_accuracy_all`/`candidate_accuracy_all` keep the full-frame
+    headline numbers for display; they never drive `promotable`.
     """
 
     baseline_version: str
@@ -89,32 +114,54 @@ class ComparisonResult:
 
     @property
     def no_regressions(self) -> bool:
-        """True when no question flipped from pass to fail."""
+        """True when no question flipped from pass to fail. Informational."""
         return not self.regressions
 
     @property
+    def pass_to_fail(self) -> int:
+        """Questions the candidate broke."""
+        return len(self.regressions)
+
+    @property
+    def fail_to_pass(self) -> int:
+        """Questions the candidate fixed."""
+        return len(self.improvements)
+
+    @property
+    def mcnemar_p(self) -> float:
+        """Exact McNemar p over the discordant pairs."""
+        return mcnemar_exact_p(self.pass_to_fail, self.fail_to_pass)
+
+    @property
+    def significant(self) -> bool:
+        """True when the flip imbalance clears α = 0.05."""
+        return self.mcnemar_p < ALPHA
+
+    @property
     def promotable(self) -> bool:
-        """Both conditions of the promotion contract, and a non-empty comparison."""
-        return self.accuracy_ok and self.no_regressions and self.n_compared > 0
+        """Net positive on the shared set, and a non-empty comparison."""
+        return self.accuracy_delta > ACCURACY_EPSILON and self.n_compared > 0
+
+    def _p_note(self) -> str:
+        p = self.mcnemar_p
+        tag = "significant" if self.significant else "not significant"
+        return f"McNemar p={p:.3f} ({tag} at α={ALPHA})"
 
     def reason(self) -> str:
         """One line explaining the verdict, suitable for a CI log or a UI badge."""
         if self.n_compared == 0:
             return "no overlapping questions to compare"
-        if not self.accuracy_ok:
+        flips = f"{self.fail_to_pass} fixed vs {self.pass_to_fail} broken"
+        if not self.promotable:
             return (
-                f"shared-question accuracy fell {self.baseline_accuracy:.1%} → "
-                f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%})"
-            )
-        if self.regressions:
-            return (
-                f"{len(self.regressions)} question(s) flipped pass→fail "
-                f"despite {self.accuracy_delta:+.2%} on the shared question set"
+                f"not net positive: {self.baseline_accuracy:.1%} → "
+                f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}) "
+                f"on the shared set, {flips}; {self._p_note()}"
             )
         return (
-            f"shared-question accuracy {self.baseline_accuracy:.1%} → "
-            f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}), "
-            f"{len(self.improvements)} fixed, 0 broken"
+            f"net positive: {self.baseline_accuracy:.1%} → "
+            f"{self.candidate_accuracy:.1%} ({self.accuracy_delta:+.2%}) "
+            f"on the shared set, {flips}; {self._p_note()}"
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -130,6 +177,10 @@ class ComparisonResult:
             "n_compared": self.n_compared,
             "accuracy_ok": self.accuracy_ok,
             "no_regressions": self.no_regressions,
+            "pass_to_fail": self.pass_to_fail,
+            "fail_to_pass": self.fail_to_pass,
+            "mcnemar_p": round(self.mcnemar_p, 6),
+            "significant": self.significant,
             "promotable": self.promotable,
             "reason": self.reason(),
             "regressions": [f.as_dict() for f in self.regressions],
@@ -156,19 +207,73 @@ def load_predictions(version: str, model: str = "pydantic") -> pd.DataFrame:
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"{path.name} is missing required columns: {sorted(missing)}")
-    df = df.copy()
-    df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
     # `turn_index` is the per-conversation position and is the stable join key;
     # q_order is not present in every historical CSV.
+    return _normalise_predictions(df)
+
+
+def accuracy(df: pd.DataFrame) -> float:
+    """Overall turn accuracy of a predictions frame — the *execution* accuracy."""
+    return float(df["correct"].mean()) if len(df) else 0.0
+
+
+EVALLOOP_PREDICTIONS_DIR = PREDICTIONS_DIR / "evalloop"
+
+
+def _normalise_predictions(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce `correct` to bool and `turn_index` to int, matching load_predictions."""
+    df = df.copy()
+    df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
     if "turn_index" not in df.columns:
         df["turn_index"] = df.groupby("report_id").cumcount()
     df["turn_index"] = df["turn_index"].astype(int)
     return df
 
 
-def accuracy(df: pd.DataFrame) -> float:
-    """Overall turn accuracy of a predictions frame — the *execution* accuracy."""
-    return float(df["correct"].mean()) if len(df) else 0.0
+def evalloop_champion_csv_path(version: str, split: str = "test") -> Path:
+    """The committed evalloop predictions CSV backing `version`'s promotion.
+
+    Filenames are ``evalloop-{split}{n}-{version}·{composition}-{stamp}.csv``.
+    Promotion evidence for a champion always comes from the unseen test split
+    (see CLAUDE.md's promotion protocol), so `split` defaults to "test". If a
+    version was run more than once, the most recent (by filename timestamp,
+    which sorts lexicographically) is used.
+    """
+    candidates = []
+    for path in EVALLOOP_PREDICTIONS_DIR.glob(f"evalloop-{split}*-{version}·*.csv"):
+        # "evalloop-test50-v5" -> ["evalloop", "test50", "v5"]; require an exact
+        # version segment so "v5" never matches a differently-named "v50".
+        before_composition = path.stem.split("·")[0]
+        if before_composition.split("-")[-1] == version:
+            candidates.append(path)
+    if not candidates:
+        raise FileNotFoundError(
+            f"No committed evalloop {split}-split predictions for version "
+            f"{version!r} in {EVALLOOP_PREDICTIONS_DIR}"
+        )
+    return sorted(candidates)[-1]
+
+
+def load_evalloop_champion_predictions(
+    version: str, split: str = "test"
+) -> pd.DataFrame:
+    """Load an evalloop-sourced champion's own predictions CSV.
+
+    Champions promoted through the evalloop/teacher path (`registry` entry
+    ``source == "evalloop"``, e.g. v5) never get a legacy
+    ``pydantic_predictions_<version>.csv`` — their evidence is the test-split
+    CSV the promotion decision was actually made from. This is the read path
+    the CI eval-regression gate uses for them instead of `load_predictions`.
+    """
+    path = evalloop_champion_csv_path(version, split=split)
+    df = pd.read_csv(path)
+    required = {"report_id", "question", "gold_answer", "pred_answer", "correct"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"{path.name} is missing required columns: {sorted(missing)}")
+    if "split" in df.columns and not (df["split"] == split).all():
+        raise ValueError(f"{path.name} contains rows outside the {split!r} split")
+    return _normalise_predictions(df)
 
 
 def _predicted_program(row: Any) -> str:

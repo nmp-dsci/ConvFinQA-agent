@@ -19,6 +19,7 @@ const Experiments = lazy(() => import('../features/admin/Experiments'));
 const Traces = lazy(() => import('../features/admin/Traces'));
 const TraceDetail = lazy(() => import('../features/admin/TraceDetail'));
 const Research = lazy(() => import('../features/admin/Research'));
+const DatasetReview = lazy(() => import('../features/admin/DatasetReview'));
 const SystemRoute = lazy(() => import('../features/system/SystemRoute'));
 
 function RouteError() {
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <AdminOverview /> },
           { path: 'evaluations', element: <Evaluations /> },
+          { path: 'dataset', element: <DatasetReview /> },
           { path: 'experiments', element: <Experiments /> },
           { path: 'traces', element: <Traces /> },
           { path: 'traces/:traceId', element: <TraceDetail /> },

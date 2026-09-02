@@ -14,6 +14,7 @@ one origin, and no CORS or proxy configuration in the deployment at all.
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from typing import Any
@@ -43,6 +44,25 @@ FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
 # a visitor scrolling the answers explorer should never be throttled, and those
 # routes read cached frames rather than spending anything per request.
 _RATE_LIMITED_PREFIXES = ("/sessions",)
+
+
+def _otlp_span_processors() -> list[Any]:
+    """Span processors for a self-hosted OTLP backend (Phoenix, Jaeger, …).
+
+    Opt-in via the standard OTel env vars — `OTEL_EXPORTER_OTLP_ENDPOINT` or
+    `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` — so the default deployment sends
+    nothing anywhere and needs no OTel imports. Coexists with Logfire cloud:
+    the same spans go to both when both are configured.
+    """
+    if not (
+        os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
+        or os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+    ):
+        return []
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+    return [BatchSpanProcessor(OTLPSpanExporter())]
 
 
 def create_app(
@@ -96,9 +116,21 @@ def create_app(
     app.state.rate_limiter = rate_limiter
     app.state.research = ResearchRunner()
 
-    logfire.configure(send_to_logfire="if-token-present")
+    logfire.configure(
+        send_to_logfire="if-token-present",
+        additional_span_processors=_otlp_span_processors(),
+    )
     logfire.instrument_pydantic_ai()
     logfire.instrument_fastapi(app)
+    if os.environ.get("MLFLOW_TRACING", "").lower() in {"1", "true"}:
+        # MLflow keeps its own tracer provider, so this coexists with the
+        # Logfire instrumentation above. Do NOT set
+        # MLFLOW_USE_DEFAULT_TRACER_PROVIDER=false to merge the two providers:
+        # MLflow's processor on Logfire's provider crashes pydantic-ai runs
+        # (span-metrics exemplar filter hits a None span context).
+        from convfinqa.tracking import tracing
+
+        tracing.enable()
 
     @app.middleware("http")
     async def rate_limit(request: Request, call_next: Any) -> Any:

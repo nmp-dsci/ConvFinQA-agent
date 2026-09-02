@@ -20,6 +20,19 @@ echo "$health" | grep -q '"mode":"demo"' || fail "mode is not demo: $health"
 #    promotion story has nothing to show.
 echo "$health" | grep -q '"champion":"' || fail "no champion registered: $health"
 
+# 2b. Deploy binding (M3): what the container serves IS the champion. The
+#     bundle's prompts_version and the registry champion are two fields
+#     describing the same deployment — if they disagree, the image was built
+#     from a stale registry or the resolver drifted (it has, twice).
+echo "$health" | python3 -c '
+import json, sys
+body = json.load(sys.stdin)
+champion = body.get("champion")
+served = (body.get("bundle") or {}).get("prompts_version")
+if champion and served and champion != served:
+    sys.exit(f"served bundle {served!r} is not the champion {champion!r}")
+' || fail "served version != champion: $health"
+
 # 3. The committed evidence is served.
 splits="$(curl -fsS --max-time 20 "$BASE/eval/splits")" || fail "splits unreachable"
 echo "$splits" | grep -q 'never_seen' || fail "splits payload missing never_seen"

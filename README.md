@@ -91,7 +91,7 @@ This result is what motivated [`ai_specs/s8-optimisation-testing.md`](ai_specs/s
 - **v2** — GEPA-optimised prompts produced by a full real run (`gepa_real_20260502_005251`). Prompts are longer and more explicit: worked examples, explicit percentage convention (`multiply(..., 100)` outermost), clearer Type I vs Type II conversation guidance, and tighter sub-question specification rules (year + entity + metric). Pipeline structure and tools are unchanged from v1. See `src/convfinqa/prompts/v2.py`.
 - **v3_1, v3_2, v3_N** *(generated)* — Each is a variant produced by the s7 prompt-improvement harness. `v3_1` assembles from `v2` baseline + `rules_<agent>_v3_1.jsonl`; `v3_2` assembles from `v3_1` baseline + `rules_<agent>_v3_2.jsonl`; and so on. Pass `--variant <name>` to the harness to start a new variant; chain via `--prompts-version <prev> --variant <next>`. Never hand-edited. See §Prompt-Improvement Harness (s7) below.
   - **`v3_1`** — Built from `v2` + 39 verified rules (`preprocess` 24, `retriever` 7, `calculator` 5, `triage` 3) over the 95 first-wrong-per-conversation cases. Scored 76.2%, a −0.9 pp regression vs v2. **Not promoted.**
-  - **`v3_2`** — *In progress, incomplete.* Round 2 ran diagnose/propose over 94 cases (`case_results_v3_2.jsonl`, `diagnostic_results_v3_2.{csv,html}`) but promoted no rules — the `rules_*_v3_2.jsonl` stores are empty and `prompts/v3_2.py` was never assembled, so there is no v3_2 to evaluate. Resuming means re-running the full loop with `--prompts-version v3_1 --variant v3_2` and letting Step 3 (verify) execute.
+  - **`v3_2`** — *Abandoned, archived.* Round 2 ran diagnose/propose over 94 cases but promoted no rules — the `rules_*_v3_2.jsonl` stores were empty and `prompts/v3_2.py` was never assembled, so there is no v3_2 to evaluate. Its artifacts now live under `archive/evaluation/diagnostics/` (see `archive/README.md`). Starting a new round means re-running the full loop with `--prompts-version v3_1 --variant v3_2` and letting Step 3 (verify) execute.
 
 ### Known state of the s7 case caches
 
@@ -110,12 +110,13 @@ instrument-style admin section at `/admin`, all reading the same backend:
 | **`/chat`** | Pick a filing, ask freely or step through the dataset's own questions, watch the four stages stream in a sessions/thread-inspector layout. |
 | **`/admin`** (Overview) | A jump-off point across the other admin pages. |
 | **`/admin/evaluations`** | Which conversations the optimizer saw, and every question with gold beside each version's answer — filterable to just the turns where versions disagree. |
+| **`/admin/dataset`** | Every split's questions beside gold answer + gold program, so a human can settle `gold_suspect` rows the eval-loop teacher flags. |
 | **`/admin/experiments`** | Every eval / GEPA / research run, the accuracy trend, and a question-by-question diff of any two versions with the pass→fail flip list. |
 | **`/admin/traces`** (+ `/admin/traces/:traceId`) | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
 | **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
 | **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
 
-All six admin pages are visible **read-only** in the public demo — that is
+All seven admin pages are visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
@@ -142,12 +143,19 @@ The promotion contract, enforced in `tracking/registry.py` and
    evidence as long as champions do.
 2. **It is evaluated** on the never-seen split.
 3. **The comparator decides.** First version is champion by default; after that,
-   promotion needs overall accuracy ≥ champion **and no per-question pass→fail
-   flips**. The second condition is the load-bearing one — a change that fixes
-   twelve number turns and breaks nine program turns nets out positive and is
-   still a regression.
+   promotion needs a **net-positive paired comparison** — strictly more
+   questions fixed than broken on the shared question set. Individual
+   pass→fail flips no longer veto promotion on their own (rule changed
+   2026-09-02, at the owner's direction); each flip is still listed on the
+   verdict, together with the exact McNemar p over the discordant pairs, and
+   flagged when the sample can't support significance at α=0.05 — so a
+   small-sample promotion is recorded as what it is, not hidden behind a
+   pass/fail badge.
 4. **Promotion is append-only** — an alias move recorded with timestamp,
    comparator verdict and the runs behind it.
+
+See §Eval loop (M1) & teacher (M2/M2.5) below for the targeted, single-subagent
+variant of this contract that the evalloop CLI drives.
 
 ```bash
 uv run convfinqa-mlflow status                    # config, aliases, versions
@@ -161,6 +169,90 @@ uv run mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
 Logging lives *inside* the eval/GEPA/s7 runners rather than beside them, so a
 run cannot happen without being recorded — an experiment history with silent
 gaps is worse than none.
+
+## Eval loop (M1) & teacher (M2/M2.5)
+
+`convfinqa-evalloop` (`src/convfinqa/evalloop/`) is a second, self-improving
+promotion path alongside the s7 harness and GEPA, built to run against the
+committed splits (`convfinqa-evalloop make-splits` → `evaluation/splits/eval_loop_v1.json`,
+train/test/holdout) rather than the full 770-question corpus:
+
+- **M1 — net-positive gate.** `run --split train --version <v> --n-reports N`
+  scores a version over N reports with full MLflow tracing (`--n-questions N`
+  truncates by cumulative question count instead — walking the split in
+  manifest order until the budget is met — as a per-run subsample rather than
+  a resize of the committed manifest; mutually exclusive with `--n-reports`);
+  `gate --promote` applies the net-positive paired comparison above and
+  refuses `--promote` on train-split evidence — promotion evidence must come
+  from the unseen test split.
+- **M2 — teacher diagnosis.** `diagnose` runs a teacher LLM over each report's
+  first-wrong question against gold answer/program and attributes it to one of
+  `triage` / `preprocess` / `retriever` / `calculator` (taxonomy frozen in
+  `evalloop/teacher.py::TEACHER_PROMPT`); `propose` turns those diagnoses into a
+  challenger that changes exactly **one** subagent's prompt; `gate-targeted
+  --target-agent <agent> --promote` promotes it when that agent's first-fault
+  count drops and overall paired accuracy does not regress, on test-split
+  evidence, recorded via `registry.promote(force=True, reason=...)`.
+- **M2.5 — per-agent prompt lineage.** Each of the four subagents has its own
+  versioned lineage in `registry.json → agent_prompts` (content hash is truth,
+  a `t3.p4.r3.c3`-style sequence number is the human handle); a bundle is a
+  lockfile of the four components. `backfill-prompts` seeds the lineage from
+  the committed prompt modules and `mirror-prompts` mirrors each agent into
+  MLflow's Prompts tab. Every eval run also logs a per-agent, gold-derived
+  metric panel with zero extra API calls (`acc_triage_turn_type`,
+  `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`,
+  `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`), and
+  `gate-targeted` judges the target agent on its own metric, falling back to
+  attribution counts when there isn't one.
+- **M3 — sealed release gate.** `release --i-know-this-opens-the-holdout` opens
+  the once-per-release holdout for the current champion only; every opening is
+  recorded in registry history so a later version can't reuse it as unseen
+  evidence, and a `released` alias moves on pass.
+
+```bash
+uv run convfinqa-evalloop make-splits
+MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
+  uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
+uv run convfinqa-evalloop run --split train --version v4 --n-questions 50
+uv run convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
+  --baseline-version v3_1 --candidate-version v4 --promote
+
+uv run convfinqa-evalloop diagnose --csv <run.csv> --version v3_1
+uv run convfinqa-evalloop propose  --diagnoses <diagnoses.jsonl> --base-version v3_1 --new-version v4
+uv run convfinqa-evalloop gate-targeted --target-agent retriever \
+  --baseline-csv A.csv --candidate-csv B.csv --baseline-version v3_1 --candidate-version v4 --promote
+
+uv run convfinqa-evalloop backfill-prompts
+uv run convfinqa-evalloop mirror-prompts --version v4
+
+# Teacher trust check: label ~30 cases, score agreement against the teacher (bar: kappa >= 0.7)
+uv run convfinqa-evalloop kappa --make --diagnoses evaluation/diagnostics/evalloop/diagnoses_*.jsonl
+uv run convfinqa-evalloop kappa --labels <filled_sheet.csv>
+
+uv run convfinqa-evalloop release --i-know-this-opens-the-holdout
+```
+
+MLflow tracing (`tracking/tracing.py`) is always on for evalloop runs — every
+LLM call lands as a span (run → report → question → named agent stage →
+`Agent.run`), linked to the MLflow run via `mlflow.pydantic_ai.autolog()`;
+serving opts in with `MLFLOW_TRACING=1`. The two tracer providers (MLflow and
+Logfire) stay separate — never set `MLFLOW_USE_DEFAULT_TRACER_PROVIDER=false`
+to merge them, it crashes Pydantic AI runs.
+
+Validated first on a 10-report smoke (a retriever-only challenger, `v4`, was
+correctly refused — test-split evidence showed calculator accuracy collapse
+even though train accuracy and retriever recall both improved, which is the
+per-agent panel doing its job), then for real on 50 reports: the teacher found
+30 first-faults (14 preprocess / 10 retriever / 3 calculator / 3 triage, plus 4
+`gold_suspect` rows), a preprocess-only challenger `v5` was proposed, and it
+promoted on the sealed-from-optimisation test split (77.5% → 79.7%, +2.14pp,
+12 fixed vs. 8 broken, McNemar p=0.503) — the first fully-protocol promotion,
+now champion.
+
+The **Dataset page** (`/admin/dataset`, backed by `GET /eval/dataset?split=`)
+lists every split's `report_id` / question / gold answer / gold program /
+`turn_type` side by side, so a human can settle the `gold_suspect` rows the
+teacher flags.
 
 ## Demo mode
 
@@ -182,6 +274,7 @@ number would be the worst failure a system about numerical accuracy could have.
 ```bash
 docker compose up demo     # exactly what ships: no keys, replayed chat
 docker compose up dev      # same image, live model, your key
+docker compose up -d mlflow  # always-on local tracking server (registry, experiments, traces)
 ./scripts/demo_smoke.sh http://localhost:8080
 ```
 
@@ -212,8 +305,9 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `src/convfinqa/prompts/` | Versioned prompt modules (`v1`, `v2`, generated `v3_1`, `v3_2`, …). |
 | `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). CLI implementation lives in `diagnosis/cli.py`. |
 | `src/convfinqa/llm.py` | **The single LLM choke point.** Every model is built here; retry/timeout policy and the demo gate live here and nowhere else. |
-| `src/convfinqa/tracking/` | Bundle fingerprint, trace store, MLflow logging, comparator, registry, backfill, snapshot, CI gate. |
-| `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation`, `traces`, `admin`, `metrics`), session store, limits, research runner. |
+| `src/convfinqa/tracking/` | Bundle fingerprint, trace store, MLflow logging + tracing (`tracing.py`), comparator, registry, per-agent prompt lineage (`prompt_ledger.py`), backfill, snapshot, CI gate. |
+| `src/convfinqa/evalloop/` | Self-improving eval loop (M1/M2/M2.5): splits, runner, teacher diagnosis, targeted-challenger proposal, net-positive and targeted gates, kappa tooling, sealed M3 release. `convfinqa-evalloop` CLI. See §Eval loop (M1) & teacher (M2/M2.5). |
+| `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation` incl. `/eval/dataset`, `traces`, `admin`, `metrics`), session store, limits, research runner. |
 | `src/convfinqa/error_codes.py` | Closed `ErrorCode` vocabulary a failed turn is classified into, alongside its free-text message. |
 | `src/convfinqa/serving/demo_pack/` | Recorded conversations + replay, so the keyless demo streams like the live app. |
 | `src/convfinqa/optimization/` | GEPA and prompt optimisation entry points. |
@@ -221,11 +315,13 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `ai_specs/` | Design specs — `s7-prompt-optimisation.md` (implemented), `s8-optimisation-testing.md` (specified, not implemented). |
 | `frontend/` | React/Vite operator console — landing board, chat, admin section. See §Production surfaces. |
 | `evaluation/predictions/` | Cached prediction CSVs + dark-themed HTML reports + joined CSVs. Tracked in git so accuracy reproduces offline. |
-| `evaluation/diagnostics/` | s7 harness stores (`rules_*`, `rule_attempts_*`, `diagnostic_results_*`, …). Tracked in git. |
+| `evaluation/diagnostics/` | s7 harness stores (`rules_*`, `rule_attempts_*`, `diagnostic_results_*`, …); `evalloop/` subdir holds teacher diagnoses and the kappa labelling sheet. Tracked in git. |
+| `evaluation/splits/` | Committed eval-loop split manifest (`eval_loop_v1.json`: train/test/holdout `report_id`s). Tracked in git. |
 | `runs/` | GEPA optimization artifacts (`optimized_runner.json`). Tracked in git so prior runs are usable on any clone. |
-| `evaluation/registry.json`, `evaluation/mlflow_snapshot.json` | Bundle registry + exported experiment history. Tracked, and baked into the demo image. |
+| `evaluation/registry.json`, `evaluation/mlflow_snapshot.json` | Bundle registry (including per-agent prompt lineages in `agent_prompts`) + exported experiment history. Tracked, and baked into the demo image. |
+| `archive/` | Retired experiment by-products (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round). Nothing reads it; `archive/README.md` lists what moved. |
 | `infra/terraform/` | `bootstrap/` (run once: the OIDC deploy role) and `demo/` (ECR + App Runner + alarm). |
-| `Dockerfile`, `docker-compose.yml` | The demo image, and the local dev/demo toggle. |
+| `Dockerfile`, `docker-compose.yml` | The demo image, the local dev/demo toggle, and an always-on `mlflow` tracking-server service. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
 | `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshot is what ships. |
 
@@ -645,16 +741,23 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 |---|---|
 | ruff check + format | clean |
 | mypy (strict-ish, 72 files) | clean |
-| pytest | **149 passed**, zero network calls, no API key required |
+| pytest | **174 passed**, zero network calls, no API key required |
 | frontend typecheck + vitest + build | clean, 99 unit tests |
 | Playwright e2e (`landing.spec.ts`, keyless) | 7/7 passing in CI; full local suite (needs `DEEPSEEK_API_KEY`) is 11/11 |
-| eval-regression gate | passes; champion `v2` at 77.14% against a 76.64% floor |
+| eval-regression gate | checks the s7/GEPA versions (`v1`, `v2`, `v3_1`) committed under `evaluation/predictions/`, and floor-checks the registered champion from whichever evidence its `source` used |
 
 The **eval-regression gate** is the load-bearing one. Because prediction CSVs
 are committed, it re-scores them deterministically with no API calls, and fails
 the build if the champion drops below its registered floor, if any CSV's
 `correct` column stops agreeing with re-scoring its own answers, or — for a
 registered challenger — it prints the exact questions that flipped pass→fail.
+Its champion floor check branches on the registry entry's `source`: legacy
+champions (`manual`/`gepa`/`s7`) are re-scored from a full-corpus
+`pydantic_predictions_<version>.csv`; champions promoted through the evalloop
+path (`source: "evalloop"`, e.g. `v5`) never get that file, so they're
+re-scored from their own committed test-split CSV under
+`evaluation/predictions/evalloop/` instead — the same evidence the promotion
+decision was made from (`comparator.load_evalloop_champion_predictions`).
 
 Two notes on the mypy config, since both were real bugs:
 `packages = ["src"]` pointed at a directory that is not a package, so every

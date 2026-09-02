@@ -37,24 +37,33 @@ def lm_max() -> Any:
 def make_agents(version_prompts: dict[str, str]) -> dict[str, Agent[None, Any]]:
     """Build a fresh set of four pipeline agents from a prompts dict."""
     model = lm_mini()
+    # `name=` labels each agent's span in traces (Logfire and MLflow both).
     calc: Agent[None, Any] = Agent(
-        model, output_type=CalcOut, instructions=version_prompts["calculator"]
+        model,
+        output_type=CalcOut,
+        instructions=version_prompts["calculator"],
+        name="calculator",
     )
     for fn in CALCULATOR_TOOLS:
         calc.tool_plain(fn)
     return {
         "triage": Agent(
-            model, output_type=TriageOut, instructions=version_prompts["triage"]
+            model,
+            output_type=TriageOut,
+            instructions=version_prompts["triage"],
+            name="triage",
         ),
         "preprocess": Agent(
             model,
             output_type=PreprocessOut,
             instructions=version_prompts["preprocess"],
+            name="preprocess",
         ),
         "retriever": Agent(
             model,
             output_type=RetrievedValues,
             instructions=version_prompts["retriever"],
+            name="retriever",
         ),
         "calculator": calc,
     }

@@ -8,7 +8,12 @@ The contract this file enforces, end to end:
    its evidence exactly as long as a champion does.
 2. **It is evaluated on the held-out set** the optimizer never saw.
 3. **The comparator decides promotion** — first version is champion by default;
-   after that, accuracy >= champion AND no pass->fail flips (see `comparator`).
+   after that, a net-positive paired comparison on the shared question set
+   (more questions fixed than broken; individual pass->fail flips no longer
+   veto on their own — see `comparator`). The M2 targeted-challenger path can
+   also promote via `registry.promote(force=True, reason=...)` when a target
+   agent's first-fault count drops and overall paired accuracy does not
+   regress, with the comparison attached rather than silently applied.
 4. **Promotion is an append-only event.** The alias moves, and a record is
    appended with timestamp, verdict, and the runs it was based on. Nothing is
    ever overwritten, so the history is the history.
@@ -43,11 +48,14 @@ def _now() -> str:
 
 @dataclass
 class RegistryDoc:
-    """The whole registry: versions, current aliases, and promotion history."""
+    """The whole registry: versions, aliases, promotion history, agent lineages."""
 
     versions: list[dict[str, Any]]
     aliases: dict[str, str]
     history: list[dict[str, Any]]
+    # Per-agent prompt lineages (M2.5): agent -> ordered entries
+    # {seq, hash, first_seen_in, parent, source, registered_at, run_id}.
+    agent_prompts: dict[str, list[dict[str, Any]]] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form."""
@@ -56,6 +64,7 @@ class RegistryDoc:
             "versions": self.versions,
             "aliases": self.aliases,
             "history": self.history,
+            "agent_prompts": self.agent_prompts or {},
         }
 
 
@@ -69,6 +78,7 @@ def load(path: Path | None = None) -> RegistryDoc:
         versions=list(raw.get("versions", [])),
         aliases=dict(raw.get("aliases", {})),
         history=list(raw.get("history", [])),
+        agent_prompts=dict(raw.get("agent_prompts", {})),
     )
 
 
@@ -96,6 +106,7 @@ def register(
     overlay: str | None = None,
     metrics: dict[str, float] | None = None,
     notes: str = "",
+    extra: dict[str, Any] | None = None,
     path: Path | None = None,
 ) -> dict[str, Any]:
     """Register (or refresh) a bundle version. Never deletes prior entries.
@@ -131,6 +142,8 @@ def register(
         entry["runs"].append(run_id)
     if metrics:
         entry["metrics"] = {**entry.get("metrics", {}), **metrics}
+    if extra:
+        entry.update(extra)
     save(doc, path)
     return entry
 
@@ -197,6 +210,7 @@ def promote(
     comparison: ComparisonResult | None = None,
     actor: str = "owner",
     force: bool = False,
+    reason: str | None = None,
     path: Path | None = None,
 ) -> PromotionOutcome:
     """Promote `version` to champion if the comparator allows it.
@@ -215,7 +229,7 @@ def promote(
     previous = doc.aliases.get(CHAMPION)
 
     if previous is None:
-        reason = "first registered version becomes champion by default"
+        reason = reason or "first registered version becomes champion by default"
     elif previous == version:
         return PromotionOutcome(
             promoted=False,
@@ -225,7 +239,7 @@ def promote(
             comparison=comparison.as_dict() if comparison else None,
         )
     elif force:
-        reason = "forced promotion (comparator bypassed deliberately)"
+        reason = reason or "forced promotion (comparator bypassed deliberately)"
     else:
         if comparison is None:
             from convfinqa.tracking.comparator import compare

@@ -27,19 +27,20 @@
     {
       "version": "v2",
       "registered_at": "2026-08-28T00:15:18.986156+00:00",
-      "source": "manual",
-      "bundle_id": "5bd47e9e3c23",
+      "source": "evalloop",
+      "bundle_id": "65c8a3edd210",
       "bundle": {
         "prompts_version": "v2",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "0ee36df"
+        "code_sha": "bec0e68"
       },
       "runs": [
         "8292242f6dcf48b5a440c9c346fc1305",
-        "4f91d36929c14a8cb28b376dd9d9b93e"
+        "4f91d36929c14a8cb28b376dd9d9b93e",
+        "9c4c88bc649c4f80a68cd4c0a34c2b52"
       ],
       "metrics": {
         "accuracy": 0.771429,
@@ -50,29 +51,101 @@
     {
       "version": "v3_1",
       "registered_at": "2026-08-28T00:15:19.037294+00:00",
-      "source": "manual",
-      "bundle_id": "010add94fe49",
+      "source": "evalloop",
+      "bundle_id": "2994a7f5b506",
       "bundle": {
         "prompts_version": "v3_1",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "0ee36df"
+        "code_sha": "ffc57c4",
+        "composition": "t3.p3.r3.c3",
+        "v_triage": "t3@63965ead",
+        "v_preprocess": "p3@2fa2057e",
+        "v_retriever": "r3@d104cf5d",
+        "v_calculator": "c3@769c8095"
       },
       "runs": [
         "ea3caf7a72d24a608273c8e5d60001ff",
-        "a8dd8665d9684004b6f6732ad6cb4255"
+        "a8dd8665d9684004b6f6732ad6cb4255",
+        "45a0bf7a03ec4e8b9be58f19eb8dfafa",
+        "ec7eceabac0c47309d00a1b651081ccc",
+        "eae8da3e243e406ab158de99ac84254d",
+        "5627710fe1dc401986b1f9a44f69e9cf",
+        "0054022cbefd44c8b506b14a0fb1e8f4",
+        "34aaa2f6e2b24f48abc9ee3080967e9a",
+        "64f4d0ff54cd43fdba4d3254ddbd0f69"
       ],
       "metrics": {
         "accuracy": 0.762338,
         "n_questions": 770.0
       },
       "notes": ""
+    },
+    {
+      "version": "v4",
+      "registered_at": "2026-09-02T10:02:19.536044+00:00",
+      "source": "evalloop",
+      "bundle_id": "6fe5d0d327c1",
+      "bundle": {
+        "prompts_version": "v4",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "bec0e68",
+        "composition": "t3.p3.r4.c3",
+        "v_triage": "t3@63965ead",
+        "v_preprocess": "p3@2fa2057e",
+        "v_retriever": "r4@2c401477",
+        "v_calculator": "c3@769c8095"
+      },
+      "runs": [
+        "3881e9f9f45e4db4b902b7ee738e6363",
+        "2888084a931e4551bf047ec15587d062",
+        "cc4ae7500b5c4aeb9fbe69def03b0cc4"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only retriever changed (parent v3_1); hypothesis: fixes 3 of 6 diagnosed first-faults"
+    },
+    {
+      "version": "v5",
+      "registered_at": "2026-09-02T12:13:15.799390+00:00",
+      "source": "evalloop",
+      "bundle_id": "05c0fe58b89b",
+      "bundle": {
+        "prompts_version": "v5",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "ffc57c4",
+        "composition": "t3.p4.r3.c3",
+        "v_triage": "t3@63965ead",
+        "v_preprocess": "p4@18878a5c",
+        "v_retriever": "r3@d104cf5d",
+        "v_calculator": "c3@769c8095"
+      },
+      "runs": [
+        "8793f559a0ab4559ac6d4ebaff127dec",
+        "a8d523b14a34433bb3e2c2940e3da2bb",
+        "e7eddd2df0fa4b5ab919bf3d50bc2c38"
+      ],
+      "metrics": {
+        "accuracy": 0.796791,
+        "n_questions": 187.0
+      },
+      "notes": "targeted challenger: only preprocess changed (parent v3_1); hypothesis: fixes 14 of 30 diagnosed first-faults",
+      "parent": "v3_1",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t3.p4.r3.c3"
     }
   ],
   "aliases": {
-    "champion": "v2"
+    "champion": "v5"
   },
   "history": [
     {
@@ -84,6 +157,542 @@
       "forced": false,
       "reason": "first registered version becomes champion by default",
       "comparison": null
+    },
+    {
+      "at": "2026-09-02T04:59:09.663627+00:00",
+      "event": "promote",
+      "version": "v3_1",
+      "previous_champion": "v2",
+      "actor": "evalloop",
+      "forced": false,
+      "reason": "comparator passed: net positive: 54.5% \u2192 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at \u03b1=0.05)",
+      "comparison": {
+        "baseline_version": "v2",
+        "candidate_version": "v3_1",
+        "baseline_accuracy": 0.545455,
+        "candidate_accuracy": 0.613636,
+        "baseline_accuracy_all": 0.545455,
+        "candidate_accuracy_all": 0.613636,
+        "accuracy_delta": 0.068182,
+        "n_compared": 44,
+        "accuracy_ok": true,
+        "no_regressions": false,
+        "pass_to_fail": 2,
+        "fail_to_pass": 5,
+        "mcnemar_p": 0.453125,
+        "significant": false,
+        "promotable": true,
+        "reason": "net positive: 54.5% \u2192 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at \u03b1=0.05)",
+        "regressions": [
+          {
+            "report_id": "Double_KIM/2010/page_94.pdf",
+            "q_order": 0,
+            "question": "what was the change in the noncontrolling interest relating to the remaining units from 2009 to 2010?",
+            "gold_answer": "-2.7",
+            "baseline_answer": "-2.6999999999999886",
+            "candidate_answer": "2.7"
+          },
+          {
+            "report_id": "Double_C/2009/page_141.pdf",
+            "q_order": 5,
+            "question": "what percentage, then, does that change represent in relation to this 2008 amount?",
+            "gold_answer": "43.5%",
+            "baseline_answer": "43.5%",
+            "candidate_answer": "835.6%"
+          }
+        ],
+        "improvements": [
+          {
+            "report_id": "Double_HIG/2016/page_253.pdf",
+            "q_order": 2,
+            "question": "what was, then, that net operating lease obligation with this sublease income?",
+            "gold_answer": "40",
+            "baseline_answer": "44.0",
+            "candidate_answer": "40"
+          },
+          {
+            "report_id": "Double_HIG/2016/page_253.pdf",
+            "q_order": 3,
+            "question": "and how much did that net operating lease obligation excluding this income represent, in percentage, in relation to the total future minimum lease commitments for operating leases?",
+            "gold_answer": "25.8%",
+            "baseline_answer": "100.0%",
+            "candidate_answer": "25.8%"
+          },
+          {
+            "report_id": "Double_MMM/2007/page_38.pdf",
+            "q_order": 0,
+            "question": "what is the increase in tax payment in 2006?",
+            "gold_answer": "600",
+            "baseline_answer": "no",
+            "candidate_answer": "600"
+          },
+          {
+            "report_id": "Double_MMM/2007/page_38.pdf",
+            "q_order": 6,
+            "question": "what percentage change does this represent?",
+            "gold_answer": "-6.4%",
+            "baseline_answer": "no",
+            "candidate_answer": "-6.4%"
+          },
+          {
+            "report_id": "Double_C/2009/page_141.pdf",
+            "q_order": 3,
+            "question": "and in that same two year period, what was the variation of the additions for new sales of the repurchase reserve?",
+            "gold_answer": "10",
+            "baseline_answer": "43.5%",
+            "candidate_answer": "10"
+          }
+        ],
+        "slice_deltas": {
+          "gold_turn_type": {
+            "Number": 0.055556,
+            "Program": 0.076923
+          },
+          "gold_conv_type": {
+            "Type I": 0.038462,
+            "Type II": 0.111111
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "at": "2026-09-02T10:05:54.423634+00:00",
+      "event": "promote",
+      "version": "v4",
+      "previous_champion": "v3_1",
+      "actor": "evalloop-teacher",
+      "forced": true,
+      "reason": "targeted (M2): retriever first-faults 3 \u2192 2 on the shared reports; overall \u0394 +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875",
+      "comparison": {
+        "baseline_version": "v3_1",
+        "candidate_version": "v4",
+        "baseline_accuracy": 0.636364,
+        "candidate_accuracy": 0.727273,
+        "baseline_accuracy_all": 0.636364,
+        "candidate_accuracy_all": 0.727273,
+        "accuracy_delta": 0.090909,
+        "n_compared": 44,
+        "accuracy_ok": true,
+        "no_regressions": false,
+        "pass_to_fail": 1,
+        "fail_to_pass": 5,
+        "mcnemar_p": 0.21875,
+        "significant": false,
+        "promotable": true,
+        "reason": "net positive: 63.6% \u2192 72.7% (+9.09%) on the shared set, 5 fixed vs 1 broken; McNemar p=0.219 (not significant at \u03b1=0.05)",
+        "regressions": [
+          {
+            "report_id": "Double_C/2009/page_141.pdf",
+            "q_order": 2,
+            "question": "how much, then, did the 2009 change represent in relation to this 2008 one?",
+            "gold_answer": "8.35",
+            "baseline_answer": "8.35593220338983",
+            "candidate_answer": "835.6%"
+          }
+        ],
+        "improvements": [
+          {
+            "report_id": "Double_HIG/2016/page_253.pdf",
+            "q_order": 0,
+            "question": "in 2017, what was the net operating lease obligation excluding the expected future minimum sublease income?",
+            "gold_answer": "42",
+            "baseline_answer": "40.0",
+            "candidate_answer": "42.0"
+          },
+          {
+            "report_id": "Double_HIG/2016/page_253.pdf",
+            "q_order": 3,
+            "question": "and how much did that net operating lease obligation excluding this income represent, in percentage, in relation to the total future minimum lease commitments for operating leases?",
+            "gold_answer": "25.8%",
+            "baseline_answer": "95.2%",
+            "candidate_answer": "25.8%"
+          },
+          {
+            "report_id": "Double_MMM/2007/page_38.pdf",
+            "q_order": 0,
+            "question": "what is the increase in tax payment in 2006?",
+            "gold_answer": "600",
+            "baseline_answer": "no",
+            "candidate_answer": "600"
+          },
+          {
+            "report_id": "Double_MMM/2007/page_38.pdf",
+            "q_order": 2,
+            "question": "what is the ratio of tax payment to the net change in cash flows provided by operating activities in 2006?",
+            "gold_answer": "1.64",
+            "baseline_answer": "-1.643835616438356",
+            "candidate_answer": "1.643835616438356"
+          },
+          {
+            "report_id": "Double_PNC/2009/page_68.pdf",
+            "q_order": 2,
+            "question": "what was, then, the decline over the year?",
+            "gold_answer": "76",
+            "baseline_answer": "-76",
+            "candidate_answer": "76"
+          }
+        ],
+        "slice_deltas": {
+          "gold_turn_type": {
+            "Number": 0.111111,
+            "Program": 0.076923
+          },
+          "gold_conv_type": {
+            "Type I": 0.115385,
+            "Type II": 0.055556
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "at": "2026-09-02T11:34:26.057841+00:00",
+      "event": "promote",
+      "version": "v3_1",
+      "previous_champion": "v4",
+      "actor": "owner",
+      "forced": true,
+      "reason": "rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test data.",
+      "comparison": null
+    },
+    {
+      "at": "2026-09-02T12:18:57.161118+00:00",
+      "event": "promote",
+      "version": "v5",
+      "previous_champion": "v3_1",
+      "actor": "evalloop-teacher",
+      "forced": true,
+      "reason": "targeted (M2): preprocess acc_preprocess_skeleton 0.415 \u2192 0.447 on the shared test reports; overall \u0394 +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445",
+      "comparison": {
+        "baseline_version": "v3_1",
+        "candidate_version": "v5",
+        "baseline_accuracy": 0.775401,
+        "candidate_accuracy": 0.796791,
+        "baseline_accuracy_all": 0.775401,
+        "candidate_accuracy_all": 0.796791,
+        "accuracy_delta": 0.02139,
+        "n_compared": 187,
+        "accuracy_ok": true,
+        "no_regressions": false,
+        "pass_to_fail": 8,
+        "fail_to_pass": 12,
+        "mcnemar_p": 0.503445,
+        "significant": false,
+        "promotable": true,
+        "reason": "net positive: 77.5% \u2192 79.7% (+2.14%) on the shared set, 12 fixed vs 8 broken; McNemar p=0.503 (not significant at \u03b1=0.05)",
+        "regressions": [
+          {
+            "report_id": "Double_INTC/2018/page_50.pdf",
+            "q_order": 1,
+            "question": "and what percentage of the total operating lease obligations were due 1 20133 years?",
+            "gold_answer": "37.6%",
+            "baseline_answer": "37.6%",
+            "candidate_answer": "14.5%"
+          },
+          {
+            "report_id": "Double_SLG/2012/page_87.pdf",
+            "q_order": 0,
+            "question": "what is the annual interest cost for the 125 park avenue acquisition?",
+            "gold_answer": "8.4",
+            "baseline_answer": "8.41",
+            "candidate_answer": "8406450.00"
+          },
+          {
+            "report_id": "Double_SLG/2012/page_87.pdf",
+            "q_order": 1,
+            "question": "what was the company's share of the value of the 521 fifth avenue acquisition, based on the transaction cost?",
+            "gold_answer": "122.6043",
+            "baseline_answer": "122.60",
+            "candidate_answer": "257143"
+          },
+          {
+            "report_id": "Single_LMT/2016/page_85.pdf-1",
+            "q_order": 4,
+            "question": "and the percentage change during this time?",
+            "gold_answer": "-4%",
+            "baseline_answer": "-4.2%",
+            "candidate_answer": "4.4%"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 2,
+            "question": "what was the change in the return of the s&p 500 index from 2011 to 2016?",
+            "gold_answer": "78",
+            "baseline_answer": "78.0",
+            "candidate_answer": "-78"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 4,
+            "question": "how much, then, does that change represent in relation to this 2011 return, in percentage?",
+            "gold_answer": "78%",
+            "baseline_answer": "78.0%",
+            "candidate_answer": "-78.0%"
+          },
+          {
+            "report_id": "Single_MS/2013/page_240.pdf-3",
+            "q_order": 2,
+            "question": "what was, then, the change in the total of future minimum rental commitments over the year?",
+            "gold_answer": "-35",
+            "baseline_answer": "-35",
+            "candidate_answer": "35"
+          },
+          {
+            "report_id": "Single_MS/2013/page_240.pdf-3",
+            "q_order": 3,
+            "question": "and how much does this change represent in relation to that total in 2015, in percentage?",
+            "gold_answer": "-5%",
+            "baseline_answer": "-5.3%",
+            "candidate_answer": "5.3%"
+          }
+        ],
+        "improvements": [
+          {
+            "report_id": "Double_AES/2016/page_185.pdf",
+            "q_order": 2,
+            "question": "how much, then, did those requirements represent in relation to this amount?",
+            "gold_answer": "5%",
+            "baseline_answer": "10%",
+            "candidate_answer": "5.0%"
+          },
+          {
+            "report_id": "Double_ETR/2008/page_355.pdf",
+            "q_order": 3,
+            "question": "and what percentage of that increase between the years was due to rider revenue?",
+            "gold_answer": "18%",
+            "baseline_answer": "0.0%",
+            "candidate_answer": "18.0%"
+          },
+          {
+            "report_id": "Double_C/2009/page_48.pdf",
+            "q_order": 5,
+            "question": "what is the net change from 2007 to 2008?",
+            "gold_answer": "-1303",
+            "baseline_answer": "1303",
+            "candidate_answer": "-1303"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 0,
+            "question": "what is the effect of bad debd expense and write-offs in the balance of allowance for doubtful accounts during 2015?",
+            "gold_answer": "4",
+            "baseline_answer": "48.0",
+            "candidate_answer": "4"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 2,
+            "question": "what is the total change in the balance of allowance for doubtful accounts during 2015?",
+            "gold_answer": "-2",
+            "baseline_answer": "20",
+            "candidate_answer": "-2"
+          },
+          {
+            "report_id": "Single_DVN/2013/page_78.pdf-3",
+            "q_order": 1,
+            "question": "what is the total debt maturities?",
+            "gold_answer": "12042",
+            "baseline_answer": "9989",
+            "candidate_answer": "12042.0"
+          },
+          {
+            "report_id": "Single_AMT/2004/page_91.pdf-4",
+            "q_order": 0,
+            "question": "what is the net change in rent expense from 2003 to 2004?",
+            "gold_answer": "4785000",
+            "baseline_answer": "-4785000",
+            "candidate_answer": "4785000"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 0,
+            "question": "what was the change in the return of the lkq corporation from 2011 to 2016?",
+            "gold_answer": "104",
+            "baseline_answer": "-104",
+            "candidate_answer": "104"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 1,
+            "question": "and how much does this change represent in relation to the return of that stock in 2011, in percentage?",
+            "gold_answer": "104%",
+            "baseline_answer": "-104.0%",
+            "candidate_answer": "104.0%"
+          },
+          {
+            "report_id": "Single_UNP/2006/page_62.pdf-3",
+            "q_order": 3,
+            "question": "what is the value for capital leases?",
+            "gold_answer": "1916",
+            "baseline_answer": "1236.0",
+            "candidate_answer": "1916"
+          },
+          {
+            "report_id": "Single_UNP/2006/page_62.pdf-3",
+            "q_order": 4,
+            "question": "what is that over the sum?",
+            "gold_answer": "26%",
+            "baseline_answer": "0.16763868167638682",
+            "candidate_answer": "0.2598670825986708"
+          },
+          {
+            "report_id": "Single_ZBH/2013/page_68.pdf-3",
+            "q_order": 3,
+            "question": "and as a decimal?",
+            "gold_answer": ".01297",
+            "baseline_answer": "no",
+            "candidate_answer": "1.2833168805528137"
+          }
+        ],
+        "slice_deltas": {
+          "gold_turn_type": {
+            "Number": 0.03125,
+            "Program": 0.01626
+          },
+          "gold_conv_type": {
+            "Type I": 0.025,
+            "Type II": 0.0
+          }
+        },
+        "notes": []
+      }
     }
-  ]
+  ],
+  "agent_prompts": {
+    "triage": [
+      {
+        "seq": "t1",
+        "hash": "e89fba5d",
+        "first_seen_in": "v1",
+        "parent": null,
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.895466+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "t2",
+        "hash": "f028a9ed",
+        "first_seen_in": "v2",
+        "parent": "t1",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.896549+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "t3",
+        "hash": "63965ead",
+        "first_seen_in": "v3_1",
+        "parent": "t2",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.897089+00:00",
+        "run_id": ""
+      }
+    ],
+    "preprocess": [
+      {
+        "seq": "p1",
+        "hash": "6a7a6444",
+        "first_seen_in": "v1",
+        "parent": null,
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.895481+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "p2",
+        "hash": "2341df56",
+        "first_seen_in": "v2",
+        "parent": "p1",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.896558+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "p3",
+        "hash": "2fa2057e",
+        "first_seen_in": "v3_1",
+        "parent": "p2",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.897108+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "p4",
+        "hash": "18878a5c",
+        "first_seen_in": "v5",
+        "parent": "p3",
+        "source": "teacher",
+        "registered_at": "2026-09-02T12:13:15.797989+00:00",
+        "run_id": "8793f559a0ab4559ac6d4ebaff127dec"
+      }
+    ],
+    "retriever": [
+      {
+        "seq": "r1",
+        "hash": "38a3a8b9",
+        "first_seen_in": "v1",
+        "parent": null,
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.895486+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "r2",
+        "hash": "bf70ef7c",
+        "first_seen_in": "v2",
+        "parent": "r1",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.896566+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "r3",
+        "hash": "d104cf5d",
+        "first_seen_in": "v3_1",
+        "parent": "r2",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.897119+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "r4",
+        "hash": "2c401477",
+        "first_seen_in": "v4",
+        "parent": "r3",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.897642+00:00",
+        "run_id": ""
+      }
+    ],
+    "calculator": [
+      {
+        "seq": "c1",
+        "hash": "fd1f2946",
+        "first_seen_in": "v1",
+        "parent": null,
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.895491+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "c2",
+        "hash": "ba740497",
+        "first_seen_in": "v2",
+        "parent": "c1",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.896574+00:00",
+        "run_id": ""
+      },
+      {
+        "seq": "c3",
+        "hash": "769c8095",
+        "first_seen_in": "v3_1",
+        "parent": "c2",
+        "source": "backfill",
+        "registered_at": "2026-09-02T11:34:10.897128+00:00",
+        "run_id": ""
+      }
+    ]
+  }
 }
