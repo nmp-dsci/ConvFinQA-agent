@@ -113,6 +113,7 @@ async def run_split(
     version: str,
     *,
     n_reports: int | None = None,
+    n_questions: int | None = None,
     concurrency: int = 8,
     environment: str = "dev",
 ) -> dict[str, Any]:
@@ -127,7 +128,7 @@ async def run_split(
     from convfinqa.tracking.traces import TraceStore
 
     manifest = load_manifest()
-    report_ids = split_report_ids(split, n_reports=n_reports)
+    report_ids = split_report_ids(split, n_reports=n_reports, n_questions=n_questions)
     examples = examples_for(report_ids)
     n_questions = sum(len(ex.questions) for ex in examples)
     agents = make_agents(prompts_pkg.load(version))

@@ -60,6 +60,24 @@ def test_split_report_ids_truncates_in_manifest_order(
         splits.split_report_ids("dev", path=path)
 
 
+def test_split_report_ids_by_question_budget(manifest: dict, tmp_path: Path) -> None:
+    from convfinqa.data.loader import training_data
+
+    path = tmp_path / "m.json"
+    splits.write_manifest(manifest, path)
+    counts = training_data().groupby("report_id")["question_id"].size().to_dict()
+
+    fifty = splits.split_report_ids("train", n_questions=50, path=path)
+    assert fifty == manifest["splits"]["train"][: len(fifty)]
+    total = sum(counts[rid] for rid in fifty)
+    assert total >= 50
+    # dropping the last report must fall (or stay, if it alone met the budget) short
+    assert total - counts[fifty[-1]] < 50
+
+    with pytest.raises(ValueError, match="at most one"):
+        splits.split_report_ids("train", n_reports=5, n_questions=50, path=path)
+
+
 # ── runner pieces ───────────────────────────────────────────────────────
 
 

@@ -2,6 +2,7 @@
 
     convfinqa-evalloop make-splits
     convfinqa-evalloop run --split train --version v2 --n-reports 10
+    convfinqa-evalloop run --split train --version v2 --n-questions 50
     convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
         --baseline-version v2 --candidate-version v3_1 --promote
     convfinqa-evalloop diagnose --csv <run.csv> --version v3_1
@@ -34,7 +35,17 @@ def main() -> None:
     rn = sub.add_parser("run", help="Run one split × version pass (an MLflow run).")
     rn.add_argument("--split", default="train", choices=("train", "test", "holdout"))
     rn.add_argument("--version", required=True, help="Prompt version, e.g. v2.")
-    rn.add_argument("--n-reports", type=int, default=None)
+    rn.add_argument("--n-reports", type=int, default=None, help="Truncate by report count.")
+    rn.add_argument(
+        "--n-questions",
+        type=int,
+        default=None,
+        help=(
+            "Truncate by cumulative question count instead of report count "
+            "(walks the split in manifest order until the budget is met). "
+            "Mutually exclusive with --n-reports."
+        ),
+    )
     rn.add_argument("--concurrency", type=int, default=8)
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
@@ -141,11 +152,14 @@ def main() -> None:
             )
         from convfinqa.evalloop.runner import run_split
 
+        if args.n_reports and args.n_questions:
+            ap.error("pass at most one of --n-reports, --n-questions")
         summary = asyncio.run(
             run_split(
                 args.split,
                 args.version,
                 n_reports=args.n_reports,
+                n_questions=args.n_questions,
                 concurrency=args.concurrency,
             )
         )

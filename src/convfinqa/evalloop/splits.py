@@ -161,10 +161,37 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
 
 
 def split_report_ids(
-    split: str, *, n_reports: int | None = None, path: Path | None = None
+    split: str,
+    *,
+    n_reports: int | None = None,
+    n_questions: int | None = None,
+    path: Path | None = None,
 ) -> list[str]:
-    """The report ids of one split, in manifest order, optionally truncated."""
+    """The report ids of one split, in manifest order, optionally truncated.
+
+    `n_reports` truncates by conversation count. `n_questions` truncates by
+    cumulative question count instead — a per-run budget, not a resize of the
+    committed manifest — by walking manifest order and stopping once the
+    budget is met. Pass at most one; both leave the manifest's own train/test/
+    holdout pools (and any evidence already recorded against them) untouched.
+    """
     if split not in SPLIT_NAMES:
         raise ValueError(f"Unknown split {split!r}; expected one of {SPLIT_NAMES}")
+    if n_reports and n_questions:
+        raise ValueError("pass at most one of n_reports, n_questions")
     ids = list(load_manifest(path)["splits"][split])
-    return ids[:n_reports] if n_reports else ids
+    if n_reports:
+        return ids[:n_reports]
+    if n_questions:
+        from convfinqa.data.loader import training_data
+
+        counts = training_data().groupby("report_id")["question_id"].size().to_dict()
+        out: list[str] = []
+        total = 0
+        for report_id in ids:
+            if total >= n_questions:
+                break
+            out.append(report_id)
+            total += counts.get(report_id, 0)
+        return out
+    return ids
