@@ -741,27 +741,23 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 |---|---|
 | ruff check + format | clean |
 | mypy (strict-ish, 72 files) | clean |
-| pytest | **169 passed**, zero network calls, no API key required |
+| pytest | **174 passed**, zero network calls, no API key required |
 | frontend typecheck + vitest + build | clean, 99 unit tests |
 | Playwright e2e (`landing.spec.ts`, keyless) | 7/7 passing in CI; full local suite (needs `DEEPSEEK_API_KEY`) is 11/11 |
-| eval-regression gate | checks the s7/GEPA versions (`v1`, `v2`, `v3_1`) committed under `evaluation/predictions/`; `tracking/gate.py` scores the registered champion against a full-corpus predictions CSV, which an evalloop-promoted champion (e.g. `v5`, evaluated only on the train/test evalloop splits) does not have — see Known gaps below |
+| eval-regression gate | checks the s7/GEPA versions (`v1`, `v2`, `v3_1`) committed under `evaluation/predictions/`, and floor-checks the registered champion from whichever evidence its `source` used |
 
 The **eval-regression gate** is the load-bearing one. Because prediction CSVs
 are committed, it re-scores them deterministically with no API calls, and fails
 the build if the champion drops below its registered floor, if any CSV's
 `correct` column stops agreeing with re-scoring its own answers, or — for a
 registered challenger — it prints the exact questions that flipped pass→fail.
-
-**Known gap:** `tracking/gate.py`'s champion floor check calls
-`comparator.load_predictions(champion)`, which expects a full-corpus
-`pydantic_predictions_<version>.csv` under `evaluation/predictions/`. The
-evalloop promotion path (§Eval loop above) registers champions like `v5` with
-`source: "evalloop"` and no such file — its evidence lives under
-`evaluation/predictions/evalloop/` instead, scored only on the train/test
-splits. Running `uv run python -m convfinqa.tracking.gate` against an
-evalloop-promoted champion currently fails on a missing-file error rather than
-a real regression; reconciling the two gates (or generating a full-corpus CSV
-for evalloop champions) is open work.
+Its champion floor check branches on the registry entry's `source`: legacy
+champions (`manual`/`gepa`/`s7`) are re-scored from a full-corpus
+`pydantic_predictions_<version>.csv`; champions promoted through the evalloop
+path (`source: "evalloop"`, e.g. `v5`) never get that file, so they're
+re-scored from their own committed test-split CSV under
+`evaluation/predictions/evalloop/` instead — the same evidence the promotion
+decision was made from (`comparator.load_evalloop_champion_predictions`).
 
 Two notes on the mypy config, since both were real bugs:
 `packages = ["src"]` pointed at a directory that is not a package, so every

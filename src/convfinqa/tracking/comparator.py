@@ -207,19 +207,73 @@ def load_predictions(version: str, model: str = "pydantic") -> pd.DataFrame:
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"{path.name} is missing required columns: {sorted(missing)}")
-    df = df.copy()
-    df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
     # `turn_index` is the per-conversation position and is the stable join key;
     # q_order is not present in every historical CSV.
+    return _normalise_predictions(df)
+
+
+def accuracy(df: pd.DataFrame) -> float:
+    """Overall turn accuracy of a predictions frame — the *execution* accuracy."""
+    return float(df["correct"].mean()) if len(df) else 0.0
+
+
+EVALLOOP_PREDICTIONS_DIR = PREDICTIONS_DIR / "evalloop"
+
+
+def _normalise_predictions(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce `correct` to bool and `turn_index` to int, matching load_predictions."""
+    df = df.copy()
+    df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
     if "turn_index" not in df.columns:
         df["turn_index"] = df.groupby("report_id").cumcount()
     df["turn_index"] = df["turn_index"].astype(int)
     return df
 
 
-def accuracy(df: pd.DataFrame) -> float:
-    """Overall turn accuracy of a predictions frame — the *execution* accuracy."""
-    return float(df["correct"].mean()) if len(df) else 0.0
+def evalloop_champion_csv_path(version: str, split: str = "test") -> Path:
+    """The committed evalloop predictions CSV backing `version`'s promotion.
+
+    Filenames are ``evalloop-{split}{n}-{version}·{composition}-{stamp}.csv``.
+    Promotion evidence for a champion always comes from the unseen test split
+    (see CLAUDE.md's promotion protocol), so `split` defaults to "test". If a
+    version was run more than once, the most recent (by filename timestamp,
+    which sorts lexicographically) is used.
+    """
+    candidates = []
+    for path in EVALLOOP_PREDICTIONS_DIR.glob(f"evalloop-{split}*-{version}·*.csv"):
+        # "evalloop-test50-v5" -> ["evalloop", "test50", "v5"]; require an exact
+        # version segment so "v5" never matches a differently-named "v50".
+        before_composition = path.stem.split("·")[0]
+        if before_composition.split("-")[-1] == version:
+            candidates.append(path)
+    if not candidates:
+        raise FileNotFoundError(
+            f"No committed evalloop {split}-split predictions for version "
+            f"{version!r} in {EVALLOOP_PREDICTIONS_DIR}"
+        )
+    return sorted(candidates)[-1]
+
+
+def load_evalloop_champion_predictions(
+    version: str, split: str = "test"
+) -> pd.DataFrame:
+    """Load an evalloop-sourced champion's own predictions CSV.
+
+    Champions promoted through the evalloop/teacher path (`registry` entry
+    ``source == "evalloop"``, e.g. v5) never get a legacy
+    ``pydantic_predictions_<version>.csv`` — their evidence is the test-split
+    CSV the promotion decision was actually made from. This is the read path
+    the CI eval-regression gate uses for them instead of `load_predictions`.
+    """
+    path = evalloop_champion_csv_path(version, split=split)
+    df = pd.read_csv(path)
+    required = {"report_id", "question", "gold_answer", "pred_answer", "correct"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"{path.name} is missing required columns: {sorted(missing)}")
+    if "split" in df.columns and not (df["split"] == split).all():
+        raise ValueError(f"{path.name} contains rows outside the {split!r} split")
+    return _normalise_predictions(df)
 
 
 def _predicted_program(row: Any) -> str:

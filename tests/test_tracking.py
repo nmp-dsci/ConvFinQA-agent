@@ -435,3 +435,140 @@ def test_unknown_model_falls_back_rather_than_raising() -> None:
     from convfinqa.tracking.cost import cost_usd
 
     assert cost_usd(1_000_000, 0, "some-future-model") > 0
+
+
+# ---------------------------------------------------------------------------
+# CI eval-regression gate — evalloop-sourced champions
+#
+# A champion promoted through the evalloop/teacher path (v5 and its
+# successors) never gets a legacy pydantic_predictions_<version>.csv; its
+# evidence is its own test-split CSV under evaluation/predictions/evalloop/.
+# ---------------------------------------------------------------------------
+
+
+def _evalloop_frame(
+    rows: list[tuple[str, int, str, str, bool]], split: str = "test"
+) -> pd.DataFrame:
+    df = _frame(rows)
+    df["split"] = split
+    return df
+
+
+def test_evalloop_champion_csv_path_matches_exact_version_and_latest_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A same-prefix version (v50) must never satisfy a request for v5; the
+    most recent run (by filename timestamp) wins when a version ran twice."""
+    from convfinqa.tracking import comparator
+
+    evalloop_dir = tmp_path / "evalloop"
+    evalloop_dir.mkdir(parents=True)
+    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+    for name in (
+        "evalloop-test10-v5·t3p3r3c3-20260101_000000.csv",
+        "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv",  # latest -> picked
+        "evalloop-test50-v50·t3p3r3c3-20260903_000000.csv",
+    ):
+        (evalloop_dir / name).write_text("report_id\n")
+
+    picked = comparator.evalloop_champion_csv_path("v5")
+    assert picked.name == "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv"
+
+    with pytest.raises(FileNotFoundError):
+        comparator.evalloop_champion_csv_path("v9")
+
+
+def test_load_evalloop_champion_predictions_normalises_and_rejects_wrong_split(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from convfinqa.tracking import comparator
+
+    evalloop_dir = tmp_path / "evalloop"
+    evalloop_dir.mkdir(parents=True)
+    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+
+    good = _evalloop_frame([("r1", 0, "1", "1", True), ("r1", 1, "2", "2", True)])
+    good.to_csv(evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False)
+    loaded = comparator.load_evalloop_champion_predictions("v5")
+    assert loaded["correct"].dtype == bool
+    assert loaded["correct"].all()
+
+    mixed = _evalloop_frame([("r1", 0, "1", "1", True)])
+    mixed.loc[0, "split"] = "train"  # a train-split row leaking in
+    mixed.to_csv(evalloop_dir / "evalloop-test50-v6·t3p4r3c3-20260902_221407.csv", index=False)
+    with pytest.raises(ValueError, match="outside"):
+        comparator.load_evalloop_champion_predictions("v6")
+
+
+def test_gate_floor_checks_an_evalloop_sourced_champion_from_its_own_csv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """v5's promotion, replayed: no legacy CSV exists for it at all, yet the
+    gate must still floor-check it — from evaluation/predictions/evalloop/."""
+    from convfinqa.tracking import comparator
+    from convfinqa.tracking import gate as ci_gate
+
+    predictions_dir = tmp_path / "predictions"
+    evalloop_dir = predictions_dir / "evalloop"
+    evalloop_dir.mkdir(parents=True)
+    monkeypatch.setattr(comparator, "PREDICTIONS_DIR", predictions_dir, raising=False)
+    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+
+    frame = _evalloop_frame(
+        [
+            ("r1", 0, "1", "1", True),
+            ("r1", 1, "2", "2", True),
+            ("r1", 2, "3", "9", False),
+        ]
+    )
+    frame.to_csv(evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False)
+
+    reg_path = tmp_path / "registry.json"
+    monkeypatch.setattr(registry, "REGISTRY_PATH", reg_path, raising=False)
+    registry.save(
+        registry.RegistryDoc(
+            versions=[{"version": "v5", "source": "evalloop", "metrics": {"accuracy": 2 / 3}}],
+            aliases={"champion": "v5"},
+            history=[],
+        ),
+        reg_path,
+    )
+
+    exit_code = ci_gate.main()
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "eval-gate PASSED" in out
+    assert "champion v5: 66.67%" in out
+
+
+def test_gate_fails_cleanly_when_an_evalloop_champions_csv_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """No legacy CSVs anywhere and the champion's own evidence is missing too:
+    the gate must still report a real failure, not skip silently to PASSED."""
+    from convfinqa.tracking import comparator
+    from convfinqa.tracking import gate as ci_gate
+
+    predictions_dir = tmp_path / "predictions"
+    predictions_dir.mkdir(parents=True)
+    monkeypatch.setattr(comparator, "PREDICTIONS_DIR", predictions_dir, raising=False)
+    monkeypatch.setattr(
+        comparator, "EVALLOOP_PREDICTIONS_DIR", predictions_dir / "evalloop", raising=False
+    )
+
+    reg_path = tmp_path / "registry.json"
+    monkeypatch.setattr(registry, "REGISTRY_PATH", reg_path, raising=False)
+    registry.save(
+        registry.RegistryDoc(
+            versions=[{"version": "v6", "source": "evalloop", "metrics": {"accuracy": 0.8}}],
+            aliases={"champion": "v6"},
+            history=[],
+        ),
+        reg_path,
+    )
+
+    exit_code = ci_gate.main()
+    out = capsys.readouterr().out
+    assert exit_code == 1
+    assert "eval-gate FAILED" in out
+    assert "champion v6" in out
