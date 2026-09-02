@@ -1,0 +1,3 @@
+report_id,turn_index,question,gold_answer,pred_answer,correct
+r1,0,q1,1,1,True
+r1,1,q2,2,2,True

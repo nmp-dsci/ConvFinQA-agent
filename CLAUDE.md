@@ -96,7 +96,20 @@ uv run convfinqa-evalloop gate-targeted --target-agent retriever \
 
 uv run convfinqa-evalloop backfill-prompts            # seed per-agent lineages from committed modules
 uv run convfinqa-evalloop mirror-prompts --version v4 # per-agent prompts into MLflow's Prompts tab
+
+# M2 trust: label ~30 cases, then score teacher-vs-human agreement (bar: κ ≥ 0.7)
+uv run convfinqa-evalloop kappa --make --diagnoses evaluation/diagnostics/evalloop/diagnoses_*.jsonl
+uv run convfinqa-evalloop kappa --labels <filled_sheet.csv>
+
+# M3 release gate: opens the SEALED holdout once for the current champion.
+# Never run casually — every opening is recorded and burns unseen-ness.
+uv run convfinqa-evalloop release --i-know-this-opens-the-holdout
 ```
+
+The **Dataset page** (`/admin/dataset`, backend `GET /eval/dataset?split=`) shows every
+split's questions beside gold answer + gold program — where `gold_suspect` flags get
+settled by a human. The teacher's failure taxonomy is frozen in `teacher.py::TEACHER_PROMPT`
+(`new:<label>` marks gaps). `scripts/demo_smoke.sh` asserts served bundle == champion.
 
 Teacher runs (diagnose/propose) log to the `convfinqa-optimization` MLflow experiment with
 full tracing; eval runs stay in `convfinqa`. Prior diagnoses are read back from MLflow as

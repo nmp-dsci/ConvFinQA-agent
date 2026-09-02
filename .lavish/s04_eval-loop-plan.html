@@ -1833,15 +1833,15 @@ def claude_agent_options(**kw) -&gt; "ClaudeAgentOptions":
           <td>≈2 d</td>
         </tr>
         <tr>
-          <td><strong>M2 · The loop is trusted</strong> <span class="chip good">battle-tested 2026-09-02</span></td>
-          <td>Done on 10 reports: teacher diagnose → targeted propose (one subagent) → challenger → targeted gate → v4 promoted with evidence; separate MLflow experiment + traces + prior-diagnosis memory. Remaining to trust it at scale: full 200-q train pass (4 sequenced per-agent cycles), the §05 · 0 drift fix, taxonomy frozen, κ ≥ 0.7 vs 30 hand labels, diagnoser hardened (Agent SDK/Opus optional upgrade), review page.</td>
+          <td><strong>M2 · The loop is trusted</strong> <span class="chip good">50-report cycle promoted 2026-09-02</span></td>
+          <td>Cycle 2 at 50 reports ran the whole protocol: v3_1 train pass (66.8%, 30 first-faults diagnosed → preprocess 14) → v5 (preprocess-only, t3.p4.r3.c3) → train +3.6pp → <strong>test split +2.1pp with the whole per-agent panel up → v5 promoted champion on unseen evidence</strong>. Taxonomy frozen into the teacher prompt (11 modes + <code>new:</code>); κ tooling shipped (<code>kappa --make/--labels</code>, 30-case sheet awaiting hand labels); Dataset review page live at <code>/admin/dataset</code> (4 gold-suspects queued). Remaining: fill the κ sheet (human), §05 · 0 drift fix, Agent SDK/Opus upgrade (optional).</td>
           <td>P1 rest · P2 rest · P3</td>
           <td>Full train pass; κ ≥ 0.7 vs 30 hand labels; a proposals file reviewable line by line.</td>
           <td>≈2 d left</td>
         </tr>
         <tr>
-          <td><strong>M3 · The loop ships</strong></td>
-          <td>Verify → <code>prompts/v4_1.py</code>, paired statistics in the comparator, registry lineage + stages, the MLflow/UC registry mirrored for real, release and deploy bound to the champion, the holdout opened once.</td>
+          <td><strong>M3 · The loop ships</strong> <span class="chip warn">gate built, sealed</span></td>
+          <td>Built 2026-09-02: <code>convfinqa-evalloop release</code> opens the holdout once for the champion (explicit acknowledgement flag, every opening recorded, <code>released</code> alias on pass) and <code>demo_smoke.sh</code> asserts served == champion. Remaining: cluster-robust paired statistics, the real deploy run — the holdout stays sealed until the first release.</td>
           <td>P4 rest · P4b</td>
           <td>A version promoted by the loop, served by the demo image; smoke asserts served == champion.</td>
           <td>≈3.5 d</td>

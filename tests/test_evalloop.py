@@ -384,3 +384,91 @@ def test_gate_targeted_uses_the_deterministic_metric(tmp_path: Path) -> None:
     assert verdict["target_metric_after"] > verdict["target_metric_before"]
     assert verdict["evidence_split"] == "test"
     assert verdict["promotable_targeted"]
+
+
+# ── kappa + release (M2 trust, M3 gate) ─────────────────────────────────
+
+
+def test_cohens_kappa_and_sheet_roundtrip(tmp_path: Path) -> None:
+    import json as _json
+
+    from convfinqa.evalloop import kappa
+
+    assert kappa.cohens_kappa(["a", "b"], ["a", "b"]) == 1.0
+    # 50% observed agreement over two balanced classes -> kappa 0
+    assert kappa.cohens_kappa(
+        ["a", "b", "a", "b"], ["a", "a", "b", "b"]
+    ) == pytest.approx(0.0)
+
+    d = tmp_path / "d.jsonl"
+    d.write_text(
+        "".join(
+            _json.dumps(
+                {
+                    "report_id": f"r{i}",
+                    "turn_index": 0,
+                    "version": "v3_1",
+                    "failed_agent": "retriever",
+                    "failure_mode": "retriever/wrong-value",
+                    "what_went_wrong": "x",
+                }
+            )
+            + "\n"
+            for i in range(5)
+        )
+    )
+    sheet = kappa.make_sheet([d], out_path=tmp_path / "sheet.csv", n=3)
+    df = pd.read_csv(sheet)
+    assert len(df) == 3 and (df["human_agent"].isna() | (df["human_agent"] == "")).all()
+    df["human_agent"] = ["retriever", "retriever", "calculator"]
+    df.to_csv(sheet, index=False)
+    scored = kappa.score_sheet(sheet)
+    assert scored["n_labelled"] == 3
+    assert scored["agreement"] == pytest.approx(2 / 3, abs=1e-3)
+    assert len(scored["disagreements"]) == 1
+
+
+async def test_release_refuses_a_reopened_holdout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from convfinqa.evalloop import release
+    from convfinqa.tracking import registry
+
+    reg = tmp_path / "registry.json"
+    monkeypatch.setattr(registry, "REGISTRY_PATH", reg, raising=False)
+    monkeypatch.setattr(registry, "_mirror_to_mlflow", lambda v: None)
+    registry.register("v3_1")
+    registry.promote("v3_1")
+    doc = registry.load()
+    doc.history.append({"event": "holdout_opened", "candidate": "v3_1"})
+    registry.save(doc)
+
+    with pytest.raises(SystemExit, match="already opened"):
+        await release.run_release()
+
+
+async def test_release_moves_the_released_alias_on_pass(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from convfinqa.evalloop import release, runner
+    from convfinqa.tracking import registry
+
+    reg = tmp_path / "registry.json"
+    monkeypatch.setattr(registry, "REGISTRY_PATH", reg, raising=False)
+    monkeypatch.setattr(registry, "_mirror_to_mlflow", lambda v: None)
+    registry.register("v3_1")
+    registry.promote("v3_1")
+
+    csv = tmp_path / "h.csv"
+    _frame([("a", 0, True)]).assign(split="holdout").to_csv(csv, index=False)
+
+    async def fake_run_split(split, version, *, n_reports=None, concurrency=8):
+        assert split == "holdout"
+        return {"run_name": f"hold-{version}", "accuracy": 0.8, "csv": str(csv)}
+
+    monkeypatch.setattr(runner, "run_split", fake_run_split)
+    verdict = await release.run_release()
+    assert verdict["passed"] and verdict["candidate"] == "v3_1"
+    doc = registry.load()
+    assert doc.aliases["released"] == "v3_1"
+    assert doc.history[-1]["event"] == "holdout_opened"

@@ -79,6 +79,23 @@ Attribute the FIRST mistake to exactly one subagent:
 A downstream agent that faithfully consumed an upstream mistake did not fail.
 Compare against the gold program step by step to locate the divergence.
 
+Use one of these failure modes when it fits (frozen taxonomy, 2026-09-02 —
+open-coded from the first battle-test cycles); only when none fits, use
+"new:<your-label>" so the gap is visible:
+- triage/wrong-turn-type          (number vs program misclassified)
+- triage/wrong-conv-type
+- preprocess/wrong-operation      (computed what the document reports directly,
+                                   or picked the wrong op for the question)
+- preprocess/misresolved-reference (history reference resolved to wrong turn)
+- preprocess/wrong-output-format  (ratio vs percentage vs absolute form)
+- retriever/wrong-period          (right metric, wrong year/column; estimate
+                                   used instead of the actual for the asked year)
+- retriever/wrong-value           (wrong row or cell, invented adjustment,
+                                   sign or scale wrong at lookup)
+- calculator/wrong-scale          (thousands/millions/percent scaling)
+- calculator/wrong-format         (right number, wrong final form)
+- calculator/wrong-computation    (right operands, wrong math or sign)
+
 Then propose ONE targeted rule for the failed agent: imperative, general (not
 about this one company), and additive — it must not contradict the agent's
 existing instructions. If prior diagnoses are provided, do not repeat a rule

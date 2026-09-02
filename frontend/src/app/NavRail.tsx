@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  BookOpenCheck,
   FlaskConical,
   LayoutDashboard,
   Microscope,
@@ -46,6 +47,12 @@ const ITEMS: RailItem[] = [
     label: 'Evaluations',
     hint: 'Accuracy slices per version, gold beside every answer',
     icon: BarChart3,
+  },
+  {
+    to: '/admin/dataset',
+    label: 'Dataset',
+    hint: 'The evaluation set: every question, gold answer, gold program',
+    icon: BookOpenCheck,
   },
   {
     to: '/admin/experiments',

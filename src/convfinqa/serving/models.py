@@ -117,6 +117,19 @@ class PredRow(BaseModel):
     conv_type: str
 
 
+class DatasetRow(BaseModel):
+    """One gold question of the eval-loop dataset, for human review."""
+
+    split: str
+    report_id: str
+    turn_index: int
+    question: str
+    gold_answer: str
+    gold_program: str
+    turn_type: str
+    conv_type: str
+
+
 class SplitSummary(BaseModel):
     """Dataset split membership, made visible rather than merely claimed."""
 

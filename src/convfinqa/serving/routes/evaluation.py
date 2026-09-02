@@ -8,12 +8,15 @@ per-version results a visitor would otherwise have to take on trust.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from convfinqa.serving import evaldata
 from convfinqa.serving.models import (
     AnswerRow,
+    DatasetRow,
     EvalSummary,
     ModelAccuracy,
     PredRow,
@@ -186,4 +189,53 @@ async def get_eval_predictions(run_name: str, model: str = "pydantic") -> list[P
                 conv_type=str(getattr(row, "conv_type", "")),
             )
         )
+    return rows
+
+
+_EVAL_LOOP_SPLITS = ("train", "test", "holdout")
+
+
+@router.get("/dataset")
+async def eval_dataset(
+    split: str = Query("train", description="Eval-loop split: train | test | holdout"),
+) -> list[DatasetRow]:
+    """The evaluation set itself: every question with its gold answer and program.
+
+    Read-only gold, straight from the committed split manifest and the dataset —
+    the surface a reviewer uses to sanity-check the golden data (the teacher's
+    `gold_suspect` flags point here). Showing holdout *gold* does not unseal it:
+    sealing is about model evidence, not about hiding public dataset rows.
+    """
+    if split not in _EVAL_LOOP_SPLITS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"unknown split {split!r} — expected one of {_EVAL_LOOP_SPLITS}",
+        )
+    return _dataset_rows(split)
+
+
+@lru_cache(maxsize=4)
+def _dataset_rows(split: str) -> list[DatasetRow]:
+    from convfinqa.data.loader import _build_conv_examples, training_data
+    from convfinqa.evalloop.splits import split_report_ids
+
+    rows: list[DatasetRow] = []
+    for ex in _build_conv_examples(split_report_ids(split), training_data()):
+        n = len(ex.questions)
+        programs = ex.gold_programs or [""] * n
+        turn_types = ex.gold_turn_types or [""] * n
+        conv_types = ex.gold_conv_types or [""] * n
+        for i, question in enumerate(ex.questions):
+            rows.append(
+                DatasetRow(
+                    split=split,
+                    report_id=ex.report_id,
+                    turn_index=i,
+                    question=question,
+                    gold_answer=str(ex.gold_answers[i]),
+                    gold_program=str(programs[i] or ""),
+                    turn_type=str(turn_types[i] or ""),
+                    conv_type=str(conv_types[i] or ""),
+                )
+            )
     return rows

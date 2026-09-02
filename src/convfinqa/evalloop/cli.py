@@ -84,6 +84,32 @@ def main() -> None:
         help="Promote the challenger when the targeted rule passes.",
     )
 
+    kp = sub.add_parser(
+        "kappa",
+        help="Teacher-vs-human agreement: build a labelling sheet, or score one.",
+    )
+    kp.add_argument("--make", action="store_true", help="Build a labelling sheet.")
+    kp.add_argument(
+        "--diagnoses", nargs="+", default=None, help="diagnoses_*.jsonl files."
+    )
+    kp.add_argument("--out", default=None)
+    kp.add_argument("--n", type=int, default=30)
+    kp.add_argument("--labels", default=None, help="A filled sheet to score.")
+
+    rl = sub.add_parser(
+        "release",
+        help="Open the sealed holdout ONCE for the current champion (M3 gate).",
+    )
+    rl.add_argument("--baseline", default=None, help="Default: the released alias.")
+    rl.add_argument("--n-reports", type=int, default=None)
+    rl.add_argument("--concurrency", type=int, default=8)
+    rl.add_argument(
+        "--i-know-this-opens-the-holdout",
+        action="store_true",
+        dest="acknowledged",
+        help="Required: opening the holdout consumes its unseen-ness.",
+    )
+
     sub.add_parser(
         "backfill-prompts",
         help="Seed per-agent prompt lineages from the committed bundle modules.",
@@ -206,6 +232,39 @@ def main() -> None:
             )
         elif args.promote:
             print("targeted rule failed — challenger NOT promoted")  # noqa: T201
+
+    elif args.cmd == "kappa":
+        from convfinqa.evalloop import kappa
+
+        if args.make:
+            if not args.diagnoses:
+                ap.error("--make needs --diagnoses <file.jsonl> [...]")
+            out = kappa.make_sheet(args.diagnoses, out_path=args.out, n=args.n)
+            print(f"labelling sheet: {out}")  # noqa: T201
+            print("fill human_agent (triage|preprocess|retriever|calculator|gold),")  # noqa: T201
+            print("then score with: convfinqa-evalloop kappa --labels", out)  # noqa: T201
+        elif args.labels:
+            print(json.dumps(kappa.score_sheet(args.labels), indent=2))  # noqa: T201
+        else:
+            ap.error("pass --make (build a sheet) or --labels (score one)")
+
+    elif args.cmd == "release":
+        if not args.acknowledged:
+            ap.error(
+                "the holdout opens once per release and stays opened for every "
+                "version that exists today — pass --i-know-this-opens-the-holdout "
+                "to proceed"
+            )
+        from convfinqa.evalloop.release import run_release
+
+        verdict = asyncio.run(
+            run_release(
+                baseline=args.baseline,
+                n_reports=args.n_reports,
+                concurrency=args.concurrency,
+            )
+        )
+        print(json.dumps(verdict, indent=2))  # noqa: T201
 
     elif args.cmd == "backfill-prompts":
         from convfinqa.tracking import prompt_ledger
