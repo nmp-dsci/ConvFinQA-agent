@@ -178,10 +178,13 @@ committed splits (`convfinqa-evalloop make-splits` → `evaluation/splits/eval_l
 train/test/holdout) rather than the full 770-question corpus:
 
 - **M1 — net-positive gate.** `run --split train --version <v> --n-reports N`
-  scores a version over N reports with full MLflow tracing; `gate --promote`
-  applies the net-positive paired comparison above and refuses `--promote` on
-  train-split evidence — promotion evidence must come from the unseen test
-  split.
+  scores a version over N reports with full MLflow tracing (`--n-questions N`
+  truncates by cumulative question count instead — walking the split in
+  manifest order until the budget is met — as a per-run subsample rather than
+  a resize of the committed manifest; mutually exclusive with `--n-reports`);
+  `gate --promote` applies the net-positive paired comparison above and
+  refuses `--promote` on train-split evidence — promotion evidence must come
+  from the unseen test split.
 - **M2 — teacher diagnosis.** `diagnose` runs a teacher LLM over each report's
   first-wrong question against gold answer/program and attributes it to one of
   `triage` / `preprocess` / `retriever` / `calculator` (taxonomy frozen in
@@ -210,6 +213,7 @@ train/test/holdout) rather than the full 770-question corpus:
 uv run convfinqa-evalloop make-splits
 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
   uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
+uv run convfinqa-evalloop run --split train --version v4 --n-questions 50
 uv run convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
   --baseline-version v3_1 --candidate-version v4 --promote
 

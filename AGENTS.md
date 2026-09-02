@@ -72,7 +72,7 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), the local `demo`/`dev` toggle, and an always-on `mlflow` tracking-server service (`docker compose up -d mlflow`). |
 | `.github/workflows/ci.yml`, `.github/workflows/deploy-aws.yml` | CI (lint, mypy, pytest, frontend checks, eval-regression gate, Docker build, `terraform fmt`/`validate`) and the keyless AWS deploy chained on CI passing. |
 | `frontend/` | Vite + React + Zustand + Tailwind operator console ("The Console"): landing status board at `/`, chat at `/chat`, admin section at `/admin` (Overview, Evaluations, Dataset, Experiments, Traces, Research, System), IBM Plex type, terminal-amber accent, dark-first with a light variant. |
-| `tests/` | pytest suite (169 tests), including `test_demo_mode.py` (pins the no-model-at-import-time invariant), `test_tracking.py`, `test_evalloop.py`, `test_limits.py`. |
+| `tests/` | pytest suite (170 tests), including `test_demo_mode.py` (pins the no-model-at-import-time invariant), `test_tracking.py`, `test_evalloop.py`, `test_limits.py`. |
 
 ## Four-Stage Pipeline
 

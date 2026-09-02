@@ -84,6 +84,7 @@ docker compose up demo                    # exactly what ships
 uv run convfinqa-evalloop make-splits                  # committed split manifest (train/test/holdout)
 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
   uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
+uv run convfinqa-evalloop run --split train --version v4 --n-questions 50  # cumulative-question budget, mutually exclusive with --n-reports
 uv run convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
   --baseline-version v3_1 --candidate-version v4 --promote   # M1 net-positive rule
 
