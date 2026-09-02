@@ -463,7 +463,9 @@ def test_evalloop_champion_csv_path_matches_exact_version_and_latest_run(
 
     evalloop_dir = tmp_path / "evalloop"
     evalloop_dir.mkdir(parents=True)
-    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+    monkeypatch.setattr(
+        comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False
+    )
     for name in (
         "evalloop-test10-v5·t3p3r3c3-20260101_000000.csv",
         "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv",  # latest -> picked
@@ -485,17 +487,23 @@ def test_load_evalloop_champion_predictions_normalises_and_rejects_wrong_split(
 
     evalloop_dir = tmp_path / "evalloop"
     evalloop_dir.mkdir(parents=True)
-    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+    monkeypatch.setattr(
+        comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False
+    )
 
     good = _evalloop_frame([("r1", 0, "1", "1", True), ("r1", 1, "2", "2", True)])
-    good.to_csv(evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False)
+    good.to_csv(
+        evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False
+    )
     loaded = comparator.load_evalloop_champion_predictions("v5")
     assert loaded["correct"].dtype == bool
     assert loaded["correct"].all()
 
     mixed = _evalloop_frame([("r1", 0, "1", "1", True)])
     mixed.loc[0, "split"] = "train"  # a train-split row leaking in
-    mixed.to_csv(evalloop_dir / "evalloop-test50-v6·t3p4r3c3-20260902_221407.csv", index=False)
+    mixed.to_csv(
+        evalloop_dir / "evalloop-test50-v6·t3p4r3c3-20260902_221407.csv", index=False
+    )
     with pytest.raises(ValueError, match="outside"):
         comparator.load_evalloop_champion_predictions("v6")
 
@@ -512,7 +520,9 @@ def test_gate_floor_checks_an_evalloop_sourced_champion_from_its_own_csv(
     evalloop_dir = predictions_dir / "evalloop"
     evalloop_dir.mkdir(parents=True)
     monkeypatch.setattr(comparator, "PREDICTIONS_DIR", predictions_dir, raising=False)
-    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False)
+    monkeypatch.setattr(
+        comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False
+    )
 
     frame = _evalloop_frame(
         [
@@ -521,13 +531,17 @@ def test_gate_floor_checks_an_evalloop_sourced_champion_from_its_own_csv(
             ("r1", 2, "3", "9", False),
         ]
     )
-    frame.to_csv(evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False)
+    frame.to_csv(
+        evalloop_dir / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv", index=False
+    )
 
     reg_path = tmp_path / "registry.json"
     monkeypatch.setattr(registry, "REGISTRY_PATH", reg_path, raising=False)
     registry.save(
         registry.RegistryDoc(
-            versions=[{"version": "v5", "source": "evalloop", "metrics": {"accuracy": 2 / 3}}],
+            versions=[
+                {"version": "v5", "source": "evalloop", "metrics": {"accuracy": 2 / 3}}
+            ],
             aliases={"champion": "v5"},
             history=[],
         ),
@@ -553,14 +567,19 @@ def test_gate_fails_cleanly_when_an_evalloop_champions_csv_is_missing(
     predictions_dir.mkdir(parents=True)
     monkeypatch.setattr(comparator, "PREDICTIONS_DIR", predictions_dir, raising=False)
     monkeypatch.setattr(
-        comparator, "EVALLOOP_PREDICTIONS_DIR", predictions_dir / "evalloop", raising=False
+        comparator,
+        "EVALLOOP_PREDICTIONS_DIR",
+        predictions_dir / "evalloop",
+        raising=False,
     )
 
     reg_path = tmp_path / "registry.json"
     monkeypatch.setattr(registry, "REGISTRY_PATH", reg_path, raising=False)
     registry.save(
         registry.RegistryDoc(
-            versions=[{"version": "v6", "source": "evalloop", "metrics": {"accuracy": 0.8}}],
+            versions=[
+                {"version": "v6", "source": "evalloop", "metrics": {"accuracy": 0.8}}
+            ],
             aliases={"champion": "v6"},
             history=[],
         ),
