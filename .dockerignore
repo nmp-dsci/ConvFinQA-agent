@@ -22,3 +22,6 @@ tests
 infra
 evaluation/predictions/*.html
 evaluation/diagnostics/*.html
+
+# Retired experiment by-products (see archive/README.md). Nothing reads them.
+archive/
