@@ -35,7 +35,9 @@ def main() -> None:
     rn = sub.add_parser("run", help="Run one split × version pass (an MLflow run).")
     rn.add_argument("--split", default="train", choices=("train", "test", "holdout"))
     rn.add_argument("--version", required=True, help="Prompt version, e.g. v2.")
-    rn.add_argument("--n-reports", type=int, default=None, help="Truncate by report count.")
+    rn.add_argument(
+        "--n-reports", type=int, default=None, help="Truncate by report count."
+    )
     rn.add_argument(
         "--n-questions",
         type=int,
