@@ -132,7 +132,10 @@
         "a8d523b14a34433bb3e2c2940e3da2bb",
         "e7eddd2df0fa4b5ab919bf3d50bc2c38"
       ],
-      "metrics": {},
+      "metrics": {
+        "accuracy": 0.796791,
+        "n_questions": 187.0
+      },
       "notes": "targeted challenger: only preprocess changed (parent v3_1); hypothesis: fixes 14 of 30 diagnosed first-faults",
       "parent": "v3_1",
       "changed_agents": [
