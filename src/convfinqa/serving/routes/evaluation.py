@@ -18,6 +18,7 @@ from convfinqa.serving.models import (
     AnswerRow,
     DatasetRow,
     EvalSummary,
+    LoopRunSummary,
     ModelAccuracy,
     PredRow,
     SplitSummary,
@@ -47,6 +48,16 @@ _SPLIT_DESCRIPTIONS = {
 async def list_eval_runs() -> list[str]:
     """Prompt versions that have at least one committed joined CSV."""
     return evaldata.available_versions()
+
+
+@router.get("/loop-runs")
+async def list_loop_runs() -> list[LoopRunSummary]:
+    """The eval loop's committed runs, each over its own split and denominator.
+
+    The champion promoted through the loop (v5) has no legacy corpus CSV, so it
+    does not appear in ``/eval/runs``; this is where its evidence is served.
+    """
+    return [LoopRunSummary(**run) for run in evaldata.loop_runs()]
 
 
 @router.get("/splits")

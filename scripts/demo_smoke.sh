@@ -41,6 +41,16 @@ versions="$(curl -fsS --max-time 20 "$BASE/eval/runs" \
   | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
 [[ "$versions" -gt 0 ]] || fail "no eval runs served"
 
+# 3b. The eval-loop evidence is served too: the split manifest behind
+#     /admin/dataset, and the loop's own runs (the champion's evidence lives
+#     here, not in the legacy corpus CSVs).
+dataset_rows="$(curl -fsS --max-time 20 "$BASE/eval/dataset?split=test" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" || fail "eval dataset unreachable"
+[[ "$dataset_rows" -gt 0 ]] || fail "eval dataset (test split) is empty"
+loop_runs="$(curl -fsS --max-time 20 "$BASE/eval/loop-runs" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" || fail "loop runs unreachable"
+[[ "$loop_runs" -gt 0 ]] || fail "no eval-loop runs served"
+
 # 4. The demo pack is present, or chat is a dead end.
 reports="$(curl -fsS --max-time 20 "$BASE/demo/reports" \
   | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"

@@ -275,6 +275,18 @@ def test_read_only_routes_stay_live_in_demo(demo_mode: None) -> None:
     with _client() as client:
         assert client.get("/eval/splits").status_code == 200
         assert client.get("/eval/runs").status_code == 200
+        dataset = client.get("/eval/dataset?split=test")
+        assert dataset.status_code == 200, dataset.text
+        assert len(dataset.json()) > 0
+        loop = client.get("/eval/loop-runs")
+        assert loop.status_code == 200, loop.text
+        runs = loop.json()
+        assert runs, "the loop's committed runs must be served in demo"
+        v5 = [r for r in runs if r["version"] == "v5" and r["split"] == "test"]
+        assert (
+            v5 and v5[0]["n_questions"] == 187 and v5[0]["composition"] == "t3.p4.r3.c3"
+        )
+        assert abs(v5[0]["accuracy"] - 0.796791) < 1e-5
         assert client.get("/reports?limit=5").status_code == 200
 
 

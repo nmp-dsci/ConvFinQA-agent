@@ -9,12 +9,19 @@ the answers tab at once.
 
 from __future__ import annotations
 
+import re
 from functools import cache, lru_cache
 from typing import Any
 
 import pandas as pd
 
 from convfinqa.config import PREDICTIONS_DIR
+
+EVALLOOP_DIR = PREDICTIONS_DIR / "evalloop"
+_LOOP_RUN_NAME = re.compile(
+    r"^evalloop-(?P<split>train|test|holdout)(?P<n>\d*)-(?P<version>v[0-9_]+)"
+    r"(?:·(?P<composition>[a-z0-9]+))?-(?P<stamp>\d{8}_\d{6})$"
+)
 
 MODEL_CSV_PATTERN: dict[str, str] = {
     "dspy": "dspy_predictions_{v}_joined.csv",
@@ -174,6 +181,43 @@ def slices_by(df: pd.DataFrame, column: str) -> list[dict[str, Any]]:
     ]
 
 
+@cache
+def loop_runs() -> list[dict[str, Any]]:
+    """Every committed eval-loop run, newest last, scored over its own rows.
+
+    File names carry the identity (`evalloop-test50-v5·t3p4r3c3-<stamp>.csv`);
+    the rows carry `correct`. Nothing here touches the legacy corpus CSVs, so a
+    loop run is never presented against a 770-question denominator.
+    """
+    if not EVALLOOP_DIR.exists():
+        return []
+    out: list[dict[str, Any]] = []
+    for path in sorted(EVALLOOP_DIR.glob("*.csv")):
+        m = _LOOP_RUN_NAME.match(path.stem)
+        if m is None:
+            continue
+        df = pd.read_csv(path, usecols=lambda c: c in {"report_id", "correct"})
+        correct = df["correct"].astype(str).str.lower().isin({"true", "1"})
+        n = int(len(df))
+        composition = m.group("composition")
+        if composition:
+            # t3p4r3c3 → t3.p4.r3.c3, the registry's spelling
+            composition = ".".join(re.findall(r"[a-z]\d+", composition))
+        out.append(
+            {
+                "version": m.group("version"),
+                "composition": composition,
+                "split": m.group("split"),
+                "n_reports": int(df["report_id"].nunique()),
+                "n_questions": n,
+                "n_correct": int(correct.sum()),
+                "accuracy": round(float(correct.mean()), 6) if n else 0.0,
+                "file": path.name,
+            }
+        )
+    return out
+
+
 def clear_caches() -> None:
     """Drop every cached read. For tests that write fixture CSVs."""
     available_versions.cache_clear()
@@ -182,3 +226,4 @@ def clear_caches() -> None:
     splits.cache_clear()
     split_of.cache_clear()
     optimizer_train_ids.cache_clear()
+    loop_runs.cache_clear()
