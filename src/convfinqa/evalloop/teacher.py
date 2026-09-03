@@ -67,6 +67,13 @@ class Diagnosis(BaseModel):
     evidence: str = Field(
         description="The specific captured output that shows the mistake"
     )
+    attribution_reason: str = Field(
+        description=(
+            "One or two sentences saying why THIS agent and not the one before "
+            "it in the pipeline. If you disagree with derived_attribution, this "
+            "is where you justify the disagreement against the gold program."
+        )
+    )
     proposed_rule: str = Field(
         description="ONE imperative prompt rule for the failed agent that would have prevented this"
     )
@@ -100,6 +107,11 @@ For reference, the stages own these mistakes:
 
 A downstream agent that faithfully consumed an upstream mistake did not fail.
 Compare against the gold program step by step to locate the divergence.
+
+Every attribution must carry its own justification in `attribution_reason`:
+one or two sentences on why this agent and not the one before it. An
+attribution with no stated reason cannot be reviewed, and the disagreements
+between your reading and the derived one are the cases most worth reviewing.
 
 Use one of these failure modes when it fits (frozen taxonomy, 2026-09-02 —
 open-coded from the first battle-test cycles); only when none fits, use
@@ -341,6 +353,10 @@ async def diagnose_run(
                 attributes={
                     "report_id": row.report_id,
                     "turn_index": int(row.turn_index),
+                    "question": str(row.question),
+                    "gold_answer": str(row.gold_answer),
+                    "pipeline_answer": str(row.pred_answer),
+                    # What gold says failed, before the teacher is asked.
                     "derived_attribution": derived,
                 },
                 trace_tags={
@@ -348,7 +364,7 @@ async def diagnose_run(
                     "run_name": run_name,
                     "stage": "diagnose",
                 },
-            ):
+            ) as trace_span:
                 try:
                     output, usage = await _diagnose_case(payload, memory_text)
                 except Exception as exc:  # noqa: BLE001 — one bad case must not sink the pass
@@ -361,6 +377,22 @@ async def diagnose_run(
                     failures.append({"report_id": row.report_id, "error": repr(exc)})
                     print(f"  [skip] {row.report_id}: {exc}")  # noqa: T201
                     continue
+            # The span opened knowing only what gold derived. Now that the
+            # teacher has answered, put its verdict *and its reasoning* on the
+            # same span — an attribution with no stated reason is not
+            # reviewable, and reviewing the disputes is the whole point of
+            # recording them.
+            trace_span.set(
+                failed_agent=output.failed_agent,
+                failure_mode=output.failure_mode,
+                reason=output.attribution_reason,
+                what_went_wrong=output.what_went_wrong,
+                evidence=output.evidence,
+                proposed_rule=output.proposed_rule,
+                confidence=float(output.confidence),
+                gold_suspect=bool(output.gold_suspect),
+                attribution_disputed=output.failed_agent != derived,
+            )
             _accumulate_usage(usage_total, usage)
             d = output.model_dump()
             d.update(

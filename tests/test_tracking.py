@@ -612,7 +612,7 @@ def test_teacher_runs_do_not_claim_a_model_they_never_call(
     tagged: dict[str, str] = {}
 
     class FakeRun:
-        class info:
+        class info:  # noqa: N801 — mirrors mlflow's own attribute name
             run_id = "r1"
 
         def __enter__(self):  # noqa: ANN204

@@ -348,6 +348,8 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         )
     return CampaignsResponse(
         champion=data.get("champion"),
+        champion_accuracy=data.get("champion_accuracy"),
+        champion_panel=data.get("champion_panel") or {},
         rule=data.get("rule", ""),
         generated_at=data.get("generated_at", ""),
         split=data.get("split") or {},

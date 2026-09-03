@@ -89,6 +89,13 @@ export interface ChampionPoint {
 
 export interface CampaignsResponse {
   champion: string | null;
+  /**
+   * The champion's accuracy on the fixed gate split — the figure the campaign
+   * optimises and gates against, and what the status board leads with. Null
+   * until a gate run for the champion exists in the story.
+   */
+  champion_accuracy: number | null;
+  champion_panel: Record<string, number | null>;
   rule: string;
   generated_at: string;
   split: Record<string, unknown>;

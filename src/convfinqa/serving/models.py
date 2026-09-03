@@ -275,9 +275,18 @@ class ChampionPoint(BaseModel):
 
 
 class CampaignsResponse(BaseModel):
-    """Everything the Experiments tab's campaign view needs, in one request."""
+    """Everything the campaign views need, in one request.
+
+    `champion_accuracy` is the champion's own accuracy on the fixed gate split —
+    the figure the campaign actually optimises and gates against, and the one
+    the status board leads with. It is deliberately not the legacy 770-question
+    corpus number: that corpus is a different population, scored by a different
+    protocol, and its newest committed version is one the campaign rolled back.
+    """
 
     champion: str | None = None
+    champion_accuracy: float | None = None
+    champion_panel: dict[str, float | None] = {}
     rule: str = ""
     generated_at: str = ""
     split: dict[str, Any] = {}

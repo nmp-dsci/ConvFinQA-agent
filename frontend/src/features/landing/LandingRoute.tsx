@@ -33,9 +33,14 @@ import type { BoardData } from './useBoardData';
  *     metered eval run. Half these tiles are legitimately empty today. An
  *     empty tile prints an em dash and the reason; it never prints a zero and
  *     it never draws a flat line.
- *  3. **Overall accuracy and never-seen accuracy are two tiles.** They come
- *     from two endpoints and describe two populations, and the moment they are
- *     averaged together the board is lying about generalisation.
+ *  3. **Gate accuracy and out-of-sample accuracy are two tiles.** The gate
+ *     split is the loop's own evidence and is what the campaign gates on; it
+ *     is not out-of-sample, because every challenger of the campaign has been
+ *     measured against it. The second tile is empty on purpose and says why:
+ *     the holdout is unallocated during a campaign and has never been opened.
+ *     Filling it with the gate figure — or with the legacy corpus's holdout
+ *     number, which belongs to a rolled-back version — would be the board
+ *     lying about generalisation, which is the one thing it exists not to do.
  */
 export function LandingRoute() {
   const board = useBoardData(3);
@@ -138,9 +143,7 @@ function RightPane({ board }: { board: BoardData }) {
   const {
     health,
     isDemo,
-    championVersion,
-    championHoldout,
-    versionHoldouts,
+    campaigns,
     metrics,
     metricsSource,
     metricsLoading,
@@ -168,14 +171,25 @@ function RightPane({ board }: { board: BoardData }) {
     return `${what} not yet measured — awaiting a metered eval run`;
   }
 
-  const holdoutDelta = (() => {
-    if (!championHoldout || !versionHoldouts) return null;
-    const i = versionHoldouts.findIndex((v) => v.version === championHoldout.version);
-    if (i <= 0) return null;
-    const prev = versionHoldouts[i - 1];
+  /**
+   * How far the champion has moved across the campaign, on the gate split.
+   *
+   * The track holds only versions a promotion actually moved the champion to,
+   * so its first entry is the campaign's starting champion and its last is the
+   * current one. A campaign with no promotion yet has fewer than two entries
+   * and this is null — there is no move to report, and inventing one from the
+   * rejected challengers would be reporting a change that never shipped.
+   */
+  const campaignMove = (() => {
+    const track = campaigns?.champion_track ?? [];
+    if (track.length < 2) return null;
+    const first = track[0];
+    const last = track[track.length - 1];
+    if (first.accuracy == null || last.accuracy == null) return null;
     return {
-      from: prev.version,
-      delta: championHoldout.holdout_accuracy - prev.holdout_accuracy,
+      from: first.version,
+      delta: last.accuracy - first.accuracy,
+      nPromoted: (campaigns?.experiments ?? []).filter((e) => e.promoted).length,
     };
   })();
 
@@ -194,58 +208,52 @@ function RightPane({ board }: { board: BoardData }) {
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {/* --- Does it work ------------------------------------------------ */}
         <HudTile
-          label="execution accuracy"
-          value={formatPercent(championVersion?.exe_acc)}
-          loading={!championVersion && board.loading}
-          reason="no committed predictions CSV for the champion"
+          label="gate accuracy"
+          value={formatPercent(campaigns?.champion_accuracy)}
+          loading={!campaigns && board.loading}
+          reason="no gate run recorded for the champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
-          to="/admin/evaluations"
-          drill="/admin/evaluations"
+          to="/admin/campaigns"
+          drill="/admin/campaigns"
           meta={
-            championVersion && (
+            campaigns?.champion_accuracy != null && (
               <>
-                <span className="type-num">{championVersion.version}</span> · all{' '}
-                <span className="type-num">{championVersion.n_questions}</span> scored questions,
-                seen and never-seen mixed
-                <br />
-                program accuracy{' '}
-                <span className="type-num">{formatPercent(championVersion.prog_acc)}</span> over{' '}
-                <span className="type-num">{championVersion.n_program_turns}</span> program turns
+                <span className="type-num">{campaigns.champion}</span> ·{' '}
+                <span className="type-num">{String(campaigns.split?.gate_questions ?? '—')}</span>{' '}
+                questions across{' '}
+                <span className="type-num">{String(campaigns.split?.gate_reports ?? '—')}</span>{' '}
+                conversations, fixed for the campaign
+                {campaignMove && (
+                  <>
+                    <br />
+                    <span className={cn('type-num', campaignMove.delta >= 0 ? 'text-good' : 'text-bad')}>
+                      {formatPointsDelta(campaignMove.delta)}
+                    </span>{' '}
+                    vs {campaignMove.from} over {campaignMove.nPromoted} promotion
+                    {campaignMove.nPromoted === 1 ? '' : 's'}
+                  </>
+                )}
               </>
             )
           }
         />
 
         <HudTile
-          label="never-seen accuracy"
-          value={formatPercent(championHoldout?.holdout_accuracy)}
-          loading={!championHoldout && board.loading}
-          reason="holdout split not available from /admin/experiments"
+          label="out-of-sample accuracy"
+          value="—"
+          reason="the holdout is unallocated during a campaign and has never been opened"
           tone="good"
-          to="/admin/evaluations"
-          drill="/admin/evaluations"
+          to="/admin/campaigns"
+          drill="/admin/campaigns"
           meta={
-            championHoldout && (
-              <>
-                <span className="type-num">{championHoldout.version}</span> ·{' '}
-                <span className="type-num">{championHoldout.holdout_n_questions}</span> questions no
-                optimizer ever saw
-                {holdoutDelta && (
-                  <>
-                    <br />
-                    <span
-                      className={cn(
-                        'type-num',
-                        holdoutDelta.delta >= 0 ? 'text-good' : 'text-bad',
-                      )}
-                    >
-                      {formatPointsDelta(holdoutDelta.delta)}
-                    </span>{' '}
-                    vs {holdoutDelta.from}
-                  </>
-                )}
-              </>
-            )
+            <>
+              no confirmatory run yet ·{' '}
+              <span className="type-num">
+                {campaigns?.experiments?.length ?? 0}
+              </span>{' '}
+              challenger{(campaigns?.experiments?.length ?? 0) === 1 ? '' : 's'} have now been
+              measured against the gate split, so part of the figure beside this is selection
+            </>
           }
         />
 
@@ -368,12 +376,16 @@ function SourceNote({ board }: { board: BoardData }) {
 
   return (
     <div className="mt-3 rounded-md border border-dashed border-line-2 bg-panel/60 p-3">
+
       <div className="mono-caps mb-1.5">sources</div>
       <p className="type-meta">
-        <span className="text-text">accuracy</span> — recomputed on request from the prediction
-        CSVs committed under <span className="type-num">evaluation/predictions/</span>. No API
-        calls, no cached figure to drift. Overall and never-seen are separate populations and are
-        never averaged.
+        <span className="text-text">gate accuracy</span> — the champion's accuracy on the fixed
+        gate split of the committed split manifest, read from{' '}
+        <span className="type-num">evaluation/story.json</span>, which the optimisation loop builds
+        from its own runs. No API calls, no cached figure to drift. It is deliberately not the
+        legacy 770-question corpus figure: that is a different population under a retired scoring
+        protocol, and it lives on{' '}
+        <span className="type-num">/admin/evaluations</span> where it is labelled as such.
       </p>
       <p className="type-meta mt-1.5">
         <span className="text-text">latency, cost, turns, errors</span> —{' '}
