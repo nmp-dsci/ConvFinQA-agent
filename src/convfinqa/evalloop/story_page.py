@@ -209,6 +209,7 @@ def track_chart(track: list[dict[str, Any]]) -> str:
                 f'fill="{AGENT_COLOR.get(p["target_agent"], "#6b7a90")}" '
                 f'font-size="9">↑ {_e(p["target_agent"])}</text>'
             )
+    labels: list[tuple[float, str, str]] = []
     for name, row in series.items():
         colour = "#dbe3ee" if name == "overall" else AGENT_COLOR[name]
         width = 2.4 if name == "overall" else 1.4
@@ -227,9 +228,21 @@ def track_chart(track: list[dict[str, Any]]) -> str:
                 f'<circle cx="{x_of(i):.1f}" cy="{y_of(value):.1f}" r="3" '
                 f'fill="{colour}"/>'
             )
+        labels.append((y_of(drawn[-1][1]), colour, name))
+    # Two series can end within a few tenths of a point of each other, and their
+    # labels then overprint into an unreadable smudge. Nudge them apart from the
+    # top down, keeping each label's colour tied to its line.
+    labels.sort()
+    min_gap = 12.0
+    for i in range(1, len(labels)):
+        y, colour, name = labels[i]
+        prev_y = labels[i - 1][0]
+        if y - prev_y < min_gap:
+            labels[i] = (prev_y + min_gap, colour, name)
+    for y, colour, name in labels:
         parts.append(
-            f'<text x="{w - right + 10}" y="{y_of(drawn[-1][1]) + 3:.1f}" '
-            f'fill="{colour}">{_e(name)}</text>'
+            f'<text x="{w - right + 10}" y="{y + 3:.1f}" fill="{colour}">'
+            f"{_e(name)}</text>"
         )
     parts.append("</g></svg>")
     return "".join(parts)

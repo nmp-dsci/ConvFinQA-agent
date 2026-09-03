@@ -104,21 +104,38 @@ function ChampionChart({ track }: { track: ChampionPoint[] }) {
             .map((v, i) => (v === null ? null : `${xOf(i)},${yOf(v)}`))
             .filter((v): v is string => v !== null);
           if (pts.length < 2) return null;
-          const lastIdx = s.values.reduce<number>((acc, v, i) => (v !== null ? i : acc), -1);
           return (
             <g key={s.name}>
               <polyline points={pts.join(' ')} fill="none" stroke={s.colour} strokeWidth={s.width} strokeLinejoin="round" />
               {s.values.map((v, i) =>
                 v === null ? null : <circle key={i} cx={xOf(i)} cy={yOf(v)} r={3} fill={s.colour} />,
               )}
-              {lastIdx >= 0 && (
-                <text x={w - right + 8} y={yOf(s.values[lastIdx] ?? 0) + 3} fill={s.colour} className="font-mono text-[10px]">
-                  {s.name}
-                </text>
-              )}
             </g>
           );
         })}
+        {/* End labels are placed after the lines and nudged apart: two series can
+            finish within a few tenths of a point of each other, and overprinted
+            labels read as a rendering fault rather than as two close values. */}
+        {(() => {
+          const placed: Array<{ y: number; colour: string; name: string }> = series
+            .map((s) => {
+              const lastIdx = s.values.reduce<number>((acc, v, i) => (v !== null ? i : acc), -1);
+              return lastIdx < 0
+                ? null
+                : { y: yOf(s.values[lastIdx] as number), colour: s.colour, name: s.name };
+            })
+            .filter((v): v is { y: number; colour: string; name: string } => v !== null)
+            .sort((a, b) => a.y - b.y);
+          const gap = 12;
+          for (let i = 1; i < placed.length; i += 1) {
+            if (placed[i].y - placed[i - 1].y < gap) placed[i].y = placed[i - 1].y + gap;
+          }
+          return placed.map((l) => (
+            <text key={l.name} x={w - right + 8} y={l.y + 3} fill={l.colour} className="font-mono text-[10px]">
+              {l.name}
+            </text>
+          ));
+        })()}
       </svg>
       <figcaption className="type-meta mt-2 text-faint">
         Overall gate accuracy in white; each subagent&rsquo;s own gold-derived metric in colour. The arrow

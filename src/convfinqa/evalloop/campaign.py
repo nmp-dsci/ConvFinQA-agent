@@ -117,8 +117,14 @@ def pick_target(
         if not counts.get(agent):
             continue
         note = f"most derived first-faults ({counts[agent]})"
-        if blocked:
-            note += f"; rotated past {', '.join(sorted(blocked))}"
+        # Only claim the rotation changed the outcome when it actually did —
+        # a blocked agent that ranked *below* the pick was never in contention,
+        # and saying otherwise would credit the cap for a choice it did not make.
+        outranked = sorted(
+            b for b in blocked if counts.get(b, 0) > counts.get(agent, 0)
+        )
+        if outranked:
+            note += f"; rotated past {', '.join(outranked)}"
         return agent, note
     raise SystemExit(
         "every agent with diagnosed faults has failed twice in a row in this "

@@ -156,16 +156,18 @@ font-size:12px;line-height:1.55;overflow-x:auto;margin:0 0 16px;white-space:pre}
   <h1>The optimisation loop, built and running — and the promotions it takes back</h1>
   <p class="lede">
     Every work item in the <a href="s06_optimization-campaign-plan.html">s06 plan</a> is implemented, tested and
-    running against live data. The most consequential result is not an improvement: it is that the three versions
-    already promoted are <strong>rejected by the rule the loop now applies</strong>, and the champion has been rolled
-    back to <code>v2</code>. That is the system working — the evidence was never wrong, it was never sufficient.
+    running against live data. The loop then ran a real campaign:
+    three experiments, two rejections, and one promotion that moved the champion from <code>v2</code> to
+    <code>v8</code> at <strong>+4.58pp, one-sided clustered p&nbsp;=&nbsp;0.040</strong>. The three versions promoted
+    under the <em>old</em> rule were re-judged and <strong>rolled back</strong> — the evidence for them was never
+    wrong, it was never sufficient.
   </p>
   <div class="metrics">
-    <div class="metric"><div class="v ok" style="color:var(--good)">188</div><div class="l">Python tests passing, plus 99 frontend tests and mypy clean across 95 modules</div></div>
-    <div class="metric"><div class="v">77.1%</div><div class="l">v2 baseline on the new 349-question gate split, 100 conversations</div></div>
-    <div class="metric"><div class="v" style="color:var(--bad)">3</div><div class="l">promotions re-judged and rolled back — none clears one-sided p&nbsp;&lt;&nbsp;0.05</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">77.1% → 81.7%</div><div class="l">champion gate accuracy across campaign c01 — <code>v2</code> → <code>v8</code>, one subagent changed</div></div>
+    <div class="metric"><div class="v">3 / 1</div><div class="l">experiments run / promoted. The promotion is the one that cleared p&nbsp;&lt;&nbsp;0.05</div></div>
+    <div class="metric"><div class="v" style="color:var(--bad)">3</div><div class="l">prior promotions re-judged and rolled back — none clears one-sided p&nbsp;&lt;&nbsp;0.05</div></div>
     <div class="metric"><div class="v" style="color:var(--amber)">24%</div><div class="l">of train turns saved by stopping at the first wrong answer — exactly as modelled</div></div>
-    <div class="metric"><div class="v">2</div><div class="l">experiments run live, both rejected — and the second one learned from the first</div></div>
+    <div class="metric"><div class="v">189</div><div class="l">Python tests, plus 99 frontend tests and mypy clean across 97 modules</div></div>
   </div>
   <div class="toc">
     <a href="#rule"><span class="n">01</span> The rule that changed, and what it takes back</a>
@@ -176,6 +178,7 @@ font-size:12px;line-height:1.55;overflow-x:auto;margin:0 0 16px;white-space:pre}
     <a href="#ship"><span class="n">06</span> What shipped, and what it found</a>
     <a href="#first"><span class="n">07</span> Experiment 1: +2.29pp, rejected</a>
     <a href="#second"><span class="n">07b</span> Experiment 2: the writer read the rejection</a>
+    <a href="#third"><span class="n">07c</span> Experiment 3: the champion moves</a>
     <a href="#live"><span class="n">08</span> The surfaces with real data in them</a>
     <a href="#cost"><span class="n">09</span> What it costs, and what is still open</a>
   </div>
@@ -646,6 +649,72 @@ say what is different this time.</span></div>
       on the same agent, getting closer to 0.05 and never arriving.</p></div>
 </section>
 
+<!-- ══════════════════ 07c · EXPERIMENT 3 ══════════════════ -->
+<section id="third">
+  <p class="eyebrow">07c · campaign c01, experiment 3</p>
+  <h2>The champion moved: v2 → v8, retriever, p = 0.040</h2>
+  <p>
+    Experiment 3 targeted <code>retriever</code>. The writer restructured the prompt <em>around lookup rather than
+    arithmetic</em>: a hoisted output contract, an explicit four-step retrieval procedure, row disambiguation
+    (history-qualifier inheritance, stock vs flow, total vs component), period alignment with rollforward
+    reconciliation, one unified sign policy defaulting to unsigned magnitudes, and a precondition list that must be
+    satisfied before the agent is allowed to answer "not found".
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v" style="color:var(--good)">+4.58pp</div><div class="l">77.08% → 81.66% on the gate split</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">0.040</div><div class="l">one-sided clustered McNemar p — clears α = 0.05</div></div>
+    <div class="metric"><div class="v">34 / 18</div><div class="l">fixed / broken, across 36 conversations</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">PROMOTED</div><div class="l">champion <code>v2</code> → <code>v8</code> · <code>t2p2<strong>r3</strong>c2</code></div></div>
+  </div>
+  <div class="term"><span class="dim">$ convfinqa-evalloop cycle --campaign c01</span>
+=== <b>c01-e03</b>: challenging v2 ===
+  <span class="dim">44 cases diagnosed, 1 skipped after its retry also failed</span>
+  <b>target: retriever</b> — most derived first-faults (16)
+  <span class="ok">PROMOTE</span>: Δ <span class="ok">+4.58pp</span> on 349 shared test questions
+          (34 fixed vs 18 broken across 36 conversations);
+          one-sided clustered McNemar <b>p=0.0404</b> (α=0.05);
+          95% CI [-0.28pp, +9.85pp], P(Δ&gt;0)=0.96
+          — target: retriever_operand_recall 0.740 → 0.768
+  <span class="ok">PROMOTED v8</span> (was v2)</div>
+
+  <div class="callout good"><strong>The campaign in three experiments.</strong>
+    <p>Two rejections and one promotion, and the promotion is the one that cleared a bar the other two did not. The
+      champion's gate accuracy moved <strong>77.1% → 81.7%</strong>, attributable to a single subagent's prompt
+      because that is the only thing that changed between the two bundles.</p></div>
+  <div class="scroll-x"><table>
+    <thead><tr><th>experiment</th><th>target</th><th class="num">Δ</th><th class="num">fixed / broken</th><th class="num">p</th><th class="num">P(Δ&gt;0)</th><th>verdict</th></tr></thead>
+    <tbody>
+      <tr><td><code>c01-e01</code> → v6</td><td>preprocess</td><td class="num">+2.29pp</td><td class="num">31 / 23</td><td class="num">0.191</td><td class="num">0.79</td><td><span class="chip bad">rejected</span></td></tr>
+      <tr><td><code>c01-e02</code> → v7</td><td>preprocess</td><td class="num">+2.58pp</td><td class="num">27 / 18</td><td class="num">0.132</td><td class="num">0.87</td><td><span class="chip bad">rejected</span></td></tr>
+      <tr><td><code>c01-e03</code> → <strong>v8</strong></td><td>retriever</td><td class="num" style="color:var(--good)">+4.58pp</td><td class="num">34 / 18</td><td class="num" style="color:var(--good)">0.040</td><td class="num">0.96</td><td><span class="chip good">promoted</span></td></tr>
+    </tbody>
+  </table></div>
+  <figure>
+    <div class="shot"><img src="s07_assets/published-champion-track.jpg" alt="The champion track chart: overall accuracy and four per-subagent metrics from v2 to v8, with retriever named as the mover"></div>
+    <figcaption>The champion track, on the published page. Overall gate accuracy in white; each subagent's own
+      gold-derived metric in colour; the arrow under <code>v8</code> names <code>retriever</code> as the single
+      prompt that changed.</figcaption>
+  </figure>
+
+  <div class="callout"><strong>Read the preprocess line carefully — it goes down.</strong>
+    <p>Rewriting the <em>retriever</em> moved <code>acc_preprocess_skeleton</code> from 0.477 to 0.460 while overall
+      accuracy rose 4.58pp and <code>acc_calculator_exec</code> rose from 0.696 to 0.751. Two things follow. The
+      skeleton metric is a shape comparison, and a better answer can take a differently-shaped route to it, so it
+      moves against accuracy often enough that gating on it would be actively wrong — which experiment 2 showed from
+      the other direction. And the panel is not four independent dials: changing the values the retriever hands
+      downstream changes both what the calculator computes and what the plan ends up looking like.</p></div>
+
+  <div class="callout bad"><strong>A correction I nearly published.</strong>
+    <p>The experiment record read <em>"most derived first-faults (16); rotated past preprocess"</em>, and I was about
+      to write that the rotation cap caused this promotion. It did not — retriever had 16 derived faults against
+      preprocess's 14, so it would have been chosen anyway. The bug was in <code>pick_target</code>: the note
+      appended "rotated past X" whenever <em>any</em> agent was blocked, whether or not that agent actually
+      outranked the pick. It now claims credit only when the blocked agent really was in front, with a test pinning
+      both directions. The cap has not yet changed an outcome. It is still worth having — but the record should not
+      say otherwise, and a note that overstates its own cause is exactly the kind of thing a story page built from
+      that record would then repeat.</p></div>
+</section>
+
 <!-- ══════════════════ 08 · SURFACES IN USE ══════════════════ -->
 <section id="live">
   <p class="eyebrow">08 · the surfaces, with real data in them</p>
@@ -699,7 +768,7 @@ say what is different this time.</span></div>
 <!-- ══════════════════ 09 · WHAT IT COSTS ══════════════════ -->
 <section id="cost">
   <p class="eyebrow">09 · economics and what comes next</p>
-  <h2>What one experiment costs, and what the campaign can honestly claim</h2>
+  <h2>What one experiment costs, and what campaign c01 can honestly claim</h2>
   <div class="grid g3">
     <div class="card"><h4>time</h4><p class="small">~32 minutes end to end at concurrency 10: 4&nbsp;min train,
       ~22&nbsp;min diagnosis, ~1&nbsp;min rewrite, 5&nbsp;min gate. Diagnosis dominates, and it is the part that
@@ -712,23 +781,27 @@ say what is different this time.</span></div>
       subscription consumption, and summing them would make the economics read better than they are.</p></div>
   </div>
   <div class="callout"><strong>The honest headline, today.</strong>
-    <p>"Two experiments run; candidates at +2.29pp and +2.58pp both rejected, at one-sided p&nbsp;=&nbsp;0.19 and
-      0.13, on a fixed 349-question gate split — with the second narrowing the first's collateral damage after
-      reading its verdict." That is a much smaller claim than the previous protocol produced from comparable data,
-      which reported three promotions and a champion four versions along. It is also the one that survives contact
-      with the statistics, and the part about the second experiment is a claim about the <em>loop</em> rather than
-      about the accuracy, which is the thing actually being built here.</p>
+    <p>"Campaign c01: three experiments, one promotion. The champion moved from 77.1% to 81.7% on a fixed
+      349-question gate split, on a single subagent's prompt, at one-sided cluster-corrected
+      p&nbsp;=&nbsp;0.040. Two other candidates at +2.29pp and +2.58pp were rejected as not distinguishable from
+      noise." Every clause there is checkable against the record, and the two rejections are load-bearing — they are
+      what makes the promotion mean something rather than being the first thing that happened to be tried.</p>
+    <p class="small muted">Note what the claim still is <em>not</em>: out-of-sample. Three challengers have now been
+      measured against that split, so a portion of the +4.58pp is selection. The confirmatory run below is what
+      converts it.</p>
     <p>What would make it an out-of-sample claim is the confirmatory run: at the end of a campaign, cut a fresh
       270-report holdout from the untouched reserve and run the first and final champions on it. One run, ~$4, and
       the whole thing stops being "improved on a split I optimised against".</p></div>
 
   <h3>Open, and worth deciding before campaign c02</h3>
   <div class="grid g2">
-    <div class="callout info"><strong>Rejected-but-real changes.</strong><p>Two candidates in a row at +2.3pp and
-      +2.6pp with P(Δ&nbsp;&gt;&nbsp;0) of 0.79 and 0.87 look like a real improvement the split is too small to
-      confirm. The gate is right to refuse them individually; the open question is whether the campaign should be
-      able to say so — e.g. by re-running the best rejected candidate once at the end, where a second independent
-      measurement of the same change is legitimate evidence rather than a second bite at the same one.</p></div>
+    <div class="callout info"><strong>Rejected-but-real changes, and what to do with them now.</strong>
+      <p>The two preprocess candidates sat at +2.3pp and +2.6pp with P(Δ&nbsp;&gt;&nbsp;0) of 0.79 and 0.87 — they
+        look like a real improvement the split is too small to confirm. The gate is right to refuse each one; the
+        open question is what the campaign does next. The obvious move now that <code>v8</code> is champion is to
+        re-target preprocess <em>on top of it</em>: the retriever fix changed what preprocess receives, so the
+        faults it was being blamed for may not survive the new baseline. Which is also the argument for the rotation
+        cap being about ordering rather than abandonment.</p></div>
     <div class="callout info"><strong>The noise floor is still unmeasured.</strong><p>Re-running the same version
       gives a different CSV (v3_1 on train10 scored 61.4 / 63.6 / 63.6%). One extra gate pass of <code>v2</code>
       against itself would put a number on how much of any Δ is temperature, and at this split size that context is
@@ -757,7 +830,7 @@ say what is different this time.</span></div>
     <code>evaluation/story.json</code> · <code>evaluation/registry.json</code> ·
     <code>evaluation/splits/eval_loop_v2.json</code> ·
     <code>evaluation/predictions/evalloop/evalloop-{train,test}100-*.csv</code> ·
-    commit <code>fa4dd4f</code>.
+    commits <code>fa4dd4f</code>, <code>fc94686</code>.
   </p>
 </section>
 

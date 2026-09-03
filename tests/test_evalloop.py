@@ -903,3 +903,30 @@ async def test_run_structured_retries_a_transient_empty_reply() -> None:
             await sdk.run_structured("hi", schema=Reply, system_prompt="s", attempts=2)
     finally:
         sdk._run_structured_once = original  # type: ignore[assignment]
+
+
+def test_rotation_note_only_claims_credit_when_it_changed_the_pick() -> None:
+    """A blocked agent that ranked below the pick was never in contention.
+
+    Saying "rotated past preprocess" when preprocess had fewer faults than the
+    chosen agent credits the cap for a choice it did not make — and that note
+    goes onto the experiment record, where it would be read as the reason."""
+    from convfinqa.evalloop import campaign
+
+    past = [
+        {"target_agent": "preprocess", "promoted": False},
+        {"target_agent": "preprocess", "promoted": False},
+    ]
+    # preprocess is blocked but ranks below retriever — no credit
+    agent, why = campaign.pick_target(
+        {"retriever": 16, "preprocess": 14, "triage": 7, "calculator": 7}, past
+    )
+    assert agent == "retriever"
+    assert "rotated past" not in why
+
+    # preprocess is blocked and would have won — the cap did change the pick
+    agent, why = campaign.pick_target(
+        {"retriever": 9, "preprocess": 20, "triage": 7, "calculator": 7}, past
+    )
+    assert agent == "retriever"
+    assert "rotated past preprocess" in why
