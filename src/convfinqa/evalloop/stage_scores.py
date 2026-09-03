@@ -197,3 +197,54 @@ TARGET_METRIC = {
     "retriever": "retriever_operand_recall",
     "calculator": "acc_calculator_exec",
 }
+
+
+# --- Gold-derived attribution (M3/W0) ---------------------------------------
+#
+# The same four checks, read in pipeline order: the first one that fails is
+# where the turn first diverged from what gold says should have happened. This
+# replaces asking an LLM to attribute — it is free, deterministic, and it is the
+# thing the per-agent panel was already computing. The teacher is told the
+# answer and may dissent; a dissent is recorded, never silently overridden.
+
+AGENT_ORDER = ("triage", "preprocess", "retriever", "calculator")
+
+
+def first_fault(row: Any) -> str | None:
+    """The first stage whose gold-derived check fails, in pipeline order.
+
+    ``None`` means every check passed — for a wrong answer that is itself
+    informative (the failure is outside what gold can adjudicate), and the
+    caller attributes it to the calculator, which owns the final form.
+    """
+    get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
+
+    def _bad(value: Any) -> bool:
+        return value is False or value == 0.0 or str(value).lower() == "false"
+
+    if _bad(get("triage_turn_type_ok")):
+        return "triage"
+    if _bad(get("preprocess_skeleton_ok")):
+        return "preprocess"
+    recall = get("retriever_operand_recall")
+    if recall is not None and not (isinstance(recall, float) and math.isnan(recall)):
+        try:
+            if float(recall) < 1.0:
+                return "retriever"
+        except (TypeError, ValueError):
+            pass
+    if _bad(get("calculator_ok")):
+        return "calculator"
+    return None
+
+
+def attribute(row: Any) -> str:
+    """``first_fault`` with the honest fallback: nothing gold can see, so calculator."""
+    return first_fault(row) or "calculator"
+
+
+def attribute_frame(df: pd.DataFrame) -> pd.Series:
+    """Per-row gold-derived attribution for a scored run frame."""
+    if "triage_turn_type_ok" not in df.columns:
+        score_rows(df)
+    return pd.Series([attribute(r._asdict()) for r in df.itertuples()], index=df.index)

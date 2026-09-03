@@ -16,6 +16,10 @@ from fastapi import APIRouter, HTTPException, Query
 from convfinqa.serving import evaldata
 from convfinqa.serving.models import (
     AnswerRow,
+    CampaignExperiment,
+    CampaignsResponse,
+    CampaignSummary,
+    ChampionPoint,
     DatasetRow,
     EvalSummary,
     LoopRunSummary,
@@ -228,7 +232,9 @@ async def eval_dataset(
 @lru_cache(maxsize=4)
 def _dataset_rows(split: str) -> list[DatasetRow]:
     from convfinqa.data.loader import _build_conv_examples, training_data
+    from convfinqa.evalloop import stage_scores
     from convfinqa.evalloop.splits import split_report_ids
+    from convfinqa.evaluation.metrics import parse_program
 
     rows: list[DatasetRow] = []
     for ex in _build_conv_examples(split_report_ids(split), training_data()):
@@ -237,6 +243,14 @@ def _dataset_rows(split: str) -> list[DatasetRow]:
         turn_types = ex.gold_turn_types or [""] * n
         conv_types = ex.gold_conv_types or [""] * n
         for i, question in enumerate(ex.questions):
+            program = str(programs[i] or "")
+            ops = parse_program(program) or []
+            # Operands the retriever owns: the gold program's numbers, minus
+            # constants and minus anything an earlier gold answer already
+            # supplied — those come from the conversation, not the document.
+            operands = stage_scores.gold_document_operands(
+                program, [str(a) for a in ex.gold_answers[:i]]
+            )
             rows.append(
                 DatasetRow(
                     split=split,
@@ -244,9 +258,98 @@ def _dataset_rows(split: str) -> list[DatasetRow]:
                     turn_index=i,
                     question=question,
                     gold_answer=str(ex.gold_answers[i]),
-                    gold_program=str(programs[i] or ""),
+                    gold_program=program,
                     turn_type=str(turn_types[i] or ""),
                     conv_type=str(conv_types[i] or ""),
+                    expected_triage=str(turn_types[i] or ""),
+                    expected_skeleton=[op for op, _ in ops],
+                    expected_operands=operands,
+                    expected_answer=str(ex.gold_answers[i]),
                 )
             )
     return rows
+
+
+@router.get("/campaigns")
+async def get_campaigns(
+    campaign: str = Query("", description="Filter to one campaign name"),
+) -> CampaignsResponse:
+    """Campaigns, their experiments, and the champion track.
+
+    Reads the committed ``evaluation/story.json`` rather than querying MLflow, so
+    this route stays live in the demo — and so the app and the published page can
+    never disagree about the same campaign. Rebuild both with
+    ``convfinqa-evalloop story``.
+    """
+    return _campaigns_response(campaign)
+
+
+@lru_cache(maxsize=8)
+def _campaigns_response(campaign: str) -> CampaignsResponse:
+    import json
+
+    from convfinqa.evalloop.story import STORY_PATH
+
+    if not STORY_PATH.exists():
+        return CampaignsResponse(
+            rule="no campaign has been recorded yet — run `convfinqa-evalloop cycle`"
+        )
+    data = json.loads(STORY_PATH.read_text())
+    experiments: list[CampaignExperiment] = []
+    summaries: list[CampaignSummary] = []
+    for entry in data.get("campaigns", []):
+        name = entry["name"]
+        if campaign and name != campaign:
+            continue
+        rows = entry.get("experiments", [])
+        for row in rows:
+            ci = row.get("delta_ci") or [None, None]
+            experiments.append(
+                CampaignExperiment(
+                    label=row.get("label") or row.get("candidate_version", ""),
+                    campaign=name,
+                    target_agent=row.get("target_agent", ""),
+                    baseline_version=row.get("baseline_version", ""),
+                    candidate_version=row.get("candidate_version", ""),
+                    promoted=bool(row.get("promoted")),
+                    at=row.get("at"),
+                    accuracy_delta=row.get("accuracy_delta"),
+                    cluster_p_one_sided=row.get("cluster_p_one_sided"),
+                    delta_ci_lo=ci[0],
+                    delta_ci_hi=ci[1],
+                    n_compared=row.get("n_compared"),
+                    fixed=row.get("fixed"),
+                    broken=row.get("broken"),
+                    accuracy_baseline=row.get("accuracy_baseline"),
+                    accuracy_candidate=row.get("accuracy_candidate"),
+                    panel_baseline=row.get("panel_baseline") or {},
+                    panel_candidate=row.get("panel_candidate") or {},
+                    summary_of_changes=row.get("summary_of_changes", "") or "",
+                    rationale=row.get("rationale", "") or "",
+                    diff=row.get("diff", "") or "",
+                )
+            )
+        n_promoted = sum(1 for r in rows if r.get("promoted"))
+        summaries.append(
+            CampaignSummary(
+                name=name,
+                n_experiments=len(rows),
+                n_promoted=n_promoted,
+                n_remaining=max(0, 5 - len(rows)),
+                complete=len(rows) >= 5,
+            )
+        )
+    return CampaignsResponse(
+        champion=data.get("champion"),
+        rule=data.get("rule", ""),
+        generated_at=data.get("generated_at", ""),
+        split=data.get("split") or {},
+        campaigns=summaries,
+        experiments=experiments,
+        champion_track=[
+            ChampionPoint(
+                **{k: v for k, v in p.items() if k in ChampionPoint.model_fields}
+            )
+            for p in data.get("champion_track", [])
+        ],
+    )

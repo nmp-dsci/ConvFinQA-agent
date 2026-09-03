@@ -118,7 +118,16 @@ class PredRow(BaseModel):
 
 
 class DatasetRow(BaseModel):
-    """One gold question of the eval-loop dataset, for human review."""
+    """One gold question of the eval-loop dataset, for human review.
+
+    The four ``expected_*`` fields are the per-subagent gold, *derived* from the
+    gold program and gold answer rather than labelled: what triage should have
+    classified this turn as, the operation skeleton preprocess should have
+    planned, the document values the retriever was responsible for finding, and
+    what the calculator should have produced. They are the same derivation the
+    attribution rule uses, shown so a human can check the rule rather than
+    take it on trust — which is where a disputed attribution gets settled.
+    """
 
     split: str
     report_id: str
@@ -128,6 +137,10 @@ class DatasetRow(BaseModel):
     gold_program: str
     turn_type: str
     conv_type: str
+    expected_triage: str = ""
+    expected_skeleton: list[str] = []
+    expected_operands: list[str] = []
+    expected_answer: str = ""
 
 
 class LoopRunSummary(BaseModel):
@@ -205,3 +218,69 @@ class DemoQuestion(BaseModel):
     question: str
     gold_answer: str
     correct: bool
+
+
+class CampaignExperiment(BaseModel):
+    """One gated experiment: what it changed, and what the gate said.
+
+    Shaped from `story.json` rather than queried live, so the Experiments tab
+    shows exactly what the published page shows — a discrepancy between the two
+    would be a discrepancy about the same tracking store, which is worse than
+    having only one of them.
+    """
+
+    label: str
+    campaign: str
+    target_agent: str
+    baseline_version: str
+    candidate_version: str
+    promoted: bool
+    at: int | None = None
+    accuracy_delta: float | None = None
+    cluster_p_one_sided: float | None = None
+    delta_ci_lo: float | None = None
+    delta_ci_hi: float | None = None
+    n_compared: float | None = None
+    fixed: float | None = None
+    broken: float | None = None
+    accuracy_baseline: float | None = None
+    accuracy_candidate: float | None = None
+    panel_baseline: dict[str, float | None] = {}
+    panel_candidate: dict[str, float | None] = {}
+    summary_of_changes: str = ""
+    rationale: str = ""
+    diff: str = ""
+
+
+class CampaignSummary(BaseModel):
+    """A campaign as a unit of review: its experiments and how many promoted."""
+
+    name: str
+    n_experiments: int
+    n_promoted: int
+    n_remaining: int
+    blocked_agents: list[str] = []
+    complete: bool = False
+
+
+class ChampionPoint(BaseModel):
+    """One point on the champion track: accuracy and the per-agent panel."""
+
+    version: str
+    at: int | None = None
+    accuracy: float | None = None
+    panel: dict[str, float | None] = {}
+    moved_by: str | None = None
+    target_agent: str | None = None
+
+
+class CampaignsResponse(BaseModel):
+    """Everything the Experiments tab's campaign view needs, in one request."""
+
+    champion: str | None = None
+    rule: str = ""
+    generated_at: str = ""
+    split: dict[str, Any] = {}
+    campaigns: list[CampaignSummary] = []
+    experiments: list[CampaignExperiment] = []
+    champion_track: list[ChampionPoint] = []

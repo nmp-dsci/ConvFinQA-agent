@@ -1,0 +1,58 @@
+{
+ "generated_at": "2026-09-03T17:24:10+00:00",
+ "champion": "v2",
+ "split": {
+  "name": "eval_loop_v1",
+  "gate_reports": 54,
+  "gate_questions": 201,
+  "train_reports": 53
+ },
+ "alpha": 0.05,
+ "rule": "net positive on the shared gate questions AND one-sided cluster-corrected McNemar p < 0.05",
+ "campaigns": [],
+ "lineage": [
+  {
+   "at": "2026-08-28T00:15:19.117895+00:00",
+   "version": "v2",
+   "previous": null,
+   "actor": "backfill",
+   "reason": "first registered version becomes champion by default"
+  },
+  {
+   "at": "2026-09-02T04:59:09.663627+00:00",
+   "version": "v3_1",
+   "previous": "v2",
+   "actor": "evalloop",
+   "reason": "comparator passed: net positive: 54.5% \u2192 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at \u03b1=0.05)"
+  },
+  {
+   "at": "2026-09-02T10:05:54.423634+00:00",
+   "version": "v4",
+   "previous": "v3_1",
+   "actor": "evalloop-teacher",
+   "reason": "targeted (M2): retriever first-faults 3 \u2192 2 on the shared reports; overall \u0394 +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875"
+  },
+  {
+   "at": "2026-09-02T11:34:26.057841+00:00",
+   "version": "v3_1",
+   "previous": "v4",
+   "actor": "owner",
+   "reason": "rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test data."
+  },
+  {
+   "at": "2026-09-02T12:18:57.161118+00:00",
+   "version": "v5",
+   "previous": "v3_1",
+   "actor": "evalloop-teacher",
+   "reason": "targeted (M2): preprocess acc_preprocess_skeleton 0.415 \u2192 0.447 on the shared test reports; overall \u0394 +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445"
+  },
+  {
+   "at": "2026-09-03T17:18:03.855215+00:00",
+   "version": "v2",
+   "previous": "v5",
+   "actor": "owner",
+   "reason": "rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule \u2014 net positive AND one-sided cluster-corrected McNemar p < 0.05 \u2014 every one is rejected (v5, the strongest, has p=0.207 and a 95%% CI of [-3.2pp, +7.6pp] that contains zero). The evidence for them was never wrong, it was never sufficient; the campaign restarts from the last champion whose promotion the new rule does not contradict."
+  }
+ ],
+ "champion_track": []
+}

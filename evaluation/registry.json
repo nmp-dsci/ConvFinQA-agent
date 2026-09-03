@@ -28,19 +28,28 @@
       "version": "v2",
       "registered_at": "2026-08-28T00:15:18.986156+00:00",
       "source": "evalloop",
-      "bundle_id": "65c8a3edd210",
+      "bundle_id": "17f341ff4e2e",
       "bundle": {
         "prompts_version": "v2",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "bec0e68"
+        "code_sha": "1d10c35",
+        "composition": "t2.p2.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
       },
       "runs": [
         "8292242f6dcf48b5a440c9c346fc1305",
         "4f91d36929c14a8cb28b376dd9d9b93e",
-        "9c4c88bc649c4f80a68cd4c0a34c2b52"
+        "9c4c88bc649c4f80a68cd4c0a34c2b52",
+        "de9af919f1144d368aef991710ab8ef5",
+        "e57b6cbfb10a47b7b11cfbbe5605f62c",
+        "7e2c876dea6449dc8fc15ce195c278df",
+        "473509ad4f4743558d040444c67b1bb5"
       ],
       "metrics": {
         "accuracy": 0.771429,
@@ -145,7 +154,7 @@
     }
   ],
   "aliases": {
-    "champion": "v5"
+    "champion": "v2"
   },
   "history": [
     {
@@ -557,6 +566,16 @@
         },
         "notes": []
       }
+    },
+    {
+      "at": "2026-09-03T17:18:03.855215+00:00",
+      "event": "promote",
+      "version": "v2",
+      "previous_champion": "v5",
+      "actor": "owner",
+      "forced": true,
+      "reason": "rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule \u2014 net positive AND one-sided cluster-corrected McNemar p < 0.05 \u2014 every one is rejected (v5, the strongest, has p=0.207 and a 95%% CI of [-3.2pp, +7.6pp] that contains zero). The evidence for them was never wrong, it was never sufficient; the campaign restarts from the last champion whose promotion the new rule does not contradict.",
+      "comparison": null
     }
   ],
   "agent_prompts": {

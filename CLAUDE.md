@@ -25,8 +25,12 @@ uv run pytest
 - **`--workers 1` is required** for the backend — in-memory session state breaks with multiple workers.
 - **`convfinqa/llm.py` is the only place a model may be constructed.** The demo gate and the retry/timeout policy live there; a model built anywhere else silently bypasses both. Backends expose `lm_mini()` / `lm_max()` factories, never module-level model objects — importing a module must never require an API key, because the demo container has none.
 - **Nothing may build a model at import time.** This broke the deployment twice (`backends.pydantic`, then `backends.dspy`): a read-only route returned 500 purely because reading a dataset fact imported a module that constructed an LM. `tests/test_demo_mode.py::test_every_module_imports_without_a_key` pins it.
+- **A campaign is the unit of optimisation work**: up to 5 experiments against one fixed gate split, with a target rotating off any subagent that failed twice in a row. Both caps are enforced in `evalloop/campaign.py`, not left to discipline. Each experiment changes **exactly one** subagent's prompt, so the diff between consecutive champions is one prompt and a champion move has a named cause.
+- **The teacher and prompt writer run on the Claude Agent SDK (Opus 5, subscription)**; the four pipeline agents stay on `deepseek-v4-flash`. `llm.subscription_env()` is the only place the child environment is built, and it must **blank** `ANTHROPIC_API_KEY` rather than omit it — the SDK merges its `env` over `os.environ`, and `config.load_dotenv` puts the key there at import time. It also strips the `CLAUDE_CODE_*` session variables, or a loop driven from inside a Claude Code session bills that session. Pinned by `tests/test_llm.py`.
+- **Attribution is gold-derived, not judged.** `stage_scores.first_fault()` walks triage → preprocess → retriever → calculator and returns the first failing check; that is what picks each experiment's target. The teacher is *told* the attribution, may dissent, and a dissent is recorded as `attribution_disputed` (they agreed on 17 of 30 cases when measured — the teacher over-called preprocess and under-called triage).
+- **Train is resampled every cycle** from `pool − gate` via `splits.draw_train(seed=…)`, with the seed and drawn ids logged as a run artifact. Train passes early-stop at the first wrong turn (`--stop-at-first-wrong`); both flags are **refused on the gate split**, where the comparison is paired per question.
 - **"Held out" means `data.loader.optimizer_split()`, not `train_report_ids`.** Both are 60/40 splits seeded 42, but they agree on only 78 of 120 conversations, and GEPA ran against the former. The 770-question scored set spans conversations the optimizer saw; the never-seen subset is 309 questions. Report `holdout_accuracy` alongside — never blended into — the overall figure.
-- **Promotion requires a net-positive paired comparison** — more questions fixed than broken on the shared set — with every pass→fail flip listed and the exact McNemar p recorded on the verdict (flagged when not significant at α=0.05). Individual flips no longer veto on their own (rule changed 2026-09-02 at the owner's direction); they are evidence on the promotion record, and the diagnoser's first targets. Enforced in `tracking/comparator.py`, gated in CI by `tracking/gate.py`. The M2 teacher loop adds a second deliberate path (2026-09-02): a targeted challenger that changes ONE subagent promotes when that agent's first-fault count drops AND overall paired accuracy does not regress — recorded via `registry.promote(force=True, reason=...)` with the comparison attached, never silently. **Promotion evidence must come from the unseen test split** (protocol 2026-09-02): train runs optimise, test runs promote — both gate CLIs refuse `--promote` on train evidence. **Prompt versioning is per subagent** (M2.5): each agent has its own lineage in `registry.json → agent_prompts` (`t3.p3.r4.c3` compositions; content hash = truth, seq = human handle); bundles are lockfiles of four components; run names/params/traces carry the composition; `convfinqa-evalloop backfill-prompts` seeds it and `mirror-prompts` mirrors each agent into MLflow's prompt registry. Eval runs log a per-agent metric panel (`acc_triage_turn_type`, `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`, `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`, derived from gold, zero API calls) and `gate-targeted` judges the target on its deterministic metric, attribution as fallback.
+- **Promotion requires net positive AND one-sided cluster-corrected McNemar p < 0.05** (campaign protocol, 2026-09-03, supersedes the net-positive-only rule). One-sided because the gate only ever promotes improvements, so half the rejection region is spent on a direction it never acts in; cluster-corrected (Durkalski, `Z = Σdₖ/√Σdₖ²` over conversations) because a report's turns share a history and usually an error, so four fixed turns in one report are one piece of evidence, not four. Every verdict also carries a cluster bootstrap CI on Δ. Implemented in `tracking/comparator.py` (`promotable_significant`, `cluster_p_one_sided`, `cluster_bootstrap_ci`) and applied by `evalloop/gate.py`. `promotable` (net positive alone) survives only for the legacy CI gate and for display. **The per-agent metric is no longer a second route to promotion** — under M2 it was, and that is how v3_1/v4/v5 were promoted on evidence whose intervals contained zero; all three were rolled back to v2 on 2026-09-03. **Promotion evidence must come from the unseen test split** (protocol 2026-09-02): train runs optimise, test runs promote — both gate CLIs refuse `--promote` on train evidence. **Prompt versioning is per subagent** (M2.5): each agent has its own lineage in `registry.json → agent_prompts` (`t3.p3.r4.c3` compositions; content hash = truth, seq = human handle); bundles are lockfiles of four components; run names/params/traces carry the composition; `convfinqa-evalloop backfill-prompts` seeds it and `mirror-prompts` mirrors each agent into MLflow's prompt registry. Eval runs log a per-agent metric panel (`acc_triage_turn_type`, `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`, `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`, derived from gold, zero API calls) and `gate-targeted` judges the target on its deterministic metric, attribution as fallback.
 - **MLflow logging lives inside the runners**, not beside them. An operator who forgets to wrap a run produces an unrecorded result, and a history with silent gaps is worse than none.
 - **MLflow tracing follows the same rule** (added 2026-09-02): `tracking/tracing.py` owns it. The evalloop runner always calls `tracing.enable()` — every LLM call lands as a span (run → report → question → named agent stage → `Agent.run`) linked to the MLflow run; serving opts in with `MLFLOW_TRACING=1`. `tracing.span()` is a free no-op until `enable()` succeeds, so imports stay cheap and the demo container needs no tracking server. Never set `MLFLOW_USE_DEFAULT_TRACER_PROVIDER=false` to merge MLflow into Logfire's tracer provider — it crashes pydantic-ai runs; the two providers coexist by staying separate.
 - **Vite proxy** (`frontend/vite.config.ts`'s `BACKEND_PREFIXES`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`, `/admin`, `/traces`, `/demo`). Missing entries cause silent HTML-404 failures in the browser.
@@ -78,7 +82,31 @@ docker compose up demo                    # exactly what ships
 ./scripts/demo_smoke.sh http://localhost:8080
 ```
 
-## Eval loop (M1) & teacher (M2)
+## Optimisation campaigns (the current loop)
+
+```bash
+# One experiment, end to end: train draw -> diagnose -> rewrite -> gate -> decide
+EVAL_MANIFEST=eval_loop_v2 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
+  uv run convfinqa-evalloop cycle --campaign c01
+uv run convfinqa-evalloop cycle --campaign c01 --baseline-gate-csv <base.csv>  # reuse the baseline arm
+uv run convfinqa-evalloop cycle --campaign c01 --no-promote                    # gate and record, don't move the champion
+uv run convfinqa-evalloop campaign-status --campaign c01                       # used / promoted / blocked
+
+# The published write-up, built from the tracking store and the registry
+uv run convfinqa-evalloop story              # -> evaluation/story.json + docs/optimization/index.html
+uv run python -m convfinqa.evalloop.story_check   # CI: fails when the page has gone stale
+
+# Cutting a manifest by report count, as a superset of an existing one
+uv run convfinqa-evalloop make-splits --name eval_loop_v2 --extend eval_loop_v1 \
+  --train-reports 100 --test-reports 100
+```
+
+`EVAL_MANIFEST` selects the manifest for a whole session — set it once so every run, gate
+and diagnosis agrees on what "the gate split" means. The **Campaigns page**
+(`/admin/campaigns`, backend `GET /eval/campaigns`) and the published page both read
+`evaluation/story.json`, so they cannot disagree; rebuild both with `story`.
+
+## Eval loop (M1) & teacher (M2) — the underlying commands
 
 ```bash
 uv run convfinqa-evalloop make-splits                  # committed split manifest (train/test/holdout)

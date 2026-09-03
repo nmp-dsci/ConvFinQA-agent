@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Optimising a multi-agent financial QA system</title>
+<meta name="description" content="A prompt-optimisation loop for a four-agent
+ConvFinQA pipeline: gold-derived attribution, one subagent per experiment, and a
+significance gate that rejects most of what it is offered.">
+<style>
+:root{--bg:#0e1116;--panel:#151a21;--panel-2:#1b212a;--line:#262d38;--text:#dbe3ee;
+--muted:#93a1b5;--faint:#6b7a90;--good:#73daca;--bad:#f7768e;--amber:#e0af68;--info:#7aa2f7;
+--violet:#bb9af7;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px 96px}
+header{padding:72px 0 40px;border-bottom:1px solid var(--line);margin-bottom:44px}
+h1{font-size:38px;line-height:1.15;margin:0 0 14px;letter-spacing:-.02em}
+h2{font-size:23px;margin:56px 0 14px;letter-spacing:-.01em}
+h3{font-size:16px;margin:30px 0 10px}
+p{margin:0 0 14px;color:var(--muted)}
+.lede{font-size:17px;color:var(--text);max-width:66ch}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+color:var(--faint);margin:0 0 10px}
+code,.mono{font-family:var(--mono);font-size:.9em}
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:16px;min-width:0}
+.stat{font:600 30px/1 var(--mono);letter-spacing:-.02em}
+.stat.good{color:var(--good)}.stat.bad{color:var(--bad)}.stat.amber{color:var(--amber)}
+.k{font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+margin-bottom:8px}
+.sub{font-size:12.5px;color:var(--faint);margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+color:var(--faint);padding:0 10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel);
+margin:0 0 18px}
+.scroll table{min-width:640px}
+.pill{display:inline-block;font:600 10px/1.7 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+padding:0 8px;border-radius:99px;border:1px solid}
+.pill.ok{color:var(--good);border-color:#2c5f57;background:#132420}
+.pill.no{color:var(--faint);border-color:var(--line);background:var(--panel-2)}
+.pill.agent{color:var(--info);border-color:#2b3d5e;background:#141b28;text-transform:none}
+figure{margin:22px 0 26px}
+svg{display:block;width:100%;height:auto}
+figcaption{font-size:12.5px;color:var(--faint);margin-top:10px}
+.exp{border:1px solid var(--line);border-radius:9px;background:var(--panel);margin:0 0 12px;
+overflow:hidden}
+.exp>summary{cursor:pointer;padding:13px 16px;display:flex;gap:12px;align-items:center;
+flex-wrap:wrap;list-style:none}
+.exp>summary::-webkit-details-marker{display:none}
+.exp[open]>summary{border-bottom:1px solid var(--line);background:var(--panel-2)}
+.exp .body{padding:16px}
+.exp .label{font:600 12px/1 var(--mono);color:var(--text)}
+.exp .head-delta{margin-left:auto;font-family:var(--mono);font-size:12.5px}
+pre{background:#0b0e13;border:1px solid var(--line);border-radius:7px;padding:13px;
+overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.5;margin:10px 0 0;color:var(--muted)}
+pre .add{color:var(--good)}pre .del{color:var(--bad)}pre .hunk{color:var(--violet)}
+.note{border-left:2px solid var(--amber);background:var(--panel);padding:12px 16px;
+border-radius:0 7px 7px 0;margin:0 0 16px}
+.note strong{color:var(--text)}
+footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);
+font-size:12.5px;color:var(--faint)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font:11px/1 var(--mono);color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+</style></head><body><div class="wrap">
+<header>
+<p class="eyebrow">ConvFinQA · agent optimisation</p>
+<h1>Optimising a multi-agent system,<br>one subagent at a time</h1>
+<p class="lede">A four-stage financial question-answering pipeline that improves
+itself: a teacher reads its failures, rewrites exactly one subagent's prompt, and
+a paired significance test on a fixed held-back split decides whether that
+rewrite becomes the champion. Every number here is read out of the tracking
+store that recorded the runs — nothing on this page is typed by hand.</p>
+</header>
+
+<div class="grid g3">
+<div class="card"><div class="k">champion</div>
+<div class="stat">v2</div>
+<div class="sub">gate accuracy —</div></div>
+<div class="card"><div class="k">experiments run</div>
+<div class="stat">0</div>
+<div class="sub">0 promoted · 0 rejected</div></div>
+<div class="card"><div class="k">gate split</div>
+<div class="stat">201</div>
+<div class="sub">questions across 54 conversations,
+fixed for the campaign</div></div>
+</div>
+
+<h2>How the loop works</h2>
+<p>One experiment changes <strong>one subagent's prompt</strong> and nothing else.
+That constraint is what makes a result readable: when the champion moves, the diff
+between it and the version before it is a single prompt, so the improvement has a
+named cause rather than an assertion attached to it.</p>
+<figure><svg viewBox="0 0 940 200" role="img" aria-labelledby="harness-t"><title id="harness-t">The optimisation loop: draw, run, diagnose, rewrite, gate, decide</title><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6b7a90"/></marker></defs><g font-family="IBM Plex Mono, monospace" font-size="11"><rect x="20" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="84" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">train draw</text><text x="84" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">pool − gate, fresh seed</text><line x1="148" y1="85" x2="166" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="170" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="234" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">run</text><text x="234" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">stop at first wrong</text><line x1="298" y1="85" x2="316" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="320" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="384" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">diagnose</text><text x="384" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">gold-derived attribution</text><line x1="448" y1="85" x2="466" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="470" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="534" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">rewrite</text><text x="534" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">ONE subagent, full prompt</text><line x1="598" y1="85" x2="616" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="620" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="684" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">gate</text><text x="684" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">fixed split, both arms</text><line x1="748" y1="85" x2="766" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="770" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="834" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">decide</text><text x="834" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">p < 0.05, one-sided</text><path d="M884 118 L884 158 L84 158 L84 122" fill="none" stroke="#6b7a90" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ar)"/><text x="484" y="174" text-anchor="middle" fill="#93a1b5" font-size="10">promoted or not, the verdict is recorded — and the next rewrite reads it</text><text x="20" y="32" fill="#6b7a90" font-size="10">TRAIN — resampled every cycle, teacher reads it</text><text x="620" y="32" fill="#e0af68" font-size="10">GATE — fixed, never tuned against</text></g></svg>
+<figcaption>Train is resampled from the pool every cycle and read only by the
+teacher. The gate split never moves and is never tuned against. Both arms of every
+comparison run every question on it — the early-stopping that saves a quarter of
+the train pass is refused here, because a paired test needs a counterpart for each
+question.</figcaption></figure>
+
+<div class="note"><strong>The promotion rule.</strong>
+<p>net positive on the shared gate questions AND one-sided cluster-corrected McNemar p &lt; 0.05. One-sided because the gate only ever promotes
+improvements, so spending half the rejection region on a direction it will never
+act in buys nothing. Cluster-corrected because flips are not independent — a
+conversation's turns share a report, a history and usually an error, so four fixed
+turns in one report are one piece of evidence, not four.</p></div>
+
+
+
+<h2>Every experiment, including the ones that failed</h2>
+<p>Most challengers are rejected, and that is the system working. At this split
+size a genuine improvement of two or three points is not distinguishable from
+noise, so the gate refuses it — and the rejection is recorded, fed back to the
+prompt writer, and counts against the campaign's budget.</p>
+<p>No campaigns recorded yet.</p>
+
+<h2>Champion lineage</h2><div class="scroll"><table><thead><tr><th>when</th><th>move</th><th>why</th></tr></thead><tbody><tr><td class="mono">2026-09-03T17:18:03</td><td class="mono">v5 → <strong>v2</strong></td><td>rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule — net positive AND one-sid</td></tr><tr><td class="mono">2026-09-02T12:18:57</td><td class="mono">v3_1 → <strong>v5</strong></td><td>targeted (M2): preprocess acc_preprocess_skeleton 0.415 → 0.447 on the shared test reports; overall Δ +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445</td></tr><tr><td class="mono">2026-09-02T11:34:26</td><td class="mono">v4 → <strong>v3_1</strong></td><td>rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test</td></tr><tr><td class="mono">2026-09-02T10:05:54</td><td class="mono">v3_1 → <strong>v4</strong></td><td>targeted (M2): retriever first-faults 3 → 2 on the shared reports; overall Δ +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875</td></tr><tr><td class="mono">2026-09-02T04:59:09</td><td class="mono">v2 → <strong>v3_1</strong></td><td>comparator passed: net positive: 54.5% → 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at α=0.05)</td></tr><tr><td class="mono">2026-08-28T00:15:19</td><td class="mono">— → <strong>v2</strong></td><td>first registered version becomes champion by default</td></tr></tbody></table></div>
+
+<footer>Generated 2026-09-03T17:24:10+00:00 from
+<code>evaluation/registry.json</code> and the MLflow tracking store ·
+split manifest <code>eval_loop_v1</code> ·
+rebuild with <code>convfinqa-evalloop story</code>
+<script type="application/json" id="story-data">{"champion": "v2", "n_experiments": 0, "generated_at": "2026-09-03T17:24:10+00:00"}</script>
+</footer>
+</div></body></html>

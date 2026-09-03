@@ -13,7 +13,15 @@ import { AdminPage, EmptyState, ErrorNote, LoadingRows, Panel } from './ui';
  * Every optimisation verdict ultimately leans on these rows being right, and
  * the teacher occasionally says they are not (`gold_suspect`). This page is
  * where a human settles that argument: each split's every question beside its
- * gold answer and gold program, filterable, nothing derived.
+ * gold answer and gold program, filterable.
+ *
+ * The `derived gold` column is the second argument this page settles. The loop
+ * attributes each failure to a subagent by walking four checks read straight
+ * out of the gold program — what triage should have said, the operation
+ * skeleton preprocess should have planned, the document values the retriever
+ * owed, the answer the calculator owed. That derivation decides which agent an
+ * experiment targets, so when the teacher disputes it, this is where a human
+ * can see what the rule actually computed and judge which of them is right.
  */
 
 const SPLITS = ['train', 'test', 'holdout'] as const;
@@ -83,7 +91,7 @@ export default function DatasetReview() {
         header: 'question',
         accessorKey: 'question',
         cell: ({ row }) => (
-          <span className="block max-w-[34rem] whitespace-normal">
+          <span className="block w-[24rem] min-w-[16rem] whitespace-normal">
             {row.original.question}
           </span>
         ),
@@ -100,6 +108,39 @@ export default function DatasetReview() {
         accessorKey: 'gold_program',
         cell: ({ row }) =>
           programCell(row.original.gold_program, row.original.turn_type),
+      },
+      {
+        header: 'derived gold',
+        id: 'derived',
+        cell: ({ row }) => {
+          const r = row.original;
+          if (!r.expected_skeleton.length && !r.expected_operands.length) {
+            return (
+              <span className="type-small text-faint">
+                triage {r.expected_triage || '—'} · no program to derive from
+              </span>
+            );
+          }
+          return (
+            <div className="flex w-[15rem] min-w-0 flex-col gap-0.5">
+              <span className="type-small block truncate text-muted">
+                <span className="text-faint">skeleton</span>{' '}
+                <code className="font-mono text-[11px] text-violet">
+                  {r.expected_skeleton.join(' → ') || '—'}
+                </code>
+              </span>
+              <span
+                className="type-small block truncate text-muted"
+                title={r.expected_operands.join(', ')}
+              >
+                <span className="text-faint">retrieve</span>{' '}
+                <code className="font-mono text-[11px] text-amber">
+                  {r.expected_operands.join(', ') || 'nothing — all from history'}
+                </code>
+              </span>
+            </div>
+          );
+        },
       },
       {
         header: 'type',
@@ -119,7 +160,7 @@ export default function DatasetReview() {
     <AdminPage
       eyebrow="evaluation set"
       title="Dataset review"
-      sub="Every question of each eval-loop split beside its gold answer and gold program — the rows every verdict leans on."
+      sub="Every question of each eval-loop split beside its gold answer, its gold program, and the per-subagent gold derived from them — the rows every verdict leans on."
       testId="dataset-review"
     >
       <Panel

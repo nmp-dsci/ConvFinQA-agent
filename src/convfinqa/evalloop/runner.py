@@ -19,7 +19,7 @@ from typing import Any
 import pandas as pd
 
 from convfinqa.config import EVAL_ROOT
-from convfinqa.evalloop.splits import load_manifest, split_report_ids
+from convfinqa.evalloop.splits import draw_train, load_manifest, split_report_ids
 from convfinqa.tracking import tracing
 
 PREDICTIONS_DIR = EVAL_ROOT / "predictions" / "evalloop"
@@ -74,7 +74,9 @@ async def _run_conversations(
     agents: dict[str, Any],
     concurrency: int,
     trace_tags: dict[str, Any] | None = None,
+    stop_at_first_wrong: bool = False,
 ) -> list[tuple[Any, list[str], list[str], list[dict[str, Any]], str]]:
+    from convfinqa.evaluation.metrics import numeric_match
     from convfinqa.pipeline.runner import ConversationRunner
 
     runner = ConversationRunner()
@@ -96,9 +98,19 @@ async def _run_conversations(
                 },
                 trace_tags=trace_tags,
             ):
+                stop_after = None
+                if stop_at_first_wrong:
+
+                    def stop_after(i: int, answer: str, _ex: Any = ex) -> bool:
+                        return not numeric_match(answer, _ex.gold_answers[i])
+
                 try:
                     preds, programs = await runner.run_conversation(
-                        ex.report_id, ex.questions, agents=agents, captures=captures
+                        ex.report_id,
+                        ex.questions,
+                        agents=agents,
+                        captures=captures,
+                        stop_after=stop_after,
                     )
                 except Exception as e:  # noqa: BLE001 — one bad conversation must not sink the pass
                     print(f"  [error] {ex.report_id}: {e!r}")  # noqa: T201
@@ -116,8 +128,23 @@ async def run_split(
     n_questions: int | None = None,
     concurrency: int = 8,
     environment: str = "dev",
+    train_seed: int | None = None,
+    stop_at_first_wrong: bool = False,
+    campaign: str | None = None,
+    label: str | None = None,
 ) -> dict[str, Any]:
-    """Run one split × version pass; return a summary with the CSV and run id."""
+    """Run one split × version pass; return a summary with the CSV and run id.
+
+    `train_seed` replaces the manifest's train list with a fresh stratified draw
+    from ``pool − gate`` — resampling train every cycle is what stops the teacher
+    from overfitting to one set of conversations, and the seed plus the drawn ids
+    are logged so any cycle can be recreated exactly. It is refused for any other
+    split: the gate must never move.
+
+    `stop_at_first_wrong` ends each conversation at its first wrong answer. Only
+    signal-bearing on train, and refused on the gate, where the comparison is
+    paired per question.
+    """
     import convfinqa.prompts as prompts_pkg
     from convfinqa.backends.pydantic import make_agents
     from convfinqa.evaluation.metrics import numeric_match
@@ -128,7 +155,26 @@ async def run_split(
     from convfinqa.tracking.traces import TraceStore
 
     manifest = load_manifest()
-    report_ids = split_report_ids(split, n_reports=n_reports, n_questions=n_questions)
+    if train_seed is not None and split != "train":
+        raise ValueError(
+            f"--train-seed draws a fresh train split; refusing on {split!r}, "
+            "whose whole value is that it does not move"
+        )
+    if stop_at_first_wrong and split != "train":
+        raise ValueError(
+            f"--stop-at-first-wrong is refused on {split!r}: the gate compares "
+            "question by question, and a run that stops early leaves the turns "
+            "it skipped with no counterpart"
+        )
+    draw: dict[str, Any] | None = None
+    if train_seed is not None:
+        report_ids, draw = draw_train(
+            seed=train_seed, n_reports=n_reports or len(manifest["splits"]["train"])
+        )
+    else:
+        report_ids = split_report_ids(
+            split, n_reports=n_reports, n_questions=n_questions
+        )
     examples = examples_for(report_ids)
     n_questions = sum(len(ex.questions) for ex in examples)
     agents = make_agents(prompts_pkg.load(version))
@@ -171,28 +217,50 @@ async def run_split(
             "n_questions": n_questions,
             "concurrency": concurrency,
             "environment": environment,
+            "stop_at_first_wrong": stop_at_first_wrong,
+            **({"train_draw_seed": train_seed} if train_seed is not None else {}),
+            **({"campaign": campaign} if campaign else {}),
+            **({"experiment_label": label} if label else {}),
         },
-        tags={"split": split, "environment": environment, "loop": "evalloop"},
+        tags={
+            "split": split,
+            "environment": environment,
+            "loop": "evalloop",
+            **({"campaign": campaign} if campaign else {}),
+        },
     ) as rec:
+        if draw is not None:
+            rec.dict_artifact("train_draw.json", {**draw, "report_ids": report_ids})
         run_id = str(getattr(rec, "run_id", ""))
         t0 = time.perf_counter()
         results = await _run_conversations(
-            examples, agents, concurrency, trace_tags=trace_tags
+            examples,
+            agents,
+            concurrency,
+            trace_tags=trace_tags,
+            stop_at_first_wrong=stop_at_first_wrong,
         )
         wall = time.perf_counter() - t0
         store = TraceStore()
         rows: list[dict[str, Any]] = []
+        skipped = 0
         for ex, preds, programs, captures, error in results:
             oks = [
                 numeric_match(preds[i], g) if i < len(preds) else False
                 for i, g in enumerate(ex.gold_answers)
             ]
             first_wrong = first_wrong_index(oks)
-            n = len(ex.questions)
+            # An early-stopped conversation has no predictions for the turns it
+            # never attempted. Writing them as wrong would be a lie about a turn
+            # that was not run, so the rows stop where the run stopped and the
+            # skipped count is reported separately.
+            n = len(preds) if stop_at_first_wrong and preds else len(ex.questions)
+            skipped += len(ex.questions) - n
+            oks = oks[:n]
             gold_programs = ex.gold_programs or [""] * n
             gold_turn_types = ex.gold_turn_types or [""] * n
             gold_conv_types = ex.gold_conv_types or [""] * n
-            for i, question in enumerate(ex.questions):
+            for i, question in enumerate(ex.questions[:n]):
                 pred = preds[i] if i < len(preds) else None
                 prog = programs[i] if i < len(programs) else ""
                 cap = captures[i] if i < len(captures) else {}
@@ -254,6 +322,7 @@ async def run_split(
             "n_conversations": float(len(examples)),
             "n_wrong": float(int((~df["correct"]).sum())),
             "n_cascade": float(n_cascade),
+            "n_turns_skipped": float(skipped),
             "wall_seconds": round(wall, 2),
             "questions_per_minute": round(len(df) / wall * 60, 2) if wall else 0.0,
         }
@@ -281,7 +350,9 @@ async def run_split(
         "n_questions": len(df),
         "accuracy": round(accuracy, 6),
         "n_cascade": n_cascade,
+        "n_turns_skipped": skipped,
         "wall_seconds": round(wall, 2),
+        **({"train_draw": draw} if draw else {}),
     }
     print(  # noqa: T201
         f"[{run_name}] accuracy {accuracy:.1%} on {len(df)} questions "

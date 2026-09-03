@@ -29,10 +29,77 @@ export interface DatasetRow {
   gold_program: string;
   turn_type: string;
   conv_type: string;
+  /**
+   * Per-subagent gold, derived from the gold program and answer rather than
+   * labelled. This is the same derivation the loop's attribution rule uses, so
+   * showing it is how a disputed attribution gets checked against gold by a
+   * human instead of argued about.
+   */
+  expected_triage: string;
+  expected_skeleton: string[];
+  expected_operands: string[];
+  expected_answer: string;
 }
 
 export function getDataset(split: string): Promise<DatasetRow[]> {
   return getJson<DatasetRow[]>(`/eval/dataset?split=${encodeURIComponent(split)}`);
+}
+
+export interface CampaignExperiment {
+  label: string;
+  campaign: string;
+  target_agent: string;
+  baseline_version: string;
+  candidate_version: string;
+  promoted: boolean;
+  at: number | null;
+  accuracy_delta: number | null;
+  cluster_p_one_sided: number | null;
+  delta_ci_lo: number | null;
+  delta_ci_hi: number | null;
+  n_compared: number | null;
+  fixed: number | null;
+  broken: number | null;
+  accuracy_baseline: number | null;
+  accuracy_candidate: number | null;
+  panel_baseline: Record<string, number | null>;
+  panel_candidate: Record<string, number | null>;
+  summary_of_changes: string;
+  rationale: string;
+  diff: string;
+}
+
+export interface CampaignSummary {
+  name: string;
+  n_experiments: number;
+  n_promoted: number;
+  n_remaining: number;
+  blocked_agents: string[];
+  complete: boolean;
+}
+
+export interface ChampionPoint {
+  version: string;
+  at: number | null;
+  accuracy: number | null;
+  panel: Record<string, number | null>;
+  moved_by: string | null;
+  target_agent: string | null;
+}
+
+export interface CampaignsResponse {
+  champion: string | null;
+  rule: string;
+  generated_at: string;
+  split: Record<string, unknown>;
+  campaigns: CampaignSummary[];
+  experiments: CampaignExperiment[];
+  champion_track: ChampionPoint[];
+}
+
+export function getCampaigns(campaign = ''): Promise<CampaignsResponse> {
+  const q = campaign ? `?campaign=${encodeURIComponent(campaign)}` : '';
+  return getJson<CampaignsResponse>(`/eval/campaigns${q}`);
 }
 import type { AnswerRow, BundleSpec, StageMetrics, TraceSummary } from '../../types';
 

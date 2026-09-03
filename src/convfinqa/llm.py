@@ -18,6 +18,7 @@ provider is constructed, not when the request fails.
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
@@ -42,6 +43,14 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 #   MAX  = `deepseek-v4-pro`  (1.6T/49B MoE): the s7 diagnostic router and the
 #          four specialist Fix agents, where reasoning quality is the product.
 LM_MINI_MODEL = "deepseek-v4-flash"
+
+# The teacher and prompt writer run on Claude via the Agent SDK, on the owner's
+# subscription — a different provider from the pipeline entirely, and
+# deliberately so. The pipeline agents are what is being optimised and run on
+# every turn, so their cost has to stay measurable per question; the teacher runs
+# a few dozen times per cycle and its job is judgement, which is where the
+# stronger model earns its keep.
+LM_TEACHER_MODEL = "claude-opus-5"
 
 # DeepSeek v4 turned thinking mode *on by default*, and a thinking-mode request
 # rejects the `tool_choice` pydantic-ai sends for every structured `output_type`:
@@ -235,3 +244,80 @@ def dspy_lm_kwargs(model: str | None = None) -> dict[str, Any]:
         "api_key": settings.require_deepseek_api_key(),
         "api_base": DEEPSEEK_BASE_URL,
     }
+
+
+# --- Claude Agent SDK (the teacher and prompt writer) -----------------------
+
+
+def subscription_env() -> dict[str, str]:
+    """Environment for an Agent SDK child process, with the API key removed.
+
+    `ANTHROPIC_API_KEY` present in the child's environment makes the Claude CLI
+    authenticate as an API client and bill per token, silently, even though the
+    account has a subscription that would have covered the call. Nothing in the
+    output says which path was taken — the only evidence is the bill. So the key
+    is stripped here, at the one place the child environment is built, rather
+    than trusted to be absent.
+
+    Stripping the `CLAUDE_CODE_*` session variables matters for the same reason
+    and was found the same way: when the loop is driven from inside a Claude Code
+    session, the child inherits that session's identity and bills against it —
+    the observed symptom was a bare "Credit balance is too low" from an account
+    with an active subscription. A teacher call must stand on its own.
+    """
+    drop = {"ANTHROPIC_API_KEY", "CLAUDECODE"}
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in drop and not k.startswith("CLAUDE_CODE_")
+    }
+    # Omitting a variable is NOT enough: the SDK merges this mapping over the
+    # parent's environment, so a key only disappears if it is explicitly blanked.
+    # And `config.load_dotenv` puts the whole of ~/.env into os.environ at import
+    # time (dspy reads DEEPSEEK_API_KEY from there), which is how a key nobody
+    # exported reaches this process in the first place.
+    env["ANTHROPIC_API_KEY"] = ""
+    env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
+    # Only override the CLI's own stored login when a token is configured
+    # explicitly. Injecting one unconditionally is worse than injecting none:
+    # a stale token in a dotfile silently replaces a working keychain login,
+    # and the failure it produces ("Credit balance is too low") names neither.
+    if settings.teacher_oauth_token:
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = settings.teacher_oauth_token.get_secret_value()
+    else:
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = ""
+    return env
+
+
+def teacher_options(
+    *,
+    system_prompt: str,
+    output_schema: dict[str, Any] | None = None,
+    tools: list[Any] | None = None,
+    allowed_tools: list[str] | None = None,
+    max_turns: int = 12,
+) -> Any:
+    """Options for one Agent SDK call. The demo gate applies here as everywhere.
+
+    Note `setting_sources=[]`: the teacher must not inherit this repository's
+    CLAUDE.md, settings or skills. It is being asked to judge a pipeline, not to
+    behave like a contributor to the project, and an inherited instruction file
+    would silently become part of its prompt.
+    """
+    guard_llm_call()
+    from claude_agent_sdk import ClaudeAgentOptions
+
+    kwargs: dict[str, Any] = {
+        "model": LM_TEACHER_MODEL,
+        "system_prompt": system_prompt,
+        "env": subscription_env(),
+        "max_turns": max_turns,
+        "permission_mode": "bypassPermissions",
+        "setting_sources": [],
+        "allowed_tools": allowed_tools or [],
+    }
+    if output_schema is not None:
+        kwargs["output_format"] = {"type": "json_schema", "schema": output_schema}
+    if tools:
+        kwargs["mcp_servers"] = {"loop": tools[0]} if len(tools) == 1 else {}
+    return ClaudeAgentOptions(**kwargs)

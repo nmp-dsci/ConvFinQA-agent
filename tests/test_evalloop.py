@@ -213,10 +213,34 @@ def test_first_wrong_cases_picks_one_row_per_failing_report(tmp_path: Path) -> N
 
     df = pd.DataFrame(
         [
-            {"report_id": "a", "turn_index": 0, "first_wrong_turn": 1.0},
-            {"report_id": "a", "turn_index": 1, "first_wrong_turn": 1.0},
-            {"report_id": "a", "turn_index": 2, "first_wrong_turn": 1.0},
-            {"report_id": "b", "turn_index": 0, "first_wrong_turn": None},
+            {
+                "report_id": "a",
+                "turn_index": 0,
+                "first_wrong_turn": 1.0,
+                "correct": True,
+                "gold_answer": "1",
+            },
+            {
+                "report_id": "a",
+                "turn_index": 1,
+                "first_wrong_turn": 1.0,
+                "correct": False,
+                "gold_answer": "2",
+            },
+            {
+                "report_id": "a",
+                "turn_index": 2,
+                "first_wrong_turn": 1.0,
+                "correct": False,
+                "gold_answer": "3",
+            },
+            {
+                "report_id": "b",
+                "turn_index": 0,
+                "first_wrong_turn": None,
+                "correct": True,
+                "gold_answer": "4",
+            },
         ]
     )
     path = tmp_path / "run.csv"
@@ -234,9 +258,15 @@ def _diag_file(tmp_path: Path, name: str, agents: list[str]) -> Path:
     return p
 
 
-def test_gate_targeted_metric_tie_beats_fault_improvement(tmp_path: Path) -> None:
-    """The deterministic metric outranks attribution: a tied metric refuses
-    promotion even when the teacher's fault counts improved."""
+def test_gate_targeted_reports_the_target_metric_but_promotes_on_significance(
+    tmp_path: Path,
+) -> None:
+    """The per-agent metric is evidence, not a second route to promotion.
+
+    Under M2 a moved target metric could promote a challenger on its own, and
+    that is how three versions were promoted on evidence whose interval
+    contained zero. Now one rule decides — net positive AND one-sided clustered
+    McNemar p < 0.05 — and a single fixed question cannot clear it."""
     from convfinqa.evalloop import teacher
 
     base = _frame([("a", 0, True), ("a", 1, False), ("b", 0, False)])
@@ -257,8 +287,11 @@ def test_gate_targeted_metric_tie_beats_fault_improvement(tmp_path: Path) -> Non
     )
     # these frames have no retriever_io, so recall is 0.0 on both sides: a tie
     assert verdict["target_metric_before"] == verdict["target_metric_after"] == 0.0
-    assert not verdict["target_improved"]
-    assert not verdict["promotable_targeted"]
+    assert not verdict["target_moved"]
+    # one fixed question, zero broken: net positive, but p = 0.5 one-sided
+    assert verdict["comparison"]["fail_to_pass"] == 1
+    assert verdict["cluster_p_one_sided"] > 0.05
+    assert not verdict["promotable"]
     # attribution evidence still recorded as secondary
     assert verdict["baseline_target_faults"] == 2
     assert verdict["candidate_target_faults"] == 1
@@ -273,17 +306,54 @@ def test_write_version_module_changes_exactly_one_agent(
     monkeypatch.setattr(teacher, "REPO_ROOT", tmp_path)
     (tmp_path / "src" / "convfinqa" / "prompts").mkdir(parents=True)
     path = teacher._write_version_module(
-        "v99", base_version="v3_1", target="retriever", rules=["Rule one.", "Rule two."]
+        "v99",
+        base_version="v3_1",
+        target="retriever",
+        prompt='Return an answer. Backslash \\ and a "quote" survive.',
     )
     text = path.read_text()
     assert "do not hand-edit" in text
-    assert "RETRIEVER_PROMPT = (" in text
+    assert "RETRIEVER_PROMPT = " in text
     assert "TRIAGE_PROMPT,\n" in text  # imported unchanged
-    assert "- Rule one." in text
+    assert "_BASE" not in text  # replaced outright, not appended to
     with pytest.raises(SystemExit):  # refuses to overwrite
         teacher._write_version_module(
-            "v99", base_version="v3_1", target="retriever", rules=["x"]
+            "v99", base_version="v3_1", target="retriever", prompt="x" * 300
         )
+
+
+def test_write_version_module_survives_quotes_and_backslashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A generated module must import, whatever the writer put in the prompt.
+
+    The prompt is written into a triple-quoted literal for readability, so the
+    two sequences that could terminate it early have to be neutralised — a
+    rewrite containing a regex or an embedded docstring would otherwise produce
+    a module that fails to parse, days after the run that made it."""
+    import importlib.util
+
+    monkeypatch.setattr(teacher_module(), "REPO_ROOT", tmp_path)
+    (tmp_path / "src" / "convfinqa" / "prompts").mkdir(parents=True)
+    nasty = 'Match \\d+ and never emit """ or a trailing quote: "'
+    path = teacher_module()._write_version_module(
+        "v98", base_version="v3_1", target="calculator", prompt=nasty
+    )
+    spec = importlib.util.spec_from_file_location("v98", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    import sys
+
+    sys.modules["v98_probe"] = module
+    source = path.read_text()
+    compile(source, str(path), "exec")  # the module parses
+    assert "\\d+" in source
+
+
+def teacher_module():  # noqa: ANN201 — test helper
+    from convfinqa.evalloop import teacher
+
+    return teacher
 
 
 # ── per-agent versions + stage scores (M2.5) ────────────────────────────
@@ -401,7 +471,7 @@ def test_gate_targeted_uses_the_deterministic_metric(tmp_path: Path) -> None:
     assert verdict["target_metric"] == "retriever_operand_recall"
     assert verdict["target_metric_after"] > verdict["target_metric_before"]
     assert verdict["evidence_split"] == "test"
-    assert verdict["promotable_targeted"]
+    assert verdict["target_moved"]
 
 
 # ── kappa + release (M2 trust, M3 gate) ─────────────────────────────────
@@ -490,3 +560,302 @@ async def test_release_moves_the_released_alias_on_pass(
     doc = registry.load()
     assert doc.aliases["released"] == "v3_1"
     assert doc.history[-1]["event"] == "holdout_opened"
+
+
+# ── campaign protocol: attribution, manifest v2, the significance gate ──
+
+
+def test_first_fault_walks_the_pipeline_in_order() -> None:
+    """The first failing gold-derived check wins, whatever fails after it."""
+    from convfinqa.evalloop import stage_scores
+
+    every_check_fails = {
+        "triage_turn_type_ok": False,
+        "preprocess_skeleton_ok": False,
+        "retriever_operand_recall": 0.0,
+        "calculator_ok": False,
+    }
+    assert stage_scores.first_fault(every_check_fails) == "triage"
+    assert (
+        stage_scores.first_fault({**every_check_fails, "triage_turn_type_ok": True})
+        == "preprocess"
+    )
+    assert (
+        stage_scores.first_fault(
+            {
+                **every_check_fails,
+                "triage_turn_type_ok": True,
+                "preprocess_skeleton_ok": True,
+            }
+        )
+        == "retriever"
+    )
+    # partial recall is a retriever fault, not a calculator one
+    assert (
+        stage_scores.first_fault(
+            {
+                "triage_turn_type_ok": True,
+                "preprocess_skeleton_ok": True,
+                "retriever_operand_recall": 0.5,
+                "calculator_ok": False,
+            }
+        )
+        == "retriever"
+    )
+    # a number turn has no skeleton and no calculator verdict — None, not a fault
+    assert (
+        stage_scores.first_fault(
+            {
+                "triage_turn_type_ok": True,
+                "preprocess_skeleton_ok": None,
+                "retriever_operand_recall": 1.0,
+                "calculator_ok": None,
+            }
+        )
+        is None
+    )
+    # ...and `attribute` gives that case to the calculator, which owns final form
+    assert (
+        stage_scores.attribute(
+            {
+                "triage_turn_type_ok": True,
+                "preprocess_skeleton_ok": None,
+                "retriever_operand_recall": 1.0,
+                "calculator_ok": None,
+            }
+        )
+        == "calculator"
+    )
+
+
+def test_one_sided_mcnemar_is_half_the_two_sided_p() -> None:
+    from convfinqa.tracking.comparator import (
+        mcnemar_exact_p,
+        mcnemar_exact_p_one_sided,
+    )
+
+    # 12 fixed vs 8 broken — the v5 promotion's own numbers
+    assert round(mcnemar_exact_p(8, 12), 4) == 0.5034
+    assert round(mcnemar_exact_p_one_sided(8, 12), 4) == 0.2517
+    # a clean sweep is significant one-sided and (just) not two-sided at 8 pairs
+    assert mcnemar_exact_p_one_sided(0, 8) < 0.05
+
+
+def test_clustering_weakens_evidence_concentrated_in_one_conversation() -> None:
+    """Four fixes in one report are one piece of evidence, not four."""
+    from convfinqa.tracking.comparator import durkalski_z, normal_sf
+
+    spread = durkalski_z([(0, 1)] * 8)  # eight conversations, one fix each
+    concentrated = durkalski_z([(0, 8)])  # one conversation, eight fixes
+    assert spread > concentrated
+    assert normal_sf(spread) < 0.05
+    assert normal_sf(concentrated) > 0.05
+
+
+def test_v5_promotion_is_refused_by_the_campaign_rule() -> None:
+    """The committed evidence behind the last promotion, re-judged.
+
+    v5 was promoted under the net-positive rule with McNemar p = 0.50. Under the
+    campaign rule it is rejected, and this pins that — the rule change is the
+    whole reason the lineage was rolled back."""
+    from pathlib import Path
+
+    from convfinqa.evalloop.gate import gate_runs
+
+    root = Path("evaluation/predictions/evalloop")
+    base = root / "evalloop-test50-v3_1·t3p3r3c3-20260902_220956.csv"
+    cand = root / "evalloop-test50-v5·t3p4r3c3-20260902_221407.csv"
+    if not base.exists() or not cand.exists():
+        pytest.skip("committed evalloop CSVs not present")
+    result, stats = gate_runs(
+        base, cand, baseline_version="v3_1", candidate_version="v5"
+    )
+    assert result.promotable  # net positive, the old rule
+    assert not stats["promotable"]  # ...and not significant, the new one
+    assert stats["cluster_p_one_sided"] > 0.05
+    assert stats["delta_ci_lo"] < 0 < stats["delta_ci_hi"]
+
+
+def test_manifest_v2_is_a_superset_of_v1_and_disjoint(tmp_path: Path) -> None:
+    """Extending a manifest must never invalidate evidence already recorded."""
+    import json as _json
+
+    from convfinqa.evalloop import splits
+
+    v1 = splits.SPLITS_DIR / "eval_loop_v1.json"
+    v2 = splits.SPLITS_DIR / "eval_loop_v2.json"
+    if not v2.exists():
+        pytest.skip("eval_loop_v2 not cut yet")
+    a = _json.loads(v1.read_text())["splits"]
+    b = _json.loads(v2.read_text())["splits"]
+    assert set(a["train"]) <= set(b["train"])
+    assert set(a["test"]) <= set(b["test"])
+    assert not set(b["train"]) & set(b["test"])
+    assert len(b["train"]) == len(b["test"]) == 100
+    assert b["holdout"] == []  # deliberately unallocated during a campaign
+
+
+def test_prompt_rewrite_must_keep_the_output_contract() -> None:
+    from convfinqa.evalloop import teacher
+
+    before = "Return turn_type and conv_type for each question."
+    assert teacher.validate_prompt("triage", before, "x" * 400)  # drops both fields
+    assert not teacher.validate_prompt(
+        "triage", before, "Decide the turn_type and the conv_type. " + "x" * 400
+    )
+    # a collapsed prompt is refused whatever it says
+    assert teacher.validate_prompt("triage", before, "turn_type conv_type")
+
+
+# ── campaign caps, early stop, and the story ────────────────────────────
+
+
+def test_campaign_rotates_off_an_agent_that_failed_twice() -> None:
+    """Without rotation the loop gets stuck rewriting the same agent forever."""
+    from convfinqa.evalloop import campaign
+
+    past = [
+        {"target_agent": "retriever", "promoted": False},
+        {"target_agent": "retriever", "promoted": False},
+        {"target_agent": "triage", "promoted": True},
+    ]
+    assert campaign.blocked_agents(past) == {"retriever"}
+    counts = {"retriever": 9, "triage": 6, "preprocess": 4, "calculator": 2}
+    agent, why = campaign.pick_target(counts, past)
+    assert agent == "triage"  # not the most faults — the most faults is blocked
+    assert "rotated past retriever" in why
+    # ...and naming it explicitly does not get around the rule
+    with pytest.raises(SystemExit):
+        campaign.pick_target(counts, past, requested="retriever")
+    # a promotion in the window clears the block
+    assert (
+        campaign.blocked_agents(
+            past + [{"target_agent": "retriever", "promoted": True}]
+        )
+        == set()
+    )
+
+
+def test_campaign_refuses_a_sixth_experiment() -> None:
+    from convfinqa.evalloop import campaign
+
+    five = [{"target_agent": "triage", "promoted": False}] * 5
+    with pytest.raises(SystemExit) as exc:
+        campaign.check_capacity("c01", five)
+    assert "cap is 5" in str(exc.value)
+    campaign.check_capacity("c01", five[:4])  # four is fine
+
+
+@pytest.mark.asyncio
+async def test_early_stop_is_refused_on_the_gate_split() -> None:
+    """A paired comparison needs a counterpart for every question."""
+    from convfinqa.evalloop.runner import run_split
+
+    with pytest.raises(ValueError, match="stop-at-first-wrong"):
+        await run_split("test", "v2", stop_at_first_wrong=True)
+    with pytest.raises(ValueError, match="train-seed"):
+        await run_split("test", "v2", train_seed=7)
+
+
+def test_train_draw_never_touches_the_gate_split() -> None:
+    """The one property that makes every promotion afterwards meaningful."""
+    from convfinqa.evalloop import splits
+
+    if not (splits.SPLITS_DIR / "eval_loop_v2.json").exists():
+        pytest.skip("eval_loop_v2 not cut yet")
+    manifest = splits.load_manifest(splits.manifest_path("eval_loop_v2"))
+    gate = set(manifest["splits"]["test"])
+    for seed in (2026, 2027, 2028):
+        ids, provenance = splits.draw_train(
+            seed=seed,
+            n_reports=100,
+            path=splits.manifest_path("eval_loop_v2"),
+        )
+        assert len(ids) == 100
+        assert not set(ids) & gate
+        assert provenance["draw_seed"] == seed
+    # different seeds really do draw different conversations
+    a, _ = splits.draw_train(
+        seed=1, n_reports=50, path=splits.manifest_path("eval_loop_v2")
+    )
+    b, _ = splits.draw_train(
+        seed=2, n_reports=50, path=splits.manifest_path("eval_loop_v2")
+    )
+    assert set(a) != set(b)
+
+
+def test_story_page_renders_from_a_minimal_record() -> None:
+    """The published page must build from whatever the store actually holds."""
+    from convfinqa.evalloop.story_page import render_page
+
+    html = render_page(
+        {
+            "generated_at": "2026-09-04T00:00:00+00:00",
+            "champion": "v6",
+            "rule": "net positive AND one-sided clustered McNemar p < 0.05",
+            "split": {
+                "name": "eval_loop_v2",
+                "gate_reports": 100,
+                "gate_questions": 349,
+            },
+            "campaigns": [
+                {
+                    "name": "c01",
+                    "experiments": [
+                        {
+                            "label": "c01-e01",
+                            "target_agent": "retriever",
+                            "baseline_version": "v2",
+                            "candidate_version": "v6",
+                            "promoted": True,
+                            "accuracy_delta": 0.031,
+                            "cluster_p_one_sided": 0.021,
+                            "delta_ci": [0.004, 0.058],
+                            "n_compared": 349,
+                            "fixed": 18,
+                            "broken": 7,
+                            "panel_baseline": {"retriever": 0.7},
+                            "panel_candidate": {"retriever": 0.78},
+                            "summary_of_changes": "restructured around period selection",
+                            "rationale": "The prompt buried the year rule.",
+                            "diff": "@@ -1 +1 @@\n-old line\n+new line\n",
+                            "prompt_chars": {"before": 1200, "after": 980},
+                        }
+                    ],
+                }
+            ],
+            "lineage": [
+                {
+                    "at": "2026-09-04",
+                    "version": "v6",
+                    "previous_champion": "v2",
+                    "reason": "gate passed",
+                }
+            ],
+            "champion_track": [
+                {"version": "v2", "accuracy": 0.62, "panel": {"retriever": 0.7}},
+                {
+                    "version": "v6",
+                    "accuracy": 0.651,
+                    "panel": {"retriever": 0.78},
+                    "target_agent": "retriever",
+                    "moved_by": "c01-e01",
+                },
+            ],
+        }
+    )
+    assert "<!doctype html>" in html
+    assert "c01-e01" in html
+    assert "+3.10pp" in html
+    assert "<svg" in html  # both figures rendered
+    assert 'class="add"' in html  # the diff is coloured
+    assert "&lt;script&gt;" not in html  # nothing unescaped leaked
+
+
+def test_next_version_skips_the_numeric_prefix_of_an_existing_variant() -> None:
+    """`v3_1` exists, so `v3` is taken — two bundles must not read as variants."""
+    from convfinqa.evalloop.cycle import next_version
+
+    picked = next_version("v2")
+    assert picked.startswith("v")
+    assert picked not in {"v3", "v4", "v5"}  # all have modules on disk

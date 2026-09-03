@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 import logfire
@@ -331,12 +331,22 @@ class ConversationRunner:
         *,
         agents: dict[str, Agent[None, Any]] | None = None,
         captures: list[dict[str, Any]] | None = None,
+        stop_after: Callable[[int, str], bool] | None = None,
     ) -> tuple[list[str], list[str]]:
-        """Walk all turns of one conversation in order, threading history."""
+        """Walk all turns of one conversation in order, threading history.
+
+        `stop_after(index, answer)` may end the conversation early. The eval loop
+        uses it on *train* passes, where only the first wrong turn carries signal
+        and everything after it is cascade — about a quarter of train turns are
+        pure cost. It must never be used on a gate pass: the comparison is paired
+        per question, so a run that stops early has no counterpart for the turns
+        it skipped, and skipping them is also biased against a version that
+        recovers from an earlier mistake.
+        """
         conversation = ConversationHistory()
         preds: list[str] = []
         programs: list[str] = []
-        for question in questions:
+        for i, question in enumerate(questions):
             cap: dict[str, Any] = {}
             answer, program = await run_turn(
                 question, report_id, conversation, agents=agents, capture=cap
@@ -345,4 +355,6 @@ class ConversationRunner:
             programs.append(program)
             if captures is not None:
                 captures.append(cap)
+            if stop_after is not None and stop_after(i, answer):
+                break
         return preds, programs

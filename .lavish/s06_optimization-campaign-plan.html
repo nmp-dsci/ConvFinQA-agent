@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optimization Campaign — Plan (s06)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Design source (2): the project's own system — frontend/src/tokens.css, the same
+   palette s02 and s03 used. Dark-first, light variant, monotonic elevation. */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4); --bad-line:rgba(239,130,130,.45);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1100px;
+}
+:root[data-theme="light"]{
+  --ground:#eeecea; --panel:#faf9f8; --panel-2:#e6e3e0;
+  --line:#dedad6; --line-2:#c6c1bb;
+  --text:#22252a; --muted:#55595f; --faint:#5f636a;
+  --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --amber-line:rgba(143,83,9,.4);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --good-line:rgba(23,112,73,.38); --info-line:rgba(29,84,171,.35); --bad-line:rgba(168,50,41,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;min-width:0}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.026em;margin:0 0 18px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,29px);line-height:1.18;letter-spacing:-.018em;margin:0 0 14px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:30px 0 10px;letter-spacing:-.004em;font-weight:600}
+h4{font-family:var(--mono);font-size:10.5px;margin:22px 0 8px;color:var(--faint);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+p{margin:0 0 14px;max-width:74ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:74ch}
+li{margin:0 0 7px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 16px}
+pre code{background:none;padding:0;font-size:inherit}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18px;color:var(--muted);max-width:68ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;min-width:0}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:26px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px;max-width:340px}
+.metric .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+td code{white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.warn{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.chip.bad{color:var(--bad);border-color:var(--bad-line)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px;min-width:0}
+.callout.bad{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px;min-width:0}
+figure svg{width:100%;height:auto;display:block;color:var(--text)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:76ch}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.phase{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 22px;margin:0 0 16px;min-width:0}
+.phase .hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+.phase .hd .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.1em;font-weight:600}
+.phase .hd h3{margin:0;font-size:17px}
+.phase .hd .eff{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:auto;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13.5px;margin:10px 0 0}
+.kv dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding-top:4px;white-space:nowrap}
+.kv dd{margin:0;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.opt{display:grid;gap:12px;margin:0 0 18px}
+@media(min-width:760px){.opt.o2{grid-template-columns:repeat(2,minmax(0,1fr))}.opt.o3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.opt .card.rec{border-color:var(--amber-line);box-shadow:0 0 0 1px var(--amber-soft) inset}
+.opt .card .tag{margin-bottom:8px}
+.cite{font-size:12.5px;color:var(--faint);font-family:var(--mono);overflow-wrap:anywhere}
+/* decision forms — native controls, local state, one queued prompt per question */
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 14px;min-width:0}
+form.q legend,form.q .qt{font-weight:600;margin:0 0 8px;padding:0}
+form.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;border:1px solid transparent;cursor:pointer;font-size:14px;min-width:0}
+form.q label:hover{background:var(--panel-2)}
+form.q label:has(input:checked){border-color:var(--amber-line);background:var(--amber-soft)}
+form.q input[type=radio]{margin-top:5px;accent-color:var(--amber);flex:0 0 auto}
+form.q textarea{width:100%;min-height:54px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;font-family:var(--ui);font-size:13.5px;margin-top:8px;resize:vertical}
+form.q .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+form.q button{background:var(--amber);color:var(--amber-ink);border:none;border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+form.q button:hover{filter:brightness(1.06)}
+form.q .status{font-family:var(--mono);font-size:11px;color:var(--faint)}
+form.q .status.queued{color:var(--good)}
+.foot{color:var(--faint);font-size:13px;margin-top:26px}
+.paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;overflow-x:auto;min-width:0;width:min(1500px,calc(100vw - 56px));margin-left:calc(50% - min(750px,50vw - 28px))}
+.paper img{display:block;min-width:980px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line-2)}
+.legend .b::before{background:#a5d8ff}.legend .v::before{background:#d0bfff}.legend .g::before{background:#b2f2bb}.legend .r::before{background:#ffc9c9;border-style:dashed}.legend .n::before{background:#e9ecef;border-style:dashed}
+td.st{white-space:nowrap}
+table.wrap{min-width:720px;table-layout:fixed}table.wrap td code{white-space:normal;overflow-wrap:anywhere}table.wrap td{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* s06 additions */
+.steps{display:grid;gap:10px;margin:14px 0 18px}
+@media(min-width:760px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px;min-width:0}
+.step .n{font-family:var(--mono);font-size:11px;color:var(--amber);font-weight:600;padding-top:3px}
+.step b{display:block;margin-bottom:3px}
+.step .t{font-size:13px;color:var(--muted)}
+.step code{font-size:.8em;white-space:normal}
+.pill{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:var(--panel-2);position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--info);border-radius:4px}
+td.ok{color:var(--good)} td.warn{color:var(--amber)} td.bad{color:var(--bad)}
+.diff{font-family:var(--mono);font-size:12px;line-height:1.5;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto}
+.diff .add{color:var(--good);background:rgba(78,203,157,.09);display:block}
+.diff .del{color:var(--bad);background:rgba(239,130,130,.09);display:block;text-decoration:line-through}
+.diff .ctx{color:var(--faint);display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+<!-- ══════════════════ HERO ══════════════════ -->
+<section>
+  <p class="eyebrow">Plan · s06 · main @ dc3efb2 · 2026-09-03</p>
+  <h1>Run the eval loop as a campaign: enough data to trust a promotion, and a page that shows the champion moving</h1>
+  <p class="lede">
+    The loop works — three promotions, one subagent each, all in MLflow. What it cannot do yet is
+    <strong>prove</strong> a promotion: at 50 reports the v5 promotion had a 14% chance of detecting its own
+    +2.1pp. This plan sizes the splits so a real improvement is distinguishable from noise, fixes the roles
+    of train and gate splits for a long run of cycles, and specifies the static story page — every point
+    backed by an MLflow run and a per-agent prompt diff — that you publish to GitHub Pages.
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v">100 / 100 / —</div><div class="l">train / gate reports (eval_loop_v2, extends v1); holdout reserved, not run — detects a 6.2pp change at 80% power</div></div>
+    <div class="metric"><div class="v">~$3 · 16 min</div><div class="l">one full cycle — train pass, diagnose, challenger pass, gate — from the trace store's own cost accounting</div></div>
+    <div class="metric"><div class="v">1-sided p &lt; 0.05</div><div class="l">the promotion gate — cluster-corrected McNemar, significantly better only; net-positive is retired</div></div>
+    <div class="metric"><div class="v">1 page</div><div class="l"><code>convfinqa-evalloop story</code> → <code>docs/optimization/index.html</code>, built from MLflow + registry, zero API calls</div></div>
+  </div>
+  <div class="toc">
+    <a href="#now"><span class="n">01</span>Where the loop stands today</a>
+    <a href="#power"><span class="n">02</span>How much data a promotion needs</a>
+    <a href="#roles"><span class="n">03</span>Split roles — and why the holdout is deferred</a>
+    <a href="#cycle"><span class="n">04</span>The campaign cycle, step by step</a>
+    <a href="#story"><span class="n">05</span>The story page: what it shows and where the data comes from</a>
+    <a href="#work"><span class="n">06</span>Vertical slices, schedule, risks</a>
+  </div>
+</section>
+
+<!-- ══════════════════ 01 NOW ══════════════════ -->
+<section id="now">
+  <p class="eyebrow">01 · Current state</p>
+  <h2>The loop is built and proven end to end — what it has not yet done is a real campaign</h2>
+  <div class="callout info"><strong>Everything below is a demo of the machinery, not an optimisation history.</strong>
+    <p>The 10- and 50-report runs were wiring checks: they proved a pass records itself, that diagnose → propose →
+      gate → promote works, and that traces link to runs. They were never sized to measure anything, and their
+      accuracy numbers should not be read as progress. This plan is about running the loop <em>for real</em> —
+      the campaign starts from a clean baseline on a properly sized split, and the story page begins there.</p></div>
+  <p>The numbers are still worth stating precisely, because they calibrate what a real run costs and how big the splits must be. Every fact below comes from <code>evaluation/registry.json</code>, the live MLflow server (<code>convfinqa</code> and <code>convfinqa-optimization</code> experiments) and <code>.traces/traces.db</code>. Nothing is estimated.</p>
+
+  <h3>Lineage so far — all demo-scale, all now rolled back</h3>
+  <div class="scroll-x"><table>
+    <thead><tr><th>Event</th><th>Version</th><th>Composition</th><th>Evidence</th><th class="num">n</th><th class="num">Δ acc</th><th class="num">fixed / broken</th><th class="num">McNemar p</th><th>Actor</th></tr></thead>
+    <tbody>
+      <tr><td>promote</td><td><code>v2</code></td><td><code>t2.p2.r2.c2</code></td><td>backfill default</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>backfill</td></tr>
+      <tr><td>promote</td><td><code>v3_1</code></td><td><code>t3.p3.r3.c3</code></td><td>train, 10 reports</td><td class="num">44</td><td class="num ok">+6.8pp</td><td class="num">5 / 2</td><td class="num warn">0.45</td><td>evalloop <span class="chip bad">rolled back</span></td></tr>
+      <tr><td>promote (targeted)</td><td><code>v4</code></td><td><code>t3.p3.<strong>r4</strong>.c3</code></td><td>train, 10 reports</td><td class="num">44</td><td class="num ok">+9.1pp</td><td class="num">5 / 1</td><td class="num warn">0.22</td><td>evalloop-teacher <span class="chip bad">rolled back</span></td></tr>
+      <tr><td>rollback</td><td><code>v3_1</code></td><td><code>t3.p3.r3.c3</code></td><td colspan="5">protocol change: promotion evidence must come from the unseen test split</td><td>owner</td></tr>
+      <tr><td>promote (targeted)</td><td><code>v5</code></td><td><code>t3.<strong>p4</strong>.r3.c3</code></td><td>test, 50 reports</td><td class="num">187</td><td class="num ok">+2.1pp</td><td class="num">12 / 8</td><td class="num warn">0.50</td><td>evalloop-teacher <span class="chip bad">rolled back</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout bad" id="why-v5-promoted"><strong>"Shouldn't v5 have failed? p = 0.50."</strong>
+    <p>Under the rule as written, no — and that is the finding, not a defence. <code>gate.py</code> computes
+      <code>mcnemar_p</code> and <em>records</em> it on the verdict, but <code>promotable</code> is
+      <strong>net positive only</strong>: 12 fixed &gt; 8 broken. Significance was never a condition. The
+      "not significant at α = 0.05" text on every promotion reason is a flag the rule deliberately does not act on.</p>
+    <p>What the v5 evidence actually supports, computed from the two committed CSVs: Δ = +2.14pp, cluster
+      bootstrap 95% CI <strong>[−2.92pp, +7.18pp]</strong>, P(Δ &gt; 0) = 0.77. The interval contains zero — the run
+      is consistent with v5 being slightly worse than v3_1. All three promotions are in this position
+      (<span class="chip bad">rolled back</span> above): each is <em>rejected</em> by the rule you have now set — <a href="#cycle">McNemar p &lt; 0.05</a>.</p>
+    <p>That rule was a reasonable choice when the gate could only see ~11pp — requiring significance at n = 187
+      would have meant never promoting anything. The fix is not to scold the rule; it is to make the sample large
+      enough that significance is achievable (02) and <em>then</em> require it — which is now the rule. Which leaves one question to
+      settle: what happens to the three promotions already made — they are <a href="#cycle">rolled back</a>.</p></div>
+  <p class="small muted">Per-agent lineages: triage t1–t3 · preprocess p1–p4 (p4 is the teacher's first) · retriever r1–r4 · calculator c1–c3. The holdout has never been opened (<code>opened: []</code>, no <code>holdout_opened</code> event) — the reserve is fully intact.</p>
+
+  <h3>Where the demo left off: v5, 187 questions <span class="chip warn">rolled back</span></h3>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Accuracy by slice</h4>
+      <dl class="kv">
+        <dt>overall</dt><dd><strong>79.7%</strong> (v3_1: 77.5%) · program accuracy 34.1%<br><span class="small muted">Δ +2.14pp, 95% CI [−2.9, +7.2] — not distinguishable from no change</span></dd>
+        <dt>Number</dt><dd>96.9% (v3_1 93.8%)</dd>
+        <dt>Program</dt><dd>70.7% (v3_1 69.1%) — where every error lives</dd>
+        <dt>Type I / II</dt><dd>83.8% / 55.6% — hybrid conversations 28pp behind</dd>
+        <dt>cascade</dt><dd>25 of 187 wrong turns are downstream of an earlier wrong turn</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h4>Per-agent panel (deterministic, from gold)</h4>
+      <dl class="kv">
+        <dt>triage</dt><dd>acc_triage_turn_type 0.920</dd>
+        <dt>preprocess</dt><dd>acc_preprocess_skeleton <strong>0.447</strong> (v3_1 0.415) — the v5 target</dd>
+        <dt>retriever</dt><dd>retriever_operand_recall 0.772</dd>
+        <dt>calculator</dt><dd>acc_calculator_exec 0.707 · given full recall 0.853</dd>
+        <dt>faults (last diagnosis)</dt><dd>preprocess 14 · retriever 10 · triage 3 · calculator 3 of 30 first-wrongs</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3>What a pass costs</h3>
+  <div class="scroll-x"><table>
+    <thead><tr><th>Run</th><th class="num">questions</th><th class="num">wall</th><th class="num">q / min</th><th class="num">cost (USD)</th><th class="num">per question</th><th class="num">tokens / q</th></tr></thead>
+    <tbody>
+      <tr><td><code>evalloop-test50-v5·t3p4r3c3</code></td><td class="num">187</td><td class="num">3.9 min</td><td class="num">48.0</td><td class="num">$0.78</td><td class="num">$0.0042</td><td class="num">14.5k</td></tr>
+      <tr><td><code>evalloop-train50-v5·t3p4r3c3</code></td><td class="num">193</td><td class="num">4.4 min</td><td class="num">44.3</td><td class="num">$0.75</td><td class="num">$0.0039</td><td class="num">13.6k</td></tr>
+      <tr><td><code>diagnose-v3_1-20260902_220936</code> (teacher, 30 cases)</td><td class="num">30</td><td class="num">3.2 min</td><td class="num">—</td><td class="num muted">not logged</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td><code>propose-v5-preprocess</code></td><td class="num">—</td><td class="num">0.1 min</td><td class="num">—</td><td class="num muted">not logged</td><td class="num">—</td><td class="num">—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout info"><strong>The pipeline is cheap; the evidence is the expensive part.</strong>
+    <p>Concurrency 8 gives ~47 questions/minute at $0.004 each. The binding constraint on this campaign is not money or time — it is that <em>a 187-question comparison cannot see a 2pp change</em>. Section 02 sizes that.</p></div>
+</section>
+<!-- ══════════════════ 02 POWER ══════════════════ -->
+<section id="power">
+  <p class="eyebrow">02 · Statistical power</p>
+  <h2>How many questions a promotion needs before "net positive" means anything</h2>
+  <p>
+    The gate is a paired comparison: the same questions, champion vs challenger, McNemar's test on the
+    flips. Its power depends on two numbers we already observe: the <strong>flip rate</strong> ψ (fixed + broken as a
+    share of n) and the <strong>net effect</strong> Δ (fixed − broken). v3_1 → v5 on test: ψ = 20/187 = 10.7%,
+    Δ = +2.1pp. A challenger that breaks ~4% of questions as collateral (8/187, observed) must fix 4% + Δ, so
+    ψ ≈ 8.6% + Δ.
+  </p>
+  <div class="callout bad"><strong>The v5 promotion had 14% power to detect its own effect.</strong>
+    <p>At n = 187 a 5pp improvement is detected less than half the time (47%); a 2pp one, one time in seven. The
+      v3_1 and v4 promotions (n = 44) were sized to detect ~14pp. Every promotion so far is <em>plausible</em>,
+      none is <em>demonstrated</em> — which is exactly what the "not significant at α = 0.05" flags recorded.</p></div>
+
+  <h3>Questions cluster inside conversations</h3>
+  <p>
+    Flips are not independent: a wrong turn poisons the turns below it. Measured on the v3_1/v5 test CSVs, the
+    within-report intraclass correlation of the flip indicator is <strong>0.20</strong> (broken turns 0.24, fixed 0.09),
+    with 3.74 questions per report — a design effect of <strong>1.56×</strong>. The cluster-adjusted columns below
+    divide the sample by that; the naive column is what a question-level McNemar believes.
+  </p>
+
+  <h3>Minimum detectable effect by split size (one-sided α = 0.05, the chosen rule; Connor 1987 formula)</h3>
+  <div class="scroll-x"><table>
+    <thead><tr><th>questions</th><th class="num">≈ reports</th><th class="num">pass time</th><th class="num">pass cost</th><th class="num">MDE @ 80%, naive</th><th class="num">MDE @ 80%, clustered</th><th class="num">MDE @ 90%, clustered</th><th>reads as</th></tr></thead>
+    <tbody>
+      <tr><td><strong>187</strong> <span class="pill">demo</span></td><td class="num">50</td><td class="num">4 min</td><td class="num">$0.79</td><td class="num">7.2pp</td><td class="num bad">9.6pp</td><td class="num bad">11.9pp</td><td>only a transformational prompt shows</td></tr>
+      <tr><td><strong>363</strong> <span class="pill">chosen</span></td><td class="num">100</td><td class="num">6 min</td><td class="num">$1.26</td><td class="num">4.7pp</td><td class="num bad">6.2pp</td><td class="num bad">7.7pp</td><td>the configuration chosen below</td></tr>
+      <tr><td>600</td><td class="num">162</td><td class="num">13 min</td><td class="num">$2.52</td><td class="num">3.5pp</td><td class="num warn">4.6pp</td><td class="num warn">5.6pp</td><td>sees big single-agent wins only</td></tr>
+      <tr><td><strong>1000</strong></td><td class="num">270</td><td class="num">21 min</td><td class="num">$4.20</td><td class="num">2.6pp</td><td class="num ok">3.4pp</td><td class="num ok">4.1pp</td><td>a v5-sized change (+2pp) still needs stacking; a 4pp one is a verdict</td></tr>
+      <tr><td>1500</td><td class="num">405</td><td class="num">32 min</td><td class="num">$6.30</td><td class="num">2.1pp</td><td class="num ok">2.7pp</td><td class="num ok">3.2pp</td><td>the ceiling worth paying for; 3 splits = 39% of the pool</td></tr>
+      <tr><td>2000</td><td class="num">541</td><td class="num">43 min</td><td class="num">$8.40</td><td class="num">1.8pp</td><td class="num ok">2.3pp</td><td class="num ok">2.7pp</td><td>diminishing; leaves too little pool for a fresh holdout later</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Pool measured today: 3,198 conversations / 11,618 questions (3.63 q/report, 31.3% Type II) after excluding the 260 GEPA/s7 saw. Train and gate are samples from it — no further filter is applied. Time at 47 q/min, cost at $0.0042/q — both from the recorded runs above.</p>
+
+  <h3>Decided: <code>eval_loop_v2</code> = train 100 reports · gate 100 reports · holdout reserved, not run <span class="chip good">decided</span></h3>
+  <div class="grid g3">
+    <div class="card"><h4>train · 100 reports ≈ 363 q</h4><p class="small">Feeds the teacher only. ~55 first-wrong conversations to diagnose per cycle, up from 30. 8 min, $1.52.</p></div>
+    <div class="card"><h4>gate · 100 reports ≈ 363 q</h4><p class="small">The paired promotion comparison. 8 min, $1.52 per challenger. Fixed for the campaign so every comparison shares the same questions.</p></div>
+    <div class="card"><h4>holdout · reserved</h4><p class="small">Not built and not run for now. The remaining pool is untouched, so a sealed holdout can be cut later — from ~3,000 conversations that no train draw, no gate run and no teacher has ever seen.</p></div>
+  </div>
+  <p><strong>A cycle is now ~16 minutes and ~$3</strong> — cheap enough to run several in a sitting, which is the point.</p>
+
+  <div class="callout bad"><strong>The one thing this costs, stated plainly: at 363 questions the gate only promotes a ≈6.2pp improvement.</strong>
+    <p>The gate you chose and the split size you chose interact. Of the demo-scale deltas, only v4's +9.1pp clears it and v3_1's +6.8pp is borderline and v5's +2.1pp is nowhere near. So expect <strong>most cycles to end in "not
+      demonstrated"</strong> — which is a legitimate and honest campaign, but it will look like a lot of red before
+      any green, and if single-agent rewrites genuinely deliver 2–4pp, this configuration may never promote at all.</p>
+    <p>Because the gate is the only split whose size affects what can promote — train at 100 is entirely fine, it just
+      feeds diagnosis — the cheap correction is to grow <em>only</em> the gate split:</p></div>
+  <div class="scroll-x"><table>
+    <thead><tr><th>gate split</th><th class="num">questions</th><th class="num">smallest Δ that promotes</th><th class="num">cost / challenger</th><th class="num">time</th><th class="num">cycle total</th></tr></thead>
+    <tbody>
+      <tr><td>100 reports · 363 q <span class="pill">chosen</span></td><td class="num">363</td><td class="num bad">6.2pp</td><td class="num">$1.52</td><td class="num">8 min</td><td class="num">~16 min · $3.0</td></tr>
+      <tr><td>150 reports</td><td class="num">544</td><td class="num warn">4.9pp</td><td class="num">$2.29</td><td class="num">12 min</td><td class="num">~20 min · $3.8</td></tr>
+      <tr><td>200 reports</td><td class="num">726</td><td class="num warn">4.1pp</td><td class="num">$3.05</td><td class="num">15 min</td><td class="num">~23 min · $4.6</td></tr>
+      <tr><td>270 reports</td><td class="num">980</td><td class="num ok">3.4pp</td><td class="num">$4.12</td><td class="num">21 min</td><td class="num">~29 min · $5.6</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Train stays at 100 reports in every row. 80% power, one-sided α = 0.05, cluster-adjusted (design effect 1.56), collateral break rate 4.3% — all measured from your own runs.</p>
+
+  <div class="callout good"><strong>Decided: gate stays at 100 reports.</strong>
+    <p>Cycles stay at ~16 min and ~$3, and the campaign accepts that only a ≈6.2pp improvement clears the gate.
+      Most experiments will end "not demonstrated" — that is the chosen trade, and the rejections carry real
+      information into the writer's ledger rather than being wasted. If a campaign burns all 5 experiments failing
+      on power rather than on effect, the manifest extends without invalidating anything already run.</p></div>
+
+  <p>
+    <strong>Extension, not replacement.</strong> Re-dealing with the same seed at a larger target keeps the existing
+    v1 reports in their splits, so runs already recorded stay comparable and nothing the teacher has seen leaks into
+    the gate split. A <code>--extend</code> flag makes that exact. The manifest name is currently hard-coded
+    (<code>DEFAULT_MANIFEST_PATH</code>); W1 adds <code>--name</code> and an <code>EVAL_MANIFEST</code> selector.
+  </p>
+</section>
+<!-- ══════════════════ 03 ROLES ══════════════════ -->
+<section id="roles">
+  <p class="eyebrow">03 · Split roles &amp; holdout policy</p>
+  <h2>The gate split decides the champion; the holdout is reserved for later <span class="chip warn">deferred</span></h2>
+  <div class="callout"><strong>Decision: no holdout runs during this phase.</strong>
+    <p>The campaign optimises and promotes on the gate split alone. The holdout is not cut, not run, and not opened —
+      it exists as the untouched remainder of the pool, from which a sealed split can be drawn whenever you want a
+      confirmatory number. Nothing about deferring it burns it, provided the gate split is never resampled from
+      the reserve.</p></div>
+  <p>
+    Worth being clear about what that means for the claim. With no holdout, the campaign's headline is
+    <strong>"accuracy on a fixed 363-question gate split, improved from X% to Y% over N promotions, each significant
+    at p &lt; 0.05"</strong> — an honest and defensible claim, and the significance gate is doing real work in it.
+    What it is <em>not</em> is an out-of-sample claim: after a dozen challengers have been measured against the same
+    questions, that split is no longer unseen, and a portion of any gain is selection.
+  </p>
+  <p>
+    That is why the reserve matters more than a schedule. The single most valuable thing you can do at the end —
+    one run, ~$4, 21 minutes — is cut a fresh 270-report holdout from the untouched reserve and run the final champion and
+    the starting champion on it. Two numbers, never optimised against, that convert the whole campaign into an
+    out-of-sample result. The plan therefore keeps <code>release.py</code> as-is and simply does not call it
+    until then.
+  </p>
+  <figure>
+    <svg viewBox="0 0 900 300" role="img" aria-labelledby="roles-title" style="max-width:900px">
+      <title id="roles-title">Three splits and their single consumer each</title>
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+      <g font-family="IBM Plex Mono, ui-monospace, monospace" font-size="12" fill="currentColor">
+        <!-- pool -->
+        <rect id="pool" x="20" y="20" width="200" height="260" rx="10" fill="none" stroke="currentColor" stroke-dasharray="4 4" opacity=".6"><title>Pool: 3,198 conversations never seen by GEPA or s7</title></rect>
+        <text x="120" y="45" text-anchor="middle" font-weight="600">POOL · 3,198 raw</text>
+        <rect id="split-train" x="40" y="65" width="160" height="50" rx="7" fill="var(--panel-2)" stroke="var(--info)"><title>train: 100 reports, ~363 questions</title></rect>
+        <text x="120" y="86" text-anchor="middle" font-weight="600">train · 100 rep</text><text x="120" y="104" text-anchor="middle" opacity=".7">read by the teacher</text>
+        <rect id="split-test" x="40" y="130" width="160" height="50" rx="7" fill="var(--panel-2)" stroke="var(--amber)"><title>gate split: 100 reports, ~363 questions</title></rect>
+        <text x="120" y="151" text-anchor="middle" font-weight="600">gate · 100 rep</text><text x="120" y="169" text-anchor="middle" opacity=".7">paired gate</text>
+        <rect id="split-holdout" x="40" y="195" width="160" height="50" rx="7" fill="var(--panel-2)" stroke="var(--good)"><title>reserve: the ~3,000 conversations left after train and gate are drawn — never seen</title></rect>
+        <text x="120" y="216" text-anchor="middle" font-weight="600">reserve · unseen</text><text x="120" y="234" text-anchor="middle" opacity=".7">~3,000 conversations</text>
+        <!-- consumers -->
+        <line id="e-train" x1="200" y1="90" x2="330" y2="90" stroke="var(--info)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line id="e-test" x1="200" y1="155" x2="330" y2="155" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line id="e-holdout" x1="200" y1="220" x2="330" y2="220" stroke="var(--good)" stroke-width="1.5" marker-end="url(#arr)"/>
+        <rect id="c-teacher" x="335" y="65" width="210" height="50" rx="7" fill="var(--panel)" stroke="var(--info)"><title>diagnose → propose: one subagent changed per challenger</title></rect>
+        <text x="440" y="86" text-anchor="middle" font-weight="600">diagnose → propose</text><text x="440" y="104" text-anchor="middle" opacity=".7">ONE subagent per challenger</text>
+        <rect id="c-gate" x="335" y="130" width="210" height="50" rx="7" fill="var(--panel)" stroke="var(--amber)"><title>gate-targeted: McNemar + per-agent metric on the shared test questions</title></rect>
+        <text x="440" y="151" text-anchor="middle" font-weight="600">gate-targeted --promote</text><text x="440" y="169" text-anchor="middle" opacity=".7">McNemar + agent metric</text>
+        <rect id="c-release" x="335" y="195" width="210" height="50" rx="7" fill="var(--panel)" stroke="var(--good)"><title>release: champion vs last released on the holdout, must not regress</title></rect>
+        <text x="440" y="216" text-anchor="middle" font-weight="600">release (end of campaign)</text><text x="440" y="234" text-anchor="middle" opacity=".7">one confirmatory run</text>
+        <!-- outputs -->
+        <line id="e-chal" x1="545" y1="90" x2="670" y2="90" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)" opacity=".7"/>
+        <line id="e-champ" x1="545" y1="155" x2="670" y2="155" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)" opacity=".7"/>
+        <line id="e-rel" x1="545" y1="220" x2="670" y2="220" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)" opacity=".7"/>
+        <rect id="o-chal" x="675" y="65" width="200" height="50" rx="7" fill="none" stroke="currentColor" opacity=".8"/>
+        <text x="775" y="86" text-anchor="middle" font-weight="600">challenger vN</text><text x="775" y="104" text-anchor="middle" opacity=".7">prompts/vN.py · t3.p5.r3.c3</text>
+        <rect id="o-champ" x="675" y="130" width="200" height="50" rx="7" fill="var(--amber-soft)" stroke="var(--amber)"/>
+        <text x="775" y="151" text-anchor="middle" font-weight="600">alias: champion</text><text x="775" y="169" text-anchor="middle" opacity=".7">served · the dense line</text>
+        <rect id="o-rel" x="675" y="195" width="200" height="50" rx="7" fill="none" stroke="var(--good)"/>
+        <text x="775" y="216" text-anchor="middle" font-weight="600">alias: released</text><text x="775" y="234" text-anchor="middle" opacity=".7">deferred until the end</text>
+        <!-- challenger feeds gate -->
+        <path id="e-chal-gate" d="M775 115 C775 125 560 118 545 145" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arr)" opacity=".55"/>
+        <text x="640" y="128" text-anchor="middle" opacity=".6" font-size="11">runs on test, compared to champion</text>
+      </g>
+    </svg>
+    <figcaption>Each split has exactly one consumer. The teacher only ever reads train; the promotion comparison only ever reads the gate split; the reserve is read by nothing at all during the campaign. The story page draws the champion's gate-split accuracy as the line; the reserve stays untouched until one confirmatory run at the end.</figcaption>
+  </figure>
+
+  <h3>Should the splits be resampled every run?</h3>
+  <p>
+    The instinct is right, and the answer is different for the two splits — because they are doing different
+    statistical jobs.
+  </p>
+  <div class="grid g2">
+    <div class="card"><h4><span class="chip good">yes</span> train — resample every cycle</h4>
+      <p class="small">Nothing about diagnosis needs stability. Drawing a fresh 100 reports from the reserve each
+        cycle gives the teacher new failure material, stops it tuning to the quirks of one fixed set, and widens
+        the evidence behind each prompt rewrite over the campaign. Strictly better, and free.</p>
+      <p class="small muted">Record <code>train_seed</code> and the drawn <code>report_id</code> list on the run so
+        the cycle is reproducible.</p>
+      <p class="small"><strong>Drawn from the reserve only — never from the gate split.</strong> The gate ids are
+        subtracted from the sampling frame before any draw, so no gate report can ever appear in train. This is the
+        one invariant that, if broken, silently invalidates every promotion in the campaign: the teacher would be
+        writing prompts against the exact questions the gate then scores.</p></div>
+    <div class="card"><h4><span class="chip bad">no</span> gate — must stay fixed</h4>
+      <p class="small">The promotion test is <em>paired</em>: the same question answered by champion and challenger,
+        McNemar on the flips. Pairing is what makes 100 reports viable at all. Resample the gate and there is nothing
+        to pair — you fall back to comparing two independent samples, and the same data buys far less.</p>
+      <p class="small muted">Same 363 questions: paired detects 6.2pp, unpaired 9.2pp. To recover 6.2pp unpaired you
+        need <strong>~234 reports per arm</strong> — 2.3× the data, $3.57 and 18 min per challenger instead of $1.52
+        and 8 min.</p></div>
+  </div>
+  <div class="scroll-x"><table>
+    <thead><tr><th>gate reports</th><th class="num">questions</th><th class="num">paired · fixed gate</th><th class="num">unpaired · resampled gate</th></tr></thead>
+    <tbody>
+      <tr><td>100 <span class="pill">chosen</span></td><td class="num">363</td><td class="num ok">6.2pp</td><td class="num bad">9.2pp</td></tr>
+      <tr><td>200</td><td class="num">726</td><td class="num ok">4.1pp</td><td class="num bad">6.5pp</td></tr>
+      <tr><td>270</td><td class="num">980</td><td class="num ok">3.4pp</td><td class="num warn">5.6pp</td></tr>
+      <tr><td>400</td><td class="num">1452</td><td class="num ok">2.7pp</td><td class="num warn">4.6pp</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><strong>But the worry behind the question is real.</strong>
+    <p>A fixed gate split measured against twenty challengers <em>does</em> accumulate selection — that is exactly the
+      concern that resampling would solve. The resolution is not to resample the gate, which trades a large power
+      loss for it, but to keep the gate fixed and <strong>settle the accumulated selection once, at the end</strong>,
+      on a freshly drawn sample from the untouched reserve. That is the confirmatory run described above, and this
+      is the argument for actually budgeting it: a fixed gate plus one clean out-of-sample check is both more
+      powerful per cycle and more honest at the end than resampling every cycle.</p></div>
+  <div class="callout good"><strong>Reproducibility, either way.</strong>
+    <p>Adopt the seed discipline you describe for both splits. The manifest already stores literal <code>report_id</code>
+      lists rather than trusting a seed to reproduce (the old machinery is the cautionary tale — two 60/40 splits both
+      seeded 42 agree on only 78 of 120 conversations). Extend that: each run logs <code>manifest</code>,
+      <code>split</code>, <code>seed</code>, and the drawn report ids as an MLflow artifact, so any cycle can be
+      re-created exactly even after the train pool has moved on.</p></div>
+
+  <h3>Out-of-scope reports <span class="chip info">resolved — no filter</span></h3>
+  <p>
+    Settled: there is no out-of-scope exclusion to build. The pool is the 3,198 conversations the old optimisers never
+    saw, and train and gate are simply <em>sampled down</em> from it — 100 reports each. Whatever unanswerable cases
+    exist stay in the data at their natural rate, which is the honest thing for a benchmark: they sit in the champion's
+    accuracy as a ceiling rather than being quietly removed to flatter it.
+  </p>
+  <p class="small muted">
+    Two consequences worth naming. First, both arms of every paired comparison contain the same unanswerable reports,
+    so they cancel in Δ — the gate is unaffected. Second, the teacher will occasionally diagnose a case whose gold is
+    itself wrong; the <code>gold_suspect</code> flag already exists for exactly that, and <code>/admin/dataset</code>
+    is where those get settled by hand. Watch the flag rate per cycle; if it climbs, that is the signal to revisit.
+    W0b is dropped and Slice 1 has no blockers.
+  </p>
+
+  <h3>Program-question filter <span class="chip info">resolved — no change</span></h3>
+  <p class="small muted">
+    Checked: all 3,198 pool conversations already contain at least one Program question (2,333 have exactly two;
+    only 19 have one), so a "≥ 1 Program" filter excludes nothing — ConvFinQA conversations are decomposed multi-hop
+    questions by construction. Program turns are 65.8% of pool questions and remain where the failures are
+    (v5: 70.7% vs 96.9% on Number), so the campaign targets them via the
+    <code>accuracy_gold_turn_type_Program</code> slice rather than by narrowing the data.
+  </p>
+
+  <h3>Stopping a conversation after its first wrong answer</h3>
+  <p>
+    Measured on the real runs, the saving is <strong>24% of turns on train</strong> and 13% on the gate split — the
+    cascade turns that currently run only to be discarded. On train that is straightforwardly worth taking.
+  </p>
+  <div class="grid g2">
+    <div class="card"><h4><span class="chip good">yes</span> train — stop at first wrong</h4>
+      <p class="small">The teacher reads exactly one case per report: the first wrong turn. Everything after it is
+        computed, paid for, and thrown away. Stopping there cuts ~24% of turns off every train pass at zero
+        information cost — a cycle's train run drops from ~$1.52 to ~$1.15 and 8 min to ~6.</p></div>
+    <div class="card"><h4><span class="chip bad">no</span> gate — must run every turn</h4>
+      <p class="small">The gate compares champion and challenger <em>question by question</em>. Stop early and the two
+        runs stop at different turns, so the shared question set shrinks to whatever both happened to reach — the
+        pairing breaks, the sample shrinks unpredictably, and a challenger that fails earlier would be scored on
+        fewer questions than the champion.</p>
+      <p class="small muted">Worse, it is biased: truncating after the first error removes precisely the cascade turns
+        a better prompt would have recovered, so a genuine improvement becomes invisible.</p></div>
+  </div>
+  <div class="callout good"><strong>So: <code>--stop-at-first-wrong</code>, defaulted on for train and refused for the gate split.</strong>
+    <p>A per-run flag rather than a global behaviour, with the runner rejecting it when <code>--split test</code> so
+      it cannot be set by accident. Cascade turns stay in the gate's CSV, where <code>cascade</code> already marks
+      them and the story page uses them to show error propagation shrinking.</p></div>
+
+  <div class="callout info"><strong>Deferred, not abandoned.</strong>
+    <p>Two changes to <code>release.py</code> are worth making when the confirmatory run happens, not before: reuse
+      the baseline's recorded holdout CSV rather than re-running it, and report the cluster-bootstrap CI alongside
+      the "must not regress" check. Both are noted in W3.</p></div>
+</section>
+<!-- ══════════════════ 04 CYCLE ══════════════════ -->
+<section id="cycle">
+  <p class="eyebrow">04 · The campaign cycle</p>
+  <h2>One cycle = one targeted challenger, ~35 minutes, ~$6, fully recorded</h2>
+  <p>Everything below exists today except the <code>cycle</code> wrapper (W2), which chains the steps, stamps every run with <code>cycle=&lt;k&gt;</code> / <code>target_agent</code> / <code>challenger</code> tags, and logs the gate verdict as its own MLflow run so the story page can group a cycle without guessing.</p>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><div><b>Champion on a fresh train draw</b><span class="t">New 100 reports from the reserve each cycle (seed + ids logged), stopping each conversation at its first wrong turn (−24% turns). <code>run --split train --version v5 --stop-at-first-wrong</code> · ~6 min · $1.15</span></div></div>
+    <div class="step"><span class="n">2</span><div><b>Diagnose</b><span class="t">Teacher labels ~55 first-wrong conversations with the first-faulting agent; reads prior diagnoses from MLflow as memory. <code>diagnose --csv … --version v5</code> · ~5 min</span></div></div>
+    <div class="step"><span class="n">3</span><div><b>Propose challenger — free rewrite of one agent</b><span class="t">Target = most first-faults. The teacher gets that agent's <em>whole</em> system prompt and full latitude to rewrite it however it judges best — restructure, reorder, delete, replace — not just append a rule. Writes <code>prompts/v6.py</code>, registers the new component hash (<code>t3.p5.r3.c3</code>). <code>propose --base-version v5 --new-version v6</code></span></div></div>
+    <div class="step"><span class="n">4</span><div><b>Challenger on the gate split</b><span class="t"><code>run --split test --version v6</code> · 100 reports ≈ 363 q · 8 min · $1.5. The champion's gate CSV is already there from its own promotion.</span></div></div>
+    <div class="step"><span class="n">5</span><div><b>Targeted gate</b><span class="t"><code>gate-targeted --target-agent preprocess … --promote</code>: cluster-corrected McNemar on the shared 363 questions (the gate) + the target's deterministic metric (evidence); verdict written to the registry <em>and</em> logged as a <code>kind=gate</code> run. Promotion mirrors prompts, re-snapshots.</span></div></div>
+    <div class="step"><span class="n">6</span><div><b>(End of campaign only)</b><span class="t">Cut a fresh holdout from the untouched reserve and run the final and starting champions on it — one confirmatory, out-of-sample number. Not called during the campaign.</span></div></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 960 430" role="img" aria-labelledby="harness-title harness-desc">
+      <title id="harness-title">The optimisation harness: one experiment, end to end</title>
+      <desc id="harness-desc">Fresh train draw is scored, faults are attributed from gold and explained by the teacher, one subagent's prompt is rewritten, the challenger is scored on the fixed gate split, and a one-sided McNemar test decides promotion. Rejections feed back into the writer's ledger.</desc>
+      <defs>
+        <marker id="h-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+        <marker id="h-arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--amber)"/></marker>
+      </defs>
+      <g font-family="IBM Plex Mono, ui-monospace, monospace" fill="currentColor">
+        <g font-size="9.5" opacity=".62" text-anchor="middle">
+          <text x="172" y="24">TRAIN SPLIT · resampled each experiment · stops at first wrong</text>
+          <text x="712" y="24">GATE SPLIT · fixed all campaign · every turn scored</text>
+        </g>
+        <line x1="20" y1="34" x2="325" y2="34" stroke="var(--info)" stroke-width="1" opacity=".45"/>
+        <line x1="500" y1="34" x2="925" y2="34" stroke="var(--amber)" stroke-width="1" opacity=".45"/>
+
+        <g id="h-s1"><rect x="20" y="52" width="145" height="96" rx="9" fill="var(--panel)" stroke="var(--info)"/><title>Draw 100 fresh reports from pool minus gate; seed and ids logged</title>
+          <text x="32" y="72" font-size="9" fill="var(--info)" font-weight="600">01 · DRAW</text>
+          <text x="32" y="92" font-size="12" font-weight="600">Fresh train</text>
+          <text x="32" y="110" font-size="9.5" opacity=".7">100 reports, seeded</text>
+          <text x="32" y="126" font-size="9.5" opacity=".7">never the gate split</text>
+          <text x="32" y="142" font-size="9" opacity=".5">~6 min · $1.15</text></g>
+
+        <g id="h-s2"><rect x="180" y="52" width="145" height="96" rx="9" fill="var(--panel)" stroke="var(--info)"/><title>Run the champion; every turn scored against gold; stage scores derived with zero API calls</title>
+          <text x="192" y="72" font-size="9" fill="var(--info)" font-weight="600">02 · SCORE</text>
+          <text x="192" y="92" font-size="12" font-weight="600">Champion runs</text>
+          <text x="192" y="110" font-size="9.5" opacity=".7">per-turn vs gold</text>
+          <text x="192" y="126" font-size="9.5" opacity=".7">stage scores from gold</text>
+          <text x="192" y="142" font-size="9" opacity=".5">predictions CSV</text></g>
+
+        <g id="h-s3"><rect x="340" y="52" width="145" height="96" rx="9" fill="var(--panel)" stroke="var(--violet)"/><title>First fault per report attributed deterministically from the gold program; the teacher explains why</title>
+          <text x="352" y="72" font-size="9" fill="var(--violet)" font-weight="600">03 · DIAGNOSE</text>
+          <text x="352" y="92" font-size="12" font-weight="600">Attribute + explain</text>
+          <text x="352" y="110" font-size="9.5" opacity=".7">gold-derived first fault</text>
+          <text x="352" y="126" font-size="9.5" opacity=".7">teacher says why</text>
+          <text x="352" y="142" font-size="9" opacity=".5">target = most faults</text></g>
+
+        <g id="h-s4"><rect x="500" y="52" width="145" height="96" rx="9" fill="var(--panel)" stroke="var(--violet)"/><title>The writer rewrites ONE subagent's prompt freely, informed by the outcome ledger of its past attempts</title>
+          <text x="512" y="72" font-size="9" fill="var(--violet)" font-weight="600">04 · PROPOSE</text>
+          <text x="512" y="92" font-size="12" font-weight="600">Rewrite ONE agent</text>
+          <text x="512" y="110" font-size="9.5" opacity=".7">full rewrite allowed</text>
+          <text x="512" y="126" font-size="9.5" opacity=".7">sees its own ledger</text>
+          <text x="512" y="142" font-size="9" opacity=".5">prompts/vN.py</text></g>
+
+        <g id="h-s5"><rect x="660" y="52" width="145" height="96" rx="9" fill="var(--panel)" stroke="var(--amber)"/><title>The challenger runs on the fixed gate split — the same questions the champion already answered</title>
+          <text x="672" y="72" font-size="9" fill="var(--amber)" font-weight="600">05 · GATE RUN</text>
+          <text x="672" y="92" font-size="12" font-weight="600">Challenger scored</text>
+          <text x="672" y="110" font-size="9.5" opacity=".7">same 363 questions</text>
+          <text x="672" y="126" font-size="9.5" opacity=".7">as the champion</text>
+          <text x="672" y="142" font-size="9" opacity=".5">~8 min · $1.52</text></g>
+
+        <g id="h-s6"><rect x="820" y="52" width="120" height="96" rx="9" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.6"/><title>Promotion decision: one-sided cluster-corrected McNemar at alpha 0.05</title>
+          <text x="832" y="72" font-size="9" fill="var(--amber)" font-weight="600">06 · DECIDE</text>
+          <text x="832" y="92" font-size="12" font-weight="600">McNemar</text>
+          <text x="832" y="110" font-size="9.5" opacity=".75">1-sided α=.05</text>
+          <text x="832" y="126" font-size="9.5" opacity=".75">cluster-corrected</text>
+          <text x="832" y="142" font-size="9" opacity=".55">paired on flips</text></g>
+
+        <g stroke="currentColor" stroke-width="1.6" opacity=".75">
+          <line x1="165" y1="100" x2="176" y2="100" marker-end="url(#h-arr)"/>
+          <line x1="325" y1="100" x2="336" y2="100" marker-end="url(#h-arr)"/>
+          <line x1="485" y1="100" x2="496" y2="100" marker-end="url(#h-arr)"/>
+          <line x1="645" y1="100" x2="656" y2="100" marker-end="url(#h-arr)"/>
+          <line x1="805" y1="100" x2="816" y2="100" marker-end="url(#h-arr)"/>
+        </g>
+
+        <g id="h-promoted"><path d="M880 148 L880 196 L620 196" fill="none" stroke="var(--good)" stroke-width="2" marker-end="url(#h-arr)"/><title>Promoted: the challenger becomes champion and the next experiment starts from it</title></g>
+        <rect x="452" y="178" width="166" height="36" rx="7" fill="var(--panel)" stroke="var(--good)"/>
+        <text x="535" y="195" font-size="10.5" font-weight="600" text-anchor="middle" fill="var(--good)">PROMOTED → champion</text>
+        <text x="535" y="208" font-size="9" text-anchor="middle" opacity=".65">alias moves · prompts mirrored</text>
+        <path d="M452 196 L120 196 L120 152" fill="none" stroke="var(--good)" stroke-width="2" marker-end="url(#h-arr)"/>
+        <text x="286" y="190" font-size="9" text-anchor="middle" opacity=".6">next experiment starts from the new champion</text>
+
+        <g id="h-rejected"><path d="M900 148 L900 268 L620 268" fill="none" stroke="var(--bad)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#h-arr)"/><title>Rejected: not promoted, but written to the ledger the writer reads next time</title></g>
+        <rect x="452" y="250" width="166" height="36" rx="7" fill="var(--panel)" stroke="var(--bad)"/>
+        <text x="535" y="267" font-size="10.5" font-weight="600" text-anchor="middle" fill="var(--bad)">REJECTED → ledger</text>
+        <text x="535" y="280" font-size="9" text-anchor="middle" opacity=".65">diff + Δ + p recorded</text>
+        <path d="M452 268 L572 268" fill="none" stroke="none"/>
+        <path d="M452 268 L400 268 L400 220 L572 220 L572 152" fill="none" stroke="var(--bad)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#h-arr)" opacity=".85"/>
+        <text x="400" y="240" font-size="9" text-anchor="middle" opacity=".6" transform="rotate(-90 400 240)">feeds the writer</text>
+
+        <g id="h-rules" font-size="9.5">
+          <rect x="20" y="316" width="920" height="96" rx="9" fill="none" stroke="currentColor" opacity=".28" stroke-dasharray="4 4"/>
+          <text x="34" y="338" font-size="9" opacity=".55" font-weight="600">CAMPAIGN RULES</text>
+          <text x="34" y="360" opacity=".8">· 5 experiments per campaign, then review — enforced, not left to discipline</text>
+          <text x="34" y="378" opacity=".8">· 2 consecutive rejections on one subagent forces the next experiment onto a different one</text>
+          <text x="34" y="396" opacity=".8">· one gated run per challenger — never re-run a rejected prompt until it passes</text>
+          <text x="500" y="360" opacity=".8">· exactly ONE subagent changes per experiment</text>
+          <text x="500" y="378" opacity=".8">· the gate split is never resampled; train never touches it</text>
+          <text x="500" y="396" opacity=".8">· every run logged to MLflow with seed, ids and composition</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>
+      One experiment, end to end. The left half runs on a freshly drawn train split and produces a diagnosis; the
+      right half runs on the fixed gate split and produces a verdict. Promotion moves the champion and the next
+      experiment starts from it; rejection is not discarded but written to the ledger the prompt writer reads on its
+      next attempt — which is what lets the loop learn from its own failures rather than repeating them.
+    </figcaption>
+  </figure>
+
+  <h3>Campaign = a capped series of experiments <span class="chip good">decided</span></h3>
+  <p>
+    Optimisation runs periodically rather than continuously, so the unit of work is a <strong>campaign</strong>: a
+    named, bounded series of experiments against one fixed gate split, capped at <strong>5 experiments</strong>. When
+    a campaign ends you review it as a whole, and the next campaign starts deliberately — new gate split if you want
+    one, new baseline, new name.
+  </p>
+  <div class="grid g3">
+    <div class="card"><h4>Campaign</h4><dl class="kv">
+      <dt>id</dt><dd><code>c01</code>, <code>c02</code>, … monotonic</dd>
+      <dt>fixes</dt><dd>gate split, baseline champion, prompt-rule set</dd>
+      <dt>cap</dt><dd>5 experiments, then review</dd>
+      <dt>cost</dt><dd>~5 × $3 ≈ $15, ~80 min</dd></dl></div>
+    <div class="card"><h4>Experiment</h4><dl class="kv">
+      <dt>name</dt><dd><code>c01-e03-preprocess-v7</code> — sorts chronologically, names its target</dd>
+      <dt>is</dt><dd>one challenger: one subagent, freely rewritten</dd>
+      <dt>outcome</dt><dd><code>promoted</code> or <code>rejected</code>, with Δ, p, CI</dd>
+      <dt>tags</dt><dd><code>campaign</code>, <code>experiment</code>, <code>target_agent</code>, <code>composition</code></dd></dl></div>
+    <div class="card"><h4>Rotation rule</h4><dl class="kv">
+      <dt>rule</dt><dd>after <strong>2 consecutive rejections</strong> on one subagent, the next experiment must target a different one</dd>
+      <dt>why</dt><dd>stops a campaign burning all 5 experiments on an agent that will not move</dd>
+      <dt>carried</dt><dd>the failed attempts stay in the writer's ledger, so the agent can be revisited later informed</dd></dl></div>
+  </div>
+  <p class="small muted">
+    Both caps are enforced in the <code>cycle</code> command, not left to discipline: it refuses a 6th experiment in a
+    campaign, and refuses a target that has just failed twice in a row.
+  </p>
+
+  <h3>Standing rules for the campaign</h3>
+  <ul>
+    <li><strong>One subagent per challenger, always — but unrestricted <em>within</em> it.</strong> The teacher may rewrite that agent's prompt from scratch if it wants. The prompt diff between consecutive champions is then still the entire explanation of the move, which is what makes the story page legible.</li>
+    
+    <li><strong>Train never touches the gate split.</strong> Every train draw comes from <code>pool − gate</code>, asserted in code. If a gate report ever reached train, the teacher would be tuning prompts on the very questions the gate scores, and every promotion after it would be worthless.</li>
+    <li><strong>The gate split is fixed for the campaign; train is resampled every cycle.</strong> The gate must never be resampled — the paired test needs the same questions, and pairing is what makes 100 reports viable. Train should be resampled, so the teacher keeps seeing new failures.</li>
+    <li><strong>Failed challengers stay on the page.</strong> They are the honest half of the story and the teacher's best evidence.</li>
+    <li><strong>Five experiments per campaign, then review.</strong> At one-sided α = 0.05 that is 0.25 expected false promotions if every challenger were null — small enough that a campaign's result stands on its own.</li>
+  </ul>
+
+  <h3>The teacher's latitude <span class="chip good">decided</span></h3>
+  <p>
+    Today the teacher is constrained twice over, and both constraints come out. In <code>teacher.py</code> the
+    diagnosis step asks for <em>"ONE imperative prompt rule"</em> per failure (<code>RulesBlock</code>), and the
+    <code>prompt_writer</code> then <strong>merges those rules</strong> into the target agent's prompt. It can add
+    guidance; it cannot reorganise, shorten, or replace what is already there — so prompts only ever grow, and a
+    prompt whose <em>structure</em> is the problem can never be fixed.
+  </p>
+  <div class="callout good"><strong>The teacher reads the first wrong answer per <code>report_id</code>, and may rewrite the target agent's system prompt however it judges best.</strong>
+    <p>It receives the full current prompt, the diagnosed failures, and the outcome ledger of its own prior attempts
+      on that agent (below), and returns a complete replacement prompt — free to reorder, restructure, delete, or
+      rewrite from scratch. Then the experiment runs and the gate decides. The teacher proposes; only the
+      p &lt; 0.05 comparison promotes.</p></div>
+  <ul>
+    <li><strong>Still one agent per challenger.</strong> Unrestricted within that agent, untouched everywhere else —
+      so the diff between consecutive champions remains a single agent's prompt, which is what the story page needs
+      to explain a move.</li>
+    <li><strong>Guardrails that stay:</strong> the output must be a valid prompt for that agent (the pipeline's
+      contract — required output fields, the DSL — is validated before the run), and a rewrite that collapses the
+      prompt to nothing simply fails the gate.</li>
+    <li><strong>What it costs:</strong> bigger diffs are harder to read than a one-line rule. The story page shows a
+      full unified diff per promotion, and the teacher is asked for a one-paragraph rationale recorded on the
+      propose run — that rationale becomes the caption on the story page's promotion card.</li>
+  </ul>
+
+  <h3>Gold-derived attribution <span class="chip good">decided</span> — and a result you should see</h3>
+  <p>
+    You are right, and <code>stage_scores.py</code> already says so in its own docstring: <em>"the gold program plus
+    gold answer determine what three of the four stages should have produced, so most of the per-agent panel needs
+    no judge."</em> Walking the four checks in pipeline order and taking the first failure gives a
+    <strong>deterministic first-fault attribution</strong> — free, reproducible, no LLM involved:
+  </p>
+  <div class="diff"><span class="ctx">triage      → gold_turn_type vs predicted turn type</span><span class="ctx">preprocess  → op skeleton of pred_program vs gold_program's</span><span class="ctx">retriever   → gold program's document operands, minus const_* and history values</span><span class="ctx">calculator  → gold answer, conditioned on retrieval having succeeded</span><span class="add">first check that fails = the faulting agent</span></div>
+  <p>The pieces exist as <em>metrics</em>; what does not exist is using them for attribution — that is still the
+    teacher's LLM judgement (<code>Diagnosis.failed_agent</code>). So I ran the comparison on the 30 diagnosed cases
+    from the last v3_1 run.</p>
+  <div class="callout bad"><strong>The teacher and the gold-derived rule agree on only 17 of 30 cases — 57%.</strong>
+    <div class="scroll-x" style="margin-top:10px"><table style="min-width:420px">
+      <thead><tr><th>teacher says ↓ / gold says →</th><th class="num">triage</th><th class="num">preprocess</th><th class="num">retriever</th><th class="num">calculator</th></tr></thead>
+      <tbody>
+        <tr><td>triage</td><td class="num ok">2</td><td class="num">0</td><td class="num">1</td><td class="num">0</td></tr>
+        <tr><td>preprocess</td><td class="num">2</td><td class="num ok">7</td><td class="num">0</td><td class="num bad">5</td></tr>
+        <tr><td>retriever</td><td class="num">2</td><td class="num">1</td><td class="num ok">7</td><td class="num">0</td></tr>
+        <tr><td>calculator</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num ok">1</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px">The teacher attributes 15 cases to preprocess where the gold-derived rule finds 9 —
+      and 5 of its "preprocess" faults are calculator faults by gold. It also under-calls triage (3 vs 6).</p></div>
+  <div class="callout bad"><strong>Why this matters more than it looks: attribution picks the target, and the campaign is capped at 5 experiments.</strong>
+    <p>Every experiment changes the subagent with the most attributed faults. If attribution is a coin-flip-plus,
+      a meaningful share of experiments optimise the wrong agent — and with only 5 per campaign, one or two
+      misdirected experiments is the difference between a campaign that finds something and one that does not.
+      This was invisible while the loop was a demo; it is the first thing that would have quietly wasted the
+      campaign.</p></div>
+  <div class="callout good"><strong>Decision: gold-derived attribution becomes primary; the teacher explains and proposes rather than attributes.</strong>
+    <ul style="margin:8px 0 0">
+      <li><strong>Target selection uses the deterministic counts.</strong> Free, reproducible, and it cannot drift.</li>
+      <li><strong>The teacher keeps the job only it can do</strong> — <em>why</em> the agent failed and <em>what</em>
+        to change. It is told the computed attribution rather than asked for one, which also shortens its prompt.</li>
+      <li><strong>It may dissent, and dissent is recorded.</strong> The deterministic rule has known looseness — a
+        program that is correct but shaped differently reads as a preprocess miss (the docstring flags this). When
+        the teacher disagrees, the case is logged as <code>attribution_disputed</code>; a recurring dispute pattern
+        is a bug in the rule, and the disagreement rate becomes a tracked metric.</li>
+    </ul></div>
+  <div class="callout info"><strong>This replaces the κ exercise.</strong>
+    <p>W0 was going to have you hand-label 30 cases to measure teacher-vs-human agreement. That is no longer the
+      useful question: gold-derived attribution is better than a human labeller for the cases it can decide, and it
+      is free. What is worth your eye instead is the ~13 disagreements above — each is either a teacher error or a
+      gap in the derivation rule, and settling a handful of them is a far better use of the same hour.</p></div>
+
+  <h3>What the teacher remembers — and the gap that matters for a long campaign</h3>
+  <p>
+    It does have memory, and here is exactly what it is. <code>teacher.py:166 prior_diagnoses()</code> queries MLflow
+    for the last <strong>5</strong> runs tagged <code>kind=diagnose</code> in the <code>convfinqa-optimization</code>
+    experiment, downloads each one's <code>diagnoses.jsonl</code> artifact, and appends up to <strong>40</strong>
+    entries to the diagnosis prompt under the header <em>"Prior diagnoses (do not repeat these rules)"</em>. So the
+    teacher does carry across runs — within that one experiment — and <code>n_prior_diagnoses</code> is logged on
+    every diagnose run so you can see how much memory it had.
+  </p>
+  <div class="callout bad"><strong>Two gaps, both now closed by decision below.</strong>
+    <ul style="margin:8px 0 0">
+      <li><strong>The prompt writer has no memory at all.</strong> <code>propose_version()</code> passes only the
+        current prompt and the fresh diagnoses to <code>prompt_writer</code> — nothing about what it already tried.
+        With free-rewrite latitude and a p &lt; 0.05 gate, it will produce rewrite after rewrite with no knowledge of
+        the ones that were already rejected, and can happily re-propose a variant that failed three cycles ago.</li>
+      <li><strong>Memory carries diagnoses, never outcomes.</strong> What is fed back is what was <em>attributed and
+        proposed</em> — never whether the resulting challenger passed or failed. The teacher cannot learn which of
+        its rules actually worked, because it is never told. That is memory without feedback, and it is the single
+        biggest limiter on the loop improving over a long campaign.</li>
+    </ul></div>
+  <div class="callout warn"><strong>Where the code is today, and where you want it.</strong>
+    <p>Your intent is that both teacher agents run on the <strong>Claude Agent SDK, Opus 5, on your subscription</strong>.
+      The code does not do that yet: as built, <code>teacher()</code> and <code>propose_version()</code> construct
+      <code>pydantic_ai.Agent(lm_max(), …)</code> on <strong>deepseek-v4-pro</strong>, with <em>no tools at all</em> —
+      one string in, one typed object out — and there is no <code>claude-agent-sdk</code> dependency in
+      <code>src/</code> or <code>pyproject.toml</code>. So the migration is a real work item (W1c), not a description
+      of the present. The pipeline's four subagents stay on <code>deepseek-v4-flash</code> either way: they run every
+      turn, they are what is being optimised, and their cost must stay measurable per question.</p></div>
+  <p>
+    Once it is on the Agent SDK the answer to your earlier question changes: <strong>yes, the teacher can go and read
+    MLflow itself</strong>. The choice is no longer capability, it is discipline — whether the teacher is
+    <em>handed</em> its history or <em>fetches</em> it.
+  </p>
+  <div class="callout good"><strong>Decided (D7): both — a baked ledger every run, plus read-only tools to dig.</strong>
+    <p>The deterministic outcome ledger below is always injected, so every diagnose/propose call has the same
+      guaranteed context and "what did the writer know when it wrote this?" has a fixed answer. On top of that the
+      Agent SDK teacher gets read-only MLflow tools — <code>search_attempts(agent)</code>,
+      <code>get_prompt(version, agent)</code>, <code>get_failures(version, agent)</code> — for the unusual case that
+      needs depth. Tool calls land as spans on the run's trace, so the extra reads are logged rather than invisible.</p></div>
+  <div class="callout"><strong>Two things the SDK migration must get right.</strong>
+    <ul>
+      <li><strong>Subscription billing.</strong> The child process must have <code>ANTHROPIC_API_KEY</code> scrubbed
+        from its environment, or the CLI silently bills the API instead of the subscription — the failure is silent
+        and only shows up on the bill. Assert it in the spawn helper, not in a comment.</li>
+      <li><strong>Cost accounting splits in two.</strong> Pipeline cost stays $/question from DeepSeek usage; teacher
+        cost becomes subscription time, not dollars. The ledger's cost column should report them separately rather
+        than summing a real number and a free one — otherwise the campaign's economics read as better than they are.</li>
+    </ul></div>
+
+  <div class="callout good"><strong>Decided: the prompt writer sees its own history — every past rewrite of this agent, and how each one did.</strong>
+    <p>Before writing, the writer receives a ledger of prior attempts on the <em>same target agent</em>, newest first,
+      each entry carrying the prompt it produced, the diff against the champion it challenged, and the outcome that
+      came back from the gate. A rejection stops being a repeated experiment and becomes evidence.</p>
+    <div class="diff" style="margin-top:10px"><span class="ctx">writer input · target = preprocess · prior attempts on this agent</span><span class="del">- v6 · rewrote skeleton section, added 3 binding rules · Δ +1.2pp · p 0.31 · REJECTED</span><span class="del">- v8 · reordered: examples before rules · Δ −0.4pp · p 0.78 · REJECTED</span><span class="add">+ v7 · split "resolve reference" into explicit computed-vs-retrieved steps · Δ +4.8pp · p 0.02 · PROMOTED</span><span class="ctx">  current champion prompt (full text) + this cycle's diagnoses</span></div>
+    <p class="small" style="margin-top:10px">Built by joining each propose run (<code>target_agent</code>,
+      <code>new_version</code>) to the gate verdict the registry already records for that version — no new
+      bookkeeping, just a join over data both sides already write.</p></div>
+  <div class="callout good"><strong>And it is logged.</strong>
+    <p>Each propose run records the ledger it was given (<code>n_prior_attempts</code>, plus the ledger itself as a
+      run artifact), the writer's <code>rationale</code>, and the full prompt diff — so you can always answer
+      "what did the writer know when it wrote this, and what did it say it was doing?" from MLflow alone. The story
+      page reads the same join to caption each promotion, and to show the rejected attempts that preceded it.</p></div>
+  <p class="small muted">
+    Also raise the memory caps — 5 runs / 40 entries was sized for a handful of cycles, not a campaign — and key
+    diagnosis memory by target agent so a preprocess rewrite sees preprocess history first.
+  </p>
+
+  <h4>Where to read the prompts yourself</h4>
+  <div class="scroll-x"><table>
+    <thead><tr><th>What</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Diagnosis prompt (failure taxonomy, attribution rules)</td><td><code>src/convfinqa/evalloop/teacher.py:64</code> — <code>TEACHER_PROMPT</code></td></tr>
+      <tr><td>Challenger-writing prompt</td><td><code>src/convfinqa/evalloop/teacher.py:108</code> — <code>PROMPT_WRITER_PROMPT</code> (today: <em>"merge the proposals into at most five crisp, imperative rules"</em> — this is the constraint W1b removes)</td></tr>
+      <tr><td>Memory injection</td><td><code>teacher.py:166</code> <code>prior_diagnoses()</code>, appended at <code>teacher.py:230</code></td></tr>
+      <tr><td>The <em>actual rendered</em> prompt, memory and all</td><td>MLflow → <code>convfinqa-optimization</code> → the diagnose/propose run → <strong>Traces</strong> tab. Tracing is always on for teacher runs, so every LLM call is a span with its full input and output.</td></tr>
+      <tr><td>Per-agent pipeline prompts</td><td><code>prompts_pkg.load("v5")</code>, or MLflow's <strong>Prompts</strong> tab after <code>convfinqa-evalloop mirror-prompts --version v5</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The promotion rule <span class="chip good">decided</span></h3>
+  <div class="callout good"><strong>A challenger promotes only when it is significantly better: one-sided cluster-corrected McNemar, α = 0.05, on the shared gate questions.</strong>
+    <p>Net-positive is retired. <code>promotable</code> stops meaning "fixed &gt; broken" and starts meaning "fixed &gt;
+      broken <em>and</em> the paired test rejects no-difference in the improvement direction at α = 0.05". The p that
+      <code>gate.py</code> already computes becomes the gate instead of a footnote. The two-sided p and the cluster
+      bootstrap CI are still recorded on every verdict.</p></div>
+  <p>
+    Two refinements the implementation has to get right, because the naive test is wrong in this data's shape:
+  </p>
+  <ul>
+    <li><strong>Cluster-adjust the test.</strong> Flips cluster inside conversations (ICC 0.20) — a wrong turn poisons
+      the turns below it — so treating 363 questions as 363 independent pairs over-states evidence and inflates
+      false promotions. Use the cluster-corrected McNemar (Durkalski: <code>Z = Σ dₖ / √Σ dₖ²</code> over reports,
+      report = cluster). On the v5 data: naive p = 0.502, clustered p = 0.414 — same verdict here, but the correction
+      is what keeps α honest at scale. The cluster bootstrap CI is reported alongside as the effect size.</li>
+    <li><strong>The target metric is evidence, not a second gate.</strong> The changed subagent's deterministic metric
+      (e.g. <code>acc_preprocess_skeleton</code>) still has to move in the right direction and is recorded on the
+      verdict — it is how the story page explains <em>why</em> the number moved — but it can no longer promote on
+      its own. One rule decides: overall p.</li>
+  </ul>
+
+  <div class="callout bad"><strong>Consequence: the gate split size <em>is</em> the smallest promotable improvement.</strong>
+    <p>A significance gate cannot promote what it cannot detect. At 80% power, cluster-adjusted, with the observed
+      ~4% collateral break rate:</p></div>
+  <div class="scroll-x"><table>
+    <thead><tr><th>gate split</th><th class="num">smallest Δ that promotes @ 80% power</th><th class="num">cost / pass</th><th class="num">time / pass</th><th>what gets through</th></tr></thead>
+    <tbody>
+      <tr><td>50 reports · 187 q <span class="pill">demo</span></td><td class="num bad">9.7pp</td><td class="num">$0.79</td><td class="num">4 min</td><td>essentially nothing — no promotion would ever be made</td></tr>
+      <tr><td>100 reports · 363 q <span class="pill">chosen</span></td><td class="num bad">6.2pp</td><td class="num">$1.52</td><td class="num">8 min</td><td>only a large single-agent win; v3_1's +6.8pp is marginal</td></tr>
+      <tr><td>270 reports · 980 q</td><td class="num warn">3.4pp</td><td class="num">$4.20</td><td class="num">21 min</td><td>a strong single-agent fix; v5's +2.1pp would be rejected</td></tr>
+      <tr><td>400 reports · 1450 q</td><td class="num ok">2.7pp</td><td class="num">$6.30</td><td class="num">32 min</td><td>most real single-agent wins</td></tr>
+      <tr><td>540 reports · 1960 q</td><td class="num ok">2.3pp</td><td class="num">$8.40</td><td class="num">43 min</td><td>v5-sized changes become reachable</td></tr>
+      <tr><td>825 reports · 3000 q</td><td class="num ok">1.8pp</td><td class="num">$12.60</td><td class="num">64 min</td><td>26% of the pool in one split; holdout must shrink</td></tr>
+    </tbody>
+  </table></div>
+  <p>
+    This is the honest trade the rule creates: <strong>a stricter gate needs a bigger split, or it becomes a gate
+    that never opens.</strong> Historically your single-agent changes have landed between +2.1pp and +9.1pp, so at
+    363 questions only the largest improvements promote and the rest are correctly described as "not demonstrated" — rejected, re-diagnosed, and retried rather than banked. That is a defensible
+    campaign, and a stronger claim on the story page than a longer list of unproven promotions. It is why <strong>D1b</strong> in section 02 is the decision that most shapes this campaign.
+  </p>
+  <h3>Would α = 0.10 detect more? Yes — but there is a strictly better way to buy the same thing</h3>
+  <p>
+    Loosening α does help, and the amount is modest: at 100 reports a two-sided test moves from 7.3pp to 6.2pp. The cost is that the false-promotion rate doubles by construction.
+  </p>
+  <div class="scroll-x"><table>
+    <thead><tr><th>gate split</th><th class="num">α = 0.05 two-sided</th><th class="num">α = 0.10 two-sided</th><th class="num">α = 0.05 <strong>one-sided</strong> <span class="pill">chosen</span></th><th class="num">α = 0.10 one-sided</th></tr></thead>
+    <tbody>
+      <tr><td>100 reports · 363 q</td><td class="num">7.3pp</td><td class="num">6.2pp</td><td class="num ok">6.2pp</td><td class="num">5.1pp</td></tr>
+      <tr><td>150 reports · 544 q</td><td class="num">5.6pp</td><td class="num">4.9pp</td><td class="num ok">4.9pp</td><td class="num">4.0pp</td></tr>
+      <tr><td>200 reports · 726 q</td><td class="num">4.7pp</td><td class="num">4.1pp</td><td class="num ok">4.1pp</td><td class="num">3.4pp</td></tr>
+      <tr><td>270 reports · 980 q</td><td class="num">3.9pp</td><td class="num">3.4pp</td><td class="num ok">3.4pp</td><td class="num">2.9pp</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout good"><strong>Decided: one-sided, α = 0.05. <span class="chip good">chosen</span></strong>
+    <p>A <strong>one-sided test at α = 0.05 detects exactly what a two-sided test at α = 0.10 detects</strong> —
+      6.2pp at 100 reports — with none of the extra false-promotion risk. And it is the honest description of what
+      the gate does: it only ever promotes improvements, so spending half the rejection region on "significantly
+      worse" is wasted. A challenger that is significantly worse is rejected either way.</p>
+    <p class="small muted">Framed as: promote when the challenger is significantly <em>better</em>, one-sided,
+      α = 0.05, cluster-corrected. The two-sided p and the bootstrap CI are still recorded on every verdict.</p></div>
+  <div class="callout info"><strong>With the 5-experiment campaign cap, the false-promotion arithmetic is comfortable.</strong>
+    <p>If every challenger in a campaign were truly null, expected false promotions are 0.25 at α = 0.05 and 0.50 at
+      α = 0.10 across 5 experiments. Capping campaigns is what makes a modest α defensible — the earlier ≤ 20-challenger
+      figure was the thing that made it uncomfortable.</p></div>
+
+  <div class="callout info"><strong>One thing the rule should not do: let a rejected challenger be re-run until it passes.</strong>
+    <p>Re-running the same challenger on the same gate split and taking the best of three is how a 5% α becomes a
+      14% one. The cycle records every attempt; a challenger gets <strong>one</strong> gated run, and a re-proposal
+      must change the prompt.</p></div>
+
+  <h3>The demo lineage is rolled back <span class="chip good">decided</span></h3>
+  <p>
+    v3_1, v4 and v5 were promoted on demo-scale evidence under a rule that did not require significance. None of them
+    is a measured result, so none of them stands as a champion. The <code>champion</code> alias returns to
+    <strong>v2</strong> and the campaign starts from a clean slate.
+  </p>
+  <ul>
+    <li><strong>Nothing is deleted.</strong> <code>prompts/v3_1.py</code>, <code>v4.py</code> and <code>v5.py</code>
+      stay in the repo and their per-agent components stay in the lineage. They become <em>unproven candidates</em>:
+      if v5's preprocess rewrite was genuinely good, the teacher can re-derive or re-propose it, and it will earn its
+      place at one-sided p &lt; 0.05 like anything else.</li>
+    <li><strong>The rollback is recorded, not silent.</strong> One <code>registry.promote(force=True, reason=…)</code>
+      naming the demo-evidence protocol change, exactly as the 2026-09-02 v4 rollback was recorded.</li>
+    <li><strong>The story page starts here.</strong> Its first data point is a measured baseline, not a backfilled
+      number — so everything the page claims is earned inside the campaign.</li>
+  </ul>
+  <div class="callout"><strong>Worth $4.50 and 24 minutes: pick the starting point with data rather than by convention.</strong>
+    <p>Defaulting to v2 assumes v2 is the best of the unproven options, which is no more measured than assuming v5 is.
+      The champion has to be run on the new gate split once anyway to establish the baseline — so run all three
+      (v2, v3_1, v5) in that same pass, 3 × $1.52, ~24 min, and start from whichever is actually strongest with the
+      paired comparisons recorded. If v5 wins on real evidence it earns the alias legitimately; if v2 wins, you have
+      avoided starting a 15-cycle campaign from a regression. Settled once, with numbers, before any cycle runs.</p></div>
+
+</section>
+
+<!-- ══════════════════ 05 STORY ══════════════════ -->
+<section id="story">
+  <p class="eyebrow">05 · The deliverable</p>
+  <h2>The story page: five questions, each answered by one figure, every point traceable to a run</h2>
+  <p><code>convfinqa-evalloop story</code> reads the live MLflow server (eval runs in <code>convfinqa</code>, diagnose/propose/gate runs in <code>convfinqa-optimization</code>), <code>registry.json</code> (promotions with comparisons, <code>holdout_opened</code> events, per-agent lineages) and the prompt modules, writes <code>evaluation/story.json</code>, and renders <code>docs/optimization/index.html</code> — a self-contained page with the JSON embedded and Plotly from CDN. Committed like the snapshot; zero API calls; GitHub Pages serves <code>docs/</code>.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Fig 1 · Did the champion get better?</h4><p class="small">Step chart: champion gate-split accuracy by cycle, a marker per promotion (hover: version, composition, Δ, fixed/broken, p, run id), a shaded cluster-bootstrap 95% band, and — at the end — the confirmatory out-of-sample points. Failed challengers as faint × marks below the line, which at this split size will be most of them.</p></div>
+    <div class="card"><h4>Fig 2 · Which subagent moved it?</h4><p class="small">The five deterministic per-agent metrics over the lineage; at each promotion the changed agent's line gets the marker. A composition ribbon under the axis — <code>t3.p3.r3.c3 → t3.p4.r3.c3 → …</code> — with the changed slot highlighted.</p></div>
+    <div class="card"><h4>Fig 3 · Where did the gains come from?</h4><p class="small">First vs latest champion, grouped bars: Number / Program, Type I / II, turn index 0–4+, cascade rate. Shows whether the campaign moved the hard slice (Type II at 55.6%) or only the easy one.</p></div>
+    <div class="card"><h4>Fig 4 · What exactly changed?</h4><p class="small">One card per promotion: the teacher's diagnosis summary (fault counts), the unified prompt diff of the single changed agent, the paired table, and the fixed/broken question lists linking to MLflow traces.</p></div>
+    <div class="card"><h4>Fig 0 · How the harness works</h4><p class="small">The loop diagram from section 04, first thing on the page — a reader has to understand Train → Score → Diagnose → Propose → Gate → Decide before any accuracy number means anything. Same inline SVG, so it themes with the page and needs no library.</p></div>
+    <div class="card"><h4>Fig 5 · The ledger</h4><p class="small">Every cycle including misses: target, challenger, gate Δ, p, verdict, cost, links. The campaign's total: questions evaluated, dollars, holdout openings.</p></div>
+    <div class="card"><h4>Rendered from</h4><dl class="kv"><dt>runs</dt><dd>metrics + params + tags (<code>cycle</code>, <code>target_agent</code>, <code>composition</code>)</dd><dt>registry</dt><dd>history events with attached comparisons</dd><dt>prompts</dt><dd><code>prompts_pkg.load(v)</code> per version → diff per agent</dd><dt>traces</dt><dd>cost per run from <code>.traces/turns</code></dd></dl></div>
+  </div>
+
+  <h3>The Dataset page shows derived per-subagent gold <span class="chip good">milestone</span></h3>
+  <p>
+    Extending <code>/admin/dataset</code>, which already lists every question beside its gold answer and gold program.
+    The same derivation that drives attribution (W0) also produces, for every question, <strong>what each subagent
+    should have produced</strong> — so the page can show the full expected trace, not just the final answer. This is
+    the surface where a human settles whether the gold is right, and where you can see at a glance what the pipeline
+    is actually being asked for.
+  </p>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:12px 18px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:9px;align-items:baseline">
+      <strong class="small">Dataset</strong><span class="chip info">split: gate</span><span class="chip">Program only</span><span class="chip">gold_suspect</span>
+      <span class="pill" style="margin-left:auto">Double_IPG/2016/page_46.pdf · turn 1</span>
+    </div>
+    <div style="padding:14px 18px">
+      <p class="small" style="margin:0 0 4px"><strong>Q</strong> — "and what percentage did this change represent in relation to that income in 2015?"</p>
+      <p class="small muted" style="margin:0 0 12px"><code>gold_answer</code> −11.8% · <code>gold_program</code> <code>subtract(20.1, 22.8), divide(#0, 22.8)</code></p>
+      <div class="scroll-x"><table style="min-width:560px">
+        <thead><tr><th>subagent</th><th>derived gold</th><th>how it is derived</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chip info">triage</span></td><td><code>Program</code></td><td class="small muted">the gold turn type, directly</td></tr>
+          <tr><td><span class="chip info">preprocess</span></td><td><code>[subtract, divide]</code></td><td class="small muted">operation skeleton of the gold program</td></tr>
+          <tr><td><span class="chip info">retriever</span></td><td><code>20.1</code> · <code>22.8</code></td><td class="small muted">the program's numeric operands, minus <code>const_*</code>, <code>#N</code> refs and values that came from history</td></tr>
+          <tr><td><span class="chip info">calculator</span></td><td><code>−11.8%</code></td><td class="small muted">the gold answer, conditioned on retrieval having succeeded</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <p class="small muted">
+    Beside each derived-gold cell the page shows what the run actually produced and marks the first divergence — so
+    a row reads as "triage ✓, preprocess ✓, retriever missed 22.8, calculator not reached", which <em>is</em> the
+    attribution, shown rather than asserted. That makes W0's ~13 teacher/gold disagreements reviewable in the UI
+    instead of in a CSV.
+  </p>
+
+  <h3>The Experiments tab in the app <span class="chip good">milestone</span></h3>
+  <p>
+    Distinct from the published story page: this is the <em>working</em> surface, inside the existing admin frontend,
+    where you review a campaign while it is running. Backed by <code>GET /eval/campaigns</code> and
+    <code>GET /eval/experiments?campaign=</code>, both reading MLflow + the registry.
+  </p>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:baseline">
+      <strong>Experiments</strong>
+      <span class="chip info">campaign c01</span><span class="chip">all campaigns</span><span class="chip">promoted only</span><span class="chip">target: preprocess</span>
+      <span class="pill" style="margin-left:auto">baseline v2 · 71.2% · gate 100 reports</span>
+    </div>
+    <div class="scroll-x"><table style="min-width:720px">
+      <thead><tr><th>experiment</th><th>target</th><th>composition</th><th class="num">Δ</th><th class="num">p</th><th>outcome</th></tr></thead>
+      <tbody>
+        <tr><td><code>c01-e01-retriever-v6</code></td><td>retriever</td><td><code>t3.p3.r5.c3</code></td><td class="num ok">+7.9pp</td><td class="num ok">0.02</td><td><span class="chip good">promoted</span></td></tr>
+        <tr><td><code>c01-e02-preprocess-v7</code></td><td>preprocess</td><td><code>t3.p5.r5.c3</code></td><td class="num">+1.4pp</td><td class="num warn">0.34</td><td><span class="chip bad">rejected</span></td></tr>
+        <tr><td><code>c01-e03-preprocess-v8</code></td><td>preprocess</td><td><code>t3.p6.r5.c3</code></td><td class="num">+0.6pp</td><td class="num warn">0.61</td><td><span class="chip bad">rejected</span> <span class="pill">rotation triggered</span></td></tr>
+        <tr><td><code>c01-e04-calculator-v9</code></td><td>calculator</td><td><code>t3.p3.r5.c4</code></td><td class="num ok">+6.4pp</td><td class="num ok">0.04</td><td><span class="chip good">promoted</span></td></tr>
+      </tbody>
+    </table></div>
+    <div style="padding:16px 18px;border-top:1px solid var(--line)">
+      <div class="small muted" style="margin-bottom:8px">Accuracy by promoted experiment — overall, plus one line per subagent</div>
+      <svg viewBox="0 0 700 210" role="img" aria-labelledby="exp-chart" style="width:100%">
+        <title id="exp-chart">Overall and per-subagent accuracy across promoted experiments</title>
+        <g font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor">
+          <line x1="52" y1="14" x2="52" y2="168" stroke="currentColor" opacity=".3"/>
+          <line x1="52" y1="168" x2="676" y2="168" stroke="currentColor" opacity=".3"/>
+          <text x="46" y="20" text-anchor="end" opacity=".6">100%</text><text x="46" y="171" text-anchor="end" opacity=".6">50%</text>
+          <g opacity=".55"><text x="120" y="184" text-anchor="middle">baseline v2</text><text x="300" y="184" text-anchor="middle">e01 retriever</text><text x="480" y="184" text-anchor="middle">e04 calculator</text><text x="640" y="184" text-anchor="middle">…</text></g>
+          <polyline points="120,92 300,72 480,58 640,54" fill="none" stroke="var(--amber)" stroke-width="2.5"/>
+          <polyline points="120,30 300,28 480,27 640,26" fill="none" stroke="var(--info)" stroke-width="1.4" opacity=".85"/>
+          <polyline points="120,132 300,128 480,126 640,125" fill="none" stroke="var(--violet)" stroke-width="1.4" opacity=".85"/>
+          <polyline points="120,74 300,44 480,42 640,41" fill="none" stroke="var(--good)" stroke-width="1.4" opacity=".85"/>
+          <polyline points="120,104 300,100 480,66 640,64" fill="none" stroke="var(--bad)" stroke-width="1.4" opacity=".85"/>
+          <g><circle cx="300" cy="72" r="4" fill="var(--amber)"/><circle cx="480" cy="58" r="4" fill="var(--amber)"/>
+             <circle cx="300" cy="44" r="3.5" fill="var(--good)"/><circle cx="480" cy="66" r="3.5" fill="var(--bad)"/></g>
+          <g font-size="9"><text x="560" y="24" fill="var(--info)">triage</text><text x="560" y="50" fill="var(--good)">retriever</text><text x="560" y="70" fill="var(--bad)">calculator</text><text x="560" y="122" fill="var(--violet)">preprocess</text><text x="560" y="96" fill="var(--amber)" font-weight="600">overall</text></g>
+        </g>
+      </svg>
+      <p class="small muted" style="margin:6px 0 0">Illustrative shape. The x-axis advances only on promoted experiments; the filled marker sits on the subagent that changed, so each step visibly attributes the overall move to exactly one line.</p>
+    </div>
+  </div>
+  <p class="small muted">
+    Rejected experiments stay in the table but do not advance the chart — the campaign's full attempt history is
+    visible, while the line stays a clean record of what was actually established.
+  </p>
+
+  <h3>What a promotion card looks like</h3>
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline"><strong>v3_1 → v5</strong> <span class="chip info">preprocess · p3 → p4</span> <span class="chip">test · 187 q</span> <span class="chip good">+2.1pp · 12 fixed / 8 broken</span> <span class="chip warn">p = 0.50</span></div>
+    <p class="small muted" style="margin:8px 0">Diagnosis: 14 of 30 first-wrongs attributed to preprocess (skeleton 0.415). Proposal: one rule added to the preprocess prompt.</p>
+    <div class="diff"><span class="ctx">  … resolve pronoun references to prior turns …</span><span class="del">- When the question says "that", use the previous answer.</span><span class="add">+ When the question says "that"/"this change", bind it to the most recent *computed* value, not the most recent retrieved fact; state the binding in the skeleton.</span><span class="ctx">  … emit the skeleton before any number …</span></div>
+    <p class="small muted" style="margin:8px 0 0">Illustrative diff — the real card renders the actual p3/p4 text from the prompt modules.</p>
+  </div>
+
+  <div class="callout good"><strong>Decided: <code>docs/optimization/</code> in this repo, published by GitHub Pages from <code>docs/</code>.</strong>
+    <p>The portfolio site links to it. Committed like the MLflow snapshot, rebuilt by CI from
+      <code>evaluation/story.json</code>, and CI fails if the page is stale relative to the registry — so the
+      published page can never quietly drift from the recorded evidence.</p></div>
+</section>
+<!-- ══════════════════ 06 WORK ══════════════════ -->
+<section id="work">
+  <p class="eyebrow">06 · Work items, schedule, risks</p>
+  <h2>Vertical slices — a complete loop runs in the first sitting, then each slice improves it</h2>
+  <div class="callout good"><strong>Status, 2026-09-04: the whole build is done and the campaign is running.</strong>
+    <p>Every work item below is implemented, tested and type-clean (187 tests, mypy across 95 modules,
+      frontend builds). What shipped, by slice:</p>
+    <ul>
+      <li><strong>Slice 1</strong> — <code>stage_scores.first_fault()</code> walks the four gold-derived checks in
+        pipeline order and now drives targeting, with the teacher's dissent recorded as
+        <code>attribution_disputed</code>; <code>eval_loop_v2</code> cut as a superset of v1 (train 100 / 368q,
+        gate 100 / 349q, holdout deliberately empty); the gate is one-sided Durkalski-corrected McNemar at α=0.05,
+        with a cluster bootstrap CI on every verdict.</li>
+      <li><strong>Slice 2</strong> — the prompt writer returns a <em>complete replacement</em> prompt validated
+        against the agent's output contract; both teacher agents moved to the Claude Agent SDK on Opus 5 with
+        read-only MLflow tools; <code>ledger.py</code> joins past proposals to their gate verdicts so a rejection
+        informs the next attempt; train is resampled per cycle from <code>pool − gate</code> and early-stopped at
+        the first wrong turn (refused on the gate).</li>
+      <li><strong>Slice 3</strong> — <code>convfinqa-evalloop cycle</code> chains the whole experiment and enforces
+        both caps; <code>GET /eval/campaigns</code> plus a new <strong>Campaigns</strong> tab with the per-subagent
+        chart; the Dataset page now shows derived gold per subagent.</li>
+      <li><strong>Slice 4</strong> — <code>convfinqa-evalloop story</code> builds <code>evaluation/story.json</code>
+        and <code>docs/optimization/index.html</code>; a CI staleness check fails when the published page and the
+        registry disagree; GitHub Pages publishes <code>docs/</code>.</li>
+    </ul>
+    <p>Two things the build changed about the plan. The <strong>billing trap was real and worse than described</strong>:
+      the SDK <em>merges</em> its <code>env</code> over the parent's, and <code>config.load_dotenv</code> puts
+      <code>ANTHROPIC_API_KEY</code> into <code>os.environ</code> at import, so omitting the key was not enough —
+      it has to be blanked explicitly, and the nested <code>CLAUDE_CODE_*</code> session variables stripped too.
+      And the <strong>lineage is rolled back to v2</strong>: re-judged under the new rule, all three prior
+      promotions are rejected, so the campaign starts from the last champion the rule does not contradict.</p></div>
+
+  <div class="callout bad"><strong>You caught a real flaw: the previous list was horizontal.</strong>
+    <p>It was ordered by component — manifest, then comparator, then teacher, then UI, then "run the campaign" last —
+      which put the first complete loop at the <em>end</em>, after three sittings of building. For a system whose
+      entire purpose is to be run and learned from, that is backwards. Every slice below instead ends with a full
+      loop actually executing, and the first one runs on day one.</p></div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">SLICE 0</span><h3>Run one complete experiment today, on existing code</h3><span class="eff">~30 min · $3</span></div>
+    <p class="small">No new code. Use the committed <code>eval_loop_v1</code> manifest, run a full cycle end to end —
+      train pass → diagnose → propose → gate run → gate verdict — and watch what actually breaks. The demo proved
+      the parts; this proves the sequence at the cadence you will be using, and produces a real experiment record.</p>
+    <dl class="kv"><dt>ships</dt><dd>one MLflow experiment, one challenger, one verdict — the campaign's first row</dd>
+      <dt>learn</dt><dd>where the loop is slow, noisy or awkward to drive, before any of it is rebuilt</dd></dl>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">SLICE 1</span><h3>Make a promotion mean something</h3><span class="eff">1 sitting · W0 · W1 · W3a</span></div>
+    <p class="small">The smallest set of changes after which a promotion is <em>evidence</em> rather than a coin flip:
+      gold-derived attribution so the right agent is targeted (today 57% agreement), the 100/100 manifest, and the
+      one-sided cluster-corrected McNemar gate.</p>
+    <dl class="kv"><dt>ends with</dt><dd><strong>campaign c01, experiment 1 — run for real and gated properly</strong></dd>
+      <dt>blocked by</dt><dd>nothing — every decision on this page is settled</dd></dl>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">SLICE 2</span><h3>Let the teacher actually rewrite, and remember</h3><span class="eff">1 sitting · W1b · W1c · W2b · W3b</span></div>
+    <p class="small">Full-prompt rewrite latitude, the outcome-aware ledger the writer reads, and the cluster
+      bootstrap CI on every verdict. Each is only useful once experiments are being gated properly, which slice 1
+      established.</p>
+    <dl class="kv"><dt>ends with</dt><dd><strong>experiments 2–3</strong>, the first ones where a rejection informs the next attempt</dd></dl>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">SLICE 3</span><h3>Make it drivable without the CLI</h3><span class="eff">1 sitting · W2 · W4b · W4c</span></div>
+    <p class="small">The <code>cycle</code> command chaining the steps with campaign/experiment tags and cap
+      enforcement, the Experiments tab, and the Dataset page's derived gold — including settling the teacher/gold
+      disagreements surfaced in slice 1.</p>
+    <dl class="kv"><dt>ends with</dt><dd><strong>experiments 4–5 driven from the app</strong>, campaign c01 complete and reviewable</dd></dl>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">SLICE 4</span><h3>Publish the story</h3><span class="eff">1 sitting · W4 · W5</span></div>
+    <p class="small">The story page built from a campaign that has actually happened — real promotions, real
+      rejections, real diffs — rather than from a schema invented ahead of the data. Published to GitHub Pages with
+      the CI staleness check.</p>
+    <dl class="kv"><dt>ends with</dt><dd>the public write-up, and campaign c02 starting</dd></dl>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">ONGOING</span><h3>Campaigns, then one confirmatory run</h3><span class="eff">~80 min · $15 per campaign</span></div>
+    <p class="small">Each campaign is 5 experiments, reviewed as a unit. When you are done optimising, cut a fresh
+      holdout from the untouched in-scope reserve and run the first and final champions on it — one out-of-sample
+      number, ~$4, that converts the whole thing from "improved on a split I optimised against" into a real result.</p>
+  </div>
+
+  <h3>The full work items, mapped to slices</h3>
+  <div class="scroll-x"><table class="wrap">
+    <thead><tr><th style="width:56px">#</th><th style="width:60px">slice</th><th style="width:190px">Item</th><th>What changes</th></tr></thead>
+    <tbody>
+      <tr><td>W0</td><td class="num">1</td><td>Gold-derived attribution</td><td><code>stage_scores.first_fault(row)</code> walking triage → preprocess → retriever → calculator; wired into <code>diagnose</code> for target selection; the teacher is told the attribution instead of asked for one, and dissent is logged as <code>attribution_disputed</code>. Replaces the κ exercise.</td></tr>
+      <tr><td>W1</td><td class="num">1</td><td>Manifest v2</td><td><code>make-splits --name eval_loop_v2 --extend eval_loop_v1 --train-reports 100 --test-reports 100</code>, holdout left unallocated; <code>--manifest</code> / <code>EVAL_MANIFEST</code> selector. Tests: superset property, no excluded leak, train ∩ gate = ∅.</td></tr>
+      <tr><td>W3a</td><td class="num">1</td><td>One-sided gate</td><td>One-sided cluster-corrected McNemar (Durkalski) as the promotion condition in <code>gate-targeted</code>, α = 0.05. Two-sided p still recorded.</td></tr>
+      <tr><td>W1b</td><td class="num">2</td><td>Rewrite latitude</td><td>Replace <code>RulesBlock</code> merging with full-prompt rewrite + <code>rationale</code>; validate against the agent's output contract. One agent per experiment.</td></tr>
+      <tr><td>W1c</td><td class="num">2</td><td>Teacher on Claude Agent SDK</td><td>Move <code>teacher()</code> and <code>propose_version()</code> off <code>pydantic_ai</code>/<code>deepseek-v4-pro</code> onto the Claude Agent SDK with Opus 5 on the subscription; scrub <code>ANTHROPIC_API_KEY</code> from the child env; keep structured output validated against the same schemas; expose the read-only MLflow tools (D7). Pipeline agents unchanged on <code>deepseek-v4-flash</code>.</td></tr>
+      <tr><td>W2b</td><td class="num">2</td><td>Outcome-aware memory</td><td>Join past proposals to gate verdicts; per-target-agent ledger of prompt, diff, outcome. Log <code>n_prior_attempts</code>, the ledger artifact and the diff. Raise the 5-run / 40-entry caps.</td></tr>
+      <tr><td>W3b</td><td class="num">2</td><td>Bootstrap CI + train draw</td><td>Cluster bootstrap CI on Δ reported beside McNemar; <code>draw_train(seed)</code> sampling from <code>pool − gate</code> with seed and ids logged; <code>--stop-at-first-wrong</code> default on for train, refused for the gate.</td></tr>
+      <tr><td>W2</td><td class="num">3</td><td><code>cycle</code> command</td><td>Chains the steps; stamps <code>campaign</code> / <code>experiment</code> / <code>target_agent</code> / <code>composition</code>; logs the verdict as a <code>kind=gate</code> run; enforces the 5-experiment cap and the 2-rejection rotation; captures teacher token usage.</td></tr>
+      <tr><td>W4b</td><td class="num">3</td><td>Experiments tab</td><td><code>GET /eval/campaigns</code>, <code>GET /eval/experiments?campaign=</code>; frontend route, filters, promoted-experiment chart with a line per subagent. Add prefixes to <code>BACKEND_PREFIXES</code>.</td></tr>
+      <tr><td>W4c</td><td class="num">3</td><td>Dataset derived gold</td><td>Per-subagent derived gold on <code>/eval/dataset</code> plus actual-vs-expected and first divergence; where the W0 disagreements get settled.</td></tr>
+      <tr><td>W4</td><td class="num">4</td><td><code>story</code> command</td><td><code>evalloop/story.py</code> → <code>evaluation/story.json</code> → <code>docs/optimization/index.html</code>. Figures 0–5, harness diagram inlined as SVG.</td></tr>
+      <tr><td>W5</td><td class="num">4</td><td>Publish</td><td>GitHub Pages from <code>docs/</code>; CI rebuilds from committed <code>story.json</code> and fails when stale vs the registry.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Risks and open questions</h3>
+  <div class="grid g2">
+    <div class="callout bad"><strong>Test-set tuning over many cycles.</strong><p>Twenty challengers against one gate split will eventually promote noise, and with no holdout during the campaign nothing catches it until the end. Mitigations: the one-sided p &lt; 0.05 rule, the ≤ 20 cap, one gated run per challenger, and the end-of-campaign confirmatory run on untouched reserve.</p></div>
+    <div class="callout bad"><strong>Non-determinism at temperature.</strong><p>Re-running the same version gives different CSVs (v3_1 train10: 61.4 / 63.6 / 63.6%). Paired comparison absorbs most of it; the page should show a same-version re-run as the noise floor once (one extra $1.50 pass — at this split size that floor is essential context).</p></div>
+    <div class="callout"><strong>Teacher usage is not logged, in either world.</strong><p>Diagnose and propose runs record no usage at all today — only pipeline turns reach the trace store. On <code>deepseek-v4-pro</code> that is unrecorded dollars ($0.55/$2.19 per M tokens); after W1c it is unrecorded subscription consumption, which still matters because ~55 cases a cycle × 5 experiments is the campaign's real throughput limit. W2 captures token counts either way and reports them <em>beside</em>, never inside, the per-question pipeline cost.</p></div>
+    <div class="callout"><strong>Serving drift.</strong><p>Promotion moves the alias; the served bundle must follow (<code>demo_smoke.sh</code> asserts served == champion). Each promotion in the campaign should end with a snapshot + a container rebuild, or the public demo lags the page.</p></div>
+    <div class="callout info"><strong>Open: the headline claim.</strong><p>Without a holdout the honest headline is "X% → Y% on a fixed 363-question gate split, over N promotions each significant at one-sided p &lt; 0.05". If the end-of-campaign confirmatory run happens, it becomes an out-of-sample claim instead — much stronger, and worth the $4.</p></div>
+    <div class="callout info"><strong>Open: rejected-but-real changes.</strong><p>At 363 questions a genuine +3pp improvement will be rejected, repeatedly. Should the teacher's memory keep it as a candidate to re-propose in combination later, or is it discarded? Combining two rejected single-agent changes breaks the one-agent-per-challenger rule that makes the story page legible.</p></div>
+  </div>
+  <p class="foot">Sources: <code>evaluation/registry.json</code> · MLflow @ 127.0.0.1:5000 · <code>.traces/traces.db</code> · <code>evaluation/splits/eval_loop_v1.json</code> · <code>src/convfinqa/evalloop/{splits,runner,release,gate,teacher}.py</code> · power model in the session scratchpad (<code>power.py</code>).</p>
+</section>
+</div>
+<script>
+function queueAnswer(ev, id, label) {
+  ev.preventDefault();
+  var form = ev.currentTarget, data = new FormData(form);
+  var choice = data.get(id), note = (data.get('note') || '').toString().trim();
+  var status = form.querySelector('.status');
+  if (!choice) { status.textContent = 'pick an option first'; return false; }
+  var prompt = 'Decision ' + id + ' (' + label + '): ' + choice + (note ? '. Note: ' + note : '');
+  if (window.lavish && typeof window.lavish.queuePrompt === 'function') {
+    window.lavish.queuePrompt(prompt, { tag: 'decision', text: id + ': ' + choice, element: form, queueKey: id, data: { question: id, answer: choice, note: note } });
+    status.textContent = 'queued — press Send to Agent when ready'; status.classList.add('queued');
+  } else { status.textContent = 'selected (open through lavish-axi to send)'; }
+  return false;
+}
+</script>
+</body>
+</html>
