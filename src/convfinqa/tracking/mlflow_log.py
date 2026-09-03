@@ -17,7 +17,7 @@ import contextlib
 import json
 import logging
 import os
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -97,6 +97,8 @@ def run(
     params: dict[str, Any] | None = None,
     tags: dict[str, str] | None = None,
     experiment: str | None = None,
+    actor_model: str | None = None,
+    omit_fingerprint: Iterable[str] = (),
 ) -> Iterator[Any]:
     """Open an MLflow run stamped with the bundle fingerprint.
 
@@ -108,6 +110,19 @@ def run(
     `experiment` overrides the default experiment for this run (and for any
     traces started while it is active) — the optimisation loop logs under its
     own experiment so eval history and teacher runs don't interleave.
+
+    The bundle fingerprint describes the bundle a run is **about**, which for an
+    eval pass is also the thing doing the work — but for a teacher run is not.
+    So two escapes exist, and both are about not letting a run claim something
+    untrue about itself:
+
+    - `actor_model` names the model this run's own agent used, logged separately
+      from the bundle's.
+    - `omit_fingerprint` drops fingerprint fields that do not apply. A teacher
+      run drops `lm_max`: it is the optimiser model this deployment is
+      *configured* with, and since the teacher moved to the Agent SDK nothing in
+      that run calls it. A parameter naming a model that made zero calls is
+      worse than no parameter at all.
     """
     try:
         mlflow = _mlflow()
@@ -121,16 +136,23 @@ def run(
         yield _NullRecorder()
         return
 
+    # `bundle_id` stays hashed from the *whole* fingerprint: it is the join key
+    # between a run, a prediction CSV and a trace, and trimming a display
+    # parameter must not silently move a run into a different bucket.
     fingerprint = bundle_fingerprint(version=version, overlay=overlay)
+    identity = bundle_id(fingerprint)
+    logged = {k: v for k, v in fingerprint.items() if k not in set(omit_fingerprint)}
+    if actor_model:
+        logged["actor_model"] = actor_model
     with mlflow.start_run(run_name=name) as active:
         mlflow.set_tags(
             {
                 "kind": kind,
-                "bundle_id": bundle_id(fingerprint),
+                "bundle_id": identity,
                 **(tags or {}),
             }
         )
-        mlflow.log_params({k: str(v) for k, v in fingerprint.items() if v is not None})
+        mlflow.log_params({k: str(v) for k, v in logged.items() if v is not None})
         if params:
             mlflow.log_params({k: str(v) for k, v in params.items() if v is not None})
         yield _Recorder(mlflow, active.info.run_id)

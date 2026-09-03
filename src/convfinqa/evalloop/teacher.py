@@ -324,10 +324,14 @@ async def diagnose_run(
             "source_csv": str(csv_path),
             "n_cases": len(cases),
             "n_prior_diagnoses": len(memory),
-            "teacher_model": teacher_model(),
         },
         tags={"loop": "evalloop", "stage": "diagnose"},
         experiment=experiment,
+        # The fingerprint describes the bundle being diagnosed, not the agent
+        # doing the diagnosing — so `lm_max` (the configured optimiser model)
+        # names something this run never calls.
+        actor_model=teacher_model(),
+        omit_fingerprint=("lm_max",),
     ) as rec:
         for _, row in cases.iterrows():
             payload = case_payload(row)
@@ -517,7 +521,6 @@ async def propose_version(
             "new_version": new_version,
             "n_diagnoses": len(targeted),
             "n_prior_attempts": n_prior,
-            "teacher_model": teacher_model(),
             **({"campaign": campaign} if campaign else {}),
             **({"experiment_label": label} if label else {}),
         },
@@ -528,6 +531,8 @@ async def propose_version(
             **({"campaign": campaign} if campaign else {}),
         },
         experiment=experiment,
+        actor_model=teacher_model(),
+        omit_fingerprint=("lm_max",),
     ) as rec:
         with tracing.span(
             f"propose {new_version} ({target})",
@@ -860,6 +865,9 @@ def log_gate_verdict(
             **({"campaign": campaign} if campaign else {}),
         },
         experiment=experiment,
+        # A gate verdict is pure arithmetic over two committed CSVs — it makes
+        # no model calls of any kind, so neither model belongs on it.
+        omit_fingerprint=("lm_max", "lm_mini"),
     ) as rec:
         rec.dict_artifact(
             "verdict.json",

@@ -591,3 +591,58 @@ def test_gate_fails_cleanly_when_an_evalloop_champions_csv_is_missing(
     assert exit_code == 1
     assert "eval-gate FAILED" in out
     assert "champion v6" in out
+
+
+def test_teacher_runs_do_not_claim_a_model_they_never_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A parameter naming a model that made zero calls is worse than none.
+
+    The bundle fingerprint describes the bundle a run is *about*. For an eval
+    pass that is also the thing doing the work; for a teacher run it is not —
+    the teacher moved to the Agent SDK, so `lm_max` (the configured optimiser
+    model) names something the run never touches. `bundle_id` must still hash
+    the whole fingerprint, because it is the join key between a run, a CSV and
+    a trace, and trimming a display parameter must not move a run's bucket.
+    """
+    from convfinqa.tracking import mlflow_log
+    from convfinqa.tracking.bundle import bundle_fingerprint, bundle_id
+
+    logged: dict[str, str] = {}
+    tagged: dict[str, str] = {}
+
+    class FakeRun:
+        class info:
+            run_id = "r1"
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, *a: object) -> None:
+            return None
+
+    class FakeMlflow:
+        def start_run(self, run_name: str = "") -> FakeRun:
+            return FakeRun()
+
+        def set_tags(self, tags: dict[str, str]) -> None:
+            tagged.update(tags)
+
+        def log_params(self, params: dict[str, str]) -> None:
+            logged.update(params)
+
+    monkeypatch.setattr(mlflow_log, "_mlflow", lambda: FakeMlflow())
+    with mlflow_log.run(
+        "diagnose-v2",
+        kind="diagnose",
+        version="v2",
+        actor_model="claude-opus-5",
+        omit_fingerprint=("lm_max",),
+    ):
+        pass
+
+    assert "lm_max" not in logged
+    assert logged["actor_model"] == "claude-opus-5"
+    assert logged["lm_mini"] == "deepseek-v4-flash"  # the bundle under study
+    # the join key is unchanged by the trim
+    assert tagged["bundle_id"] == bundle_id(bundle_fingerprint(version="v2"))
