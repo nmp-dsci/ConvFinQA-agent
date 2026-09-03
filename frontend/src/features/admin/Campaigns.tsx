@@ -229,8 +229,11 @@ export default function Campaigns() {
           <ErrorNote error={query.error} />
         ) : !data?.champion_track?.length ? (
           <EmptyState>
-            No campaign has been recorded yet. Run <code className="font-mono">convfinqa-evalloop cycle
-            --campaign c01</code>, then <code className="font-mono">convfinqa-evalloop story</code>.
+            {data?.experiments?.length
+              ? `The champion has not moved. ${data.experiments.length} experiment${
+                  data.experiments.length === 1 ? '' : 's'
+                } gated, none significant at one-sided p < 0.05 — so there is no track to draw yet. The experiments themselves are below.`
+              : 'No experiment has been gated yet. Run convfinqa-evalloop cycle --campaign c01, then convfinqa-evalloop story.'}
           </EmptyState>
         ) : (
           <>

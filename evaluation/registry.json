@@ -28,14 +28,14 @@
       "version": "v2",
       "registered_at": "2026-08-28T00:15:18.986156+00:00",
       "source": "evalloop",
-      "bundle_id": "17f341ff4e2e",
+      "bundle_id": "de5b0c67d425",
       "bundle": {
         "prompts_version": "v2",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "1d10c35",
+        "code_sha": "fa4dd4f",
         "composition": "t2.p2.r2.c2",
         "v_triage": "t2@f028a9ed",
         "v_preprocess": "p2@2341df56",
@@ -49,7 +49,9 @@
         "de9af919f1144d368aef991710ab8ef5",
         "e57b6cbfb10a47b7b11cfbbe5605f62c",
         "7e2c876dea6449dc8fc15ce195c278df",
-        "473509ad4f4743558d040444c67b1bb5"
+        "473509ad4f4743558d040444c67b1bb5",
+        "5590bd089ff04da0be45beffe5bf5645",
+        "9974d0d584f9483fa8408decdbdbbf56"
       ],
       "metrics": {
         "accuracy": 0.771429,
@@ -151,6 +153,72 @@
         "preprocess"
       ],
       "composition": "t3.p4.r3.c3"
+    },
+    {
+      "version": "v6",
+      "registered_at": "2026-09-03T17:57:51.368783+00:00",
+      "source": "evalloop",
+      "bundle_id": "356669d8d617",
+      "bundle": {
+        "prompts_version": "v6",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "1d10c35",
+        "composition": "t2.p5.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p5@4bc21f75",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "2586861e5b10403db7aea7c70705461c",
+        "eebbb681691d4c0dbc12635a1a6a4152"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v2). Rewrote the prompt from a rule-and-example list into an explicit five-step decomposition procedure (name quantities \u2192 resolve references against history \u2192 classify operands as cached/lookup/literal \u2192 pick the operation from the question's verb \u2192 order operands and self-check), adding coverage for verdict questions via `greater`, level-vs-change ratios, combined \"X and Y\" line items, enumerated-component totals, conventional constants, scale-conversion direction, impossible/typo periods, already-percent referents, and operand ordering; the three output fields, letter mapping, numeric-only program, and the existing ratio/percentage conventions are retained unchanged.",
+      "parent": "v2",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is organized as a list of output-format rules plus a gallery of percentage patterns; it teaches the agent how to *format* a program but never how to *decide* one, so every failure class here is a decision the prompt simply does not cover \u2014 which referent \"that value\" points at, whether an operand is a lookup or a document convention constant, whether a relation question wants a difference or a bare quotient, which operand becomes the minuend, and whether the turn is a comparison at all. Because the prompt also declares that only add/subtract/multiply/divide exist, the agent explicitly reasoned itself into emitting a subtraction on a verdict question; the calculator already exposes a `greater` tool, so admitting `greater` into the program vocabulary costs nothing downstream and removes an impossible constraint. I therefore restructured the prompt around a five-step decision procedure \u2014 name the quantities, resolve references against history, classify each operand as cached/lookup/literal, choose the operation from the question's verb, then order operands and self-check \u2014 and folded the original percentage/ratio conventions in as the final wrapper step so the output contract, the four arithmetic functions, the letter-to-sub-question mapping, the numeric-only program, and all three output fields are preserved verbatim in requirement. The generic worked shapes replace the old year-specific examples so the guidance generalizes rather than pattern-matching a handful of remembered questions.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p5.r2.c2",
+      "campaign": "c01"
+    },
+    {
+      "version": "v7",
+      "registered_at": "2026-09-03T18:34:37.742466+00:00",
+      "source": "evalloop",
+      "bundle_id": "db86a7ad45d0",
+      "bundle": {
+        "prompts_version": "v7",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "fa4dd4f",
+        "composition": "t2.p6.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p6@cd7c92fc",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "58a9056af3cf4d3590eaee4ebea7f0dc",
+        "c9efb25955eb4300b227d5b0cd791d0e"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v2). Restructured the prompt around a five-step decomposition procedure (single-cell level lookups \u2192 reference resolution with a vacuity check \u2192 operand classification as cached level/delta/lookup/literal \u2192 operation choice from the question's verb \u2192 operand ordering and read-back), while preserving the three output fields, letter mapping, the four-function numeric-only DSL, all five original Program Design Rules, and the original worked examples verbatim. Compared with the rejected v6 it omits the `greater` operator and the speculative conjoined-metric, adjustment-qualifier, corrupted-period and percent-form rules, and restores the concrete examples v6 deleted.",
+      "parent": "v2",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a gallery of percentage patterns: it tells the agent how to *write* a program but never how to *decide* one, so the recurring faults \u2014 re-differencing an operand that is already a delta, dividing a rate-valued metric by its own base instead of taking percentage points, phrasing a sub-question as \"change in X\" when the program needs X's level, phrasing one sub-question as an aggregate over two periods, collapsing a genuinely computational turn to a one-operand `A`, binding \"this change\" to the wrong turn, and inverting numerator/denominator \u2014 are all decisions the prompt is silent on. The previous restructure (v6) moved in the right direction (+2.29pp, P(\u0394>0)=0.79) but was rejected at p=0.19 with 23 questions broken against 31 fixed, so the fix is not \"more procedure\" but *less collateral damage*: this rewrite keeps the procedural spine that trended positive while deliberately dropping v6's speculative and contract-touching additions \u2014 the `greater` operator (an output-contract change), the \"metrics joined by and\" heuristic, adjustment-qualifier decomposition, corrupted-period repair, and the percent-form re-derivation rule \u2014 and it restores v6's deleted concrete examples and the original percentage/ratio conventions verbatim, since those encode baseline-calibrated dataset behaviour. Every rule I do add is backed by at least one, mostly two, independently diagnosed failures in this batch, and I deliberately left the \u00d7100-vs-bare-quotient policy untouched because the evidence points in both directions on identical phrasings, making any change there a coin flip that would reintroduce exactly the kind of breakage that sank v6.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p6.r2.c2",
+      "campaign": "c01"
     }
   ],
   "aliases": {
@@ -644,6 +712,24 @@
         "source": "teacher",
         "registered_at": "2026-09-02T12:13:15.797989+00:00",
         "run_id": "8793f559a0ab4559ac6d4ebaff127dec"
+      },
+      {
+        "seq": "p5",
+        "hash": "4bc21f75",
+        "first_seen_in": "v6",
+        "parent": "p4",
+        "source": "teacher",
+        "registered_at": "2026-09-03T17:57:51.367466+00:00",
+        "run_id": "2586861e5b10403db7aea7c70705461c"
+      },
+      {
+        "seq": "p6",
+        "hash": "cd7c92fc",
+        "first_seen_in": "v7",
+        "parent": "p5",
+        "source": "teacher",
+        "registered_at": "2026-09-03T18:34:37.741102+00:00",
+        "run_id": "58a9056af3cf4d3590eaee4ebea7f0dc"
       }
     ],
     "retriever": [

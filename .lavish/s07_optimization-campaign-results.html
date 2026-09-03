@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optimisation Campaign — Build &amp; Results (s07)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Design source (2): the project's own system — frontend/src/tokens.css, the same
+   palette s02 and s03 used. Dark-first, light variant, monotonic elevation. */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4); --bad-line:rgba(239,130,130,.45);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1100px;
+}
+:root[data-theme="light"]{
+  --ground:#eeecea; --panel:#faf9f8; --panel-2:#e6e3e0;
+  --line:#dedad6; --line-2:#c6c1bb;
+  --text:#22252a; --muted:#55595f; --faint:#5f636a;
+  --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --amber-line:rgba(143,83,9,.4);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --good-line:rgba(23,112,73,.38); --info-line:rgba(29,84,171,.35); --bad-line:rgba(168,50,41,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;min-width:0}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.026em;margin:0 0 18px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,29px);line-height:1.18;letter-spacing:-.018em;margin:0 0 14px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:30px 0 10px;letter-spacing:-.004em;font-weight:600}
+h4{font-family:var(--mono);font-size:10.5px;margin:22px 0 8px;color:var(--faint);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+p{margin:0 0 14px;max-width:74ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:74ch}
+li{margin:0 0 7px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 16px}
+pre code{background:none;padding:0;font-size:inherit}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18px;color:var(--muted);max-width:68ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;min-width:0}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:26px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px;max-width:340px}
+.metric .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+td code{white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.warn{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.chip.bad{color:var(--bad);border-color:var(--bad-line)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px;min-width:0}
+.callout.bad{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px;min-width:0}
+figure svg{width:100%;height:auto;display:block;color:var(--text)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:76ch}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.phase{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 22px;margin:0 0 16px;min-width:0}
+.phase .hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+.phase .hd .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.1em;font-weight:600}
+.phase .hd h3{margin:0;font-size:17px}
+.phase .hd .eff{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:auto;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13.5px;margin:10px 0 0}
+.kv dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding-top:4px;white-space:nowrap}
+.kv dd{margin:0;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.opt{display:grid;gap:12px;margin:0 0 18px}
+@media(min-width:760px){.opt.o2{grid-template-columns:repeat(2,minmax(0,1fr))}.opt.o3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.opt .card.rec{border-color:var(--amber-line);box-shadow:0 0 0 1px var(--amber-soft) inset}
+.opt .card .tag{margin-bottom:8px}
+.cite{font-size:12.5px;color:var(--faint);font-family:var(--mono);overflow-wrap:anywhere}
+/* decision forms — native controls, local state, one queued prompt per question */
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 14px;min-width:0}
+form.q legend,form.q .qt{font-weight:600;margin:0 0 8px;padding:0}
+form.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;border:1px solid transparent;cursor:pointer;font-size:14px;min-width:0}
+form.q label:hover{background:var(--panel-2)}
+form.q label:has(input:checked){border-color:var(--amber-line);background:var(--amber-soft)}
+form.q input[type=radio]{margin-top:5px;accent-color:var(--amber);flex:0 0 auto}
+form.q textarea{width:100%;min-height:54px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;font-family:var(--ui);font-size:13.5px;margin-top:8px;resize:vertical}
+form.q .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+form.q button{background:var(--amber);color:var(--amber-ink);border:none;border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+form.q button:hover{filter:brightness(1.06)}
+form.q .status{font-family:var(--mono);font-size:11px;color:var(--faint)}
+form.q .status.queued{color:var(--good)}
+.foot{color:var(--faint);font-size:13px;margin-top:26px}
+.paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;overflow-x:auto;min-width:0;width:min(1500px,calc(100vw - 56px));margin-left:calc(50% - min(750px,50vw - 28px))}
+.paper img{display:block;min-width:980px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line-2)}
+.legend .b::before{background:#a5d8ff}.legend .v::before{background:#d0bfff}.legend .g::before{background:#b2f2bb}.legend .r::before{background:#ffc9c9;border-style:dashed}.legend .n::before{background:#e9ecef;border-style:dashed}
+td.st{white-space:nowrap}
+table.wrap{min-width:720px;table-layout:fixed}table.wrap td code{white-space:normal;overflow-wrap:anywhere}table.wrap td{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* s07 additions */
+.shot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;overflow:hidden;margin:0 0 8px}
+.shot img{display:block;width:100%;height:auto;border-radius:6px}
+.term{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-family:var(--mono);
+font-size:12.5px;line-height:1.6;overflow-x:auto;margin:0 0 16px;color:var(--muted);white-space:pre}
+.term b{color:var(--text);font-weight:600}
+.term .ok{color:var(--good)}.term .no{color:var(--bad)}.term .hi{color:var(--amber)}.term .dim{color:var(--faint)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 20px}
+.steps li{counter-increment:s;position:relative;padding:0 0 14px 40px;margin:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:99px;
+border:1px solid var(--amber-line);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:600;
+display:grid;place-items:center;background:var(--panel)}
+.steps li strong{display:block}
+.ship{display:grid;gap:10px;margin:0 0 20px}
+@media(min-width:760px){.ship{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ship .item{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 16px;min-width:0}
+.ship .item h4{margin:0 0 6px;color:var(--amber)}
+.ship .item p{margin:0;font-size:13.5px;color:var(--muted)}
+.diffbox{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);
+font-size:12px;line-height:1.55;overflow-x:auto;margin:0 0 16px;white-space:pre}
+.diffbox .a{color:var(--good)}.diffbox .d{color:var(--bad)}.diffbox .h{color:var(--violet)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<section>
+  <p class="eyebrow">Results · s07 · 2026-09-04</p>
+  <h1>The optimisation loop, built and running — and the promotions it takes back</h1>
+  <p class="lede">
+    Every work item in the <a href="s06_optimization-campaign-plan.html">s06 plan</a> is implemented, tested and
+    running against live data. The most consequential result is not an improvement: it is that the three versions
+    already promoted are <strong>rejected by the rule the loop now applies</strong>, and the champion has been rolled
+    back to <code>v2</code>. That is the system working — the evidence was never wrong, it was never sufficient.
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v ok" style="color:var(--good)">188</div><div class="l">Python tests passing, plus 99 frontend tests and mypy clean across 95 modules</div></div>
+    <div class="metric"><div class="v">77.1%</div><div class="l">v2 baseline on the new 349-question gate split, 100 conversations</div></div>
+    <div class="metric"><div class="v" style="color:var(--bad)">3</div><div class="l">promotions re-judged and rolled back — none clears one-sided p&nbsp;&lt;&nbsp;0.05</div></div>
+    <div class="metric"><div class="v" style="color:var(--amber)">24%</div><div class="l">of train turns saved by stopping at the first wrong answer — exactly as modelled</div></div>
+    <div class="metric"><div class="v">2</div><div class="l">experiments run live, both rejected — and the second one learned from the first</div></div>
+  </div>
+  <div class="toc">
+    <a href="#rule"><span class="n">01</span> The rule that changed, and what it takes back</a>
+    <a href="#attribution"><span class="n">02</span> Attribution moved from judgement to gold</a>
+    <a href="#teacher"><span class="n">03</span> The teacher: latitude, memory, and a billing trap</a>
+    <a href="#splits"><span class="n">04</span> Splits, resampling, and what the loop costs</a>
+    <a href="#surfaces"><span class="n">05</span> Running it: MLflow, the console, the public page</a>
+    <a href="#ship"><span class="n">06</span> What shipped, and what it found</a>
+    <a href="#first"><span class="n">07</span> Experiment 1: +2.29pp, rejected</a>
+    <a href="#second"><span class="n">07b</span> Experiment 2: the writer read the rejection</a>
+    <a href="#live"><span class="n">08</span> The surfaces with real data in them</a>
+    <a href="#cost"><span class="n">09</span> What it costs, and what is still open</a>
+  </div>
+</section>
+
+<!-- ══════════════════ 01 · THE RULE ══════════════════ -->
+<section id="rule">
+  <p class="eyebrow">01 · the promotion rule</p>
+  <h2>One rule now decides, and it is strictly harder than the one it replaces</h2>
+  <p>
+    The old rule was <em>net positive on the shared questions</em> — more fixed than broken. It computed the McNemar
+    p, printed it on every verdict, and never consulted it. The new rule is <strong>net positive AND one-sided
+    cluster-corrected McNemar p &lt; 0.05</strong>, and both halves of that correction earn their place:
+  </p>
+  <div class="grid g2">
+    <div class="card">
+      <h3>One-sided, because the gate only promotes</h3>
+      <p class="small">A two-sided test splits its rejection region between "better" and "worse". The gate never acts
+        on "worse" — it retains the champion either way — so half that region was being spent on an outcome with no
+        consequence. One-sided at α&nbsp;=&nbsp;0.05 detects exactly what two-sided at α&nbsp;=&nbsp;0.10 detects,
+        without doubling the false-positive rate in the direction that matters.</p>
+      <p class="small muted">On the v5 evidence: two-sided p&nbsp;=&nbsp;0.503, one-sided p&nbsp;=&nbsp;0.252.</p>
+    </div>
+    <div class="card">
+      <h3>Cluster-corrected, because flips are not independent</h3>
+      <p class="small">A conversation's turns share a report, a history and usually an error, so a change that fixes
+        one turn tends to fix its siblings. Treating 349 questions as 349 independent trials overstates the evidence.
+        Durkalski's correction sums the net discordance per conversation and normalises by the root sum of squares:
+        <code>Z = Σdₖ / √Σdₖ²</code>. It reduces to ordinary McNemar when every cluster holds one question, and
+        shrinks toward zero as flips concentrate.</p>
+      <p class="small muted">v5's 20 flips fell in 13 conversations: z&nbsp;=&nbsp;0.816, clustered p&nbsp;=&nbsp;0.207.</p>
+    </div>
+  </div>
+
+  <div class="callout bad"><strong>Re-judged: all three promotions are rejected.</strong>
+    <p>The strongest of them, v5, was promoted on Δ&nbsp;=&nbsp;+2.14pp with 12 questions fixed and 8 broken. Under
+      the new rule the same committed CSVs give a clustered one-sided p of <strong>0.207</strong> and a 95% cluster
+      bootstrap interval of <strong>[−3.2pp, +7.6pp]</strong> — an interval containing zero, with
+      P(Δ&nbsp;&gt;&nbsp;0)&nbsp;=&nbsp;0.77. The champion is rolled back to <code>v2</code>, with the re-judgement
+      recorded on the registry history rather than quietly applied.</p>
+    <p class="small muted">This is pinned by a test, so the rule cannot silently loosen again:
+      <code>test_v5_promotion_is_refused_by_the_campaign_rule</code> asserts the old rule passes it and the new one
+      does not.</p></div>
+
+  <div class="term"><span class="dim">$ uv run convfinqa-evalloop gate --baseline-csv &lt;v3_1&gt; --candidate-csv &lt;v5&gt; …</span>
+<span class="no">REJECT</span>: Δ <span class="hi">+2.14pp</span> on 187 shared test questions
+       (12 fixed vs 8 broken across <b>13 conversations</b>);
+       one-sided clustered McNemar <b>p=0.2071</b> (α=0.05);
+       95% CI [<span class="no">-3.24pp</span>, +7.61pp], P(Δ&gt;0)=0.77</div>
+
+  <p class="small muted">
+    The per-agent metric no longer offers a second route to promotion. Under the previous protocol a challenger could
+    promote by moving its target subagent's own metric while overall accuracy merely failed to regress — which is how
+    two of the three rolled-back versions got through. It is still computed and still reported on every verdict,
+    because it answers a genuinely useful and different question: <em>did the change do what it was supposed to do to
+    the agent it targeted?</em> A challenger that moves its agent's metric but fails the gate is a real finding about
+    a sample too small to see it. It is not a promotion.
+  </p>
+</section>
+
+<!-- ══════════════════ 02 · ATTRIBUTION ══════════════════ -->
+<section id="attribution">
+  <p class="eyebrow">02 · attribution</p>
+  <h2>Which subagent failed is derived from gold, not judged by a model</h2>
+  <p>
+    Each experiment rewrites one subagent, so choosing <em>which</em> one is the single decision that determines
+    whether a cycle is useful. It was being made by asking an LLM. It is now computed: the gold program and gold
+    answer between them determine what three of the four stages should have produced, so
+    <code>stage_scores.first_fault()</code> walks the four checks in pipeline order and returns the first that fails.
+  </p>
+  <div class="scroll-x"><table>
+    <thead><tr><th>stage</th><th>what gold determines</th><th>the check</th></tr></thead>
+    <tbody>
+      <tr><td><code>triage</code></td><td>the turn's type</td><td><code>gold_turn_type</code> is a column — direct comparison</td></tr>
+      <tr><td><code>preprocess</code></td><td>the shape of the plan</td><td>op skeleton of the planned program vs the gold program's</td></tr>
+      <tr><td><code>retriever</code></td><td>which values came from the document</td><td>gold operands minus constants minus earlier gold answers</td></tr>
+      <tr><td><code>calculator</code></td><td>the answer, given retrieval succeeded</td><td>correctness conditioned on full operand recall</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">
+    That third row is the subtle one, and the Dataset page now shows it per question so a human can check the rule
+    rather than trust it. For <code>divide(42, 163)</code> where 42 was an earlier turn's gold answer, the retriever
+    owed only <code>163</code> — scoring it against both operands would blame it for a value it was never asked to
+    find.
+  </p>
+  <div class="callout bad"><strong>The teacher and the derivation agree on 17 of 30 cases.</strong>
+    <p>Measured on the last full set of diagnoses before the change. The teacher over-called
+      <code>preprocess</code> (15 attributions against gold's 9 — five of them are really calculator faults) and
+      under-called <code>triage</code> (3 against 6). Since attribution picks the target and a campaign is capped at
+      five experiments, a disagreement rate near half means a meaningful share of experiments were optimising the
+      wrong agent. That was invisible while the loop was a demo.</p></div>
+  <p>
+    The teacher is still asked — it is the better <em>explainer</em>, and its account of a failure is what the prompt
+    writer reads. It is now <em>told</em> the derived attribution and may dissent; a dissent is recorded as
+    <code>attribution_disputed</code> and counted as a run metric. A recurring dispute pattern is a bug in the
+    derivation rule, not noise, and this is how it becomes visible.
+  </p>
+  <div class="term"><span class="dim">— live from the first campaign cycle —</span>
+  [Single_UNP/2012/page_47.pdf-1 q2]  gold-&gt;<span class="ok">calculator</span>  teacher-&gt;calculator   · calculator/wrong-format
+  [Double_ETR/2004/page_213.pdf q0]   gold-&gt;<span class="ok">preprocess</span>  teacher-&gt;preprocess   · preprocess/wrong-operation
+  [Single_SWKS/2010/page_105.pdf-2 q2] gold-&gt;<span class="hi">calculator</span>  teacher-&gt;preprocess <span class="no">DISPUTED</span> · preprocess/misresolved-reference
+  [Single_C/2008/page_212.pdf-2 q0]   gold-&gt;<span class="ok">retriever</span>   teacher-&gt;retriever    · retriever/wrong-value</div>
+</section>
+
+<!-- ══════════════════ 03 · THE TEACHER ══════════════════ -->
+<section id="teacher">
+  <p class="eyebrow">03 · the teacher and the prompt writer</p>
+  <h2>Latitude to rewrite, memory of what failed, and a billing trap worth naming</h2>
+
+  <h3>The writer replaces the prompt rather than appending to it</h3>
+  <p>
+    Previously the writer merged proposals into "at most five crisp, imperative rules" that were appended to the
+    existing prompt. Prompts could therefore only ever grow, and a prompt whose <em>structure</em> was the problem
+    could never be fixed — the only available move was to add another rule to the bottom of it. It now receives the
+    whole current prompt and returns a complete replacement, free to reorder, compress, delete or start over.
+  </p>
+  <div class="callout"><strong>The guard rail is the output contract, checked before anything is written.</strong>
+    <p>The pipeline parses each agent's output, so a rewrite that drops a required field breaks every turn rather
+      than only the failing ones. <code>validate_prompt()</code> refuses a rewrite that stops mentioning a token the
+      current prompt requires — <code>turn_type</code> and <code>conv_type</code> for triage,
+      <code>sub_question</code> for preprocess, the four DSL operations for the calculator — and refuses anything
+      under a 200-character floor, which is what a collapsed prompt looks like. A refused rewrite costs a proposal,
+      not a run.</p></div>
+
+  <h3>Memory now carries outcomes, not just proposals</h3>
+  <p>
+    The old memory fed back the last five runs' <em>diagnoses</em>. It never carried whether any of them worked, so
+    a rejected idea could be re-proposed, sharpened, and rejected again for as many cycles as a campaign lasted —
+    memory without feedback. <code>ledger.py</code> joins every <code>kind=propose</code> run to the
+    <code>kind=gate</code> verdict for the version it produced, keyed on that version, and hands the writer the
+    attempt history for the agent in front of it: what changed, and what happened.
+  </p>
+  <div class="term"><b>## Prior attempts on retriever (newest first)</b>
+- v7 — <span class="no">REJECTED</span> (Δ +1.43pp, p=0.184)
+  changed: moved period selection above value lookup; dropped the scale examples
+  reasoning: the prompt asked for the right year only after the row was chosen…
+
+<span class="dim">Do not re-propose a change that was already REJECTED unless you can
+say what is different this time.</span></div>
+  <p class="small muted">
+    Recording the verdict at all is new. Verdicts were previously printed to a terminal and nowhere else, which is
+    why the join had nothing to join to. <code>log_gate_verdict()</code> now writes each decision — promoted or not —
+    as an MLflow run with the comparison attached.
+  </p>
+
+  <h3>Both agents moved to the Claude Agent SDK on Opus 5</h3>
+  <p>
+    The four pipeline agents stay on <code>deepseek-v4-flash</code>: they run on every turn, they are what is being
+    optimised, and their cost has to stay measurable per question. The teacher and writer run a few dozen times per
+    cycle and their job is judgement, which is where the stronger model earns its keep — and on the SDK the writer
+    can read its own history out of MLflow through three read-only tools (<code>search_attempts</code>,
+    <code>get_prompt</code>, <code>get_failures</code>) rather than being handed a fixed excerpt of it. Tool calls
+    land in the message stream and are counted onto the run, so the extra reads are logged rather than invisible.
+  </p>
+  <div class="callout bad"><strong>The billing trap is real, and worse than the plan described.</strong>
+    <p>The plan said to scrub <code>ANTHROPIC_API_KEY</code> from the child environment. That is not sufficient, and
+      the failure it produces names nothing useful — a bare <em>"Credit balance is too low"</em> from an account with
+      an active subscription. Two things were wrong:</p>
+    <ul>
+      <li>The SDK <strong>merges</strong> its <code>env</code> over the parent process's, so a key that is merely
+        <em>absent</em> from the mapping comes straight back. It has to be set to the empty string.</li>
+      <li><code>config.load_dotenv()</code> loads all of <code>~/.env</code> into <code>os.environ</code> at import
+        time — deliberately, because dspy reads <code>DEEPSEEK_API_KEY</code> from there — so the key is present in
+        the process whether or not anyone exported it.</li>
+    </ul>
+    <p>A third variant appeared while debugging: when the loop is driven from inside a Claude Code session, the child
+      inherits that session's <code>CLAUDE_CODE_*</code> identity and bills against it. All three are handled in
+      <code>llm.subscription_env()</code>, the one place the child environment is built, and pinned by a test that
+      plants a key in <code>os.environ</code> and asserts it comes out blank.</p></div>
+</section>
+
+<!-- ══════════════════ 04 · SPLITS AND ECONOMICS ══════════════════ -->
+<section id="splits">
+  <p class="eyebrow">04 · splits and economics</p>
+  <h2>A gate that never moves, a train split that always does</h2>
+  <p>
+    <code>eval_loop_v2</code> is cut as a strict superset of v1 — every report of v1's train stays in train, every
+    report of its test stays in test — so the runs already recorded against v1 remain evidence about the same
+    questions. Extending a split must not invalidate the history that preceded it, and the property is asserted in
+    code rather than assumed.
+  </p>
+  <div class="grid g3">
+    <div class="card"><h4>train · 100 reports</h4><p class="small">368 questions. <strong>Resampled every cycle</strong>
+      from <code>pool − gate</code> with a logged seed and the drawn ids as a run artifact. A fixed train split would
+      be overfitted within a few cycles; the seed is what keeps it reproducible anyway.</p></div>
+    <div class="card"><h4>gate · 100 reports</h4><p class="small">349 questions. <strong>Fixed for the campaign.</strong>
+      Both arms of every comparison run every question on it. Early stopping and reseeding are refused here in code,
+      not by convention.</p></div>
+    <div class="card"><h4>holdout · unallocated</h4><p class="small">Deliberately empty. During a campaign the holdout
+      is the untouched remainder of the pool — around 3,000 conversations — from which a sealed split can be cut for
+      one confirmatory run at the end.</p></div>
+  </div>
+  <div class="callout good"><strong>Early stopping saves 24% of the train pass, exactly as modelled.</strong>
+    <p>Only the first wrong turn of a conversation carries signal; everything after it is cascade, and cascade is the
+      teacher's noise. The first live cycle ran <strong>401 questions down to 305</strong> — a 24% saving against a
+      modelled 24%. It is refused on the gate split, where the comparison is paired per question and a run that stops
+      early leaves the turns it skipped with no counterpart.</p>
+    <p class="small muted">The rows stop where the run stopped rather than being written as wrong: recording an
+      unattempted turn as a failure would be a lie about a turn that never ran, and would quietly deflate every train
+      accuracy the teacher reads.</p></div>
+
+  <h3>The campaign's two caps, enforced rather than intended</h3>
+  <ul>
+    <li><strong>Five experiments per campaign.</strong> Every challenger measured against the same gate split spends
+      a little of its unseen-ness. Twenty challengers against 349 questions will eventually promote noise; five will
+      not, and the cap makes review a scheduled event rather than a thing that never happens.</li>
+    <li><strong>Two consecutive rejections rotate the target.</strong> Without it the loop sticks: the agent with the
+      most faults keeps being chosen, rewritten, and rejected for as long as the campaign lasts. Naming the blocked
+      agent explicitly on the command line does not get around it — an overridable cap is not a cap.</li>
+  </ul>
+</section>
+
+<!-- ══════════════════ 05 · SURFACES ══════════════════ -->
+<section id="surfaces">
+  <p class="eyebrow">05 · running it</p>
+  <h2>One command drives an experiment; three surfaces show what it did</h2>
+  <p>
+    The five steps used to be five commands typed in order with outputs copied between them, which worked exactly as
+    long as nobody mistyped a version or forgot to pass the gate CSV — and left no record tying the five runs
+    together. <code>convfinqa-evalloop cycle</code> chains them and stamps every run with the campaign, the
+    experiment label and the target agent, so an experiment is one query away afterwards.
+  </p>
+  <ol class="steps">
+    <li><strong>Train pass on a fresh draw</strong><span class="small muted">100 conversations from
+      <code>pool − gate</code>, stopping each at its first wrong answer. The seed and the drawn ids are logged.</span></li>
+    <li><strong>Diagnose every first-wrong turn</strong><span class="small muted">Attribution from gold; the teacher
+      explains and may dissent. Each case is its own trace, tagged with the derived attribution.</span></li>
+    <li><strong>Pick the target</strong><span class="small muted">Most derived faults, subject to the campaign's
+      rotation rule.</span></li>
+    <li><strong>Rewrite one agent's prompt</strong><span class="small muted">Whole-prompt replacement, with that
+      agent's attempt ledger in front of the writer and its output contract validated after.</span></li>
+    <li><strong>Gate pass</strong><span class="small muted">Both arms on the fixed split, every question, no early
+      stopping.</span></li>
+    <li><strong>Decide and record</strong><span class="small muted">Promoted or not, the verdict becomes a run — which
+      is what the next rewrite reads.</span></li>
+  </ol>
+
+  <h3>MLflow — every pass is a run, every teacher call is a trace</h3>
+  <p class="small muted">
+    Eval passes land in <code>convfinqa</code>; teacher work lands in <code>convfinqa-optimization</code>, so
+    optimisation traffic never interleaves with the accuracy history. Logging lives inside the runners rather than
+    beside them, so a pass cannot happen without being recorded.
+  </p>
+  <figure>
+    <div class="shot"><img src="s07_assets/mlflow-runs.jpg" alt="MLflow runs table showing eval-loop passes with accuracy per run"></div>
+    <figcaption>The eval history. <code>evalloop-test100-v2</code> at 77.1% is the campaign's baseline on the new
+      349-question gate split; <code>evalloop-train100-v2</code> is the cycle's train pass, running.</figcaption>
+  </figure>
+  <figure>
+    <div class="shot"><img src="s07_assets/mlflow-diagnose-trace.jpg" alt="An MLflow trace for one diagnose call, showing report_id, turn_index and derived_attribution as span attributes"></div>
+    <figcaption>One diagnosis, traced. The derived attribution is a span attribute, so a disagreement between the
+      rule and the teacher is inspectable case by case rather than only in aggregate.</figcaption>
+  </figure>
+
+  <h3>The console — derived gold, so the attribution rule can be checked</h3>
+  <figure>
+    <div class="shot"><img src="s07_assets/dataset-derived-gold.jpg" alt="The Dataset page showing gold program beside the per-subagent derived gold"></div>
+    <figcaption>Read the third row: <code>subtract(42, 2)</code> derives to skeleton <code>subtract</code> and
+      <em>nothing to retrieve</em> — both operands were earlier turns' answers. The row below,
+      <code>divide(42, 163)</code>, owes the retriever only <code>163</code>. Scoring it against both operands would
+      blame it for a value it was never asked to find, and that is the kind of error this page exists to catch.</figcaption>
+  </figure>
+</section>
+
+<!-- ══════════════════ 06 · SHIPPED ══════════════════ -->
+<section id="ship">
+  <p class="eyebrow">06 · what shipped</p>
+  <h2>Every work item, and the three things building it found</h2>
+  <div class="ship">
+    <div class="item"><h4>W0 · gold-derived attribution</h4><p><code>stage_scores.first_fault()</code> plus
+      <code>attribute()</code>, wired into <code>diagnose</code> for target selection; dissent recorded as
+      <code>attribution_disputed</code> and logged as a run metric.</p></div>
+    <div class="item"><h4>W1 · manifest v2</h4><p>Report-count allocation with parent extension, superset and
+      disjointness asserted in code; <code>EVAL_MANIFEST</code> selects the manifest for a session.</p></div>
+    <div class="item"><h4>W3a · the significance gate</h4><p>One-sided cluster-corrected McNemar at α&nbsp;=&nbsp;0.05
+      as the promotion condition; both p values and the cluster z recorded on every verdict.</p></div>
+    <div class="item"><h4>W3b · bootstrap CI, draw, early stop</h4><p>Cluster bootstrap on Δ;
+      <code>draw_train(seed)</code> from <code>pool − gate</code>; <code>--stop-at-first-wrong</code>, refused on the
+      gate.</p></div>
+    <div class="item"><h4>W1b · rewrite latitude</h4><p>Whole-prompt replacement with a rationale, validated against
+      the agent's output contract and a length floor before the module is written.</p></div>
+    <div class="item"><h4>W1c · the SDK teacher</h4><p>Both agents on Claude Agent SDK / Opus 5 with read-only MLflow
+      tools; the child environment built in one place, with the API key blanked.</p></div>
+    <div class="item"><h4>W2b · outcome-aware memory</h4><p><code>ledger.py</code> joining proposals to verdicts;
+      <code>log_gate_verdict()</code> making the verdict a run so there is something to join to.</p></div>
+    <div class="item"><h4>W2 · the cycle command</h4><p>The whole experiment in one command, with the five-experiment
+      cap and the two-rejection rotation enforced.</p></div>
+    <div class="item"><h4>W4b · the Campaigns tab</h4><p><code>GET /eval/campaigns</code> and a page with the
+      champion track — overall accuracy plus a line per subagent, arrowed with the agent each experiment
+      rewrote.</p></div>
+    <div class="item"><h4>W4c · derived gold on the Dataset page</h4><p>Per-subagent expected values beside the gold
+      program, so the attribution rule is checkable by a human.</p></div>
+    <div class="item"><h4>W4 · the story command</h4><p><code>evaluation/story.json</code> and
+      <code>docs/optimization/index.html</code>, both generated from the tracking store and the registry.</p></div>
+    <div class="item"><h4>W5 · publish</h4><p>GitHub Pages from <code>docs/</code>, plus a CI check that fails when
+      the committed page has drifted from the registry it claims to describe.</p></div>
+  </div>
+
+  <div class="callout good"><strong>The app and the public page read the same file.</strong>
+    <p>Both the Campaigns tab and the published write-up are built from <code>evaluation/story.json</code>. A page
+      that could disagree with the console about the same tracking store would be worse than having only one of them,
+      so there is one source and one command that rebuilds both.</p></div>
+
+  <h3>Baseline: where v2 actually stands on the new gate split</h3>
+  <div class="scroll-x"><table>
+    <thead><tr><th>metric</th><th class="num">v2 on 349 gate questions</th><th>what it means</th></tr></thead>
+    <tbody>
+      <tr><td>overall accuracy</td><td class="num">77.1%</td><td>execution accuracy over every turn</td></tr>
+      <tr><td><code>acc_triage_turn_type</code></td><td class="num">91.4%</td><td>number vs program, against gold</td></tr>
+      <tr><td><code>acc_preprocess_skeleton</code></td><td class="num">47.7%</td><td>op skeleton vs gold's — deliberately strict, see below</td></tr>
+      <tr><td><code>retriever_operand_recall</code></td><td class="num">74.0%</td><td>document operands the retriever actually surfaced</td></tr>
+      <tr><td><code>acc_calculator_exec</code></td><td class="num">69.6%</td><td>program turns answered correctly</td></tr>
+      <tr><td><code>calculator_acc_given_full_recall</code></td><td class="num">78.9%</td><td>…of those where retrieval succeeded — the honest calculator number</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">
+    The preprocess figure is the one to read carefully, and its own docstring says so: a program that is correct but
+    shaped differently from gold reads as a miss. It is a useful <em>relative</em> signal between two versions on the
+    same questions and a poor absolute one, which is exactly why the promotion rule does not depend on it.
+  </p>
+</section>
+
+<!-- ══════════════════ 07 · THE FIRST EXPERIMENT ══════════════════ -->
+<section id="first">
+  <p class="eyebrow">07 · campaign c01, experiment 1</p>
+  <h2>A real +2.29pp improvement, rejected — and that is the point</h2>
+  <p>
+    The first experiment of campaign <code>c01</code> ran end to end on live data: a fresh 100-conversation train
+    draw, 49 diagnoses, a whole-prompt rewrite of <code>preprocess</code>, and both arms on the fixed 349-question
+    gate split. It produced exactly the situation the plan predicted and the old rule could not handle.
+  </p>
+  <div class="metrics">
+    <div class="metric"><div class="v" style="color:var(--good)">+2.29pp</div><div class="l">77.08% → 79.37% on the gate split</div></div>
+    <div class="metric"><div class="v" style="color:var(--amber)">0.191</div><div class="l">one-sided clustered McNemar p — the gate needs &lt;&nbsp;0.05</div></div>
+    <div class="metric"><div class="v">31 / 23</div><div class="l">questions fixed / broken, across 38 conversations</div></div>
+    <div class="metric"><div class="v" style="color:var(--bad)">REJECTED</div><div class="l">champion stays <code>v2</code>; the verdict is recorded and fed back</div></div>
+  </div>
+  <div class="term"><span class="dim">$ convfinqa-evalloop cycle --campaign c01</span>
+=== <b>c01-e01</b>: challenging v2 ===
+[evalloop-train100-v2] 100 conversations, <b>401</b> questions → accuracy 82.3% on <b>305</b> questions
+  [Single_UNP/2012/page_47.pdf-1 q2]  gold-&gt;calculator  teacher-&gt;calculator
+  [Single_SWKS/2010/page_105.pdf-2 q2] gold-&gt;calculator  teacher-&gt;preprocess <span class="no">DISPUTED</span>
+  <span class="dim">… 49 cases diagnosed …</span>
+  <b>target: preprocess</b> — most derived first-faults (18)
+[evalloop-test100-v6·<b>t2p5r2c2</b>] 100 conversations, 349 questions
+  <span class="no">REJECT</span>: Δ <span class="hi">+2.29pp</span> on 349 shared test questions
+         (31 fixed vs 23 broken across <b>38 conversations</b>);
+         one-sided clustered McNemar <b>p=0.1914</b> (α=0.05);
+         95% CI [<span class="no">-2.87pp</span>, +7.40pp], P(Δ&gt;0)=0.79
+         — target: acc_preprocess_skeleton 0.477 → 0.498
+  rejected — <b>v2</b> retained as champion</div>
+
+  <div class="callout"><strong>Under the old rule this would have promoted.</strong>
+    <p>Net positive by 8 questions, target metric moved in the right direction, overall accuracy up. Every condition
+      the previous protocol asked for is met. What the new rule sees is that 54 flips spread over 38 conversations
+      with an 8-question margin is not evidence — the interval runs from −2.87pp to +7.40pp, and roughly one run in
+      five of a change this size would land here by chance alone.</p></div>
+
+  <h3>What the writer actually did</h3>
+  <p>
+    Given full latitude, it did not add rules — it restructured. The <code>preprocess</code> prompt went from
+    <strong>5,418 to 13,530 characters</strong>, converting a list of output-format rules plus a gallery of
+    percentage patterns into an explicit five-step decision procedure. Its own reasoning, recorded on the propose
+    run and carried onto the promotion record:
+  </p>
+  <div class="callout info"><p style="margin:0"><em>"The current prompt is organized as a list of output-format rules
+    plus a gallery of percentage patterns; it teaches the agent how to <strong>format</strong> a program but never how
+    to <strong>decide</strong> one, so every failure class here is a decision the prompt simply does not cover —
+    which referent 'that value' points at, whether an operand is a lookup or a document convention constant, whether
+    a relation question wants a difference or a bare quotient, which operand becomes the minuend, and whether the
+    turn is a comparison at all."</em></p></div>
+  <p class="small muted">
+    It also used its tools: eight calls, including <code>get_prompt</code> four times — it read the other three
+    subagents' prompts before rewriting the one it owned. That is the behaviour the ledger-plus-tools decision was
+    meant to buy, and it is visible in the run's own trace rather than inferred.
+  </p>
+
+  <h3>Changing one subagent moved three metrics</h3>
+  <div class="scroll-x"><table>
+    <thead><tr><th>subagent</th><th class="num">v2</th><th class="num">v6</th><th>read</th></tr></thead>
+    <tbody>
+      <tr><td><code>preprocess</code> <span class="chip warn">rewritten</span></td><td class="num">47.7%</td><td class="num">49.8%</td><td>the targeted agent, moved as intended</td></tr>
+      <tr><td><code>calculator</code></td><td class="num">69.6%</td><td class="num">73.4%</td><td>unchanged prompt — it got a better plan to execute</td></tr>
+      <tr><td><code>triage</code></td><td class="num">91.4%</td><td class="num">92.3%</td><td>unchanged prompt; within noise</td></tr>
+      <tr><td><code>retriever</code></td><td class="num">74.0%</td><td class="num">74.1%</td><td>unchanged prompt; flat</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><strong>"One subagent changed" does not mean "one metric moves".</strong>
+    <p>The calculator's number moved further than the agent that was actually rewritten, because the calculator
+      executes whatever plan preprocess hands it. This is worth stating plainly on the story page: the
+      <em>attribution</em> of a champion move to a single prompt is exact — the diff is one prompt — but the
+      <em>mechanism</em> travels downstream, and reading the per-agent panel as four independent dials would be
+      wrong.</p></div>
+
+  <h3>Agreement went up, and that is not entirely good news</h3>
+  <p>
+    Across the 49 diagnoses the teacher agreed with the derived attribution on <strong>36 of them (73%)</strong>, up
+    from 57% when it was attributing independently. The gain is mostly <em>anchoring</em>: it is now shown the
+    derived answer and asked to dissent only with evidence, so agreement is no longer an independent check. What
+    remains useful is the shape of the 13 disagreements — the teacher still over-calls <code>retriever</code>
+    (22 against gold's 15) and under-calls <code>calculator</code> (4 against 10), the same directional bias measured
+    before the change.
+  </p>
+  <div class="scroll-x"><table>
+    <thead><tr><th>attributed to</th><th class="num">gold-derived</th><th class="num">teacher</th><th class="num">difference</th></tr></thead>
+    <tbody>
+      <tr><td><code>preprocess</code></td><td class="num">18</td><td class="num">18</td><td class="num">0</td></tr>
+      <tr><td><code>retriever</code></td><td class="num">15</td><td class="num">22</td><td class="num" style="color:var(--bad)">+7</td></tr>
+      <tr><td><code>calculator</code></td><td class="num">10</td><td class="num">4</td><td class="num" style="color:var(--bad)">−6</td></tr>
+      <tr><td><code>triage</code></td><td class="num">6</td><td class="num">5</td><td class="num">−1</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">
+    The target was <code>preprocess</code> either way this time, so the disagreement cost nothing on this cycle. It
+    would have cost a cycle on a run where retriever and calculator were close, which is precisely the case the
+    derivation now decides.
+  </p>
+</section>
+
+<!-- ══════════════════ 07b · EXPERIMENT 2 ══════════════════ -->
+<section id="second">
+  <p class="eyebrow">07b · campaign c01, experiment 2</p>
+  <h2>The writer read the rejection and fixed the right thing</h2>
+  <p>
+    This is the result I would keep if I could keep only one. Experiment 2 drew a fresh train split, diagnosed it,
+    and targeted <code>preprocess</code> again. Before writing, it received the ledger entry for experiment 1 — the
+    prompt, the diff, and the verdict. Its recorded rationale opens by quoting that verdict back:
+  </p>
+  <div class="callout info"><p style="margin:0"><em>"The previous restructure (v6) moved in the right direction
+    (+2.29pp, P(Δ&gt;0)=0.79) but was rejected at p=0.19 with 23 questions broken against 31 fixed, so the fix is not
+    'more procedure' but <strong>less collateral damage</strong>: this rewrite keeps the procedural spine that trended
+    positive while deliberately dropping v6's speculative and contract-touching additions — the <code>greater</code>
+    operator (an output-contract change), the 'metrics joined by and' heuristic, adjustment-qualifier decomposition,
+    corrupted-period repair, and the percent-form re-derivation rule — and it restores v6's deleted concrete
+    examples."</em></p></div>
+  <p>
+    It read the numbers, inferred that the binding constraint was <em>questions broken</em> rather than questions
+    fixed, and narrowed the change accordingly. It also identified on its own that v6's <code>greater</code> addition
+    was an output-contract change and reverted it. Then the gate measured whether it was right:
+  </p>
+  <div class="scroll-x"><table>
+    <thead><tr><th>experiment</th><th>target</th><th class="num">Δ</th><th class="num">fixed</th><th class="num">broken</th><th class="num">p</th><th class="num">P(Δ&gt;0)</th><th>verdict</th></tr></thead>
+    <tbody>
+      <tr><td><code>c01-e01</code> → v6</td><td>preprocess</td><td class="num">+2.29pp</td><td class="num">31</td><td class="num" style="color:var(--bad)">23</td><td class="num">0.191</td><td class="num">0.79</td><td><span class="chip bad">rejected</span></td></tr>
+      <tr><td><code>c01-e02</code> → v7</td><td>preprocess</td><td class="num">+2.58pp</td><td class="num">27</td><td class="num" style="color:var(--good)">18</td><td class="num">0.132</td><td class="num">0.87</td><td><span class="chip bad">rejected</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>
+    Broken fell from 23 to 18, which is what it set out to do. The delta rose, the p improved from 0.191 to 0.132,
+    and P(Δ&nbsp;&gt;&nbsp;0) went from 0.79 to 0.87. It is <strong>still rejected</strong> — 0.132 is not 0.05 — but
+    the loop moved in the direction the evidence pointed, because it was shown the evidence. That is the difference
+    between memory and memory-with-feedback, and it is the one behaviour the previous design could not have produced.
+  </p>
+
+  <div class="callout bad"><strong>And experiment 2 settles the argument about the per-agent metric.</strong>
+    <p>v7's targeted metric <code>acc_preprocess_skeleton</code> went <strong>down</strong>, 0.477 → 0.451, while
+      overall accuracy went <strong>up</strong> 2.58pp. Under the M2 targeted rule that combination is incoherent:
+      the rule would have rejected the better challenger for failing on its target while the previous protocol's
+      net-positive path promoted it anyway. The metric is measuring "did the program have the same shape as gold",
+      and a genuinely better program with a different shape scores worse on it — exactly the looseness
+      <code>stage_scores.py</code> documents about itself. Reporting it as evidence is right. Gating on it was not.</p></div>
+
+  <div class="callout good"><strong>The rotation cap fired on its own.</strong>
+    <p>Two consecutive rejections on <code>preprocess</code>, so <code>campaign-status</code> now reports
+      <code>blocked_agents: ["preprocess"]</code> and experiment 3 must pick a different subagent — even if
+      preprocess still carries the most derived faults, and even if it is named explicitly on the command line. This
+      is the cap doing the thing it exists for: without it the loop would spend all five experiments of the campaign
+      on the same agent, getting closer to 0.05 and never arriving.</p></div>
+</section>
+
+<!-- ══════════════════ 08 · SURFACES IN USE ══════════════════ -->
+<section id="live">
+  <p class="eyebrow">08 · the surfaces, with real data in them</p>
+  <h2>The console and the public page, showing the same rejected experiment</h2>
+  <p>
+    Both read <code>evaluation/story.json</code>. The console is where you drive and inspect; the published page is
+    the same record written for someone who was not there. Neither can disagree with the other, and a CI check fails
+    the build when either has drifted from the registry.
+  </p>
+
+  <h3>Campaigns tab — the experiment, expanded</h3>
+  <figure>
+    <div class="shot"><img src="s07_assets/campaigns-experiment.jpg" alt="The Campaigns page showing experiment c01-e01 rejected, with its rationale and the four per-subagent metrics"></div>
+    <figcaption>The champion-track panel says what it means rather than pretending there is nothing there: <em>"the
+      champion has not moved. 1 experiment gated, none significant at one-sided p&nbsp;&lt;&nbsp;0.05 — so there is no
+      track to draw yet."</em> A chart with one point would be worse than a sentence.</figcaption>
+  </figure>
+  <figure>
+    <div class="shot"><img src="s07_assets/campaigns-diff.jpg" alt="The prompt diff for the rewritten preprocess agent, additions in green and deletions in red"></div>
+    <figcaption>The diff travels with the verdict. This is what "the change between two champions is one prompt"
+      looks like when you can actually read it — the deleted block is the old example gallery, the added block is the
+      procedure that replaced it.</figcaption>
+  </figure>
+
+  <h3>The published page</h3>
+  <figure>
+    <div class="shot"><img src="s07_assets/published-hero.jpg" alt="The published optimisation page hero, showing champion v2 at 77.1%, one experiment run, and the 349-question gate split"></div>
+    <figcaption>Generated by <code>convfinqa-evalloop story</code> from the tracking store and the registry. The
+      headline is deliberately unflattering: one experiment, zero promoted, champion unmoved.</figcaption>
+  </figure>
+  <figure>
+    <div class="shot"><img src="s07_assets/published-harness.jpg" alt="The harness diagram on the published page: train draw, run, diagnose, rewrite, gate, decide, with the verdict feeding back"></div>
+    <figcaption>Hand-authored inline SVG, no charting dependency — a page served for years from a static host should
+      not break when a CDN moves. The dashed return path is the part that was missing before: the verdict is recorded
+      whichever way it goes, and the next rewrite reads it.</figcaption>
+  </figure>
+
+  <div class="callout"><strong>Two bugs this page caught, both about a page describing the wrong thing.</strong>
+    <ul>
+      <li>The story builder read the <em>ambient</em> manifest rather than the one the runs used, so the first build
+        published "201 questions across 54 conversations" — <code>eval_loop_v1</code> — beside results measured on
+        <code>eval_loop_v2</code>. It now takes the manifest name from the gate runs themselves.</li>
+      <li>The campaigns API cached the story file forever, so rebuilding it left the console serving a campaign's
+        results from before its latest experiment, with nothing on the page to say so. The cache key now carries the
+        file's mtime.</li>
+    </ul>
+    <p class="small">Both are the same class of failure the CI staleness check exists for, which is a reasonable
+      argument that the check was worth building.</p></div>
+</section>
+
+<!-- ══════════════════ 09 · WHAT IT COSTS ══════════════════ -->
+<section id="cost">
+  <p class="eyebrow">09 · economics and what comes next</p>
+  <h2>What one experiment costs, and what the campaign can honestly claim</h2>
+  <div class="grid g3">
+    <div class="card"><h4>time</h4><p class="small">~32 minutes end to end at concurrency 10: 4&nbsp;min train,
+      ~22&nbsp;min diagnosis, ~1&nbsp;min rewrite, 5&nbsp;min gate. Diagnosis dominates, and it is the part that
+      scales with how many things are wrong.</p></div>
+    <div class="card"><h4>pipeline cost</h4><p class="small">~650 DeepSeek turns per experiment (305 train +
+      349 gate) at $0.0042/question — roughly <strong>$2.75</strong>. The baseline gate arm is reused across a
+      campaign, so only the challenger's arm is paid for after the first.</p></div>
+    <div class="card"><h4>teacher cost</h4><p class="small">50 Opus calls, ~11k output tokens on the rewrite alone.
+      Reported <em>beside</em> the pipeline figure, never inside it: one is dollars per question, the other is
+      subscription consumption, and summing them would make the economics read better than they are.</p></div>
+  </div>
+  <div class="callout"><strong>The honest headline, today.</strong>
+    <p>"Two experiments run; candidates at +2.29pp and +2.58pp both rejected, at one-sided p&nbsp;=&nbsp;0.19 and
+      0.13, on a fixed 349-question gate split — with the second narrowing the first's collateral damage after
+      reading its verdict." That is a much smaller claim than the previous protocol produced from comparable data,
+      which reported three promotions and a champion four versions along. It is also the one that survives contact
+      with the statistics, and the part about the second experiment is a claim about the <em>loop</em> rather than
+      about the accuracy, which is the thing actually being built here.</p>
+    <p>What would make it an out-of-sample claim is the confirmatory run: at the end of a campaign, cut a fresh
+      270-report holdout from the untouched reserve and run the first and final champions on it. One run, ~$4, and
+      the whole thing stops being "improved on a split I optimised against".</p></div>
+
+  <h3>Open, and worth deciding before campaign c02</h3>
+  <div class="grid g2">
+    <div class="callout info"><strong>Rejected-but-real changes.</strong><p>Two candidates in a row at +2.3pp and
+      +2.6pp with P(Δ&nbsp;&gt;&nbsp;0) of 0.79 and 0.87 look like a real improvement the split is too small to
+      confirm. The gate is right to refuse them individually; the open question is whether the campaign should be
+      able to say so — e.g. by re-running the best rejected candidate once at the end, where a second independent
+      measurement of the same change is legitimate evidence rather than a second bite at the same one.</p></div>
+    <div class="callout info"><strong>The noise floor is still unmeasured.</strong><p>Re-running the same version
+      gives a different CSV (v3_1 on train10 scored 61.4 / 63.6 / 63.6%). One extra gate pass of <code>v2</code>
+      against itself would put a number on how much of any Δ is temperature, and at this split size that context is
+      not optional. ~$1.50.</p></div>
+    <div class="callout info"><strong>Diagnosis is 70% of the wall clock.</strong><p>Fifty sequential Opus calls at
+      ~27s each. Batching them concurrently is the single biggest speed-up available and nothing about the loop
+      requires them to be serial — they are independent by construction.</p></div>
+    <div class="callout bad"><strong>Fixed mid-campaign: one flaky call aborted experiment 3.</strong>
+      <p>After 35 successful diagnoses, a single Agent SDK call returned no content at all and the exception took the
+        whole cycle with it — the train pass, the diagnoses, twenty minutes of work, discarded. The failure is
+        transient: the identical call succeeds on retry. Two changes, both mirroring a position the runner already
+        takes for conversations (<em>"one bad conversation must not sink the pass"</em>): <code>run_structured</code>
+        retries once with a backoff, and a case that still fails is counted, logged as
+        <code>n_diagnose_failures</code>, and skipped rather than raised. A pass where more cases failed than
+        succeeded still aborts — at that point it is not a flaky call, it is a broken teacher, and targeting off the
+        remainder would be picking from noise.</p>
+      <p class="small muted">This is the sort of thing only running it finds. Nothing in the plan predicted it, and
+        a loop meant to run unattended for five experiments cannot lose one to a dropped response.</p></div>
+    <div class="callout info"><strong>One conversation hit the call budget.</strong><p><code>Single_UPS/2015/page_35.pdf-3</code>
+      failed with <em>"the next request would exceed the request_limit of 50"</em>. One conversation in a hundred,
+      recorded as an error rather than silently scored as wrong — but a long conversation being unanswerable by
+      budget rather than by capability is a distinction the accuracy number currently does not make.</p></div>
+  </div>
+  <p class="foot">
+    Sources: MLflow @ 127.0.0.1:5000 (<code>convfinqa</code>, <code>convfinqa-optimization</code>) ·
+    <code>evaluation/story.json</code> · <code>evaluation/registry.json</code> ·
+    <code>evaluation/splits/eval_loop_v2.json</code> ·
+    <code>evaluation/predictions/evalloop/evalloop-{train,test}100-*.csv</code> ·
+    commit <code>fa4dd4f</code>.
+  </p>
+</section>
+
+</div>
+</body>
+</html>

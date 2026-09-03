@@ -63,7 +63,7 @@ def _panel(metrics: dict[str, float]) -> dict[str, float | None]:
 def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
     """Everything the page shows, read out of the record."""
     from convfinqa.config import settings
-    from convfinqa.evalloop.splits import load_manifest
+    from convfinqa.evalloop.splits import load_manifest, manifest_path
     from convfinqa.tracking import registry
 
     client = _client()
@@ -151,8 +151,18 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         if event.get("event") == "promote"
     ]
 
+    # Which manifest to describe comes from the *runs*, not from the ambient
+    # EVAL_MANIFEST. Reading the environment would let the page describe a
+    # different split from the one the experiments were actually gated on —
+    # silently, and with no way to tell from the page itself.
+    manifest_names = [
+        r.data.params.get("manifest")
+        for r in evals
+        if r.data.params.get("split") == "test" and r.data.params.get("manifest")
+    ]
     try:
-        manifest = load_manifest()
+        chosen = manifest_names[-1] if manifest_names else None
+        manifest = load_manifest(manifest_path(chosen) if chosen else None)
         split_info = {
             "name": manifest["name"],
             "gate_reports": manifest["stats"]["test"]["n_reports"],
@@ -162,9 +172,17 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
     except Exception:  # noqa: BLE001 — the page still builds without a manifest
         split_info = {}
 
+    champion = doc.aliases.get("champion")
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "champion": doc.aliases.get("champion"),
+        "champion": champion,
+        # The champion's own gate accuracy, so the headline has a number even
+        # before any experiment has moved it — which is the state a campaign
+        # spends most of its life in.
+        "champion_accuracy": gate_runs_by_version.get(champion or "", {}).get(
+            "accuracy"
+        ),
+        "champion_panel": _panel(gate_runs_by_version.get(champion or "", {})),
         "split": split_info,
         "alpha": 0.05,
         "rule": (

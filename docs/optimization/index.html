@@ -81,13 +81,13 @@ store that recorded the runs — nothing on this page is typed by hand.</p>
 <div class="grid g3">
 <div class="card"><div class="k">champion</div>
 <div class="stat">v2</div>
-<div class="sub">gate accuracy —</div></div>
+<div class="sub">77.1% on the gate split — not yet moved by an experiment</div></div>
 <div class="card"><div class="k">experiments run</div>
-<div class="stat">0</div>
-<div class="sub">0 promoted · 0 rejected</div></div>
+<div class="stat">2</div>
+<div class="sub">0 promoted · 2 rejected</div></div>
 <div class="card"><div class="k">gate split</div>
-<div class="stat">201</div>
-<div class="sub">questions across 54 conversations,
+<div class="stat">349</div>
+<div class="sub">questions across 100 conversations,
 fixed for the campaign</div></div>
 </div>
 
@@ -96,7 +96,7 @@ fixed for the campaign</div></div>
 That constraint is what makes a result readable: when the champion moves, the diff
 between it and the version before it is a single prompt, so the improvement has a
 named cause rather than an assertion attached to it.</p>
-<figure><svg viewBox="0 0 940 200" role="img" aria-labelledby="harness-t"><title id="harness-t">The optimisation loop: draw, run, diagnose, rewrite, gate, decide</title><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6b7a90"/></marker></defs><g font-family="IBM Plex Mono, monospace" font-size="11"><rect x="20" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="84" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">train draw</text><text x="84" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">pool − gate, fresh seed</text><line x1="148" y1="85" x2="166" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="170" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="234" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">run</text><text x="234" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">stop at first wrong</text><line x1="298" y1="85" x2="316" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="320" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="384" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">diagnose</text><text x="384" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">gold-derived attribution</text><line x1="448" y1="85" x2="466" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="470" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="534" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">rewrite</text><text x="534" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">ONE subagent, full prompt</text><line x1="598" y1="85" x2="616" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="620" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="684" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">gate</text><text x="684" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">fixed split, both arms</text><line x1="748" y1="85" x2="766" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="770" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="834" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">decide</text><text x="834" y="99" text-anchor="middle" fill="#93a1b5" font-size="9.5">p < 0.05, one-sided</text><path d="M884 118 L884 158 L84 158 L84 122" fill="none" stroke="#6b7a90" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ar)"/><text x="484" y="174" text-anchor="middle" fill="#93a1b5" font-size="10">promoted or not, the verdict is recorded — and the next rewrite reads it</text><text x="20" y="32" fill="#6b7a90" font-size="10">TRAIN — resampled every cycle, teacher reads it</text><text x="620" y="32" fill="#e0af68" font-size="10">GATE — fixed, never tuned against</text></g></svg>
+<figure><svg viewBox="0 0 940 200" role="img" aria-labelledby="harness-t"><title id="harness-t">The optimisation loop: draw, run, diagnose, rewrite, gate, decide</title><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6b7a90"/></marker></defs><g font-family="IBM Plex Mono, monospace" font-size="11"><rect x="20" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="84" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">train draw</text><text x="84" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">pool − gate, seeded</text><line x1="148" y1="85" x2="166" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="170" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="234" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">run</text><text x="234" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">stop at first wrong</text><line x1="298" y1="85" x2="316" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="320" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="384" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">diagnose</text><text x="384" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">attribution from gold</text><line x1="448" y1="85" x2="466" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="470" y="52" width="128" height="66" rx="8" fill="#151a21" stroke="#7aa2f7"/><text x="534" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">rewrite</text><text x="534" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">ONE subagent, in full</text><line x1="598" y1="85" x2="616" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="620" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="684" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">gate</text><text x="684" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">fixed split, both arms</text><line x1="748" y1="85" x2="766" y2="85" stroke="#6b7a90" stroke-width="1.2" marker-end="url(#ar)"/><rect x="770" y="52" width="128" height="66" rx="8" fill="#1b212a" stroke="#e0af68"/><text x="834" y="80" text-anchor="middle" fill="#dbe3ee" font-weight="600">decide</text><text x="834" y="99" text-anchor="middle" fill="#93a1b5" font-size="9">one-sided p < 0.05</text><path d="M884 118 L884 158 L84 158 L84 122" fill="none" stroke="#6b7a90" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ar)"/><text x="484" y="174" text-anchor="middle" fill="#93a1b5" font-size="10">promoted or not, the verdict is recorded — and the next rewrite reads it</text><text x="20" y="32" fill="#6b7a90" font-size="10">TRAIN — resampled every cycle, teacher reads it</text><text x="620" y="32" fill="#e0af68" font-size="10">GATE — fixed, never tuned against</text></g></svg>
 <figcaption>Train is resampled from the pool every cycle and read only by the
 teacher. The gate split never moves and is never tuned against. Both arms of every
 comparison run every question on it — the early-stopping that saves a quarter of
@@ -117,14 +117,240 @@ turns in one report are one piece of evidence, not four.</p></div>
 size a genuine improvement of two or three points is not distinguishable from
 noise, so the gate refuses it — and the rejection is recorded, fed back to the
 prompt writer, and counts against the campaign's budget.</p>
-<p>No campaigns recorded yet.</p>
+<h3>c01 — 2 experiments, 0 promoted</h3><details class="exp">
+<summary><span class="label">c01-e01</span>
+<span class="pill no">rejected</span><span class="pill agent">preprocess</span>
+<span class="head-delta">+2.29pp&nbsp;·&nbsp;p=0.191</span></summary>
+<div class="body">
+<p><strong>v2 → v6</strong> — Rewrote the prompt from a rule-and-example list into an explicit five-step decomposition procedure (name quantities → resolve references against history → classify operands as cached/lookup/literal → pick the operation from the question&#x27;s verb → order operands and self-check), adding coverage for verdict questions via `greater`, level-vs-change ratios, combined &quot;X and Y&quot; line items, enumerated-component totals, conventional constants, scale-conversion direction, impossible/typo periods, already-percent referents, and operand ordering; the three output fields, letter mapping, numeric-only program, and the existing ratio/percentage conventions are retained unchanged.</p>
+<p>The current prompt is organized as a list of output-format rules plus a gallery of percentage patterns; it teaches the agent how to *format* a program but never how to *decide* one, so every failure class here is a decision the prompt simply does not cover — which referent &quot;that value&quot; points at, whether an operand is a lookup or a document convention constant, whether a relation question wants a difference or a bare quotient, which operand becomes the minuend, and whether the turn is a comparison at all. Because the prompt also declares that only add/subtract/multiply/divide exist, the agent explicitly reasoned itself into emitting a subtraction on a verdict question; the calculator already exposes a `greater` tool, so admitting `greater` into the program vocabulary costs nothing downstream and removes an impossible constraint. I therefore restructured the prompt around a five-step decision procedure — name the quantities, resolve references against history, classify each operand as cached/lookup/literal, choose the operation from the question&#x27;s verb, then order operands and self-check — and folded the original percentage/ratio conventions in as the final wrapper step so the output contract, the four arithmetic functions, the letter-to-sub-question mapping, the numeric-only program, and all three output fields are preserved verbatim in requirement. The generic worked shapes replace the old year-specific examples so the guidance generalizes rather than pattern-matching a handful of remembered questions.</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat good">+2.29pp</div>
+<div class="sub">95% CI [-2.87pp, +7.40pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.191</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">31&thinsp;/&thinsp;23</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+<p class="sub">prompt 5418 → 13530 characters</p>
+<h3>Per-agent panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>subagent</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">91.4%</td><td class="num">92.3%</td></tr><tr><td>preprocess</td><td class="num">47.7%</td><td class="num">49.8%</td></tr><tr><td>retriever</td><td class="num">74.0%</td><td class="num">74.1%</td></tr><tr><td>calculator</td><td class="num">69.6%</td><td class="num">73.4%</td></tr></tbody></table></div>
+<h3>The prompt change</h3><pre>--- preprocess/before
++++ preprocess/after
+<span class="hunk">@@ -1,4 +1,4 @@</span>
+<span class="del">-You are a task-decomposition assistant. Your job is to break down a user question into retrieval sub-questions and a calculation program, while reusing values from prior conversation turns whenever possible.</span>
+<span class="add">+You are the decomposition stage of a financial question-answering pipeline. Given the current question, the conversation `history`, and the triage `conv_type`, you emit the retrieval sub-questions and the calculation program. The retriever and the calculator execute your skeleton literally: they will fetch exactly the quantities you name and compute exactly the expression you write. Almost every pipeline error that starts here is an error of *shape* — a missing operation, a misresolved &quot;that value&quot;, a flipped operand order — not an error of arithmetic. Getting the shape right is your entire job.</span>
+ 
+ **Input Format**
+ - `question`: the current user question (string)
+<span class="hunk">@@ -6,46 +6,112 @@</span>
+ - `conv_type`: either `&quot;Type I&quot;` (continuation of the same reasoning chain) or `&quot;Type II&quot;` (switch to a different aspect of the report)
+ 
+ **Output Format**
+<span class="del">-You must produce exactly:</span>
+<span class="del">-- `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` can be reused and why.</span>
+<span class="del">-- `sub_questions`: an ordered list of strings, each being a value lookup question. Use the placeholder letters A, B, C, … corresponding to the order in this list.</span>
+<span class="del">-- `program`: an arithmetic expression built from the letters A, B, C, … using only the functions `add`, `subtract`, `multiply`, and `divide`. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.</span>
+<span class="add">+You must produce exactly these three fields:</span>
+<span class="add">+- `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` you reuse and why.</span>
+<span class="add">+- `sub_questions`: an ordered list of strings, each a self-contained value lookup (never a computation). The first entry is A, the second B, the third C, and so on — letters map positionally to this list.</span>
+<span class="add">+- `program`: an expression over the letters A, B, C, … and plain numeric literals, built only from `add`, `subtract`, `multiply`, `divide`, and `greater`. Numeric only — no units, currency symbols, percent signs, commas, or any other formatting.</span>
+ 
+ **Conversation Type Guidance**
+<span class="del">-- **Type I (continuation)**: The new question heavily depends on the preceding reasoning chain. You should reuse cached answers as much as possible. Reproduce the *exact phrasing* from earlier `sub_questions` when they refer to the same quantity. Do not rephrase; identical wording ensures the retriever returns the cached value rather than re-reading the document.</span>
+<span class="del">-- **Type II (switch)**: The conversation has shifted to a different aspect of the report. Re-anchor sub-questions on the document (fresh, specific phrasing), but if a needed value clearly already appears in `history`, reuse its exact question phrasing to avoid drift.</span>
+<span class="add">+- **Type I (continuation)**: the question depends on the preceding reasoning chain. Reuse cached answers wherever possible; when a needed quantity was already looked up, reproduce that earlier sub-question&#x27;s *exact phrasing* so the retriever returns the cached value instead of re-reading the document.</span>
+<span class="add">+- **Type II (switch)**: the conversation has moved to a different aspect of the report, so re-anchor sub-questions on the document with fresh, specific phrasing. Type II never licenses ignoring `history`: if a needed value already appears there, reuse its exact phrasing.</span>
+ 
+<span class="del">-**Program Design Rules**</span>
+<span class="del">-1. **Basic mapping**: For each sub-question, assign a letter in order (A for the first sub-question, B for the second, etc.).</span>
+<span class="del">-2. **Pure ratio**: If the question asks for a plain ratio (e.g. “what is the ratio of X to Y?”), use `divide(A, B)` or the appropriate order. Do NOT multiply by 100.</span>
+<span class="del">-3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. “what was the percent change…”, “net change over the 2005 value”, “how much does this change represent in relation to… in percentage”, “value less 1” after a ratio was just computed), the program must include `multiply(..., 100)` to yield a percentage result.  </span>
+<span class="del">-   - Example pattern for percent change: `multiply(divide(subtract(B, A), A), 100)`</span>
+<span class="del">-   - Example pattern for “value less 1” following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the cached result of a prior `divide`.</span>
+<span class="del">-4. **Special literal phrase**: If the question uses the exact wording “what percentage change this represents” (or very close variants), produce the raw ratio **without** multiplying by 100 (i.e., just the decimal form). This is a specific dataset convention.</span>
+<span class="del">-5. **Program is numeric**: Never include units, dollar signs, percent symbols, or formatting. The output of the program is a plain number (or a percentage number in decimal form for case 4, otherwise multiplied by 100 for case 3).</span>
+<span class="add">+---</span>
+ 
+<span class="del">-**Examples of Correct Decomposition**</span>
+<span class="del">-- *Q: “what was the net change in reserves against inventory from 2005 to 2006?”*</span>
+<span class="del">-  - sub_questions: `[&quot;reserves against inventory for 2005&quot;, &quot;reserves against inventory for 2006&quot;]`</span>
+<span class="add">+## Procedure</span>
+<span class="add">+</span>
+<span class="add">+Work through these five steps and show the decisions in `reasoning`.</span>
+<span class="add">+</span>
+<span class="add">+### Step 1 — Name the quantities the answer depends on</span>
+<span class="add">+</span>
+<span class="add">+List, in plain words, each distinct quantity and the entity/period it belongs to. Watch for these traps:</span>
+<span class="add">+</span>
+<span class="add">+- **Metrics joined by &quot;and.&quot;** Treat the whole conjoined phrase as one candidate line-item label first, and emit one lookup per period for it. Split into separate per-metric lookups only if the combined phrase is implausible as a single row/label. Financial statements frequently report joined items on one line; splitting a combined line produces sub-questions nothing in the document answers.</span>
+<span class="add">+- **Adjustment qualifiers, not second periods.** A phrase such as &quot;taking dilution into consideration&quot;, &quot;on a diluted / adjusted / pro-forma basis&quot;, or &quot;including the effect of X&quot; names a second *version* of the same metric in the *same* period. Decompose it as an adjusted-vs-unadjusted comparison within that period. Emit a cross-period program only when the question actually names two distinct periods or says &quot;from/versus [other period]&quot;.</span>
+<span class="add">+- **Totals the source may only give as parts.** When the question asks for the &quot;total&quot; increase, decrease, or amount of an item that a filing typically explains by enumerating its drivers (&quot;X increased primarily due to $a of …, $b of …, $c of …&quot;), do not assume a single stated total exists. Emit one sub-question per named or plausibly enumerated component and sum them.</span>
+<span class="add">+- **A turn routed to you needs a computation.** A one-operand program (`A`) asserts that the answer is a bare number sitting in the document. If the question asks for a total, a change, a share, a comparison, or a conversion, the program must contain at least one operation — reach for the component decomposition rather than collapsing to a lookup.</span>
+<span class="add">+</span>
+<span class="add">+### Step 2 — Resolve every referring expression against `history`</span>
+<span class="add">+</span>
+<span class="add">+- **&quot;that value&quot;, &quot;this change&quot;, &quot;it&quot;, a bare &quot;the ratio&quot;** refer to the **immediately preceding turn&#x27;s answer** by default. Conversations often form a running chain in which each turn transforms the previous result; binding the reference to an earlier turn silently drops an intervening operation. Reach back past the latest turn only when that turn&#x27;s subject is a different metric than the current question&#x27;s, and say so in `reasoning`.</span>
+<span class="add">+- **Entity switches.** If the most recent turn introduced a different entity, series, or index than earlier turns, a reference belongs to that newest entity. Do not reuse a ratio or computed value derived for the earlier entity; retrieve the newest entity&#x27;s own numerator and denominator instead.</span>
+<span class="add">+- **Vacuity check.** If your decomposition would merely restate an earlier turn&#x27;s answer, it is wrong. Re-read the question and find the quantity that is actually new this turn.</span>
+<span class="add">+- **Impossible or corrupted periods.** If the question names a period the report cannot cover (outside the document&#x27;s year range, or a near-miss of a period already established in history — a typo or digit transposition), do not emit a lookup for it. Bind the operand to the cached history value for the near-identical label, and note the correction in `reasoning`. A sub-question for a period the document does not contain returns nothing and poisons the whole turn.</span>
+<span class="add">+- **Form check on cached answers.** Inspect the *form* of any answer you plan to reuse. If it is already in percent form (contains &quot;%&quot;, or is a share-of-a-whole already scaled above 1), never emit a bare `multiply(A, 100)` over it — that double-converts. Re-derive instead: emit sub-questions for the underlying numerator and denominator and use `multiply(divide(A, B), 100)`.</span>
+<span class="add">+</span>
+<span class="add">+### Step 3 — Classify each operand as cached, lookup, or literal</span>
+<span class="add">+</span>
+<span class="add">+- **Cached** — already answered in a prior turn: copy that turn&#x27;s sub-question text verbatim into `sub_questions`, and in `reasoning` say which turn it comes from.</span>
+<span class="add">+- **Lookup** — must be read from the document: write fresh, self-contained phrasing naming the metric, the period, and the entity. Never phrase a sub-question as a computation.</span>
+<span class="add">+- **Literal** — a value fixed by convention or supplied by the question itself: the base value that anchors a cumulative-total-return index, a stated par or base, a unit-scale factor (1000, 1000000), the 100 in a percentage conversion, or a rate the question states outright. Write these directly into the program as numbers. Never emit a retrieval sub-question for a constant.</span>
+<span class="add">+</span>
+<span class="add">+### Step 4 — Choose the operation from what the question asks for</span>
+<span class="add">+</span>
+<span class="add">+| The question asks for | Program shape |</span>
+<span class="add">+|---|---|</span>
+<span class="add">+| a verdict — &quot;which was greater/larger/smaller&quot;, &quot;was X more than Y&quot;, &quot;did X exceed Y&quot; | `greater(A, B)` — never a subtraction or division |</span>
+<span class="add">+| one level in relation to another — &quot;what does X represent in relation to / compared with / as a portion of / of Y&quot; | `divide(subject, reference)` — **no** subtraction |</span>
+<span class="add">+| a change — &quot;change&quot;, &quot;increase&quot;, &quot;decrease&quot;, &quot;growth&quot;, &quot;variation&quot;, &quot;how much more/less&quot; | `subtract(...)`, divided by the base if a percent is asked |</span>
+<span class="add">+| a total built from enumerated parts | `add(...)` over every component |</span>
+<span class="add">+| a unit/scale restatement | `multiply` or `divide` by the scale factor — see below |</span>
+<span class="add">+</span>
+<span class="add">+- **Verdict questions.** The answer is the comparison&#x27;s yes/no verdict, not a magnitude. Emit `greater(A, B)` with the two referents in the order the question or the prior turns introduce them; for &quot;which was smaller / was X less than Y&quot;, put the other operand first so the verdict reads directly. Never substitute `subtract` on the grounds that a program must produce a number, and never leave the verdict to be inferred from the sign of a difference.</span>
+<span class="add">+- **Ratios of levels vs. ratios of changes.** Insert a `subtract` inside a ratio only when the question names a *change* quantity. &quot;How much X represents / amounts to / is, in relation to Y&quot; is `divide(X, Y)` over the two levels themselves.</span>
+<span class="add">+- **Scale conversions.** First determine the unit the operand is *already* expressed in from the source wording (e.g. a figure quoted as &quot;$N million&quot; is already in millions). Multiply by the scale factor to expand an already-scaled figure into full base-unit digits; divide only when the operand is in base units and the question asks it restated in the larger unit.</span>
+<span class="add">+</span>
+<span class="add">+**Percentage and ratio conventions** (these govern the final wrapper):</span>
+<span class="add">+1. **Pure ratio.** A plain ratio question (&quot;what is the ratio of X to Y?&quot;) is `divide(A, B)` in the asked order. Do **not** multiply by 100.</span>
+<span class="add">+2. **Percentage / growth rate.** If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (&quot;what was the percent change…&quot;, &quot;net change over the [base] value&quot;, &quot;how much does this change represent in relation to …, in percentage&quot;, &quot;value less 1&quot; after a ratio was just computed), the program must include `multiply(..., 100)`.</span>
+<span class="add">+   - percent change: `multiply(divide(subtract(B, A), A), 100)`</span>
+<span class="add">+   - &quot;value less 1&quot; after a ratio: `multiply(subtract(A, 1), 100)` where A is the cached ratio.</span>
+<span class="add">+3. **Special literal phrase.** If the question uses the exact wording &quot;what percentage change this represents&quot; (or a very close variant), emit the raw ratio **without** the ×100 — decimal form. This is a dataset convention.</span>
+<span class="add">+4. **Program stays numeric.** No units, dollar signs, percent symbols, or formatting anywhere in `program`.</span>
+<span class="add">+</span>
+<span class="add">+### Step 5 — Order the operands, then self-check</span>
+… 63 more diff lines</pre>
+</div></details><details class="exp">
+<summary><span class="label">c01-e02</span>
+<span class="pill no">rejected</span><span class="pill agent">preprocess</span>
+<span class="head-delta">+2.58pp&nbsp;·&nbsp;p=0.132</span></summary>
+<div class="body">
+<p><strong>v2 → v7</strong> — Restructured the prompt around a five-step decomposition procedure (single-cell level lookups → reference resolution with a vacuity check → operand classification as cached level/delta/lookup/literal → operation choice from the question&#x27;s verb → operand ordering and read-back), while preserving the three output fields, letter mapping, the four-function numeric-only DSL, all five original Program Design Rules, and the original worked examples verbatim. Compared with the rejected v6 it omits the `greater` operator and the speculative conjoined-metric, adjustment-qualifier, corrupted-period and percent-form rules, and restores the concrete examples v6 deleted.</p>
+<p>The current prompt is a formatting contract plus a gallery of percentage patterns: it tells the agent how to *write* a program but never how to *decide* one, so the recurring faults — re-differencing an operand that is already a delta, dividing a rate-valued metric by its own base instead of taking percentage points, phrasing a sub-question as &quot;change in X&quot; when the program needs X&#x27;s level, phrasing one sub-question as an aggregate over two periods, collapsing a genuinely computational turn to a one-operand `A`, binding &quot;this change&quot; to the wrong turn, and inverting numerator/denominator — are all decisions the prompt is silent on. The previous restructure (v6) moved in the right direction (+2.29pp, P(Δ&gt;0)=0.79) but was rejected at p=0.19 with 23 questions broken against 31 fixed, so the fix is not &quot;more procedure&quot; but *less collateral damage*: this rewrite keeps the procedural spine that trended positive while deliberately dropping v6&#x27;s speculative and contract-touching additions — the `greater` operator (an output-contract change), the &quot;metrics joined by and&quot; heuristic, adjustment-qualifier decomposition, corrupted-period repair, and the percent-form re-derivation rule — and it restores v6&#x27;s deleted concrete examples and the original percentage/ratio conventions verbatim, since those encode baseline-calibrated dataset behaviour. Every rule I do add is backed by at least one, mostly two, independently diagnosed failures in this batch, and I deliberately left the ×100-vs-bare-quotient policy untouched because the evidence points in both directions on identical phrasings, making any change there a coin flip that would reintroduce exactly the kind of breakage that sank v6.</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat good">+2.58pp</div>
+<div class="sub">95% CI [-1.92pp, +7.16pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.132</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">27&thinsp;/&thinsp;18</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+<p class="sub">prompt 5418 → 14391 characters</p>
+<h3>Per-agent panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>subagent</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">91.4%</td><td class="num">91.7%</td></tr><tr><td>preprocess</td><td class="num">47.7%</td><td class="num">45.1%</td></tr><tr><td>retriever</td><td class="num">74.0%</td><td class="num">74.1%</td></tr><tr><td>calculator</td><td class="num">69.6%</td><td class="num">74.3%</td></tr></tbody></table></div>
+<h3>The prompt change</h3><pre>--- preprocess/before
++++ preprocess/after
+<span class="hunk">@@ -1,4 +1,4 @@</span>
+<span class="del">-You are a task-decomposition assistant. Your job is to break down a user question into retrieval sub-questions and a calculation program, while reusing values from prior conversation turns whenever possible.</span>
+<span class="add">+You are the decomposition stage of a financial question-answering pipeline. Given the current question, the conversation `history`, and the triage `conv_type`, you emit the retrieval sub-questions and the calculation program. The stages after you are literal: the retriever fetches exactly the quantities you name, and the calculator computes exactly the expression you write. Neither can repair a wrong shape. Almost every pipeline error that begins here is an error of *shape* — a sub-question that asks for the wrong kind of quantity, a missing operation, a misresolved &quot;that value&quot;, a flipped operand order — not an error of arithmetic.</span>
+ 
+ **Input Format**
+ - `question`: the current user question (string)
+<span class="hunk">@@ -6,46 +6,96 @@</span>
+ - `conv_type`: either `&quot;Type I&quot;` (continuation of the same reasoning chain) or `&quot;Type II&quot;` (switch to a different aspect of the report)
+ 
+ **Output Format**
+<span class="del">-You must produce exactly:</span>
+<span class="add">+You must produce exactly these three fields:</span>
+ - `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` can be reused and why.
+ - `sub_questions`: an ordered list of strings, each being a value lookup question. Use the placeholder letters A, B, C, … corresponding to the order in this list.
+<span class="del">-- `program`: an arithmetic expression built from the letters A, B, C, … using only the functions `add`, `subtract`, `multiply`, and `divide`. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.</span>
+<span class="add">+- `program`: an arithmetic expression built from the letters A, B, C, … and plain numeric literals, using only the functions `add`, `subtract`, `multiply`, and `divide`. Every letter that appears in the program must have a matching entry at that position in `sub_questions` — never invent a symbolic name (e.g. a descriptive placeholder) that has no sub-question behind it. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.</span>
+ 
+ **Conversation Type Guidance**
+<span class="del">-- **Type I (continuation)**: The new question heavily depends on the preceding reasoning chain. You should reuse cached answers as much as possible. Reproduce the *exact phrasing* from earlier `sub_questions` when they refer to the same quantity. Do not rephrase; identical wording ensures the retriever returns the cached value rather than re-reading the document.</span>
+<span class="add">+- **Type I (continuation)**: The new question heavily depends on the preceding reasoning chain. Reuse cached answers as much as possible. Reproduce the *exact phrasing* from earlier `sub_questions` when they refer to the same quantity. Do not rephrase; identical wording ensures the retriever returns the cached value rather than re-reading the document.</span>
+ - **Type II (switch)**: The conversation has shifted to a different aspect of the report. Re-anchor sub-questions on the document (fresh, specific phrasing), but if a needed value clearly already appears in `history`, reuse its exact question phrasing to avoid drift.
+ 
+<span class="del">-**Program Design Rules**</span>
+<span class="add">+---</span>
+<span class="add">+</span>
+<span class="add">+## Procedure</span>
+<span class="add">+</span>
+<span class="add">+Work through these five steps, and record the decisions briefly in `reasoning`.</span>
+<span class="add">+</span>
+<span class="add">+### Step 1 — Name each quantity, then make each one a single-cell lookup</span>
+<span class="add">+</span>
+<span class="add">+Write out every distinct quantity the answer depends on as (metric, entity, period). Turn each into a sub-question that a reader could answer by pointing at **one printed figure**.</span>
+<span class="add">+</span>
+<span class="add">+- **Level, not change.** When the program needs a period&#x27;s value, phrase the lookup as a bare level naming the metric row and its period label (&quot;&lt;metric&gt; at &lt;period end&gt;&quot;, &quot;&lt;metric&gt; for &lt;year&gt;&quot;). Strip every change word — change, increase, decrease, growth, net new, movement — even when a prior turn&#x27;s phrasing contained one. A sub-question carrying a change word makes the retriever hunt for a movement component instead of a balance, and the calculator then differences the wrong things.</span>
+<span class="add">+- **One figure per sub-question.** Never phrase a sub-question as an aggregate spanning two periods or two line items (&quot;total &lt;metric&gt; in &lt;year A&gt; and &lt;year B&gt;&quot;). The retriever can only return one stated figure. Expand the aggregate into one sub-question per component and combine them in the program — or, when a prior turn already computed that aggregate, inline its numeric result as a literal constant.</span>
+<span class="add">+- **Totals the source prints only as parts.** When the question asks for the &quot;total&quot;/&quot;combined&quot;/&quot;overall&quot; amount of a metric family that statements and allocation tables customarily split across several labelled rows (debt, borrowings, leases, receivables, inventories, intangibles), emit one sub-question per qualified variant (&quot;long-term …&quot;, &quot;short-term …&quot;, &quot;current portion of …&quot;) and sum them with `add`. Fall back to a single lookup only when you can point to a row whose own label is the asked aggregate.</span>
+<span class="add">+- **Never ask for the answer itself.** If the question asks what percentage, share, or proportion one quantity is of another, do not emit a sub-question naming the percentage as the thing to look up. Emit one sub-question for the numerator quantity and one for the denominator quantity, each phrased as the plain metric in the document&#x27;s own units.</span>
+<span class="add">+</span>
+<span class="add">+### Step 2 — Resolve every referring expression against `history`</span>
+<span class="add">+</span>
+<span class="add">+- **&quot;that value&quot;, &quot;this change&quot;, &quot;it&quot;, a bare &quot;the ratio&quot;** refer by default to the **immediately preceding turn&#x27;s answer**. Conversations usually form a running chain in which each turn transforms the previous result; binding a reference to an older turn silently drops an intervening step.</span>
+<span class="add">+- **Subject switches.** If an intervening turn introduced a different entity, series, index, or segment — even when the current question copies an older turn&#x27;s wording almost verbatim — the reference belongs to the **newest** subject. Emit sub-questions for that subject&#x27;s periods, not the older one&#x27;s.</span>
+<span class="add">+- **Widening qualifiers.** &quot;Concerning the entire period&quot;, &quot;overall&quot;, &quot;in total&quot;, &quot;for all of them&quot; widen the operands from the single line item used previously to the schedule&#x27;s aggregate row or column total. Emit sub-questions for that aggregate.</span>
+<span class="add">+- **Vacuity check.** Before emitting, ask whether your sub-questions would return exactly the values a prior turn already combined. If they would, the decomposition is wrong: this turn must be asking something new, so re-read the question&#x27;s qualifiers and find the quantity that actually changed.</span>
+<span class="add">+</span>
+<span class="add">+### Step 3 — Classify each operand: cached level, cached delta, fresh lookup, or literal</span>
+<span class="add">+</span>
+<span class="add">+- **Cached** — already answered in a prior turn: copy that turn&#x27;s sub-question text verbatim into `sub_questions`, or inline its numeric answer as a literal when it is a computed result. In `reasoning`, say which turn it comes from.</span>
+<span class="add">+- **Level vs. delta.** Read the prior turn&#x27;s *question wording* to decide what a cached answer is. If it asked for a balance/amount/total for one period, the answer is a **level**. If it asked for a change, increase, decrease, difference, or net change, the answer is already a **delta**. Bind a delta straight into the numerator of the ratio — `divide(delta, base)` — and never wrap it in another `subtract`. Emit a subtraction only when both operands being differenced are period levels.</span>
+<span class="add">+- **Cached unit conversions.** If a prior turn&#x27;s question explicitly applied a conversion (&quot;multiplied by 1000&quot;, &quot;in millions&quot;), its answer is already stated on the document&#x27;s reporting basis. Bind it directly; never emit an inverse operation to undo the conversion. Before finalizing a ratio, sanity-check that both operands share the magnitude of the figures printed alongside them — an operand orders of magnitude smaller than its counterpart signals a conversion wrongly reversed.</span>
+<span class="add">+- **Fresh lookup** — not in history: write a self-contained, document-anchored sub-question.</span>
+<span class="add">+</span>
+<span class="add">+### Step 4 — Choose the operation from what the question actually asks</span>
+<span class="add">+</span>
+<span class="add">+- **Difference between two period levels** → `subtract(later, earlier)`.</span>
+<span class="add">+- **Change &quot;during&quot;/&quot;in&quot;/&quot;over&quot; a single named year** → that year is the *interval the change spans*, not a percentage base and not a comparison against the report&#x27;s most recent year. Emit one sub-question for the metric&#x27;s balance at the end of that year and one for its balance at the start of that year (equivalently the prior year&#x27;s ending balance, or the rollforward&#x27;s beginning-balance row), and emit `subtract(end_of_year, start_of_year)`.</span>
+<span class="add">+- **The metric being differenced is itself a rate, ratio, margin, or percentage** (delinquency rate, effective tax rate, yield, operating margin, percent of total) → emit the plain difference `subtract(later, earlier)`; the result is a percentage-point movement. Do not wrap it in a divide-by-base relative-change skeleton unless the question explicitly asks for the percent change, growth rate, or &quot;change as a percentage of&quot; the earlier value.</span>
+<span class="add">+- **What share/percentage one quantity is of another** → `divide(part, whole)` over the two component lookups.</span>
+<span class="add">+- **A change expressed against a base** → `divide(change, base)`; derive the change with `subtract` only if it is not already cached.</span>
+<span class="add">+- **Hypothetical, conditional, or exclusion scenarios** (&quot;if &lt;contingency&gt; is resolved favorably/unfavorably&quot;, &quot;assuming &lt;item&gt; does not occur&quot;, &quot;excluding/without &lt;item&gt;&quot;) → do not emit a lookup of the unadjusted total alone. Emit one sub-question for the reported total and a second for the amount of the named contingent or excluded item as disclosed (including in footnotes to the total&#x27;s component rows), and combine with `subtract(total, item)` — or `add`, if the scenario increases the total.</span>
+<span class="add">+- **Never emit a one-operand program `A`** for a question that asks for a total, a change, a share, a comparison, or an adjusted figure. `A` asserts that the answer sits verbatim in a single cell; if it does not, the retriever is forced to return one component and the answer is silently wrong.</span>
+<span class="add">+</span>
+<span class="add">+### Step 5 — Order the operands, then read the program back</span>
+<span class="add">+</span>
+<span class="add">+- **Ratios**: the subject being expressed (the referent of &quot;that change&quot;, &quot;that amount&quot;, whether cached or freshly looked up) is the **numerator**; the quantity named after &quot;in relation to / relative to / as a percentage of / compared with / of&quot; is the **denominator**. Restate the ratio in words — &quot;&lt;subject&gt; divided by &lt;reference&gt;&quot; — and check the placeholder positions match that sentence.</span>
+<span class="add">+- **Change over a named baseline period**: bind that baseline to **both** the subtrahend and the divisor, and the other (current/later) period to the minuend: `subtract(current, baseline)` then divide by the baseline, so a decline comes out negative.</span>
+<span class="add">+- **Final checks**: every letter in the program has a sub-question at the matching position; no letter is left unbound; the program contains only `add`, `subtract`, `multiply`, `divide`, letters, and plain numbers.</span>
+<span class="add">+</span>
+<span class="add">+---</span>
+<span class="add">+</span>
+<span class="add">+## Program Design Rules</span>
+<span class="add">+</span>
+ 1. **Basic mapping**: For each sub-question, assign a letter in order (A for the first sub-question, B for the second, etc.).
+<span class="del">-2. **Pure ratio**: If the question asks for a plain ratio (e.g. “what is the ratio of X to Y?”), use `divide(A, B)` or the appropriate order. Do NOT multiply by 100.</span>
+<span class="del">-3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. “what was the percent change…”, “net change over the 2005 value”, “how much does this change represent in relation to… in percentage”, “value less 1” after a ratio was just computed), the program must include `multiply(..., 100)` to yield a percentage result.  </span>
+<span class="del">-   - Example pattern for percent change: `multiply(divide(subtract(B, A), A), 100)`</span>
+<span class="del">-   - Example pattern for “value less 1” following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the cached result of a prior `divide`.</span>
+<span class="del">-4. **Special literal phrase**: If the question uses the exact wording “what percentage change this represents” (or very close variants), produce the raw ratio **without** multiplying by 100 (i.e., just the decimal form). This is a specific dataset convention.</span>
+<span class="add">+2. **Pure ratio**: If the question asks for a plain ratio (e.g. &quot;what is the ratio of X to Y?&quot;), use `divide(A, B)` or the appropriate order. Do NOT multiply by 100.</span>
+<span class="add">+3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. &quot;what was the percent change…&quot;, &quot;net change over the &lt;earlier year&gt; value&quot;, &quot;how much does this change represent in relation to… in percentage&quot;), the program must include `multiply(..., 100)` to yield a percentage result.</span>
+<span class="add">+   - Example pattern for percent change over two levels: `multiply(divide(subtract(B, A), A), 100)`</span>
+<span class="add">+   - Example pattern when the change is already cached: `multiply(divide(cached_change, base), 100)` — no second subtraction</span>
+<span class="add">+   - Example pattern for &quot;value less 1&quot; following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the cached result of a prior `divide`.</span>
+<span class="add">+4. **Special literal phrase**: If the question uses the exact wording &quot;what percentage change this represents&quot; (or very close variants), produce the raw ratio **without** multiplying by 100 (i.e., just the decimal form). This is a specific dataset convention.</span>
+ 5. **Program is numeric**: Never include units, dollar signs, percent symbols, or formatting. The output of the program is a plain number (or a percentage number in decimal form for case 4, otherwise multiplied by 100 for case 3).
+ 
+ **Examples of Correct Decomposition**
+<span class="del">-- *Q: “what was the net change in reserves against inventory from 2005 to 2006?”*</span>
+… 33 more diff lines</pre>
+</div></details>
 
 <h2>Champion lineage</h2><div class="scroll"><table><thead><tr><th>when</th><th>move</th><th>why</th></tr></thead><tbody><tr><td class="mono">2026-09-03T17:18:03</td><td class="mono">v5 → <strong>v2</strong></td><td>rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule — net positive AND one-sid</td></tr><tr><td class="mono">2026-09-02T12:18:57</td><td class="mono">v3_1 → <strong>v5</strong></td><td>targeted (M2): preprocess acc_preprocess_skeleton 0.415 → 0.447 on the shared test reports; overall Δ +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445</td></tr><tr><td class="mono">2026-09-02T11:34:26</td><td class="mono">v4 → <strong>v3_1</strong></td><td>rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test</td></tr><tr><td class="mono">2026-09-02T10:05:54</td><td class="mono">v3_1 → <strong>v4</strong></td><td>targeted (M2): retriever first-faults 3 → 2 on the shared reports; overall Δ +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875</td></tr><tr><td class="mono">2026-09-02T04:59:09</td><td class="mono">v2 → <strong>v3_1</strong></td><td>comparator passed: net positive: 54.5% → 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at α=0.05)</td></tr><tr><td class="mono">2026-08-28T00:15:19</td><td class="mono">— → <strong>v2</strong></td><td>first registered version becomes champion by default</td></tr></tbody></table></div>
 
-<footer>Generated 2026-09-03T17:24:10+00:00 from
+<footer>Generated 2026-09-03T18:40:18+00:00 from
 <code>evaluation/registry.json</code> and the MLflow tracking store ·
-split manifest <code>eval_loop_v1</code> ·
+split manifest <code>eval_loop_v2</code> ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "v2", "n_experiments": 0, "generated_at": "2026-09-03T17:24:10+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "v2", "n_experiments": 2, "generated_at": "2026-09-03T18:40:18+00:00"}</script>
 </footer>
 </div></body></html>

@@ -107,13 +107,16 @@ def _pp(value: Any) -> str:
 
 def harness_svg() -> str:
     """The loop, as one figure: what runs, on which split, and what decides."""
+    # Sub-labels are kept short enough to sit inside a 128px box at 9.5px mono
+    # — roughly 22 characters. Longer ones overflow the stroke and read as a
+    # rendering bug rather than a caption.
     boxes = [
-        (20, "train draw", "pool − gate, fresh seed"),
+        (20, "train draw", "pool − gate, seeded"),
         (170, "run", "stop at first wrong"),
-        (320, "diagnose", "gold-derived attribution"),
-        (470, "rewrite", "ONE subagent, full prompt"),
+        (320, "diagnose", "attribution from gold"),
+        (470, "rewrite", "ONE subagent, in full"),
         (620, "gate", "fixed split, both arms"),
-        (770, "decide", "p < 0.05, one-sided"),
+        (770, "decide", "one-sided p < 0.05"),
     ]
     parts = [
         '<svg viewBox="0 0 940 200" role="img" aria-labelledby="harness-t">',
@@ -133,7 +136,7 @@ def harness_svg() -> str:
             f'<text x="{x + 64}" y="80" text-anchor="middle" fill="#dbe3ee" '
             f'font-weight="600">{title}</text>'
             f'<text x="{x + 64}" y="99" text-anchor="middle" fill="#93a1b5" '
-            f'font-size="9.5">{sub}</text>'
+            f'font-size="9">{sub}</text>'
         )
         if i < len(boxes) - 1:
             parts.append(
@@ -341,11 +344,15 @@ def render_page(data: dict[str, Any]) -> str:
     split = data.get("split") or {}
     first_acc = track[0]["accuracy"] if track else None
     last_acc = track[-1]["accuracy"] if track else None
-    moved = (
-        f"{_pct(first_acc)} → {_pct(last_acc)}"
-        if first_acc is not None and last_acc is not None
-        else "—"
-    )
+    if first_acc is not None and last_acc is not None:
+        moved = f"gate accuracy {_pct(first_acc)} → {_pct(last_acc)}"
+    elif data.get("champion_accuracy") is not None:
+        moved = (
+            f"{_pct(data['champion_accuracy'])} on the gate split — "
+            "not yet moved by an experiment"
+        )
+    else:
+        moved = "no gate run recorded"
 
     chart = track_chart(track)
     campaign_sections = "".join(
@@ -382,7 +389,7 @@ store that recorded the runs — nothing on this page is typed by hand.</p>
 <div class="grid g3">
 <div class="card"><div class="k">champion</div>
 <div class="stat">{_e(data.get("champion") or "—")}</div>
-<div class="sub">gate accuracy {moved}</div></div>
+<div class="sub">{moved}</div></div>
 <div class="card"><div class="k">experiments run</div>
 <div class="stat">{len(experiments)}</div>
 <div class="sub">{len(promoted)} promoted · {

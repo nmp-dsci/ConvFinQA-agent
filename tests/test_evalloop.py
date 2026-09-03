@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from pydantic import BaseModel
 
 from convfinqa.evalloop import gate, splits
 from convfinqa.evalloop.runner import first_wrong_index
@@ -859,3 +860,46 @@ def test_next_version_skips_the_numeric_prefix_of_an_existing_variant() -> None:
     picked = next_version("v2")
     assert picked.startswith("v")
     assert picked not in {"v3", "v4", "v5"}  # all have modules on disk
+
+
+@pytest.mark.asyncio
+async def test_run_structured_retries_a_transient_empty_reply() -> None:
+    """The observed SDK failure returns no content and succeeds on the retry.
+
+    One such call in fifty aborted a whole cycle and discarded twenty minutes of
+    diagnosis, so the retry is the difference between a loop that runs
+    unattended and one that does not."""
+    from convfinqa.evalloop import sdk
+
+    class Reply(BaseModel):
+        ok: str
+
+    calls = {"n": 0}
+
+    async def flaky(prompt: str, **kwargs: object) -> tuple[Reply, dict[str, object]]:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise sdk.TeacherCallError("the SDK returned no content at all")
+        return Reply(ok="yes"), {"usage": {}}
+
+    original = sdk._run_structured_once
+    sdk._run_structured_once = flaky  # type: ignore[assignment]
+    try:
+        out, _ = await sdk.run_structured(
+            "hi", schema=Reply, system_prompt="s", max_turns=1
+        )
+    finally:
+        sdk._run_structured_once = original  # type: ignore[assignment]
+    assert out.ok == "yes"
+    assert calls["n"] == 2
+
+    # ...and a persistent failure still surfaces rather than being swallowed
+    async def always(prompt: str, **kwargs: object) -> tuple[Reply, dict[str, object]]:
+        raise sdk.TeacherCallError("still nothing")
+
+    sdk._run_structured_once = always  # type: ignore[assignment]
+    try:
+        with pytest.raises(sdk.TeacherCallError, match="still nothing"):
+            await sdk.run_structured("hi", schema=Reply, system_prompt="s", attempts=2)
+    finally:
+        sdk._run_structured_once = original  # type: ignore[assignment]

@@ -20,6 +20,7 @@ callers and artifacts are unchanged.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, TypeVar
 
@@ -55,14 +56,49 @@ async def run_structured(
     mcp_servers: dict[str, Any] | None = None,
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
+    attempts: int = 2,
 ) -> tuple[T, dict[str, Any]]:
     """Run one Agent SDK turn and validate its reply against `schema`.
+
+    Retries once by default, because the observed failure mode is transient: a
+    call returns no content at all, and the next identical call succeeds. One
+    such call out of fifty was enough to abort a whole cycle and discard twenty
+    minutes of diagnosis, which is too fragile for something that runs
+    unattended.
 
     Returns the parsed object and a usage dict — token counts and the tools it
     actually called. Usage is returned rather than logged here so the caller can
     put it on the right MLflow run; the campaign's throughput limit is teacher
     calls, so an unrecorded one is a gap in the only number that constrains it.
     """
+    last: Exception | None = None
+    for attempt in range(max(1, attempts)):
+        try:
+            return await _run_structured_once(
+                prompt,
+                schema=schema,
+                system_prompt=system_prompt,
+                mcp_servers=mcp_servers,
+                allowed_tools=allowed_tools,
+                max_turns=max_turns,
+            )
+        except TeacherCallError as exc:
+            last = exc
+            if attempt + 1 < max(1, attempts):
+                await asyncio.sleep(2.0 * (attempt + 1))
+    raise last if last else TeacherCallError("no attempt was made")
+
+
+async def _run_structured_once(
+    prompt: str,
+    *,
+    schema: type[T],
+    system_prompt: str,
+    mcp_servers: dict[str, Any] | None = None,
+    allowed_tools: list[str] | None = None,
+    max_turns: int = 12,
+) -> tuple[T, dict[str, Any]]:
+    """One attempt. See `run_structured` for the contract."""
     from claude_agent_sdk import (
         AssistantMessage,
         ClaudeSDKClient,

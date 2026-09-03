@@ -281,11 +281,18 @@ async def get_campaigns(
     never disagree about the same campaign. Rebuild both with
     ``convfinqa-evalloop story``.
     """
-    return _campaigns_response(campaign)
+    from convfinqa.evalloop.story import STORY_PATH
+
+    # The cache key carries the file's mtime, so rebuilding the story with
+    # `convfinqa-evalloop story` shows up on the next request instead of after a
+    # restart. Caching on the name alone would serve a campaign's results from
+    # before its latest experiment, with nothing on the page to say so.
+    stamp = STORY_PATH.stat().st_mtime_ns if STORY_PATH.exists() else 0
+    return _campaigns_response(campaign, stamp)
 
 
 @lru_cache(maxsize=8)
-def _campaigns_response(campaign: str) -> CampaignsResponse:
+def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
     import json
 
     from convfinqa.evalloop.story import STORY_PATH

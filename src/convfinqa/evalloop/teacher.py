@@ -314,6 +314,7 @@ async def diagnose_run(
         )
 
     diagnoses: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
     usage_total = {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0}
     with mlflow_log.run(
         run_name,
@@ -344,7 +345,18 @@ async def diagnose_run(
                     "stage": "diagnose",
                 },
             ):
-                output, usage = await _diagnose_case(payload, memory_text)
+                try:
+                    output, usage = await _diagnose_case(payload, memory_text)
+                except Exception as exc:  # noqa: BLE001 — one bad case must not sink the pass
+                    # The runner already takes this position for conversations,
+                    # and a diagnosis pass is worth more: fifty calls, twenty
+                    # minutes, and the whole cycle downstream of it. A case that
+                    # cannot be diagnosed is counted and skipped, so the target
+                    # is picked from the cases that *did* work rather than from
+                    # nothing at all.
+                    failures.append({"report_id": row.report_id, "error": repr(exc)})
+                    print(f"  [skip] {row.report_id}: {exc}")  # noqa: T201
+                    continue
             _accumulate_usage(usage_total, usage)
             d = output.model_dump()
             d.update(
@@ -385,6 +397,7 @@ async def diagnose_run(
         rec.metrics(
             {
                 "n_diagnosed": float(len(diagnoses)),
+                "n_diagnose_failures": float(len(failures)),
                 "n_attribution_disputed": float(n_disputed),
                 "attribution_agreement": round(1 - n_disputed / len(diagnoses), 4)
                 if diagnoses
@@ -394,11 +407,19 @@ async def diagnose_run(
                 **{f"teacher_{k}": v for k, v in usage_total.items()},
             }
         )
+        if failures and len(failures) > len(diagnoses):
+            raise SystemExit(
+                f"{len(failures)} of {len(failures) + len(diagnoses)} cases failed "
+                "to diagnose — that is not a flaky call, it is a broken teacher, "
+                "and targeting off the remainder would be picking from noise"
+            )
         summary = {
             "run_name": run_name,
             "run_id": rec.run_id,
             "version": version,
             "n_cases": len(diagnoses),
+            "n_failures": len(failures),
+            "failures": failures,
             "counts": counts,
             "teacher_counts": teacher_counts,
             "n_attribution_disputed": n_disputed,
