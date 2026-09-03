@@ -41,6 +41,9 @@ COPY --from=frontend /build/dist frontend/dist
 COPY data/ data/
 COPY evaluation/predictions/ evaluation/predictions/
 COPY evaluation/diagnostics/ evaluation/diagnostics/
+# The eval-loop split manifest: /eval/dataset reads it, and without it that
+# route answered 500 on the public demo (2026-09-03).
+COPY evaluation/splits/ evaluation/splits/
 COPY evaluation/mlflow_snapshot.json evaluation/registry.json evaluation/
 COPY runs/ runs/
 

@@ -130,6 +130,24 @@ class DatasetRow(BaseModel):
     conv_type: str
 
 
+class LoopRunSummary(BaseModel):
+    """One committed eval-loop run: a split × version pass and what it scored.
+
+    The loop's evidence lives under ``evaluation/predictions/evalloop/`` with its
+    own denominator per run, never the 770-question corpus, so ``n_questions``
+    is the run's own count and ``accuracy`` is over exactly those rows.
+    """
+
+    version: str
+    composition: str | None
+    split: str
+    n_reports: int
+    n_questions: int
+    n_correct: int
+    accuracy: float
+    file: str
+
+
 class SplitSummary(BaseModel):
     """Dataset split membership, made visible rather than merely claimed."""
 
