@@ -1189,3 +1189,80 @@ def test_backfill_flips_refuses_when_the_recomputation_disagrees(
     out = ledger.backfill_flips(predictions_dir=tmp_path)
     assert written == [], "wrote flips from a comparison that did not match the verdict"
     assert "disagrees" in out[0]["status"]
+
+
+def test_pooled_targeting_outranks_a_single_noisy_draw() -> None:
+    """One train draw is ~50 cases split four ways; the top two sit close.
+
+    The real record: three v2 draws ranked preprocess 18, 26, 14 against
+    retriever 15, 15, 16. Same prompts, and the winner depended on which reports
+    were drawn — draw three picked retriever on a 16-vs-14 gap while the pooled
+    evidence favoured preprocess 58-46."""
+    from convfinqa.evalloop import campaign
+
+    third_draw = {"preprocess": 14, "retriever": 16, "triage": 7, "calculator": 7}
+    # Unpooled, the draw decides.
+    agent, _ = campaign.pick_target(third_draw, [])
+    assert agent == "retriever"
+
+    pooled = {
+        "preprocess": {"faults": 58, "cases": 150, "rate": 58 / 150, "n_runs": 3},
+        "retriever": {"faults": 46, "cases": 150, "rate": 46 / 150, "n_runs": 3},
+        "triage": {"faults": 24, "cases": 150, "rate": 24 / 150, "n_runs": 3},
+        "calculator": {"faults": 22, "cases": 150, "rate": 22 / 150, "n_runs": 3},
+    }
+    agent, why = campaign.pick_target(third_draw, [], pooled=pooled)
+    assert agent == "preprocess"
+    assert "58/150" in why and "3 train draw(s)" in why
+    assert "14 in this draw" in why
+
+
+def test_pooled_targeting_ranks_on_rate_not_raw_totals() -> None:
+    """Agents accumulate different numbers of draws, so totals are not comparable.
+
+    An agent untouched since v2 has four draws behind it; one rewritten last
+    cycle has one. Ranking on raw faults would pick whichever had gone longest
+    without a rewrite — exactly backwards, since the freshly changed agent is the
+    one we know least about."""
+    from convfinqa.evalloop import campaign
+
+    pooled = {
+        # Four draws, 200 cases, 40 faults — a 20% rate on a long history.
+        "triage": {"faults": 40, "cases": 200, "rate": 0.20, "n_runs": 4},
+        # One draw, 50 cases, 20 faults — a 40% rate, and the higher priority.
+        "retriever": {"faults": 20, "cases": 50, "rate": 0.40, "n_runs": 1},
+        "preprocess": {"faults": 10, "cases": 200, "rate": 0.05, "n_runs": 4},
+        "calculator": {"faults": 5, "cases": 200, "rate": 0.025, "n_runs": 4},
+    }
+    counts = {"triage": 8, "retriever": 20, "preprocess": 3, "calculator": 1}
+    agent, why = campaign.pick_target(counts, [], pooled=pooled)
+    assert agent == "retriever", "ranked on raw totals, favouring the stalest prompt"
+    assert "40.0%" in why
+
+
+def test_merge_draw_folds_the_current_pass_in_exactly_once() -> None:
+    """A freshly rewritten agent has no pooled history — only this draw.
+
+    Against v8 the retriever prompt r5 has never been diagnosed, so its pooled
+    evidence is 0/0. Without the current draw merged in it would rank last on a
+    rate of zero and could never be targeted, which is the opposite of what a
+    just-changed agent deserves."""
+    from convfinqa.evalloop import ledger
+
+    pooled = {
+        "triage": {"faults": 24, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+        "preprocess": {"faults": 58, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+        "retriever": {"faults": 0, "cases": 0, "n_runs": 0, "versions": []},
+        "calculator": {"faults": 22, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+    }
+    counts = {"triage": 5, "preprocess": 10, "retriever": 20, "calculator": 5}
+    merged = ledger.merge_draw(pooled, counts, "v8")
+
+    assert merged["retriever"]["faults"] == 20
+    assert merged["retriever"]["cases"] == 40  # the draw's own denominator
+    assert merged["retriever"]["rate"] == pytest.approx(0.5)
+    assert merged["retriever"]["n_runs"] == 1
+    # An agent with history gains exactly one draw, not two.
+    assert merged["preprocess"]["n_runs"] == 4
+    assert merged["preprocess"]["cases"] == 190
+    assert merged["preprocess"]["faults"] == 68

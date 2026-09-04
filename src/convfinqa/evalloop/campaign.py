@@ -93,16 +93,39 @@ def check_capacity(campaign: str, past: list[dict[str, Any]]) -> None:
 
 
 def pick_target(
-    counts: dict[str, int], past: list[dict[str, Any]], *, requested: str | None = None
+    counts: dict[str, int],
+    past: list[dict[str, Any]],
+    *,
+    requested: str | None = None,
+    pooled: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[str, str]:
     """The agent this experiment will change, and why it was chosen.
+
+    `pooled` is the accumulated first-fault evidence from every train draw that
+    ran this agent's current prompt (see `ledger.fault_history`). When it is
+    given the ranking uses the pooled fault **rate** instead of this one draw's
+    counts, because one draw is ~50 cases split four ways and the top two agents
+    routinely sit a couple of cases apart — inside the noise. Three v2 draws put
+    preprocess at 18, 26 and 14 against retriever's 15, 15 and 16, so which
+    agent "has the most faults" depended on which reports were drawn.
 
     An explicit `--target` still honours the rotation rule: being able to
     override the cap by naming the blocked agent would make the cap advisory,
     which is the same as not having it.
     """
     blocked = blocked_agents(past)
-    ranked = sorted(AGENTS, key=lambda a: -counts.get(a, 0))
+
+    def _weight(agent: str) -> float:
+        if pooled:
+            return float(pooled.get(agent, {}).get("rate", 0.0))
+        return float(counts.get(agent, 0))
+
+    def _evidence(agent: str) -> int:
+        if pooled:
+            return int(pooled.get(agent, {}).get("faults", 0))
+        return int(counts.get(agent, 0))
+
+    ranked = sorted(AGENTS, key=lambda a: (-_weight(a), a))
     if requested:
         if requested in blocked:
             raise SystemExit(
@@ -114,15 +137,22 @@ def pick_target(
     for agent in ranked:
         if agent in blocked:
             continue
-        if not counts.get(agent):
+        if not _evidence(agent):
             continue
-        note = f"most derived first-faults ({counts[agent]})"
+        if pooled:
+            ev = pooled.get(agent, {})
+            note = (
+                f"highest pooled first-fault rate "
+                f"({ev.get('faults', 0)}/{ev.get('cases', 0)} = "
+                f"{_weight(agent):.1%} across {ev.get('n_runs', 0)} train "
+                f"draw(s) of this prompt; {counts.get(agent, 0)} in this draw)"
+            )
+        else:
+            note = f"most derived first-faults ({counts[agent]})"
         # Only claim the rotation changed the outcome when it actually did —
         # a blocked agent that ranked *below* the pick was never in contention,
         # and saying otherwise would credit the cap for a choice it did not make.
-        outranked = sorted(
-            b for b in blocked if counts.get(b, 0) > counts.get(agent, 0)
-        )
+        outranked = sorted(b for b in blocked if _weight(b) > _weight(agent))
         if outranked:
             note += f"; rotated past {', '.join(outranked)}"
         return agent, note

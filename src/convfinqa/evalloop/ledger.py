@@ -360,3 +360,97 @@ def backfill_flips(
             }
         )
     return out
+
+
+def fault_history(
+    base_version: str,
+    *,
+    experiment: str = OPTIMIZATION_EXPERIMENT,
+    exclude_run_id: str | None = None,
+    limit_runs: int = 40,
+) -> dict[str, dict[str, Any]]:
+    """Pooled first-fault evidence per agent, over runs sharing its prompt.
+
+    Train is resampled every cycle, so one draw's fault counts are a sample of
+    about fifty cases split four ways — and the top two agents routinely sit
+    within a couple of cases of each other, which is inside the noise of a
+    single draw. Three v2 draws ranked preprocess 18, 26 and 14 against
+    retriever 15, 15 and 16: the same prompts, and a different winner depending
+    on which reports were drawn.
+
+    Pooling is per agent and keyed on **that agent's prompt hash**, so each
+    agent accumulates only the draws in which it was running the text it is
+    still running. That makes the contributing run sets different lengths — an
+    agent rewritten last cycle has one draw, one untouched since v2 has four —
+    which is why this reports a `rate` (faults per diagnosed case) rather than a
+    count. Ranking on raw totals would systematically favour whichever agent had
+    gone longest without a rewrite, which is precisely backwards: the agent we
+    know least about is the one just changed.
+    """
+    from convfinqa.evalloop.teacher import AGENTS
+
+    want = {a: _agent_prompt_hash(base_version, a) for a in AGENTS}
+    try:
+        client = _client()
+        runs = _runs(client, experiment, "diagnose", limit=limit_runs)
+    except Exception:  # noqa: BLE001
+        runs = []
+
+    out: dict[str, dict[str, Any]] = {
+        a: {"faults": 0, "cases": 0, "n_runs": 0, "versions": []} for a in AGENTS
+    }
+    seen_hash: dict[str, dict[str, str | None]] = {}
+    for run in runs:
+        if exclude_run_id and run.info.run_id == exclude_run_id:
+            continue
+        version = run.data.params.get("prompts_version", "")
+        metrics = run.data.metrics
+        # An aborted pass logs no fault metrics; it is absence of evidence.
+        if not version or not any(f"faults_{a}" in metrics for a in AGENTS):
+            continue
+        n = int(
+            metrics.get("n_diagnosed")
+            or sum(metrics.get(f"faults_{a}", 0.0) for a in AGENTS)
+        )
+        if not n:
+            continue
+        if version not in seen_hash:
+            seen_hash[version] = {a: _agent_prompt_hash(version, a) for a in AGENTS}
+        for agent in AGENTS:
+            if want[agent] is None or seen_hash[version][agent] != want[agent]:
+                continue
+            out[agent]["faults"] += int(metrics.get(f"faults_{agent}", 0.0))
+            out[agent]["cases"] += n
+            out[agent]["n_runs"] += 1
+            out[agent]["versions"].append(version)
+    for agent in AGENTS:
+        cases = out[agent]["cases"]
+        out[agent]["rate"] = (out[agent]["faults"] / cases) if cases else 0.0
+    return out
+
+
+def merge_draw(
+    pooled: dict[str, dict[str, Any]], counts: dict[str, int], version: str
+) -> dict[str, dict[str, Any]]:
+    """Fold the run just diagnosed into the pooled evidence.
+
+    Added explicitly rather than read back, so the current draw counts exactly
+    once no matter how promptly the tracking store makes the new run visible.
+    """
+    from convfinqa.evalloop.teacher import AGENTS
+
+    n = sum(counts.get(a, 0) for a in AGENTS)
+    out = {
+        a: dict(pooled.get(a, {"faults": 0, "cases": 0, "n_runs": 0, "versions": []}))
+        for a in AGENTS
+    }
+    for agent in AGENTS:
+        out[agent]["faults"] = int(out[agent].get("faults", 0)) + int(
+            counts.get(agent, 0)
+        )
+        out[agent]["cases"] = int(out[agent].get("cases", 0)) + n
+        out[agent]["n_runs"] = int(out[agent].get("n_runs", 0)) + 1
+        out[agent]["versions"] = [*out[agent].get("versions", []), version]
+        cases = out[agent]["cases"]
+        out[agent]["rate"] = (out[agent]["faults"] / cases) if cases else 0.0
+    return out

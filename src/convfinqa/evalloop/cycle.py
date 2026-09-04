@@ -69,7 +69,7 @@ async def run_cycle(
 ) -> dict[str, Any]:
     """Run one full experiment. Returns everything it did, in order."""
     from convfinqa.evalloop import campaign as camp
-    from convfinqa.evalloop import teacher
+    from convfinqa.evalloop import ledger, teacher
     from convfinqa.evalloop.runner import run_split
     from convfinqa.tracking import registry
 
@@ -104,9 +104,20 @@ async def run_cycle(
     if not diagnosis["n_cases"]:
         raise SystemExit("the train pass produced no failures to learn from")
 
-    # 3 — pick the target under the campaign's rotation rule
-    chosen, why = camp.pick_target(diagnosis["counts"], past, requested=target)
-    steps["target"] = {"agent": chosen, "why": why}
+    # 3 — pick the target under the campaign's rotation rule, on the pooled
+    # evidence rather than this one draw. Train is resampled every cycle, so a
+    # single draw ranks the agents with about fifty cases split four ways; the
+    # accumulated draws of the *same* prompt are the better-powered version of
+    # the same question.
+    pooled = ledger.merge_draw(
+        ledger.fault_history(baseline, exclude_run_id=diagnosis.get("run_id")),
+        diagnosis["counts"],
+        baseline,
+    )
+    chosen, why = camp.pick_target(
+        diagnosis["counts"], past, requested=target, pooled=pooled
+    )
+    steps["target"] = {"agent": chosen, "why": why, "pooled_faults": pooled}
     print(f"  target: {chosen} — {why}")  # noqa: T201
 
     # 4 — rewrite that one agent
