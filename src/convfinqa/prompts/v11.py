@@ -5,9 +5,9 @@ is replaced rather than extended. Regenerate via `convfinqa-evalloop propose`.
 """
 
 from convfinqa.prompts.v8 import (
-    TRIAGE_PROMPT,
-    RETRIEVER_PROMPT,
     CALCULATOR_PROMPT,
+    RETRIEVER_PROMPT,
+    TRIAGE_PROMPT,
 )
 
 __all__ = [

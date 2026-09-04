@@ -22,8 +22,8 @@ const SEED_RID = 'Single_VLO/2011/page_126.pdf-1';
 
 /** The six tiles, by the testid `HudTile` derives from each label. */
 const TILES = [
-  'hud-tile-execution-accuracy',
-  'hud-tile-never-seen-accuracy',
+  'hud-tile-gate-accuracy',
+  'hud-tile-out-of-sample-accuracy',
   'hud-tile-p50-latency',
   'hud-tile-cost-per-turn',
   'hud-tile-turns-served',
@@ -150,12 +150,22 @@ test.describe('status board at /', () => {
       }
     }
 
-    // Accuracy comes from committed CSVs, so it is measured on every
-    // deployment — and the two populations stay two tiles, never an average.
-    for (const testId of ['hud-tile-execution-accuracy', 'hud-tile-never-seen-accuracy']) {
-      await expect(page.getByTestId(testId).getByTestId('hud-value')).not.toHaveText(NO_VALUE);
-      await expect(page.getByTestId(testId)).toHaveAttribute('data-absent', 'false');
-    }
+    // Gate accuracy comes from committed CSVs, so it is measured on every
+    // deployment. Out-of-sample is deliberately unmeasured mid-campaign — the
+    // holdout stays sealed until a release opens it — so it renders an em
+    // dash with a reason, same as any other unmeasured tile, and the two
+    // populations stay two tiles, never an average.
+    await expect(
+      page.getByTestId('hud-tile-gate-accuracy').getByTestId('hud-value')
+    ).not.toHaveText(NO_VALUE);
+    await expect(page.getByTestId('hud-tile-gate-accuracy')).toHaveAttribute(
+      'data-absent',
+      'false'
+    );
+
+    const outOfSample = page.getByTestId('hud-tile-out-of-sample-accuracy');
+    await expect(outOfSample.getByTestId('hud-value')).toHaveText(NO_VALUE);
+    await expect(outOfSample).toHaveAttribute('data-absent', 'true');
   });
 
   test('an unmeasured metric renders an em dash, not a zero, even with turns served', async ({

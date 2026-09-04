@@ -1090,7 +1090,7 @@ def _write_version_module(
     it.
     """
     var = _AGENT_VARS[target]
-    others = ",\n    ".join(v for k, v in _AGENT_VARS.items() if k != target)
+    others = ",\n    ".join(sorted(v for k, v in _AGENT_VARS.items() if k != target))
     # The prompt goes into a triple-quoted literal, so the two sequences that
     # could end it early are neutralised. Readability is the point of the
     # triple quote — a repr would be safe too and unreadable, and these modules

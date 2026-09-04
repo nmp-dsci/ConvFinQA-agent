@@ -1720,7 +1720,7 @@ async def test_agent_sdk_is_reached_through_exactly_one_chokepoint(
             calls.append(options)
             self._options = options
 
-        async def __aenter__(self) -> "_FakeClient":
+        async def __aenter__(self) -> _FakeClient:
             return self
 
         async def __aexit__(self, *exc: Any) -> None:
