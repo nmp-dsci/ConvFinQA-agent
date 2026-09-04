@@ -83,8 +83,8 @@ store that recorded the runs — nothing on this page is typed by hand.</p>
 <div class="stat">v8</div>
 <div class="sub">gate accuracy 77.1% → 81.7%</div></div>
 <div class="card"><div class="k">experiments run</div>
-<div class="stat">3</div>
-<div class="sub">1 promoted · 2 rejected</div></div>
+<div class="stat">5</div>
+<div class="sub">1 promoted · 4 rejected</div></div>
 <div class="card"><div class="k">gate split</div>
 <div class="stat">349</div>
 <div class="sub">questions across 100 conversations,
@@ -456,14 +456,213 @@ prompt writer, and counts against the campaign's budget.</p>
  
 <span class="del">-## 6. General</span>
 … 48 more diff lines</pre>
+</div></details><h3>c02 — 2 experiments, 0 promoted</h3><details class="exp">
+<summary><span class="label">c02-e01</span>
+<span class="pill no">rejected</span><span class="pill agent">retriever</span>
+<span class="head-delta">+0.00pp&nbsp;·&nbsp;p=0.500</span></summary>
+<div class="body">
+<p><strong>v8 → v9</strong> — Re-scoped the sign policy from a blanket strip-by-default into keep-tests-first by cell type (activity/movement rows, change-or-effect questions, and same-row sibling operands keep the printed sign; balance, contra, deduction and expense-under-subtotal lines still strip), and turned §6b from a search checklist into four preconditioned tolerances (single-series scope, qualified variant, forward-looking schedule, level-plus-change reconstruction) plus an all-N/A self-check. Rebuilt §3 as a label-priority ladder (head-noun subject, letter-for-letter abbreviations, bare class noun = balance line, inherited row for metric-less questions), added an annual-summary-vs-quarterly rule and a bidirectional uniform-shift rule to §4, and a never-expand-magnitude-words rule to §6.</p>
+<p>Two failure clusters dominate this prompt&#x27;s record and they pull in opposite directions, so adding rules would not have worked — the existing sections had to be re-scoped. First, sign: v8&#x27;s blanket &quot;strip the minus&quot; default is what fixed contra-balance cases at promotion, but it is also what broke the questions v8 lost (a rollforward &quot;effect of others&quot;, a &quot;net change&quot;, its percentage), and this run shows both a case needing a strip (a tax charge printed under the subtotal it reduces) and a case needing preservation (two cells of one row feeding a subtraction). I therefore reordered §5 into keep-tests-first, scoped by *cell type* rather than table type: activity/movement rows of a rollforward, change/effect questions, and same-row sibling operands keep their printed sign, while balance rows, contra accounts, deduction lines and expense/provision/tax lines under a subtotal still strip exactly as before — this preserves every strip case v8 won and un-breaks the movement-row cases it lost, and it deliberately does *not* adopt the diagnosed suggestion of &quot;normalize only on single-lookup turns&quot;, which would have re-broken those same lost questions. Second, refusals: five of this run&#x27;s faults are the retriever finding the figure and then rejecting it on a self-imposed scope, qualifier, forward-looking or period-label objection, which downstream degenerates to a non-numeric answer, so §6b now ends in four explicitly preconditioned tolerances plus an all-N/A self-check, each firing only when no competing candidate exists. The remaining faults were all &quot;right concept, wrong line&quot;, so §3 was rebuilt as a label-priority ladder (head-noun subject vs trailing modifier or restrictive relative clause, letter-for-letter abbreviation expansion, bare class noun = level not adjustment, no-metric questions bind the inherited row while &quot;end of &lt;year&gt;&quot; names the column) with an annual-summary-vs-quarter rule added to §4 and a no-rescaling rule to §6. The output contract, history rules, arithmetic, precision, formatting and field guidance are carried over unchanged.</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat bad">+0.00pp</div>
+<div class="sub">95% CI [-3.93pp, +3.46pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.500</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">17&thinsp;/&thinsp;17</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+<p class="sub">prompt 14396 → 22930 characters</p>
+<h3>Per-agent panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>subagent</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">92.3%</td><td class="num">91.1%</td></tr><tr><td>preprocess</td><td class="num">46.0%</td><td class="num">48.5%</td></tr><tr><td>retriever</td><td class="num">76.8%</td><td class="num">77.7%</td></tr><tr><td>calculator</td><td class="num">75.1%</td><td class="num">75.1%</td></tr></tbody></table></div>
+<h3>The prompt change</h3><pre>--- retriever/before
++++ retriever/after
+<span class="hunk">@@ -1,4 +1,4 @@</span>
+<span class="del">-You are an assistant that answers value‑lookup questions from a single financial document.</span>
+<span class="add">+You are an assistant that answers value-lookup questions from a single financial document.</span>
+ 
+ Your input contains:
+ - `turn_type`: either `&quot;number&quot;` or `&quot;program&quot;`.
+<span class="hunk">@@ -16,61 +16,84 @@</span>
+ ## 1. Mode-dependent behaviour
+ - **`turn_type = &quot;number&quot;`** — exactly one question, and it is the user&#x27;s final request.
+   - If it asks for a single factual value, return that value directly.
+<span class="del">-  - If it asks for a change, net increase/decrease, or a percentage, do the arithmetic yourself (§7). No further stage will run.</span>
+<span class="add">+  - If it asks for a change, net increase/decrease, or a percentage, do the arithmetic yourself (§8). No further stage will run.</span>
+ - **`turn_type = &quot;program&quot;`** — the questions are sub-questions from the Preprocess step. Return the raw retrieved value for each, **without** any arithmetic or aggregation, even if a question is phrased as a change. The Calculation stage consumes your answers.
+ 
+ ## 2. Retrieval procedure — run every lookup through it
+<span class="del">-- **A. Pin the target.** Name to yourself the metric, its qualifier, the entity, the period, and the scale/units the question implies.</span>
+<span class="del">-- **B. Enumerate candidates.** Scan the `table` *and* `pre_text`/`post_text`. Never stop at the first plausible hit; list the competing candidates with their labels.</span>
+<span class="del">-- **C. Choose** using §3 (which row) and §4 (which period/column).</span>
+<span class="del">-- **D. Verify** with the reconciliation and consistency checks in §4, apply the sign policy §5, then transcribe per §6.</span>
+<span class="add">+- **A. Pin the target.** Name to yourself the metric&#x27;s head noun phrase (the thing being measured), its qualifier, the entity, the period, and the scale/units the question implies.</span>
+<span class="add">+- **B. Enumerate candidates.** Scan every part of the document — the whole `table` and all of `pre_text` and `post_text` — and list the competing candidates with their labels. Never stop at the first plausible hit, and never conclude that the document lacks a metric on the strength of one adjacent table or one paragraph.</span>
+<span class="add">+- **C. Choose** using §3 (which line) and §4 (which period/column).</span>
+<span class="add">+- **D. Verify** with the checks in §4, apply the sign policy §5, then transcribe per §6.</span>
+ 
+<span class="del">-## 3. Choosing the right row (metric disambiguation)</span>
+<span class="add">+## 3. Choosing the right line (metric disambiguation)</span>
+<span class="add">+Rank candidates by how directly the line&#x27;s own label names what the question asks for.</span>
+<span class="add">+</span>
+<span class="add">+- **Head-noun match beats topical proximity.** Return a line in which the question&#x27;s head noun phrase is the *subject* of the figure. Reject a candidate where that phrase appears only as a trailing modifier of a different subject (&quot;X received net of proceeds from sales of Y&quot; is not &quot;proceeds from sales&quot;), and reject a figure that sits inside a subordinate or relative clause restricting a subset (&quot;these X, which totaled $N&quot;, &quot;such X, of which $N&quot; describe the antecedent the previous sentence introduced, not the company-wide metric). When a clause figure is your only candidate, first look for a line whose own caption names the metric, the measurement basis and the asked period (a &quot;fair value of X at &lt;date&gt;&quot; row, or the ending-balance row of that metric&#x27;s rollforward) and prefer it; use the clause figure only after stating that no such captioned line exists. If your favoured candidate is one you can reconstruct as arithmetic over two other cells on the page, that is evidence you are on a composite line — keep scanning for the standalone line. List each candidate label with the subject you parsed from it before choosing.</span>
+ - **Match the whole label, not a substring.** Where several values exist for the same year, pick the one the question actually refers to (e.g. do not confuse a differential with a spread).
+<span class="add">+- **Abbreviations expand letter-for-letter.** When the question names a metric only by an abbreviation or initialism (r&amp;e, r&amp;d, sg&amp;a, d&amp;a, capex, pp&amp;e), return only a candidate whose own words generate that abbreviation in order (r&amp;e → &quot;research and engineering&quot; / &quot;research and experimentation&quot;). Reject any label that cannot generate it (&quot;rentals and leases&quot;, &quot;rent expense&quot;), however prominent it is. If nothing matches, say which expansions you searched for rather than substituting the nearest topically related figure.</span>
+<span class="add">+- **A bare class noun names the level, not an adjustment to it.** When the question names an asset or liability class with no qualifier (&quot;securities&quot;, &quot;investments&quot;, &quot;loans&quot;, &quot;deposits&quot;, &quot;debt&quot;) and the source offers both a balance line for that class (fair value, carrying amount, amortized cost, total) and derivative rows about it (net unrealized gain/loss, pre-tax vs after-tax effect, impairment, allowance), return the balance line — normally the largest figure printed for that class. Return an adjustment row only when the question or history explicitly names it (&quot;unrealized loss on&quot;, &quot;impairment of&quot;, &quot;allowance for&quot;); record which balance row you rejected and why.</span>
+ - **Inherit the qualifier from history.** When the question names a metric only generically (&quot;the number of shares&quot;, &quot;the revenue&quot;, &quot;the expense&quot;) and the table offers several qualified variants, carry forward the qualifier fixed by the most recent history turn that read the same table, and return the asked period&#x27;s cell on that same labelled row. Fall back to the plainest/total row only when no prior turn fixed a variant. Name in your reasoning the history turn whose row you inherited.
+<span class="del">-- **Stock vs flow.** &quot;Balance&quot;, &quot;ending/beginning balance&quot;, &quot;outstanding&quot;, &quot;carrying value&quot;, &quot;at year end&quot; name a balance line of a rollforward or balance sheet. &quot;Deferred/added/capitalized/incurred during the period&quot;, &quot;additions&quot;, &quot;amortization expense&quot; name an activity row. Answer the type the question names, even when prior turns in the conversation used the other row of the same rollforward; say in your reasoning which of the two you selected.</span>
+<span class="add">+- **When the question names no metric at all** (&quot;what was the value at the end of 2009?&quot;, &quot;and for 2008?&quot;), bind the row label verbatim from the most recent history question that named one and return that exact row&#x27;s cell for the asked period. Here &quot;at the end of &lt;year&gt;&quot; names the *column*, not the row: an activity line of a rollforward (purchases, issuances and settlements, additions, transfers) is reported per year-ended column and is a valid answer for &quot;end of &lt;year&gt;&quot;. Do not swap in a beginning/ending balance line for the inherited row; if the inherited row has a cell for the asked period, return it.</span>
+<span class="add">+- **Stock vs flow (when the question does name the metric).** &quot;Balance&quot;, &quot;ending/beginning balance&quot;, &quot;outstanding&quot;, &quot;carrying value&quot;, &quot;at year end&quot; name a balance line of a rollforward or balance sheet. &quot;Deferred/added/capitalized/incurred during the period&quot;, &quot;additions&quot;, &quot;amortization expense&quot; name an activity row. Answer the type the question names, even when prior turns used the other row of the same rollforward; say which of the two you selected.</span>
+ - **Totals vs components.** For an unqualified company-wide aggregate (&quot;total X&quot;, &quot;overall X&quot;), never return a segment, component or line-item row. First look for a figure explicitly presented as the consolidated total, in the summary lines or the surrounding narrative, and return it in the magnitude the source states it in (a total stated as &quot;$X billion&quot; is returned as X). Reject any candidate smaller than another same-metric figure on the page — a total cannot be less than its parts. Sum the components only if no stated total exists.
+ 
+ ## 4. Choosing the right period (column alignment)
+ - **Transcribe the whole row** across every period header before selecting a cell, counting columns from the leftmost year header. Do not assume the leftmost or first-found column is the asked year.
+ - **One row may hold several periods.** A multi-period row may appear as repeated or suffixed row keys. Scan for every cell and every row-key variant carrying that label and map them left-to-right onto the period headers before concluding a metric has only one value.
+<span class="del">-- **Never return the same figure for two sibling sub-questions naming different periods.** Identical operands are proof you read one column twice. If, after a full re-scan, only one cell for the metric genuinely exists, return it for the period it belongs to and report the other period as unavailable — never duplicate it into both slots.</span>
+<span class="add">+- **Never return the same figure for two sibling sub-questions naming different periods.** Identical operands are proof you read one column twice. If, after a full re-scan, only one cell genuinely exists, return it for the period it belongs to rather than duplicating it into both slots.</span>
+ - **Never return a value history already reported for a different period.** If the only figure you can justify is a cached prior answer for another year, that is proof you are on the wrong column; re-read rather than re-emit it.
+<span class="add">+- **Whole year vs quarter.** When the question asks for a high, low, average or other extremum of a metric for a whole named year and the table prints both per-quarter rows and a summary row labelled &quot;year&quot;, &quot;full year&quot;, &quot;annual&quot; or &quot;total&quot;, read the summary row — &quot;year&quot;, &quot;year end&quot; and &quot;for the year&quot; name the annual aggregate, not the fourth quarter. Name both the quarterly cell you rejected and the summary cell you returned. Use a quarterly row only when the question names a specific quarter or an explicit as-of date.</span>
+ - **Header-slot figures.** In a forward-looking schedule (expected amortization, debt maturities, lease or contractual obligations), when the asked period matches no row/column label but an unlabeled currency figure sits in the header or leading position, treat that figure as the schedule&#x27;s first period — the year immediately preceding the earliest labeled period — count the remaining cells forward as consecutive years, and return the cell landing on the asked year.
+<span class="del">-- **Reconcile before answering.** For a rollforward / valuation-account column: beginning balance + additions/provisions − deductions/write-offs must equal the ending balance you are about to return, and that column&#x27;s beginning balance must equal the prior column&#x27;s ending balance. For a payment or maturity schedule: the year cells plus any &quot;thereafter&quot; entry must sum to the row&#x27;s printed total. If an identity fails, or it closes for a neighbouring column instead, your alignment is off — re-read the headers and return the cell that closes for the asked period.</span>
+<span class="add">+- **Reconcile before answering.** For a rollforward / valuation-account column: beginning balance + additions/provisions − deductions/write-offs must equal the ending balance you are about to return, and that column&#x27;s beginning balance must equal the prior column&#x27;s ending balance. For a payment or maturity schedule: the year cells plus any &quot;thereafter&quot; entry must sum to the row&#x27;s printed total. If an identity fails, or it closes for a neighbouring column instead, your alignment is off — re-read the headers and return the cell that closes for the asked period. Agreement with a cached history figure is corroboration only: it never outranks a literal label match for the asked metric and period.</span>
+ - **Prose listing several amounts before several periods** (&quot;was $A, $B and $C in fiscal 2019, 2018 and 2017&quot;; &quot;of $A in 2020 and $B in 2019&quot;): quote the whole sentence in your reasoning, enumerate the amounts and the period labels as two ordered lists, pair them by position (first amount ↔ first period), then select the asked period. Never collapse such a sentence to a single amount-year pair; if the two counts differ, say so and re-read instead of answering.
+ - **Two labels inside one asked year.** When the question names a bare calendar year and two or more period labels fall inside it (typical of 52/53-week fiscal calendars closing in early January and late December), return the value at the chronologically earliest such label rather than inferring a year-end, and list every matching label with its value in your reasoning.
+<span class="del">-- **Uniformly shifted period sets.** When sibling sub-questions of one program name consecutive periods and the later one falls outside the periods the source reports, do not answer &quot;N/A&quot;: test whether the requested pair maps onto an actually-reported consecutive pair under a single uniform shift (same ordering, same gap) — typically the source&#x27;s two most recent periods. If it does, return that pair&#x27;s values and record the shift and the actual labels in your reasoning. Report unavailability only when no uniform shift aligns the request with the reported series.</span>
+<span class="add">+- **Uniformly shifted period sets.** When sibling sub-questions of one program name consecutive periods and one of them falls outside the periods the source reports, do not answer &quot;N/A&quot;: test whether the requested set maps onto an actually-reported consecutive set under a single uniform shift (same ordering, same gap) — typically the source&#x27;s most recent periods. This applies whether the *later* or the *earlier* asked period is the one outside the reported range. In particular, when one quoted sentence or row supplies exactly as many amounts as the program has operands, map the amounts onto the asked slots in their stated order and return all of them, recording the shift and the actual labels in your reasoning. Report unavailability only when the source supplies fewer amounts than the program needs and no uniform shift aligns the request with the reported series.</span>
+ 
+ ## 5. Sign policy
+<span class="del">-Default: **return the magnitude exactly as printed, without a minus sign**, unless the sign is intrinsic to the quantity asked for.</span>
+<span class="add">+Run the keep-tests first; only if none fires do you strip.</span>
+ 
+<span class="del">-Treat a leading minus or parentheses as presentation, and drop it, when the metric is non-negative by construction:</span>
+<span class="add">+**Keep the printed sign** when any of these holds:</span>
+<span class="add">+- (a) the question asks for a **change**, difference, net change, increase/decrease, **effect on/of**, reduction of, or net adjustment to something;</span>
+<span class="add">+- (b) the metric genuinely goes both ways — changes, differences, returns, gains/losses, net income/loss, currency-translation effects, &quot;other&quot;/&quot;all other&quot; reconciling items — and the source prints it negative;</span>
+<span class="add">+- (c) the cell you are returning is an **activity/movement line inside a rollforward or reconciliation** (charge-offs, write-offs, deductions, settlements, reductions, lapses, transfers, &quot;effect of X&quot;, other adjustments). In these tables only the activity rows are printed negative, and their direction is the information the question wants;</span>
+<span class="add">+- (d) a **sibling sub-question of the same program reads the same row for another period**. Return every period&#x27;s cell under the source&#x27;s printed convention, so the difference computed from them keeps its direction — flipping both operands of a subtraction reverses the result. Note the convention in your reasoning instead of removing it.</span>
+<span class="add">+</span>
+<span class="add">+**Otherwise strip** a leading minus or parentheses and return the magnitude as printed. This applies when the value you return is a level, stock, or a charge that is positive by construction:</span>
+ - contra accounts — accumulated depreciation, accumulated amortization, accumulated impairment, allowance for doubtful accounts or credit losses, valuation allowance, treasury stock;
+<span class="del">-- period-end balances in a reconciliation or rollforward of a liability-like or contra stock (unrecognized tax benefits, reserves, allowances) — these are tabulated as positive stocks; only the activity rows (settlements, reductions, lapses, write-offs) are printed negative;</span>
+<span class="add">+- beginning/period-end **balance** rows in a reconciliation or rollforward of a liability-like or contra stock (unrecognized tax benefits, reserves, allowances) — these are tabulated as positive stocks;</span>
+ - outflow or deduction lines inside a computed schedule — capital spending/expenditures, taxes paid, dividends, repayments, or any line a free-cash-flow, cash-flow or reconciliation table prints in parentheses so it can be subtracted from the line above;
+<span class="del">-- stated assumptions and inherently positive quantities — risk-free rate, volatility, dividend yield, expected life/term, share counts, prices, per-share values, expenses.</span>
+<span class="add">+- a line whose noun is **expense, provision, charge, cost or tax** (income tax expense or provision, interest expense, depreciation/amortization expense, cost of sales) printed in parentheses or with a leading minus directly beneath the pre-tax subtotal it reduces;</span>
+<span class="add">+- stated assumptions and inherently positive quantities — risk-free rate, volatility, dividend yield, expected life/term, share counts, prices, per-share values.</span>
+ 
+<span class="del">-In these cases the minus marks the direction of a subtraction, or a deduction from a gross figure printed alongside; a stray minus may also be a dash, en-dash range separator, or bleed from an adjacent cell. Record the deduction&#x27;s direction in your reasoning, not in the value.</span>
+<span class="del">-</span>
+<span class="del">-Keep a minus sign only when (a) the question asks for the **effect on**, **reduction of**, or **net adjustment to** another total, or (b) the metric genuinely goes both ways — changes, differences, returns, gains/losses, net income/loss — and the source prints it negative.</span>
+<span class="add">+In these cases the minus marks the direction of a subtraction or a deduction from a gross figure printed alongside; a stray minus may also be a dash, en-dash range separator, or bleed from an adjacent cell. Record the deduction&#x27;s direction in your reasoning, not in the value. When two sibling sub-questions supply the numerator and denominator of a part-of-whole ratio drawn from the same schedule, return both under the same convention — a component&#x27;s share of its own subtotal must come out positive.</span>
+ 
+ ## 6. Transcribing the value
+ - For raw factual lookups and all `program`-mode outputs, return the numeric string exactly as it appears in the document or table, including meaningful trailing zeroes. Do not convert to float and drop zeros.
+ - When the table stores a value as a number (e.g. the float 19400.0), convert it back to a string matching the document&#x27;s formatting (e.g. `&quot;19400.0&quot;`).
+ - Strip units and currency symbols; keep the magnitude the source states (a figure disclosed in billions stays in billions unless the question asks otherwise).
+<span class="add">+- **Never expand a magnitude word into zeros.** A plural unit noun in the question (&quot;how many shares/units/dollars&quot;) names what is counted, not the scale of the answer. If your reasoning ever contains a step of the form &quot;&lt;numeral&gt; &lt;magnitude word&gt; = &lt;numeral with added zeros&gt;&quot;, discard the expanded form and answer with the numeral the source prints; check that the answer contains no digit absent from the quoted source string.</span>
+ 
+ ## 6b. Before you may answer &quot;not found&quot; or &quot;N/A&quot;
+<span class="del">-A non-numeric answer is almost always a retrieval failure, not a missing document. Before emitting one you must have:</span>
+<span class="add">+A non-numeric answer is almost always a retrieval failure, not a missing document, and downstream it produces no answer at all. Before emitting one you must have:</span>
+ - expanded every abbreviation and modifier in the question into the filing&#x27;s own vocabulary (fmv → &quot;fair market value&quot; → &quot;fair value&quot; → &quot;grant-date fair value&quot; → &quot;assumed share price&quot;; &quot;assumed/hypothetical&quot; → a figure stated in narrative or footnote rather than the table);
+… 23 more diff lines</pre>
+</div></details><details class="exp">
+<summary><span class="label">c02-e02</span>
+<span class="pill no">rejected</span><span class="pill agent">preprocess</span>
+<span class="head-delta">+0.57pp&nbsp;·&nbsp;p=0.393</span></summary>
+<div class="body">
+<p><strong>v8 → v10</strong> — Kept v8&#x27;s output contract, conversation-type guidance, all five Program Design Rules and the examples intact (only replacing the unevaluable `cached_ratio` token in one example with an inlined numeral), and inserted four precondition-gated sections: division of labour with the retriever (no derived-quantity sub-questions, but no collapsing a derivation into a single lookup either), reference resolution defaulting to the most recent turn with an entity-switch clause and a vacuity check, operand classification (delta vs rate vs level), and a narrow operand-order rule for two periods of one metric. Added a four-item pre-return validity checklist requiring every operand to be evaluable, forbidding empty programs/sub-question lists, and requiring the program to be read back against the reasoning; deliberately omitted the scale-direction and conversation-order rules that caused regressions in the rejected v6/v7.</p>
+<p>The current prompt is a formatting contract plus a percentage-pattern gallery: it says how to write a program but never how to decide operands, references, or the split of work with the retriever — which is where nearly every recurring fault lives (anaphor bound past the latest turn, derived-quantity sub-questions the retriever is forbidden to compute, single-lookup collapses of questions needing a derivation, already-a-delta operands re-differenced, and invented operand tokens that make the whole turn unevaluable). Two prior rewrites (v6, v7) replaced the whole prompt with a general five-step procedure and were rejected: their collateral damage was concentrated in turns that went from a correct number to the degenerate non-answer &quot;no&quot; and in over-firing scale/ordering rules. So this rewrite deliberately does something different: it preserves v8&#x27;s spine, its five Program Design Rules and its examples verbatim (including the ×100/no-×100 conventions, which I leave completely untouched since both prior rewrites lost percent-change questions there), and adds only precondition-gated sections plus an explicit output-validity checklist. That checklist — every operand must be a letter backed by a real sub-question or a bare numeral, and neither the program nor (absent all-literal operands) the sub-question list may be empty — is new relative to both rejected attempts and targets exactly the failure signature that sank them, so it should suppress regressions rather than add them. I dropped the two rules with demonstrated collateral damage: no scale-direction rule (v7&#x27;s version turned a correct &quot;times 1000&quot; answer into an off-by-1000 one) and no conversation-order minuend rule (v6&#x27;s version flipped a correct negative change to positive); operand ordering is now stated only for the narrow, unambiguous case of two periods of the same metric, or a base the question names in words.</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat good">+0.57pp</div>
+<div class="sub">95% CI [-3.44pp, +4.62pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.393</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">20&thinsp;/&thinsp;18</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+<p class="sub">prompt 5418 → 11163 characters</p>
+<h3>Per-agent panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>subagent</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">92.3%</td><td class="num">90.3%</td></tr><tr><td>preprocess</td><td class="num">46.0%</td><td class="num">45.1%</td></tr><tr><td>retriever</td><td class="num">76.8%</td><td class="num">75.8%</td></tr><tr><td>calculator</td><td class="num">75.1%</td><td class="num">76.4%</td></tr></tbody></table></div>
+<h3>The prompt change</h3><pre>--- preprocess/before
++++ preprocess/after
+<span class="hunk">@@ -7,9 +7,30 @@</span>
+ 
+ **Output Format**
+ You must produce exactly:
+<span class="del">-- `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` can be reused and why.</span>
+<span class="add">+- `reasoning`: a short explanation of your decomposition, explicitly noting which values from `history` can be reused and why, and which history line each reference resolves to.</span>
+ - `sub_questions`: an ordered list of strings, each being a value lookup question. Use the placeholder letters A, B, C, … corresponding to the order in this list.
+<span class="del">-- `program`: an arithmetic expression built from the letters A, B, C, … using only the functions `add`, `subtract`, `multiply`, and `divide`. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.</span>
+<span class="add">+- `program`: an arithmetic expression built from the letters A, B, C, … and bare numerals, using only the functions `add`, `subtract`, `multiply`, and `divide`. The expression must be numeric only – no units, currency symbols, percent signs, or any other formatting.</span>
+<span class="add">+</span>
+<span class="add">+**Division of Labour Between You and the Retriever**</span>
+<span class="add">+The retriever may only return figures the document prints; on a program turn it is not permitted to do arithmetic. Therefore:</span>
+<span class="add">+- Each sub-question names ONE printed quantity for one period and one entity. Never phrase a sub-question as a derived quantity — a change, growth, difference, sum, total of components, average, share/percentage of a whole, or a &quot;combined X and Y&quot;. If your program needs such a quantity, either (a) inline the history&#x27;s cached numeric answer for it as a bare numeral, or (b) emit one lookup per underlying printed figure and write the deriving step (`subtract`/`add`/`divide`) explicitly in the program.</span>
+<span class="add">+- Being unable to reproduce an earlier turn&#x27;s exact sub-question wording is never a reason to fall back on a derived-quantity sub-question — inline the cached number instead.</span>
+<span class="add">+- Conversely, the program must contain every arithmetic step the answer requires. Emit the single-placeholder program `A` only when the answer is a single figure the document prints under its own label (including elliptical follow-ups that merely swap the period or entity of a prior single lookup). If the question asks for a quantity the source states only as parts — a total whose components are printed on separate rows or enumerated in prose, a money amount implied by a stated rate applied to a balance, a part&#x27;s share of a whole, or any change — the derivation belongs in the program, not in one sub-question.</span>
+<span class="add">+</span>
+<span class="add">+**Resolving References to Earlier Turns**</span>
+<span class="add">+- Resolve a bare anaphor (&quot;that value&quot;, &quot;that&quot;, &quot;this amount&quot;, &quot;it&quot;, &quot;this change&quot;) to the answer of the immediately preceding turn by default — including one that is itself a computed result. Reach further back only when the current question names a metric, period, or qualifier that the latest answer demonstrably does not match, and say in `reasoning` which history line you resolved to and which one you are overriding.</span>
+<span class="add">+- If the immediately preceding turn switched the subject to a different company, index, segment, or series, carry that new entity forward for BOTH the referenced quantity and its comparison base.</span>
+<span class="add">+- When you extend a chain, either carry the previous turn&#x27;s steps into your own program or inline its numeric result as a bare numeral, so the chain extends rather than restarts.</span>
+<span class="add">+- **Vacuity check**: if your candidate program would simply reproduce a number the conversation has already reported, treat that as proof you bound a reference to the wrong turn, or dropped a qualifier the current question added (e.g. a widening &quot;for the entire period&quot; / &quot;overall&quot; / &quot;in total&quot;). Re-anchor before emitting.</span>
+<span class="add">+</span>
+<span class="add">+**Know What Each Operand Already Is**</span>
+<span class="add">+Before choosing the operation, classify every bound value from the prior turn&#x27;s wording or from how history printed it:</span>
+<span class="add">+- **A delta** (the prior turn asked for a change, increase, decrease, difference, or growth): bind it straight into the numerator — `divide(delta, base)` — and never wrap it in another `subtract()` to fit the (new − old)/old template.</span>
+<span class="add">+- **A rate or percentage-valued metric** (margin, effective tax rate, yield, payout ratio, a share, or any value history states with a `%`): the difference between two such values is already in percentage points, so emit the bare `subtract(later, earlier)` and do not divide by a base. Use the divide-by-base form for such a metric only when the question explicitly asks for the change &quot;in percentage terms&quot;, &quot;by what percent&quot;, or &quot;relative to&quot; the earlier value.</span>
+<span class="add">+- **A level** (a stated balance or amount for one period): treat normally.</span>
+<span class="add">+</span>
+<span class="add">+**Operand Order (narrow rule)**</span>
+<span class="add">+When the two operands are values of the SAME metric at two DIFFERENT periods and the question asks for a change or difference, the later period is the minuend: `subtract(later, earlier)`. Emit that signed result even if it is negative; never reorder operands to make the result positive. If the question names its base in words (&quot;over the 2005 value&quot;, &quot;relative to X&quot;, &quot;compared to X&quot;, &quot;the original/initial/invested amount&quot;), that named period is both the subtrahend and the denominator: `divide(subtract(other_period, named_base), named_base)`. When the operands are not two periods of one metric, follow the order your own reasoning states.</span>
+ 
+ **Conversation Type Guidance**
+ - **Type I (continuation)**: The new question heavily depends on the preceding reasoning chain. You should reuse cached answers as much as possible. Reproduce the *exact phrasing* from earlier `sub_questions` when they refer to the same quantity. Do not rephrase; identical wording ensures the retriever returns the cached value rather than re-reading the document.
+<span class="hunk">@@ -18,11 +39,17 @@</span>
+ **Program Design Rules**
+ 1. **Basic mapping**: For each sub-question, assign a letter in order (A for the first sub-question, B for the second, etc.).
+ 2. **Pure ratio**: If the question asks for a plain ratio (e.g. “what is the ratio of X to Y?”), use `divide(A, B)` or the appropriate order. Do NOT multiply by 100.
+<span class="del">-3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. “what was the percent change…”, “net change over the 2005 value”, “how much does this change represent in relation to… in percentage”, “value less 1” after a ratio was just computed), the program must include `multiply(..., 100)` to yield a percentage result.  </span>
+<span class="add">+3. **Percentage / growth rate**: If the question asks for a growth rate, percent change, change over a base, or any answer expressed as a percentage (e.g. “what was the percent change…”, “net change over the 2005 value”, “how much does this change represent in relation to… in percentage”, “value less 1” after a ratio was just computed), the program must include `multiply(..., 100)` to yield a percentage result.</span>
+    - Example pattern for percent change: `multiply(divide(subtract(B, A), A), 100)`
+<span class="del">-   - Example pattern for “value less 1” following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the cached result of a prior `divide`.</span>
+<span class="add">+   - Example pattern for “value less 1” following a ratio: `multiply(subtract(ratio, 1), 100)` where `ratio` is the prior turn&#x27;s cached numeric answer inlined as a bare numeral.</span>
+ 4. **Special literal phrase**: If the question uses the exact wording “what percentage change this represents” (or very close variants), produce the raw ratio **without** multiplying by 100 (i.e., just the decimal form). This is a specific dataset convention.
+ 5. **Program is numeric**: Never include units, dollar signs, percent symbols, or formatting. The output of the program is a plain number (or a percentage number in decimal form for case 4, otherwise multiplied by 100 for case 3).
+<span class="add">+</span>
+<span class="add">+**Before You Return — Validity Checks**</span>
+<span class="add">+1. **Every operand is evaluable.** Each operand of the program is either a letter that maps one-to-one to a sub-question you actually emitted, or a bare numeral. Never invent a descriptive or compound symbol (anything containing a metric name, a period, or the word &quot;cached&quot;) — replace it with the bare number it stands for.</span>
+<span class="add">+2. **Never emit an empty output.** `program` must never be empty, and `sub_questions` may be empty only when every operand in the program is a bare numeral inlined from history. A follow-up that only asks for a conversion or restatement of a quantity the thread already produced still needs its explicit step written out (e.g. `multiply(prior, 100)`, `divide(prior, 1000)`), even if the cached answer is already displayed in the requested form.</span>
+<span class="add">+3. **Read the program back in words** and confirm it matches the formula stated in your `reasoning`: same operation, and each value in the numerator/denominator/minuend slot your reasoning assigned it. Do not introduce any operator, multiplier, divisor, or scaling constant that neither your reasoning nor the question&#x27;s own words demand.</span>
+<span class="add">+4. **Re-read each period label** you wrote in a sub-question: it must be a period named in your reasoning or in the history line you drew the operand from. If history already answered that period, inline its cached number instead of re-asking.</span>
+ 
+ **Examples of Correct Decomposition**
+ - *Q: “what was the net change in reserves against inventory from 2005 to 2006?”*
+<span class="hunk">@@ -34,7 +61,7 @@</span>
+   - sub_questions: `[&quot;weighted average grant date fair value of restricted stocks in 2007&quot;, &quot;weighted average grant date fair value of restricted stocks in 2006&quot;]`
+   - program: `divide(A, B)`
+ - *Q: “what is that value less 1?”* (following a ratio answer)
+<span class="del">-  - Reuse the prior ratio as a cached value. Program: `multiply(subtract(cached_ratio, 1), 100)`</span>
+<span class="add">+  - Inline the prior ratio&#x27;s cached number as a numeral. Program: `multiply(subtract(1.29, 1), 100)`</span>
+ - *Q: “and how much does this change represent in relation to the total in 2005, in percentage?”*
+   - sub_questions: `[&quot;total change from 2005 to 2006&quot;, &quot;total in 2005&quot;]` (or reuse cached values)
+   - program: `multiply(divide(A, B), 100)`</pre>
 </div></details>
 
 <h2>Champion lineage</h2><div class="scroll"><table><thead><tr><th>when</th><th>move</th><th>why</th></tr></thead><tbody><tr><td class="mono">2026-09-03T19:33:24</td><td class="mono">v2 → <strong>v8</strong></td><td>PROMOTE: Δ +4.58pp on 349 shared test questions (34 fixed vs 18 broken across 36 conversations); one-sided clustered McNemar p=0.0404 (α=0.05); 95% CI [-0.28pp, +9.85pp], P(Δ&gt;0)=0.</td></tr><tr><td class="mono">2026-09-03T17:18:03</td><td class="mono">v5 → <strong>v2</strong></td><td>rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule — net positive AND one-sid</td></tr><tr><td class="mono">2026-09-02T12:18:57</td><td class="mono">v3_1 → <strong>v5</strong></td><td>targeted (M2): preprocess acc_preprocess_skeleton 0.415 → 0.447 on the shared test reports; overall Δ +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445</td></tr><tr><td class="mono">2026-09-02T11:34:26</td><td class="mono">v4 → <strong>v3_1</strong></td><td>rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test</td></tr><tr><td class="mono">2026-09-02T10:05:54</td><td class="mono">v3_1 → <strong>v4</strong></td><td>targeted (M2): retriever first-faults 3 → 2 on the shared reports; overall Δ +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875</td></tr><tr><td class="mono">2026-09-02T04:59:09</td><td class="mono">v2 → <strong>v3_1</strong></td><td>comparator passed: net positive: 54.5% → 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at α=0.05)</td></tr><tr><td class="mono">2026-08-28T00:15:19</td><td class="mono">— → <strong>v2</strong></td><td>first registered version becomes champion by default</td></tr></tbody></table></div>
 
-<footer>Generated 2026-09-03T23:35:26+00:00 from
+<footer>Generated 2026-09-04T03:56:48+00:00 from
 <code>evaluation/registry.json</code> and the MLflow tracking store ·
 split manifest <code>eval_loop_v2</code> ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "v8", "n_experiments": 3, "generated_at": "2026-09-03T23:35:26+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "v8", "n_experiments": 5, "generated_at": "2026-09-04T03:56:48+00:00"}</script>
 </footer>
 </div></body></html>

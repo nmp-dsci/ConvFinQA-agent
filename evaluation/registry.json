@@ -225,14 +225,14 @@
       "version": "v8",
       "registered_at": "2026-09-03T19:27:38.641143+00:00",
       "source": "evalloop",
-      "bundle_id": "daaee67354e3",
+      "bundle_id": "05781e0f191d",
       "bundle": {
         "prompts_version": "v8",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "fa4dd4f",
+        "code_sha": "2ff5237",
         "composition": "t2.p2.r5.c2",
         "v_triage": "t2@f028a9ed",
         "v_preprocess": "p2@2341df56",
@@ -241,7 +241,9 @@
       },
       "runs": [
         "46937b2af8ed47f7822227ba9acb4574",
-        "9d317903854b422d988232bc9f54181b"
+        "9d317903854b422d988232bc9f54181b",
+        "e50739dd2e354b25b908e9d6750a4920",
+        "f8dea4c22fcd4f209cdfe6d51eec6b62"
       ],
       "metrics": {},
       "notes": "targeted challenger: only retriever rewritten (parent v2). Restructured the prompt around lookup rather than arithmetic: added a hoisted output contract, an explicit four-step retrieval procedure, a row-disambiguation section (history qualifier inheritance, stock vs flow, total vs component), a period-alignment section with mandatory rollforward/schedule reconciliation and anti-duplication checks, a single unified sign policy defaulting to unsigned magnitudes, and a precondition list that must be satisfied before answering \"not found\"/\"N/A\"; all arithmetic, precision, formatting and field-guidance rules were preserved and moved below.",
@@ -253,6 +255,72 @@
       ],
       "composition": "t2.p2.r5.c2",
       "campaign": "c01"
+    },
+    {
+      "version": "v9",
+      "registered_at": "2026-09-04T03:24:35.569101+00:00",
+      "source": "evalloop",
+      "bundle_id": "789e42506bc9",
+      "bundle": {
+        "prompts_version": "v9",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "b549e49",
+        "composition": "t2.p2.r6.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r6@3d22dee3",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "20617cdf8dab449c846b41c00e8a6016",
+        "0ab67b770baf4842b2d10536d5ef340f"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only retriever rewritten (parent v8). Re-scoped the sign policy from a blanket strip-by-default into keep-tests-first by cell type (activity/movement rows, change-or-effect questions, and same-row sibling operands keep the printed sign; balance, contra, deduction and expense-under-subtotal lines still strip), and turned \u00a76b from a search checklist into four preconditioned tolerances (single-series scope, qualified variant, forward-looking schedule, level-plus-change reconstruction) plus an all-N/A self-check. Rebuilt \u00a73 as a label-priority ladder (head-noun subject, letter-for-letter abbreviations, bare class noun = balance line, inherited row for metric-less questions), added an annual-summary-vs-quarterly rule and a bidirectional uniform-shift rule to \u00a74, and a never-expand-magnitude-words rule to \u00a76.",
+      "parent": "v8",
+      "target_agent": "retriever",
+      "rationale": "Two failure clusters dominate this prompt's record and they pull in opposite directions, so adding rules would not have worked \u2014 the existing sections had to be re-scoped. First, sign: v8's blanket \"strip the minus\" default is what fixed contra-balance cases at promotion, but it is also what broke the questions v8 lost (a rollforward \"effect of others\", a \"net change\", its percentage), and this run shows both a case needing a strip (a tax charge printed under the subtotal it reduces) and a case needing preservation (two cells of one row feeding a subtraction). I therefore reordered \u00a75 into keep-tests-first, scoped by *cell type* rather than table type: activity/movement rows of a rollforward, change/effect questions, and same-row sibling operands keep their printed sign, while balance rows, contra accounts, deduction lines and expense/provision/tax lines under a subtotal still strip exactly as before \u2014 this preserves every strip case v8 won and un-breaks the movement-row cases it lost, and it deliberately does *not* adopt the diagnosed suggestion of \"normalize only on single-lookup turns\", which would have re-broken those same lost questions. Second, refusals: five of this run's faults are the retriever finding the figure and then rejecting it on a self-imposed scope, qualifier, forward-looking or period-label objection, which downstream degenerates to a non-numeric answer, so \u00a76b now ends in four explicitly preconditioned tolerances plus an all-N/A self-check, each firing only when no competing candidate exists. The remaining faults were all \"right concept, wrong line\", so \u00a73 was rebuilt as a label-priority ladder (head-noun subject vs trailing modifier or restrictive relative clause, letter-for-letter abbreviation expansion, bare class noun = level not adjustment, no-metric questions bind the inherited row while \"end of <year>\" names the column) with an annual-summary-vs-quarter rule added to \u00a74 and a no-rescaling rule to \u00a76. The output contract, history rules, arithmetic, precision, formatting and field guidance are carried over unchanged.",
+      "changed_agents": [
+        "retriever"
+      ],
+      "composition": "t2.p2.r6.c2",
+      "campaign": "c02"
+    },
+    {
+      "version": "v10",
+      "registered_at": "2026-09-04T03:47:52.421901+00:00",
+      "source": "evalloop",
+      "bundle_id": "6a5318b880d7",
+      "bundle": {
+        "prompts_version": "v10",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "2ff5237",
+        "composition": "t2.p7.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p7@b6657750",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "8ffe387f60a64114913ccf9ad087e584",
+        "948682ba1e754c79ac4cd477b5e63eb7"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept v8's output contract, conversation-type guidance, all five Program Design Rules and the examples intact (only replacing the unevaluable `cached_ratio` token in one example with an inlined numeral), and inserted four precondition-gated sections: division of labour with the retriever (no derived-quantity sub-questions, but no collapsing a derivation into a single lookup either), reference resolution defaulting to the most recent turn with an entity-switch clause and a vacuity check, operand classification (delta vs rate vs level), and a narrow operand-order rule for two periods of one metric. Added a four-item pre-return validity checklist requiring every operand to be evaluable, forbidding empty programs/sub-question lists, and requiring the program to be read back against the reasoning; deliberately omitted the scale-direction and conversation-order rules that caused regressions in the rejected v6/v7.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a percentage-pattern gallery: it says how to write a program but never how to decide operands, references, or the split of work with the retriever \u2014 which is where nearly every recurring fault lives (anaphor bound past the latest turn, derived-quantity sub-questions the retriever is forbidden to compute, single-lookup collapses of questions needing a derivation, already-a-delta operands re-differenced, and invented operand tokens that make the whole turn unevaluable). Two prior rewrites (v6, v7) replaced the whole prompt with a general five-step procedure and were rejected: their collateral damage was concentrated in turns that went from a correct number to the degenerate non-answer \"no\" and in over-firing scale/ordering rules. So this rewrite deliberately does something different: it preserves v8's spine, its five Program Design Rules and its examples verbatim (including the \u00d7100/no-\u00d7100 conventions, which I leave completely untouched since both prior rewrites lost percent-change questions there), and adds only precondition-gated sections plus an explicit output-validity checklist. That checklist \u2014 every operand must be a letter backed by a real sub-question or a bare numeral, and neither the program nor (absent all-literal operands) the sub-question list may be empty \u2014 is new relative to both rejected attempts and targets exactly the failure signature that sank them, so it should suppress regressions rather than add them. I dropped the two rules with demonstrated collateral damage: no scale-direction rule (v7's version turned a correct \"times 1000\" answer into an off-by-1000 one) and no conversation-order minuend rule (v6's version flipped a correct negative change to positive); operand ordering is now stated only for the narrow, unambiguous case of two periods of the same metric, or a base the question names in words.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p7.r5.c2",
+      "campaign": "c02"
     }
   ],
   "aliases": {
@@ -1227,6 +1295,15 @@
         "source": "teacher",
         "registered_at": "2026-09-03T18:34:37.741102+00:00",
         "run_id": "58a9056af3cf4d3590eaee4ebea7f0dc"
+      },
+      {
+        "seq": "p7",
+        "hash": "b6657750",
+        "first_seen_in": "v10",
+        "parent": "p6",
+        "source": "teacher",
+        "registered_at": "2026-09-04T03:47:52.419314+00:00",
+        "run_id": "8ffe387f60a64114913ccf9ad087e584"
       }
     ],
     "retriever": [
@@ -1274,6 +1351,15 @@
         "source": "teacher",
         "registered_at": "2026-09-03T19:27:38.639602+00:00",
         "run_id": "46937b2af8ed47f7822227ba9acb4574"
+      },
+      {
+        "seq": "r6",
+        "hash": "3d22dee3",
+        "first_seen_in": "v9",
+        "parent": "r5",
+        "source": "teacher",
+        "registered_at": "2026-09-04T03:24:35.564294+00:00",
+        "run_id": "20617cdf8dab449c846b41c00e8a6016"
       }
     ],
     "calculator": [
