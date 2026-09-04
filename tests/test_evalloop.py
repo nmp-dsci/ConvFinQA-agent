@@ -2022,9 +2022,11 @@ def test_backfill_attribution_skips_current_recomputes_stale_and_reuses_adjudica
     from convfinqa.evalloop import ledger, stage_scores
 
     monkeypatch.setattr(stage_scores, "attribution_rule_id", lambda: "rule-current")
-    monkeypatch.setattr(stage_scores, "score_rows", lambda df: df.__setitem__(
-        "first_wrong_turn", df["turn_index"]
-    ))
+    monkeypatch.setattr(
+        stage_scores,
+        "score_rows",
+        lambda df: df.__setitem__("first_wrong_turn", df["turn_index"]),
+    )
     monkeypatch.setattr(stage_scores, "report_documents", lambda: {})
     monkeypatch.setattr(
         stage_scores,
@@ -2045,7 +2047,12 @@ def test_backfill_attribution_skips_current_recomputes_stale_and_reuses_adjudica
     diagnoses_stale = tmp_path / "diagnoses_stale.jsonl"
     diagnoses_stale.write_text(
         json.dumps(
-            {"report_id": "B", "turn_index": 0, "adjudicated": True, "derived_agent": "retriever"}
+            {
+                "report_id": "B",
+                "turn_index": 0,
+                "adjudicated": True,
+                "derived_agent": "retriever",
+            }
         )
         + "\n"
     )

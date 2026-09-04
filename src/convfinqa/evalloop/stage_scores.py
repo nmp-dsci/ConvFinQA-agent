@@ -368,8 +368,7 @@ def attribution_rule_id() -> str:
     from convfinqa.evaluation import metrics, program_exec
 
     parts = [
-        inspect.getsource(mod)
-        for mod in (sys.modules[__name__], program_exec, metrics)
+        inspect.getsource(mod) for mod in (sys.modules[__name__], program_exec, metrics)
     ]
     return hashlib.sha256("".join(parts).encode()).hexdigest()[:12]
 
