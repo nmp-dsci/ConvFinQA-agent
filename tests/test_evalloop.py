@@ -762,6 +762,14 @@ def test_a_plan_that_cannot_be_bound_is_charged_to_preprocess() -> None:
     no_plan = _row(pred_program="1.0129716981132078", correct=False)
     assert stage_scores.first_fault(no_plan, DOC) == "preprocess"
 
+    # it planned a third sub-question that never came back
+    over_planned = _row(
+        correct=False,
+        pred_program="subtract(A, C)",
+        pred_sub_questions=json.dumps(["value in 2020", "value in 2019", "a third"]),
+    )
+    assert stage_scores.first_fault(over_planned, DOC) == "preprocess"
+
 
 def test_a_reused_gold_operand_consumes_one_retrieved_value_not_both() -> None:
     """Gold needing 1200 twice is not satisfied by retrieving 1200 once.
@@ -799,14 +807,6 @@ def test_a_reused_gold_operand_consumes_one_retrieved_value_not_both() -> None:
     )
     scored = stage_scores.score_rows(df)
     assert scored["retriever_operand_recall"].iloc[0] == 0.5
-
-    # it planned a third sub-question that never came back
-    over_planned = _row(
-        correct=False,
-        pred_program="subtract(A, C)",
-        pred_sub_questions=json.dumps(["value in 2020", "value in 2019", "a third"]),
-    )
-    assert stage_scores.first_fault(over_planned, DOC) == "preprocess"
 
 
 def test_a_number_turn_is_the_retrievers_unless_the_value_came_back() -> None:
