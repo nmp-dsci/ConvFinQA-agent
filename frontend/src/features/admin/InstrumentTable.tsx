@@ -29,7 +29,11 @@ export interface CellMeta {
   align?: 'left' | 'right';
   /** Defaults to true for right-aligned columns. */
   mono?: boolean;
-  /** A minimum width so a long question does not squeeze the numbers away. */
+  /**
+   * Column width. Under the default auto layout this is a *minimum*; under
+   * `layout="fixed"` it is the width, so give every column one and prefer
+   * percentages summing to 100.
+   */
   width?: string;
   /** Wrap rather than truncate (questions, rule text). */
   wrap?: boolean;
@@ -55,6 +59,15 @@ export interface InstrumentTableProps<T> {
   initialSorting?: SortingState;
   /** Caps the body height and scrolls, for the long tables. */
   maxHeight?: number;
+  /**
+   * `fixed` sizes columns purely from `meta.width`, ignoring content.
+   *
+   * Auto layout grows a column to avoid breaking an unbreakable token — a
+   * report id like `Double_HIG/2016/page_253.pdf` — and pays for it by pushing
+   * the last column off-screen, which no per-column minimum can prevent. Wide
+   * tables of long strings want `fixed`; tables of short measurements do not.
+   */
+  layout?: 'auto' | 'fixed';
   testId?: string;
 }
 
@@ -67,6 +80,7 @@ export function InstrumentTable<T>({
   emptyLabel = 'no rows',
   initialSorting = [],
   maxHeight,
+  layout = 'auto',
   testId,
 }: InstrumentTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -94,7 +108,10 @@ export function InstrumentTable<T>({
       className="min-w-0 overflow-x-auto"
       style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
     >
-      <table className="w-full border-collapse text-[11px]" style={{ minWidth }}>
+      <table
+        className={cn('w-full border-collapse text-[11px]', layout === 'fixed' && 'table-fixed')}
+        style={{ minWidth }}
+      >
         <thead className={cn(maxHeight && 'sticky top-0 z-10 bg-panel')}>
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id}>
@@ -107,7 +124,13 @@ export function InstrumentTable<T>({
                   <th
                     key={header.id}
                     scope="col"
-                    style={meta.width ? { minWidth: meta.width } : undefined}
+                    style={
+                      meta.width
+                        ? layout === 'fixed'
+                          ? { width: meta.width }
+                          : { minWidth: meta.width }
+                        : undefined
+                    }
                     className={cn(
                       'mono-caps border-b border-line-2 px-1.5 py-1 font-medium whitespace-nowrap',
                       align === 'left' ? 'text-left' : 'text-right',

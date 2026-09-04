@@ -36,9 +36,16 @@ const SPLIT_BLURB: Record<Split, string> = {
 function programCell(program: string, turnType: string) {
   if (!program || program === '—') return <span className="text-faint">—</span>;
   const isSelection = turnType.toLowerCase() === 'number';
+  // `break-words` only does anything because the column opts into `wrap` below:
+  // the table's default is `whitespace-nowrap`, under which a program of
+  // `subtract(206588, 3000000), divide(#0, 3000000)` sets the table's width on
+  // its own and squeezes every other column to one word per line. It is
+  // `break-words` rather than `break-all` deliberately — `break-all` wraps
+  // mid-token and renders `divide(#0, 15704)` as `1` then `5704`, splitting an
+  // operand across lines on the one page whose whole job is reading operands.
   return (
     <code
-      className={cn('font-mono text-[11px] break-all', isSelection && 'text-muted')}
+      className={cn('block font-mono text-[11px] break-words', isSelection && 'text-muted')}
       title={program}
     >
       {program}
@@ -73,45 +80,56 @@ export default function DatasetReview() {
     [rows],
   );
 
+  // Fixed layout, percentage widths summing to 100: every column that can hold
+  // a long string wraps, so the table lays itself out to the panel rather than
+  // to the longest gold program in the split. Auto layout is not enough here —
+  // it grows the report column to avoid breaking an unbreakable id and pushes
+  // `type` off the right edge.
   const columns = useMemo<Array<ColumnDef<DatasetRow, unknown>>>(
     () => [
       {
         header: 'report',
         accessorKey: 'report_id',
+        meta: { align: 'left', mono: true, wrap: true, width: '15%' },
         cell: ({ row }) => (
-          <span className="font-mono text-[11px]">{row.original.report_id}</span>
+          <span className="block font-mono text-[11px] break-words">
+            {row.original.report_id}
+          </span>
         ),
       },
       {
         header: 'q#',
         accessorKey: 'turn_index',
+        meta: { align: 'right', width: '4%' },
         cell: ({ row }) => <span className="font-mono">q{row.original.turn_index}</span>,
       },
       {
         header: 'question',
         accessorKey: 'question',
-        cell: ({ row }) => (
-          <span className="block w-[24rem] min-w-[16rem] whitespace-normal">
-            {row.original.question}
-          </span>
-        ),
+        meta: { align: 'left', mono: false, wrap: true, width: '27%' },
+        cell: ({ row }) => <span className="block">{row.original.question}</span>,
       },
       {
         header: 'gold answer',
         accessorKey: 'gold_answer',
+        meta: { align: 'right', wrap: true, width: '8%' },
         cell: ({ row }) => (
-          <span className="font-mono text-[12px]">{row.original.gold_answer}</span>
+          <span className="block font-mono text-[12px] break-words">
+            {row.original.gold_answer}
+          </span>
         ),
       },
       {
         header: 'gold program',
         accessorKey: 'gold_program',
+        meta: { align: 'left', mono: true, wrap: true, width: '20%' },
         cell: ({ row }) =>
           programCell(row.original.gold_program, row.original.turn_type),
       },
       {
         header: 'derived gold',
         id: 'derived',
+        meta: { align: 'left', mono: true, wrap: true, width: '18%' },
         cell: ({ row }) => {
           const r = row.original;
           if (!r.expected_skeleton.length && !r.expected_operands.length) {
@@ -122,19 +140,16 @@ export default function DatasetReview() {
             );
           }
           return (
-            <div className="flex w-[15rem] min-w-0 flex-col gap-0.5">
-              <span className="type-small block truncate text-muted">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="type-small block text-muted">
                 <span className="text-faint">skeleton</span>{' '}
-                <code className="font-mono text-[11px] text-violet">
+                <code className="font-mono text-[11px] break-words text-violet">
                   {r.expected_skeleton.join(' → ') || '—'}
                 </code>
               </span>
-              <span
-                className="type-small block truncate text-muted"
-                title={r.expected_operands.join(', ')}
-              >
+              <span className="type-small block text-muted">
                 <span className="text-faint">retrieve</span>{' '}
-                <code className="font-mono text-[11px] text-amber">
+                <code className="font-mono text-[11px] break-words text-amber">
                   {r.expected_operands.join(', ') || 'nothing — all from history'}
                 </code>
               </span>
@@ -145,8 +160,9 @@ export default function DatasetReview() {
       {
         header: 'type',
         accessorKey: 'turn_type',
+        meta: { align: 'right', wrap: true, width: '8%' },
         cell: ({ row }) => (
-          <span className="mono-caps text-faint">
+          <span className="mono-caps block text-faint">
             {row.original.turn_type || '—'}
             {row.original.conv_type ? ` · ${row.original.conv_type}` : ''}
           </span>
@@ -207,7 +223,8 @@ export default function DatasetReview() {
             data={rows}
             columns={columns}
             rowKey={(r) => `${r.report_id}#${r.turn_index}`}
-            minWidth={900}
+            minWidth={760}
+            layout="fixed"
             maxHeight={640}
             emptyLabel="no rows"
             testId="dataset-table"
