@@ -1128,3 +1128,64 @@ async def test_diagnosis_runs_concurrently_and_still_reports_in_case_order(
         .splitlines()
     ]
     assert [d["report_id"] for d in written] == ["R0", "R1", "R2", "R3"]
+
+
+def test_backfill_flips_refuses_when_the_recomputation_disagrees(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """A wrong flip record would be read as history by every future writer.
+
+    The backfill re-derives flips from committed CSVs and pairs them to a run by
+    version and split. If that pairing is wrong the arithmetic still succeeds and
+    still produces plausible flips — so the recomputed counts are checked against
+    the counts the verdict already recorded, and a mismatch skips the run."""
+    from convfinqa.evalloop import ledger
+
+    class _Run:
+        data = SimpleNamespace(
+            params={
+                "baseline_version": "v2",
+                "candidate_version": "v6",
+                "evidence_split": "test",
+            },
+            tags={"mlflow.runName": "gate-v6-vs-v2"},
+        )
+        info = SimpleNamespace(run_id="g1")
+
+    written: list[str] = []
+
+    class _Client:
+        def list_artifacts(self, run_id: str) -> list[Any]:
+            return [SimpleNamespace(path="verdict.json")]
+
+        def log_dict(self, run_id: str, payload: Any, name: str) -> None:
+            written.append(name)
+
+    monkeypatch.setattr(ledger, "_client", lambda: _Client())
+    monkeypatch.setattr(ledger, "_runs", lambda *a, **k: [_Run()])
+    # The verdict says 31 fixed / 23 broken; the recomputation will say 1/1.
+    monkeypatch.setattr(
+        ledger,
+        "_artifact_json",
+        lambda *a, **k: {"fail_to_pass": 31, "pass_to_fail": 23},
+    )
+    for v in ("v2", "v6"):
+        (tmp_path / f"evalloop-test100-{v}·x-1.csv").write_text("x\n")
+    monkeypatch.setattr(
+        ledger,
+        "_run_csv_for",
+        lambda version, split, d: tmp_path / f"evalloop-test100-{version}·x-1.csv",
+    )
+
+    class _Result:
+        improvements = [object()]
+        regressions = [object()]
+
+    monkeypatch.setattr(
+        "convfinqa.tracking.comparator.compare_frames", lambda *a, **k: _Result()
+    )
+    monkeypatch.setattr("convfinqa.evalloop.gate.load_run_csv", lambda p: p)
+
+    out = ledger.backfill_flips(predictions_dir=tmp_path)
+    assert written == [], "wrote flips from a comparison that did not match the verdict"
+    assert "disagrees" in out[0]["status"]

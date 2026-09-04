@@ -160,6 +160,17 @@ def main() -> None:
         help="Seed per-agent prompt lineages from the committed bundle modules.",
     )
 
+    bf = sub.add_parser(
+        "backfill-flips",
+        help="Attach flips.json to gate runs recorded before the gate wrote one.",
+    )
+    bf.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    bf.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Recompute and check against each verdict, but write nothing.",
+    )
+
     cy = sub.add_parser(
         "cycle",
         help="One full experiment: train -> diagnose -> rewrite -> gate -> decide.",
@@ -400,6 +411,14 @@ def main() -> None:
 
         out = story.build(campaigns=args.campaign, out_dir=args.out)
         print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "backfill-flips":
+        from convfinqa.evalloop import ledger
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        print(  # noqa: T201
+            json.dumps(ledger.backfill_flips(dry_run=args.dry_run, **kwargs), indent=2)
+        )
 
     elif args.cmd == "backfill-prompts":
         from convfinqa.tracking import prompt_ledger

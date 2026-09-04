@@ -259,3 +259,104 @@ def diagnoses_for_agent(
             if len(out) >= limit:
                 return out
     return out
+
+
+def _run_csv_for(version: str, split: str, directory: Path) -> Path | None:
+    """The committed predictions CSV for one version's run on one split."""
+    matches = sorted(directory.glob(f"evalloop-{split}*-{version}·*.csv"))
+    return matches[-1] if matches else None
+
+
+def backfill_flips(
+    *,
+    experiment: str = OPTIMIZATION_EXPERIMENT,
+    predictions_dir: Path | None = None,
+    dry_run: bool = False,
+) -> list[dict[str, Any]]:
+    """Attach `flips.json` to gate runs recorded before the gate wrote one.
+
+    Gate verdicts logged before this existed carry `fail_to_pass`/`pass_to_fail`
+    counts and nothing else, so the prompt writer can read that a past attempt
+    broke twenty-three questions but never which — the half of that fact it can
+    act on. The flips are recoverable: both arms' predictions CSVs are committed,
+    and the comparison is pure arithmetic over them.
+
+    Each recomputation is **checked against the recorded verdict** before
+    anything is written. If the recomputed counts disagree, the CSVs are not the
+    ones that produced the verdict and the run is skipped rather than annotated
+    with plausible-looking flips from the wrong comparison — a wrong record here
+    would be read as history by every future writer.
+    """
+    from convfinqa.evalloop.gate import load_run_csv
+    from convfinqa.tracking.comparator import compare_frames
+
+    directory = predictions_dir or (
+        Path(__file__).resolve().parents[3] / "evaluation" / "predictions" / "evalloop"
+    )
+    client = _client()
+    out: list[dict[str, Any]] = []
+    for run in _runs(client, experiment, "gate"):
+        run_id = run.info.run_id
+        name = run.data.tags.get("mlflow.runName", run_id)
+        params = run.data.params
+        base_v = params.get("baseline_version", "")
+        cand_v = params.get("candidate_version", "")
+        split = params.get("evidence_split", "test")
+        existing = {a.path for a in client.list_artifacts(run_id)}
+        if "flips.json" in existing:
+            out.append({"run": name, "status": "already present"})
+            continue
+
+        verdict = _artifact_json(client, run_id, "verdict.json") or {}
+        base_csv = _run_csv_for(base_v, split, directory)
+        cand_csv = _run_csv_for(cand_v, split, directory)
+        if base_csv is None or cand_csv is None:
+            out.append(
+                {
+                    "run": name,
+                    "status": "skipped — predictions CSV not found",
+                    "baseline_csv": str(base_csv),
+                    "candidate_csv": str(cand_csv),
+                }
+            )
+            continue
+
+        result = compare_frames(
+            load_run_csv(base_csv),
+            load_run_csv(cand_csv),
+            baseline_version=base_v,
+            candidate_version=cand_v,
+        )
+        fixed, broken = len(result.improvements), len(result.regressions)
+        want_fixed = verdict.get("fail_to_pass")
+        want_broken = verdict.get("pass_to_fail")
+        if (want_fixed, want_broken) != (fixed, broken):
+            out.append(
+                {
+                    "run": name,
+                    "status": "skipped — recomputation disagrees with the verdict",
+                    "recorded": {"fixed": want_fixed, "broken": want_broken},
+                    "recomputed": {"fixed": fixed, "broken": broken},
+                }
+            )
+            continue
+
+        payload = {
+            "broken": [f.as_dict() for f in result.regressions],
+            "fixed": [f.as_dict() for f in result.improvements],
+            "backfilled_from": {
+                "baseline_csv": base_csv.name,
+                "candidate_csv": cand_csv.name,
+            },
+        }
+        if not dry_run:
+            client.log_dict(run_id, payload, "flips.json")
+        out.append(
+            {
+                "run": name,
+                "status": "would write" if dry_run else "written",
+                "fixed": fixed,
+                "broken": broken,
+            }
+        )
+    return out
