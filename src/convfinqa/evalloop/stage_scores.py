@@ -347,29 +347,29 @@ def attribution_rule_id() -> str:
     the guard silently reported every run as already done.
 
     Derived from source rather than a hand-bumped constant, because a constant
-    someone must remember to bump is the same failure with an extra step. The
-    cost of getting it wrong is asymmetric: a spurious recompute is a few
+    someone must remember to bump is the same failure with an extra step.
+    Hashed at the *module* level, not per named function: the attribution
+    logic calls helpers (`_values_match`, `_match_multiset`, `bindings_from`,
+    `parse_program`, ...) that a per-function enumeration would have to name
+    exhaustively and would therefore forget the next one just as easily as a
+    hand-bumped constant. A module hash cannot miss a helper defined in it.
+
+    The cost of getting it wrong is asymmetric: a spurious recompute is a few
     seconds of arithmetic over committed CSVs and no API calls, while a missed
     one leaves the ledger pooling two different measurements under one Wilson
-    bound. So this deliberately over-triggers — editing a comment in any of
-    these functions is enough — and that is the cheap direction to be wrong in.
+    bound. So this deliberately over-triggers — coarse on purpose — editing a
+    comment or docstring anywhere in these modules is enough, and that is the
+    cheap direction to be wrong in.
     """
     import hashlib
     import inspect
+    import sys
 
-    from convfinqa.evaluation import program_exec
+    from convfinqa.evaluation import metrics, program_exec
 
     parts = [
-        inspect.getsource(fn)
-        for fn in (
-            first_fault,
-            missing_operands,
-            retriever_declined,
-            gold_document_operands,
-            program_exec.execute,
-            program_exec.result_matches,
-            program_exec.bind_and_execute,
-        )
+        inspect.getsource(mod)
+        for mod in (sys.modules[__name__], program_exec, metrics)
     ]
     return hashlib.sha256("".join(parts).encode()).hexdigest()[:12]
 

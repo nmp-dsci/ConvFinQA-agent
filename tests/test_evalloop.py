@@ -2004,3 +2004,109 @@ def test_backfill_reuses_adjudications_instead_of_discarding_them(
 
     # a missing artifact yields nothing rather than inventing a verdict
     assert ledger._adjudications(NoArtifact(), "run-2") == {}
+
+
+def test_backfill_attribution_skips_current_recomputes_stale_and_reuses_adjudications(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """The two behaviours the 2026-09-04 rewrite added, exercised end to end.
+
+    The guard must compare `stage_scores.attribution_rule_id()`, not merely
+    "has this run ever been recomputed" — so a run tagged with the current
+    rule is left alone, a run tagged with a stale rule (or untagged) is
+    recomputed and re-tagged, and `force=True` recomputes regardless of the
+    tag. And the recompute must not discard a settled adjudication: a case the
+    rerun would otherwise mark `ambiguous` should take the agent already
+    recorded in that run's own diagnoses.jsonl.
+    """
+    from convfinqa.evalloop import ledger, stage_scores
+
+    monkeypatch.setattr(stage_scores, "attribution_rule_id", lambda: "rule-current")
+    monkeypatch.setattr(stage_scores, "score_rows", lambda df: df.__setitem__(
+        "first_wrong_turn", df["turn_index"]
+    ))
+    monkeypatch.setattr(stage_scores, "report_documents", lambda: {})
+    monkeypatch.setattr(
+        stage_scores,
+        "with_prior_gold",
+        lambda df: df.to_dict("records"),
+    )
+
+    # run "current": already tagged with today's rule -> must be skipped.
+    csv_current = tmp_path / "current.csv"
+    csv_current.write_text("report_id,turn_index,correct\nA,0,False\n")
+
+    # run "stale": tagged with an old rule -> must be recomputed. Its own
+    # diagnoses.jsonl already settled report B/turn 0 as "retriever"; the
+    # recompute below will mark it "ambiguous", and that settled verdict must
+    # win.
+    csv_stale = tmp_path / "stale.csv"
+    csv_stale.write_text("report_id,turn_index,correct\nB,0,False\n")
+    diagnoses_stale = tmp_path / "diagnoses_stale.jsonl"
+    diagnoses_stale.write_text(
+        json.dumps(
+            {"report_id": "B", "turn_index": 0, "adjudicated": True, "derived_agent": "retriever"}
+        )
+        + "\n"
+    )
+
+    def fake_attribute(row: Any, doc: str) -> str:
+        return "ambiguous" if row["report_id"] == "B" else "preprocess"
+
+    monkeypatch.setattr(stage_scores, "attribute", fake_attribute)
+
+    class _Run:
+        def __init__(self, run_id: str, csv_path: Path, rule_tag: str | None) -> None:
+            self.info = SimpleNamespace(run_id=run_id)
+            self.data = SimpleNamespace(
+                params={"source_csv": str(csv_path)},
+                tags={
+                    "mlflow.runName": run_id,
+                    **({"attribution_rule": rule_tag} if rule_tag else {}),
+                },
+                metrics={},
+            )
+
+    run_current = _Run("run-current", csv_current, "rule-current")
+    run_stale = _Run("run-stale", csv_stale, "rule-old")
+
+    tags_written: dict[str, dict[str, str]] = {"run-current": {}, "run-stale": {}}
+    metrics_written: dict[str, dict[str, float]] = {"run-current": {}, "run-stale": {}}
+
+    class _Client:
+        def download_artifacts(self, run_id: str, name: str) -> str:
+            assert name == "diagnoses.jsonl"
+            if run_id == "run-stale":
+                return str(diagnoses_stale)
+            raise FileNotFoundError(name)
+
+        def log_metric(self, run_id: str, key: str, value: float) -> None:
+            metrics_written[run_id][key] = value
+
+        def set_tag(self, run_id: str, key: str, value: str) -> None:
+            tags_written[run_id][key] = value
+
+    monkeypatch.setattr(ledger, "_client", lambda: _Client())
+    monkeypatch.setattr(ledger, "_runs", lambda *a, **k: [run_current, run_stale])
+
+    out = ledger.backfill_attribution()
+    by_run = {r["run"]: r for r in out}
+
+    # (a) current-rule run is skipped, not touched.
+    assert by_run["run-current"]["status"] == "already on the current rule"
+    assert tags_written["run-current"] == {}
+
+    # (b) stale-rule run is recomputed and re-tagged with the current rule.
+    assert by_run["run-stale"]["status"] == "rewritten"
+    assert tags_written["run-stale"]["attribution_rule"] == "rule-current"
+
+    # (d) the settled adjudication overrides the recompute's "ambiguous".
+    assert by_run["run-stale"]["after"]["retriever"] == 1
+    assert metrics_written["run-stale"]["faults_retriever"] == 1.0
+    assert metrics_written["run-stale"]["unattributed_ambiguous"] == 0.0
+
+    # (c) force=True recomputes even a current-rule run.
+    monkeypatch.setattr(ledger, "_runs", lambda *a, **k: [run_current])
+    forced = ledger.backfill_attribution(force=True)
+    assert forced[0]["status"] == "rewritten"
+    assert tags_written["run-current"]["attribution_rule"] == "rule-current"
