@@ -762,6 +762,44 @@ def test_a_plan_that_cannot_be_bound_is_charged_to_preprocess() -> None:
     no_plan = _row(pred_program="1.0129716981132078", correct=False)
     assert stage_scores.first_fault(no_plan, DOC) == "preprocess"
 
+
+def test_a_reused_gold_operand_consumes_one_retrieved_value_not_both() -> None:
+    """Gold needing 1200 twice is not satisfied by retrieving 1200 once.
+
+    Before the multiset fix, `missing_operands` and the recall column in
+    `score_rows` checked coverage by set membership, so retrieving 1200 once
+    covered *both* of gold's 1200 operands and the second sub-question's wrong
+    answer (1400 instead of the second 1200) was invisible to attribution:
+    0 missing operands, 100% recall. Each retrieved value must cover at most
+    one needed operand."""
+    from convfinqa.evalloop import stage_scores
+
+    row = _row(gold_program="divide(1200, 1200)")
+    assert stage_scores.missing_operands(row, ["1200", "1400"]) == ["1200"]
+    assert stage_scores.missing_operands(row, ["1200", "1200"]) == []
+
+    df = pd.DataFrame(
+        [
+            _row(
+                gold_program="divide(1200, 1200)",
+                gold_answer="1.0",
+                correct=False,
+                retriever_io=json.dumps(
+                    {
+                        "output": {
+                            "answers": [
+                                {"question": "value one", "answer": "1200"},
+                                {"question": "value two", "answer": "1400"},
+                            ]
+                        }
+                    }
+                ),
+            )
+        ]
+    )
+    scored = stage_scores.score_rows(df)
+    assert scored["retriever_operand_recall"].iloc[0] == 0.5
+
     # it planned a third sub-question that never came back
     over_planned = _row(
         correct=False,
@@ -1774,6 +1812,9 @@ def test_program_exec_binds_placeholders_in_sub_question_order() -> None:
     # an unbindable plan is None — undecidable, not wrong
     assert bind_and_execute("divide(A, B)", ["not reported", "7807"], "24%") is None
     assert bind_and_execute("1.013", [], "1.013") is None
+    # 0.857 is not close to 1.0 at any scale — the scale sweep must not let
+    # numeric_match's round-to-the-same-integer rule wave this through
+    assert bind_and_execute("divide(A, B)", ["1200", "1400"], "1.0") is False
 
 
 def test_adjudication_maps_the_binary_answer_to_the_right_agent() -> None:
