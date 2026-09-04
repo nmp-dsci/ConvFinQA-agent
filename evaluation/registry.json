@@ -225,14 +225,14 @@
       "version": "v8",
       "registered_at": "2026-09-03T19:27:38.641143+00:00",
       "source": "evalloop",
-      "bundle_id": "05781e0f191d",
+      "bundle_id": "b17653d07c41",
       "bundle": {
         "prompts_version": "v8",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "2ff5237",
+        "code_sha": "6b54a86",
         "composition": "t2.p2.r5.c2",
         "v_triage": "t2@f028a9ed",
         "v_preprocess": "p2@2341df56",
@@ -243,7 +243,9 @@
         "46937b2af8ed47f7822227ba9acb4574",
         "9d317903854b422d988232bc9f54181b",
         "e50739dd2e354b25b908e9d6750a4920",
-        "f8dea4c22fcd4f209cdfe6d51eec6b62"
+        "f8dea4c22fcd4f209cdfe6d51eec6b62",
+        "909f5fbca69e4fa396de039d8c000ed5",
+        "1dc64eaa249c4d9d8085a60a09696047"
       ],
       "metrics": {},
       "notes": "targeted challenger: only retriever rewritten (parent v2). Restructured the prompt around lookup rather than arithmetic: added a hoisted output contract, an explicit four-step retrieval procedure, a row-disambiguation section (history qualifier inheritance, stock vs flow, total vs component), a period-alignment section with mandatory rollforward/schedule reconciliation and anti-duplication checks, a single unified sign policy defaulting to unsigned magnitudes, and a precondition list that must be satisfied before answering \"not found\"/\"N/A\"; all arithmetic, precision, formatting and field-guidance rules were preserved and moved below.",
@@ -321,6 +323,72 @@
       ],
       "composition": "t2.p7.r5.c2",
       "campaign": "c02"
+    },
+    {
+      "version": "v11",
+      "registered_at": "2026-09-04T12:45:28.108409+00:00",
+      "source": "evalloop",
+      "bundle_id": "f33f771126da",
+      "bundle": {
+        "prompts_version": "v11",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6b54a86",
+        "composition": "t2.p8.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p8@9d8f38ba",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "cf8af04a89354cdeba833a34a96cd6a3",
+        "709d69ef223741138655673051bab8ad"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept the output contract, conversation-type guidance, all five Program Design Rules and the examples, and added four gated sections \u2014 operand evaluability (no invented tokens, no empty or pre-evaluated programs, one figure per sub-question), history reuse with level-vs-movement classification, reference resolution restricted to description-free demonstratives, and positional placeholder binding with an explicit later-minus-earlier / named-base ordering read-back \u2014 plus a narrow percentage-point rule for metrics that are themselves rates. Deliberately excluded the percentage-must-be-two-lookups and scale-direction rules that caused the regressions in the rejected v6/v7/v10.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a gallery of percentage patterns: it says how to write a program but never how to bind operands, so the faults that recur across both the v2 and v8 records are decision faults it simply does not address \u2014 placeholders emitted in the reverse of their positional binding (four separate cases this run alone), a cached change re-differenced against its own base, unevaluable or pre-evaluated programs, and demonstratives bound past the most recent turn. I therefore kept the champion's structure, output contract, conversation-type guidance, all five Program Design Rules (including the \u00d7100 conventions in rules 2\u20134, where the failure record is self-contradictory and past edits regressed working questions) and the worked examples, and added four tightly gated sections plus one narrow rate-metric rule. I deliberately omitted the two changes that visibly caused the previous rejections' collateral damage: the \"a percentage/share question always needs two lookups and a divide\" mandate, which turned directly-printed percentage lookups into non-answers in v10, and any scale-direction rule, which inverted a correct \u00d71000 conversion in v7. The recency rule is likewise gated to demonstratives carrying no metric or period description, so follow-ups like \"the change in that total ... in the preceding year\" \u2014 one of the questions v10 broke \u2014 still resolve by description rather than by recency, and the ordering rule explicitly forbids swapping operands to avoid a negative, protecting the signed-change questions v6 flipped.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p8.r5.c2",
+      "campaign": "c03"
+    },
+    {
+      "version": "v12",
+      "registered_at": "2026-09-04T13:04:19.970587+00:00",
+      "source": "evalloop",
+      "bundle_id": "d14550b46981",
+      "bundle": {
+        "prompts_version": "v12",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6b54a86",
+        "composition": "t2.p9.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p9@189ac122",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "33ba1c4943b94019a4facbb5c90d200c",
+        "e5fd7554a6564dd7abfc23ca307bb43e"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept the output contract, Type I/II guidance, Program Design Rules 1\u20135 (including the Rule 4 dataset convention), the examples and the field guidance intact, and added two gated sections \u2014 program validity (evaluable operands, positional binding read-back against your own reasoning, never an empty or pre-evaluated program, one printed figure per sub-question, no single-placeholder collapse except for percentage/share questions, averages take the count the question names) and narrow reference resolution (metric-free demonstratives bind to the latest turn, subject switches propagate, vacuity check with a restatement carve-out, no sub-questions for unreachable periods). Deliberately added no operand-direction default, no percent-form rule and no scale-direction rule, since those are what broke previously-correct turns in v6/v7/v10/v11.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a percentage-pattern gallery: it says how to write a program but nothing about whether the program it writes is executable, so a large and recurring share of its faults are turns where the emitted plan is structurally impossible to evaluate \u2014 an empty program, a pre-evaluated numeral, an invented operand symbol, a lookup for a period the filing cannot contain, an aggregate phrase stuffed into one placeholder, or a single-placeholder collapse of a relation the question spells out. Those turns currently degenerate to non-answers, so a rule that only fires on them can gain without risking turns that already work. Every prior rejection (v6, v7, v10, v11) died the same way: it bundled these structural fixes with broad semantic rules about percent form, change-vs-ratio, scale direction, or a later-minus-earlier operand default, and those rules re-decided turns that were already right (178% became 78.4%, a correct \u22122.7 became +2.7, a printed percentage lookup became \"no\"). This rewrite therefore keeps Program Design Rules 1\u20135, the conversation-type guidance, the examples and the field guidance untouched, adds no directional or percent-form convention at all, and replaces the ordering fix with a purely internal-consistency check (expand placeholders positionally and confirm the expansion matches the formula the reasoning already states), which repairs the many documented cases where the prose and the emitted skeleton contradict each other without imposing a new convention. The one previously-rejected idea it revives \u2014 do not collapse a stated relation into a single lookup \u2014 is explicitly carved out for percentage/share/portion/rate questions, which is precisely where that rule caused regressions before. The reference-resolution section is limited to metric-free demonstratives, subject switches, and a vacuity check with an explicit exemption for pure restatement/conversion turns.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p9.r5.c2",
+      "campaign": "c03"
     }
   ],
   "aliases": {
@@ -1304,6 +1372,24 @@
         "source": "teacher",
         "registered_at": "2026-09-04T03:47:52.419314+00:00",
         "run_id": "8ffe387f60a64114913ccf9ad087e584"
+      },
+      {
+        "seq": "p8",
+        "hash": "9d8f38ba",
+        "first_seen_in": "v11",
+        "parent": "p7",
+        "source": "teacher",
+        "registered_at": "2026-09-04T12:45:28.106550+00:00",
+        "run_id": "cf8af04a89354cdeba833a34a96cd6a3"
+      },
+      {
+        "seq": "p9",
+        "hash": "189ac122",
+        "first_seen_in": "v12",
+        "parent": "p8",
+        "source": "teacher",
+        "registered_at": "2026-09-04T13:04:19.967490+00:00",
+        "run_id": "33ba1c4943b94019a4facbb5c90d200c"
       }
     ],
     "retriever": [
