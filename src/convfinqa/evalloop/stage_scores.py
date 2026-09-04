@@ -96,6 +96,28 @@ def gold_document_operands(
     return out
 
 
+def _match_multiset(needed: list[str], retrieved: list[str]) -> tuple[int, list[str]]:
+    """Match each needed operand to at most one retrieved value.
+
+    Gold reuses the same operand value more than once when a program is e.g.
+    ``divide(1200, 1200)``. Checking `needed` for set membership in `retrieved`
+    would call that fully covered from a single correct value, hiding a real
+    retrieval miss on the second sub-question. Greedy one-to-one consumption
+    means a value can cover only one needed operand.
+    """
+    remaining = list(retrieved)
+    missing: list[str] = []
+    hits = 0
+    for g in needed:
+        idx = next((i for i, v in enumerate(remaining) if _values_match(v, g)), None)
+        if idx is None:
+            missing.append(g)
+        else:
+            hits += 1
+            remaining.pop(idx)
+    return hits, missing
+
+
 def _retrieved_values(row: dict[str, Any]) -> list[str]:
     """Every value the retriever returned for this turn, from its capture."""
     raw = row.get("retriever_io")
@@ -143,9 +165,7 @@ def score_rows(df: pd.DataFrame) -> pd.DataFrame:
                 1.0 if any(_values_match(v, r.gold_answer) for v in retrieved) else 0.0
             )
         elif recall_gold:
-            hit = sum(
-                1 for g in recall_gold if any(_values_match(v, g) for v in retrieved)
-            )
+            hit, _missing = _match_multiset(recall_gold, retrieved)
             recall.append(round(hit / len(recall_gold), 4))
         else:
             recall.append(None)  # every operand came from history/constants
@@ -312,7 +332,8 @@ def missing_operands(row: Any, retrieved: list[str]) -> list[str]:
     get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
     prior = get("prior_gold_answers") or []
     needed = gold_document_operands(get("gold_program"), list(prior))
-    return [g for g in needed if not any(_values_match(v, g) for v in retrieved)]
+    _hits, missing = _match_multiset(needed, retrieved)
+    return missing
 
 
 def first_fault(row: Any, doc: str | None = None) -> str | None:

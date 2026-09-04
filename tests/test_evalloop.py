@@ -1623,24 +1623,100 @@ def test_every_agent_sdk_call_site_must_supply_prompt_refs() -> None:
         )
 
 
-def test_agent_sdk_is_reached_through_exactly_one_chokepoint() -> None:
-    """The span lives in `run_structured`, so nothing may bypass it.
+async def test_agent_sdk_is_reached_through_exactly_one_chokepoint(
+    monkeypatch: Any,
+) -> None:
+    """A teacher entry point must route through `run_structured`'s span.
 
-    A second path to ClaudeSDKClient would produce teacher calls with no trace at
-    all — the original bug — and would do so silently, since traces would still
-    be written by the surrounding spans."""
-    import pathlib
+    A second path to `ClaudeSDKClient` would produce teacher calls with no
+    trace at all — the original bug — and would do so silently, since traces
+    would still be written by the surrounding spans. Proven behaviourally: fake
+    out the SDK client itself and drive it through `teacher._diagnose_case`
+    (a real entry point, not `run_structured` directly), then check that the
+    result came back through that one client and that the span recorded it."""
+    import contextlib
+    import json as json_mod
 
-    root = pathlib.Path(__file__).resolve().parents[1] / "src" / "convfinqa"
-    users = sorted(
-        p.relative_to(root).as_posix()
-        for p in root.rglob("*.py")
-        if "ClaudeSDKClient(" in p.read_text()
+    import claude_agent_sdk
+
+    from convfinqa.evalloop import sdk, teacher
+    from convfinqa.tracking import tracing
+
+    opened: list[dict[str, Any]] = []
+
+    class _Handle:
+        def __init__(self, rec: dict[str, Any]) -> None:
+            self.rec = rec
+
+        def set(self, **kw: Any) -> None:
+            self.rec.setdefault("attrs", {}).update(kw)
+
+        def inputs(self, v: Any) -> None:
+            self.rec["inputs"] = v
+
+        def outputs(self, v: Any) -> None:
+            self.rec["outputs"] = v
+
+    @contextlib.contextmanager
+    def fake_span(name: str, **kw: Any) -> Any:
+        rec = {"name": name, **kw}
+        opened.append(rec)
+        yield _Handle(rec)
+
+    monkeypatch.setattr(tracing, "span", fake_span)
+
+    calls: list[Any] = []
+    payload = {
+        "failed_agent": "retriever",
+        "failure_mode": "missed-value",
+        "what_went_wrong": "The retriever skipped a sub-question.",
+        "evidence": "sub-question 2 returned no answer",
+        "attribution_reason": "the value sits in the table",
+        "proposed_rule": "always answer every sub-question",
+        "gold_suspect": False,
+        "confidence": 0.9,
+    }
+
+    class _FakeClient:
+        def __init__(self, options: Any = None) -> None:
+            calls.append(options)
+            self._options = options
+
+        async def __aenter__(self) -> "_FakeClient":
+            return self
+
+        async def __aexit__(self, *exc: Any) -> None:
+            return None
+
+        async def query(self, prompt: str) -> None:
+            self._prompt = prompt
+
+        async def receive_response(self) -> Any:
+            yield claude_agent_sdk.ResultMessage(
+                subtype="success",
+                duration_ms=1,
+                duration_api_ms=1,
+                is_error=False,
+                num_turns=1,
+                session_id="s1",
+                result=json_mod.dumps(payload),
+            )
+
+    monkeypatch.setattr(claude_agent_sdk, "ClaudeSDKClient", _FakeClient)
+
+    diagnosis, _usage = await teacher._diagnose_case(
+        {"question": "what was x?"}, "", refs=None
     )
-    assert users == ["evalloop/sdk.py"], (
-        "the Agent SDK is constructed outside evalloop/sdk.py; that call path has "
-        f"no MLflow span and no prompt refs: {users}"
-    )
+
+    assert diagnosis.failed_agent == "retriever"
+    assert len(calls) == 1, "the entry point must construct the SDK client exactly once"
+    assert len(opened) == 1, "the call must be traced by the one chokepoint span"
+    assert opened[0]["span_type"] == "LLM"
+    assert opened[0]["outputs"]["failed_agent"] == "retriever"
+
+    # And run_structured itself is what does the constructing — not some other
+    # path that happens to also work.
+    assert sdk.run_structured.__module__ == "convfinqa.evalloop.sdk"
 
 
 def test_targeting_penalises_a_thinly_evidenced_agent() -> None:

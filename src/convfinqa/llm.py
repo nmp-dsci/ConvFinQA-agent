@@ -293,7 +293,6 @@ def teacher_options(
     *,
     system_prompt: str,
     output_schema: dict[str, Any] | None = None,
-    tools: list[Any] | None = None,
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
 ) -> Any:
@@ -318,6 +317,4 @@ def teacher_options(
     }
     if output_schema is not None:
         kwargs["output_format"] = {"type": "json_schema", "schema": output_schema}
-    if tools:
-        kwargs["mcp_servers"] = {"loop": tools[0]} if len(tools) == 1 else {}
     return ClaudeAgentOptions(**kwargs)

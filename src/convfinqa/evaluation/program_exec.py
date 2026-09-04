@@ -17,6 +17,7 @@ enough to misdirect two campaign experiments.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -37,17 +38,24 @@ _OPS = {
 }
 
 
-def to_number(text: Any) -> float | None:
-    """The first number in `text`, with a trailing `%` read as a proportion."""
+def _raw_number(text: Any) -> float | None:
+    """The first number in `text`, as written — a `%` suffix is not divided out."""
     raw = str(text)
     match = _NUM_RE.search(raw.replace("%", ""))
     if not match:
         return None
     try:
-        value = float(match.group().replace(",", ""))
+        return float(match.group().replace(",", ""))
     except ValueError:
         return None
-    return value / 100.0 if "%" in raw else value
+
+
+def to_number(text: Any) -> float | None:
+    """The first number in `text`, with a trailing `%` read as a proportion."""
+    value = _raw_number(text)
+    if value is None:
+        return None
+    return value / 100.0 if "%" in str(text) else value
 
 
 def execute(program: Any, binding: dict[str, float] | None = None) -> Any:
@@ -91,6 +99,14 @@ def execute(program: Any, binding: dict[str, float] | None = None) -> Any:
             return None
         if result is None:
             return None
+        # `exp` with a negative base and a fractional exponent returns a
+        # `complex` rather than raising, and any op can in principle produce
+        # inf/nan. Neither is a real, comparable number, so treat it the same
+        # as "cannot run" rather than let it crash `result_matches` downstream.
+        if not isinstance(result, bool) and isinstance(result, complex):
+            return None
+        if isinstance(result, float) and not math.isfinite(result):
+            return None
         steps.append(result)
     return steps[-1] if steps else None
 
@@ -114,19 +130,32 @@ def bindings_from(answers: list[str]) -> dict[str, float]:
 
 
 def result_matches(result: Any, gold_answer: Any) -> bool:
-    """Compare an executed result to a gold answer, tolerating scale."""
-    from convfinqa.evaluation.metrics import numeric_match
+    """Compare an executed result to a gold answer, tolerating scale.
 
+    Deliberately does not defer to `numeric_match`: its rule 1 ("both values
+    round to the same integer") is fine for a single comparison but, swept
+    across five scales, turns into a ~50% relative tolerance — loose enough
+    that `divide(1200, 1400)` (0.857) "matches" a gold answer of `1.0`. An
+    explicit relative tolerance absorbs the same gold rounding to 2-3
+    significant figures without that gap. The gold value is compared **as
+    written** — a `%` suffix is not divided out — because the scale sweep
+    already includes the ×100 that brings a raw ratio into the same magnitude
+    as a percentage gold; dividing gold by 100 as well would let a decimal
+    result match a percentage gold two orders of magnitude off (verified
+    against `divide(2.5, 3195)` vs a `78%` gold, which must not match).
+    """
     if result is None:
         return False
     if isinstance(result, bool):
         return str(gold_answer).strip().lower() == ("yes" if result else "no")
-    # Scale slack, because the dataset mixes conventions freely: a ratio against
-    # a percentage gold, thousands against millions. `numeric_match` owns the
-    # rounding tolerance and the `%` handling, so defer to it at each scale
-    # rather than re-implementing either here.
+    target = _raw_number(gold_answer)
+    if target is None or not math.isfinite(target):
+        return False
+    result = float(result)
+    if not math.isfinite(result):
+        return False
     return any(
-        numeric_match(float(result) * scale, gold_answer)
+        math.isclose(result * scale, target, rel_tol=1.5e-2, abs_tol=1e-3)
         for scale in (1.0, 100.0, 0.01, 1000.0, 0.001)
     )
 
