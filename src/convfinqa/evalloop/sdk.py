@@ -22,8 +22,14 @@ pipeline agents are autologged into MLflow because pydantic-ai runs in this
 process; the SDK runs the `claude` CLI as a subprocess, so no autologger can see
 a teacher call and none of it reaches the Traces tab on its own. `run_structured`
 is the one place every Agent SDK call passes through, so the span is opened here
-— prompt, reply, model, turns, tools, tokens and cost — and a second call path
-to the SDK would need the same, or it would record nothing at all.
+— reply, model, turns, tools, tokens and cost — and a second call path to the SDK
+would need the same, or it would record nothing at all.
+
+The prompts themselves are stored **by reference** (`prompt_refs`): a system
+prompt is a constant repeated on every span of a run, and the writer's prompt
+carries a whole subagent prompt plus its whole failure history. One copy lives on
+the run, the span carries an id and a hash, and `resolve` reconstructs the exact
+text or refuses.
 """
 
 from __future__ import annotations
@@ -36,10 +42,10 @@ from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
-# Prompts here can be very large — the writer is handed a whole system prompt,
-# every failure against it, and the attempt ledger. Traces are for reading, so
-# what is recorded is capped; the artifacts hold the full text either way.
-MAX_TRACED_CHARS = 20_000
+# A short head of the user prompt goes on the span so a trace is readable at a
+# glance without resolving anything. The *whole* prompt does not: see
+# `prompt_refs` for what is stored instead and how to get the text back.
+TRACED_HEAD_CHARS = 400
 
 
 class TeacherCallError(RuntimeError):
@@ -70,8 +76,13 @@ async def run_structured(
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
     attempts: int = 2,
+    refs: dict[str, Any] | None = None,
 ) -> tuple[T, dict[str, Any]]:
     """Run one Agent SDK turn and validate its reply against `schema`.
+
+    `refs` says how to reconstruct this call's prompts — see `prompt_refs`. When
+    given, the span records the references and a short head rather than tens of
+    kilobytes of text that is identical on every other span of the run.
 
     Retries once by default, because the observed failure mode is transient: a
     call returns no content at all, and the next identical call succeeds. One
@@ -84,6 +95,7 @@ async def run_structured(
     put it on the right MLflow run; the campaign's throughput limit is teacher
     calls, so an unrecorded one is a gap in the only number that constrains it.
     """
+    from convfinqa.evalloop import prompt_refs
     from convfinqa.llm import LM_TEACHER_MODEL
     from convfinqa.tracking import tracing
 
@@ -107,8 +119,15 @@ async def run_structured(
         ) as span:
             span.inputs(
                 {
-                    "system_prompt": system_prompt[:MAX_TRACED_CHARS],
-                    "prompt": prompt[:MAX_TRACED_CHARS],
+                    # References, not text. A prompt truncated to fit a trace is
+                    # neither cheap nor faithful; a reference plus a hash is
+                    # both, and `prompt_refs.resolve` turns it back into the
+                    # exact bytes — or says why it cannot.
+                    "refs": refs,
+                    "system_prompt_sha": prompt_refs.sha(system_prompt),
+                    "prompt_sha": prompt_refs.sha(prompt),
+                    "prompt_chars": len(prompt),
+                    "prompt_head": prompt[:TRACED_HEAD_CHARS],
                 }
             )
             try:

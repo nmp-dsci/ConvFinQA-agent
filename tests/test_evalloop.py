@@ -1087,7 +1087,9 @@ async def test_diagnosis_runs_concurrently_and_still_reports_in_case_order(
     live = 0
     peak = 0
 
-    async def fake_case(payload: Any, memory: str) -> tuple[Any, dict[str, Any]]:
+    async def fake_case(
+        payload: Any, memory: str, refs: Any = None
+    ) -> tuple[Any, dict[str, Any]]:
         nonlocal live, peak
         live += 1
         peak = max(peak, live)
@@ -1323,9 +1325,9 @@ async def test_agent_sdk_calls_open_a_traced_llm_span(monkeypatch: Any) -> None:
     assert len(opened) == 1
     span = opened[0]
     assert span["span_type"] == "LLM", "span left UNKNOWN renders as an anonymous box"
-    # The prompt and the reply are the point — attributes alone leave the trace
-    # UI blank, which is what "no logs for the agent_sdk run" looked like.
-    assert span["inputs"]["prompt"] == "say ok"
+    # The reply is the point — attributes alone leave the trace UI blank, which
+    # is what "no logs for the agent_sdk run" looked like.
+    assert span["inputs"]["prompt_head"] == "say ok"
     assert span["outputs"] == {"answer": "OK"}
     assert span["attributes"]["model"]
     assert span["attrs"]["total_cost_usd"] == 0.14
@@ -1391,3 +1393,43 @@ async def test_a_retried_agent_sdk_call_records_both_attempts(
     assert opened[0]["attributes"]["attempt"] == 1
     assert "no content" in opened[0]["attrs"]["error"]
     assert opened[1]["attributes"]["attempt"] == 2
+
+
+def test_prompt_refs_round_trip_and_refuse_a_changed_prompt() -> None:
+    """A reference is only worth storing if it resolves — and only trustworthy
+    if it can tell you when it no longer does.
+
+    Two of these resolve against code rather than data, so a prompt edited since
+    the run would otherwise be handed back as though it were the one that ran.
+    That is the failure this hash exists to prevent: silently reading the wrong
+    prompt is worse than not having stored it."""
+    from convfinqa.evalloop import prompt_refs, teacher
+
+    ref = prompt_refs.teacher_prompt_ref("TEACHER_PROMPT", teacher.TEACHER_PROMPT)
+    assert prompt_refs.resolve(ref) == teacher.TEACHER_PROMPT
+
+    stale = {**ref, "sha": "deadbeefcafe"}
+    with pytest.raises(prompt_refs.UnresolvedRefError, match="has changed since"):
+        prompt_refs.resolve(stale)
+
+    with pytest.raises(prompt_refs.UnresolvedRefError, match="no teacher prompt"):
+        prompt_refs.resolve({"kind": "teacher_prompt", "name": "NOPE"})
+
+    with pytest.raises(prompt_refs.UnresolvedRefError, match="unknown reference"):
+        prompt_refs.resolve({"kind": "nonsense"})
+
+
+def test_agent_prompt_ref_names_the_prompt_the_way_the_ledger_does() -> None:
+    """`p2@4bc21f75` is already this system's name for a subagent prompt.
+
+    Reusing it means a trace ref, a run's composition params and the prompt
+    registry all say the same thing about the same text, so the ref needs no
+    lookup table of its own."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.evalloop import prompt_refs
+
+    text = prompts_pkg.load("v2")["preprocess"]
+    ref = prompt_refs.agent_prompt_ref("preprocess", "v2", text)
+    assert ref["agent"] == "preprocess"
+    assert ref["seq"].startswith("p")
+    assert prompt_refs.resolve(ref) == text

@@ -41,11 +41,15 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from convfinqa.config import EVAL_ROOT, REPO_ROOT
+from convfinqa.evalloop import prompt_refs
 from convfinqa.tracking import tracing
 
 DIAGNOSTICS_DIR = EVAL_ROOT / "diagnostics" / "evalloop"
 OPTIMIZATION_EXPERIMENT = "convfinqa-optimization"
 AGENTS = ("triage", "preprocess", "retriever", "calculator")
+# Text logged once per run and referenced from every span that used it.
+MEMORY_ARTIFACT = "diagnose_memory.txt"
+WRITER_PROMPT_ARTIFACT = "writer_prompt.txt"
 
 
 class Diagnosis(BaseModel):
@@ -255,7 +259,9 @@ def case_payload(row: pd.Series) -> dict[str, Any]:
 
 
 async def _diagnose_case(
-    payload: dict[str, Any], memory_text: str
+    payload: dict[str, Any],
+    memory_text: str,
+    refs: dict[str, Any] | None = None,
 ) -> tuple[Diagnosis, dict[str, Any]]:
     """One diagnosis, on the Agent SDK, validated against the same schema."""
     from convfinqa.evalloop.sdk import run_structured
@@ -265,6 +271,7 @@ async def _diagnose_case(
         schema=Diagnosis,
         system_prompt=TEACHER_PROMPT,
         max_turns=4,
+        refs=refs,
     )
 
 
@@ -365,6 +372,11 @@ async def diagnose_run(
         actor_model=teacher_model(),
         omit_fingerprint=("lm_max",),
     ) as rec:
+        # The memory block is identical for every case in the pass, so it is
+        # stored once here and referenced from each span rather than repeated
+        # fifty times inside fifty copies of the prompt.
+        if memory_text:
+            rec.text_artifact(MEMORY_ARTIFACT, memory_text)
         sem = asyncio.Semaphore(max(1, concurrency))
 
         async def one(
@@ -393,7 +405,21 @@ async def diagnose_run(
                     },
                 ) as trace_span:
                     try:
-                        output, usage = await _diagnose_case(payload, memory_text)
+                        output, usage = await _diagnose_case(
+                            payload,
+                            memory_text,
+                            {
+                                "system_prompt": prompt_refs.teacher_prompt_ref(
+                                    "TEACHER_PROMPT", TEACHER_PROMPT
+                                ),
+                                "user_prompt": prompt_refs.diagnose_case_ref(
+                                    str(csv_path),
+                                    str(row.report_id),
+                                    int(row.turn_index),
+                                    memory=MEMORY_ARTIFACT if memory_text else "",
+                                ),
+                            },
+                        )
                     except Exception as exc:  # noqa: BLE001 — one bad case must not sink the pass
                         # The runner already takes this position for
                         # conversations, and a diagnosis pass is worth more:
@@ -639,7 +665,12 @@ async def propose_version(
             },
             trace_tags={"stage": "propose", "target_agent": target},
         ) as propose_span:
-            output, usage = await run_structured(
+            # The writer's prompt is not reconstructible from ids alone: the
+            # attempt ledger is read live from the tracking store, so it depends
+            # on when the call was made. One exact copy is stored on the run and
+            # the span references it — the only faithful option, and still one
+            # copy instead of one per span.
+            writer_prompt = (
                 json.dumps(
                     {
                         "target_agent": target,
@@ -657,12 +688,29 @@ async def propose_version(
                     },
                     default=str,
                 )
-                + history,
+                + history
+            )
+            rec.text_artifact(WRITER_PROMPT_ARTIFACT, writer_prompt)
+            output, usage = await run_structured(
+                writer_prompt,
                 schema=PromptRewrite,
                 system_prompt=PROMPT_WRITER_PROMPT,
                 mcp_servers={"loop": tools.loop_server()},
                 allowed_tools=tools.ALLOWED_TOOLS,
                 max_turns=20,
+                refs={
+                    "system_prompt": prompt_refs.teacher_prompt_ref(
+                        "PROMPT_WRITER_PROMPT", PROMPT_WRITER_PROMPT
+                    ),
+                    "user_prompt": prompt_refs.run_artifact_ref(
+                        WRITER_PROMPT_ARTIFACT, writer_prompt, run_id=rec.run_id
+                    ),
+                    # The prompt being replaced, named the way the ledger names
+                    # it — `p2@4bc21f75` is enough to recover the exact text.
+                    "target_prompt": prompt_refs.agent_prompt_ref(
+                        target, base_version, base_prompts[target]
+                    ),
+                },
             )
             propose_span.set(
                 summary_of_changes=output.summary_of_changes,

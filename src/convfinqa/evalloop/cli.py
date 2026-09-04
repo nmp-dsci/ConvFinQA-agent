@@ -160,6 +160,17 @@ def main() -> None:
         help="Seed per-agent prompt lineages from the committed bundle modules.",
     )
 
+    sp = sub.add_parser(
+        "show-prompt",
+        help="Reconstruct the prompts of a traced Agent SDK call from its refs.",
+    )
+    sp.add_argument("--trace", required=True, help="MLflow trace id (tr-…).")
+    sp.add_argument(
+        "--span",
+        default=None,
+        help="Only this span name; default is every agent_sdk span in the trace.",
+    )
+
     bf = sub.add_parser(
         "backfill-flips",
         help="Attach flips.json to gate runs recorded before the gate wrote one.",
@@ -411,6 +422,41 @@ def main() -> None:
 
         out = story.build(campaigns=args.campaign, out_dir=args.out)
         print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "show-prompt":
+        import mlflow
+
+        from convfinqa.evalloop import prompt_refs
+        from convfinqa.tracking import mlflow_log
+
+        mlflow_log._mlflow()
+        trace = mlflow.get_trace(args.trace)
+        if trace is None:
+            ap.error(f"no trace {args.trace!r} in {mlflow_log.tracking_uri()}")
+        run_id = (trace.info.tags or {}).get("mlflow.sourceRun", "")
+        shown = 0
+        for span in trace.data.spans:
+            if args.span and span.name != args.span:
+                continue
+            refs = (span.inputs or {}).get("refs") or {}
+            if not refs:
+                continue
+            shown += 1
+            print(f"\n{'=' * 70}\n{span.name}\n{'=' * 70}")  # noqa: T201
+            for slot in ("system_prompt", "target_prompt", "user_prompt"):
+                ref = refs.get(slot)
+                if not ref:
+                    continue
+                print(f"\n--- {slot} ({ref.get('kind')}) ---")  # noqa: T201
+                try:
+                    print(prompt_refs.resolve(ref, run_id=run_id))  # noqa: T201
+                except prompt_refs.UnresolvedRefError as exc:
+                    print(f"[unresolved] {exc}")  # noqa: T201
+        if not shown:
+            print(  # noqa: T201
+                "no spans in this trace carry prompt refs — it predates them, or "
+                "the call was not made through evalloop.sdk.run_structured"
+            )
 
     elif args.cmd == "backfill-flips":
         from convfinqa.evalloop import ledger

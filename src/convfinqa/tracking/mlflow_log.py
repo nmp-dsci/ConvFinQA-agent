@@ -203,6 +203,23 @@ class _Recorder:
                 exc_info=True,
             )
 
+    def text_artifact(self, name: str, text: str) -> None:
+        """Attach a plain-text document to the run.
+
+        For anything long enough that JSON escaping would make it unreadable in
+        the UI — a whole assembled prompt, say — which is precisely the content
+        worth storing once per run instead of on every span.
+        """
+        try:
+            self._mlflow.log_text(text, name)
+        except Exception:
+            log.warning(
+                "mlflow: failed to log text artifact %r for run %s",
+                name,
+                self.run_id,
+                exc_info=True,
+            )
+
     def dict_artifact(self, name: str, payload: dict[str, Any]) -> None:
         """Attach a JSON document to the run."""
         try:
@@ -228,6 +245,9 @@ class _NullRecorder:
         """Discard the metrics."""
 
     def artifact(self, path: Path | str) -> None:
+        """Discard the artifact."""
+
+    def text_artifact(self, name: str, text: str) -> None:
         """Discard the artifact."""
 
     def dict_artifact(self, name: str, payload: dict[str, Any]) -> None:
