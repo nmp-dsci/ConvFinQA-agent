@@ -97,7 +97,9 @@ async def run_cycle(
     steps["train_run"] = train
 
     # 2 — diagnose
-    diagnosis = await teacher.diagnose_run(train["csv"], baseline)
+    diagnosis = await teacher.diagnose_run(
+        train["csv"], baseline, concurrency=concurrency
+    )
     steps["diagnosis"] = diagnosis
     if not diagnosis["n_cases"]:
         raise SystemExit("the train pass produced no failures to learn from")
@@ -147,7 +149,7 @@ async def run_cycle(
         candidate_version=challenger,
     )
     verdict["gate_run_id"] = teacher.log_gate_verdict(
-        verdict, campaign=campaign, label=label
+        verdict, comparison=comparison, campaign=campaign, label=label
     )
     steps["verdict"] = verdict
     print(f"  {verdict['reason']}")  # noqa: T201

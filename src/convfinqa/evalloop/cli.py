@@ -98,6 +98,7 @@ def main() -> None:
     dg.add_argument("--csv", required=True, help="Eval-loop predictions CSV.")
     dg.add_argument("--version", required=True, help="The version that produced it.")
     dg.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    dg.add_argument("--concurrency", type=int, default=8)
 
     pr = sub.add_parser(
         "propose", help="Write a challenger changing ONE subagent's prompt."
@@ -276,7 +277,11 @@ def main() -> None:
         from convfinqa.evalloop import teacher
 
         kwargs = {"experiment": args.experiment} if args.experiment else {}
-        summary = asyncio.run(teacher.diagnose_run(args.csv, args.version, **kwargs))
+        summary = asyncio.run(
+            teacher.diagnose_run(
+                args.csv, args.version, concurrency=args.concurrency, **kwargs
+            )
+        )
         print(json.dumps(summary, indent=2))  # noqa: T201
 
     elif args.cmd == "propose":
@@ -304,7 +309,9 @@ def main() -> None:
             baseline_diagnoses=args.baseline_diagnoses,
             candidate_diagnoses=args.candidate_diagnoses,
         )
-        verdict["gate_run_id"] = teacher.log_gate_verdict(verdict)
+        verdict["gate_run_id"] = teacher.log_gate_verdict(
+            verdict, comparison=comparison
+        )
         print(json.dumps(verdict, indent=2))  # noqa: T201
         if args.promote and verdict["evidence_split"] != "test":
             ap.error(

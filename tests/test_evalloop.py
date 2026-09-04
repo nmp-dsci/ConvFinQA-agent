@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -930,3 +933,198 @@ def test_rotation_note_only_claims_credit_when_it_changed_the_pick() -> None:
     )
     assert agent == "retriever"
     assert "rotated past preprocess" in why
+
+
+def test_ledger_text_names_the_questions_a_rejected_rewrite_broke(
+    monkeypatch: Any,
+) -> None:
+    """Counts are not actionable; identities are.
+
+    "Broke 18" tells the next writer to be careful. The eighteen questions tell
+    it which behaviour to leave alone, which is the only version of that fact a
+    prompt can be written against."""
+    from convfinqa.evalloop import ledger
+
+    monkeypatch.setattr(
+        ledger,
+        "attempts",
+        lambda **_: [
+            {
+                "version": "v6",
+                "outcome": "rejected",
+                "accuracy_delta": 0.0229,
+                "cluster_p_one_sided": 0.191,
+                "fixed": 31,
+                "broken": 23,
+                "summary_of_changes": "added a greater-operator rule",
+                "rationale": "",
+                "broken_cases": [
+                    {
+                        "report_id": "AAP/2010/page_12.pdf",
+                        "q_order": 2,
+                        "question": "what was the change in operating income?",
+                        "gold_answer": "4.2",
+                        "baseline_answer": "4.2",
+                        "candidate_answer": "greater(4.2, 0)",
+                    }
+                ],
+            }
+        ],
+    )
+    text = ledger.ledger_text("preprocess")
+    assert "fixed 31 questions and broke 23" in text
+    assert "BROKE AAP/2010/page_12.pdf q2" in text
+    assert "before 4.2 -> after greater(4.2, 0)" in text
+
+
+def test_diagnoses_for_agent_keys_on_the_prompt_hash_not_the_bundle_version(
+    monkeypatch: Any,
+) -> None:
+    """A bundle is four prompts, so bundle version is the wrong key.
+
+    v2 and v8 differ only in the retriever, so every preprocess failure filed
+    under either bears on preprocess identically. Scoping by bundle version
+    would hide half the record from the writer."""
+    from convfinqa.evalloop import ledger
+
+    hashes = {
+        ("v2", "preprocess"): "pre-aaa",
+        ("v8", "preprocess"): "pre-aaa",  # unchanged by the v8 retriever rewrite
+        ("v9", "preprocess"): "pre-bbb",  # a different preprocess prompt
+    }
+    monkeypatch.setattr(ledger, "_agent_prompt_hash", lambda v, a: hashes.get((v, a)))
+
+    class _Run:
+        def __init__(self, version: str) -> None:
+            self.data = SimpleNamespace(params={"prompts_version": version})
+            self.info = SimpleNamespace(run_id=version)
+
+    rows = {
+        "v2": [{"derived_agent": "preprocess", "report_id": "A", "turn_index": 0}],
+        "v8": [
+            {"derived_agent": "preprocess", "report_id": "B", "turn_index": 1},
+            {"derived_agent": "retriever", "report_id": "C", "turn_index": 0},
+        ],
+        "v9": [{"derived_agent": "preprocess", "report_id": "D", "turn_index": 0}],
+    }
+
+    class _Client:
+        def download_artifacts(self, run_id: str, name: str) -> str:
+            path = tmp / f"{run_id}.jsonl"
+            path.write_text("".join(json.dumps(r) + "\n" for r in rows[run_id]))
+            return str(path)
+
+    tmp = Path(tempfile.mkdtemp())
+    monkeypatch.setattr(ledger, "_client", lambda: _Client())
+    monkeypatch.setattr(
+        ledger, "_runs", lambda *a, **k: [_Run("v2"), _Run("v8"), _Run("v9")]
+    )
+
+    got = ledger.diagnoses_for_agent("preprocess", "v2")
+    # v8 is included (same preprocess text), v9 excluded (different text),
+    # and v8's retriever case is not preprocess's problem.
+    assert {(d["report_id"], d["version"]) for d in got} == {("A", "v2"), ("B", "v8")}
+
+
+@pytest.mark.asyncio
+async def test_diagnosis_runs_concurrently_and_still_reports_in_case_order(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """Independent calls should overlap; the record should not depend on that.
+
+    Fifty sequential Opus calls at ~27s each was the largest single term in a
+    cycle, and nothing about a diagnosis reads another's result. Concurrency is
+    only safe if the artifact and the log stay in case order regardless of which
+    call returns first — so the slowest case here is deliberately the first."""
+    import asyncio as _asyncio
+
+    from convfinqa.evalloop import teacher
+    from convfinqa.tracking import mlflow_log
+
+    class FakeRun:
+        class info:  # noqa: N801 — mirrors mlflow's own attribute name
+            run_id = "r1"
+
+        def __enter__(self):  # noqa: ANN204
+            return self
+
+        def __exit__(self, *a: object) -> None:
+            return None
+
+    class FakeMlflow:
+        def start_run(self, run_name: str = "") -> FakeRun:
+            return FakeRun()
+
+        def set_tags(self, tags: dict[str, str]) -> None:
+            return None
+
+        def log_params(self, params: dict[str, str]) -> None:
+            return None
+
+    monkeypatch.setattr(mlflow_log, "_mlflow", lambda: FakeMlflow())
+    monkeypatch.setattr(teacher, "DIAGNOSTICS_DIR", tmp_path)
+    monkeypatch.setattr(teacher, "prior_diagnoses", lambda *a, **k: [])
+
+    cases = pd.DataFrame(
+        [
+            {
+                "report_id": f"R{i}",
+                "turn_index": i,
+                "question": "q",
+                "gold_answer": "1",
+                "pred_answer": "2",
+                "gold_program": "add(1, 1)",
+                "pred_program": "",
+            }
+            for i in range(4)
+        ]
+    )
+    monkeypatch.setattr(teacher, "first_wrong_cases", lambda _p: cases)
+    monkeypatch.setattr(
+        teacher, "case_payload", lambda row: {"derived_attribution": "preprocess"}
+    )
+
+    live = 0
+    peak = 0
+
+    async def fake_case(payload: Any, memory: str) -> tuple[Any, dict[str, Any]]:
+        nonlocal live, peak
+        live += 1
+        peak = max(peak, live)
+        # R0 finishes last, so an order-of-completion assembly would invert.
+        await _asyncio.sleep(0.05 if len(order_seen) == 0 else 0.01)
+        order_seen.append(1)
+        live -= 1
+        return (
+            SimpleNamespace(
+                failed_agent="preprocess",
+                failure_mode="m",
+                attribution_reason="r",
+                what_went_wrong="w",
+                evidence="e",
+                proposed_rule="p",
+                confidence=0.9,
+                gold_suspect=False,
+                model_dump=lambda: {
+                    "failed_agent": "preprocess",
+                    "failure_mode": "m",
+                    "confidence": 0.9,
+                    "gold_suspect": False,
+                },
+            ),
+            {},
+        )
+
+    order_seen: list[int] = []
+    monkeypatch.setattr(teacher, "_diagnose_case", fake_case)
+
+    summary = await teacher.diagnose_run("ignored.csv", "v2", concurrency=4)
+
+    assert peak > 1, "cases ran one at a time — the gather is not doing anything"
+    written = [
+        json.loads(line)
+        for line in (tmp_path / f"diagnoses_v2_{summary['run_name'][-15:]}.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    assert [d["report_id"] for d in written] == ["R0", "R1", "R2", "R3"]

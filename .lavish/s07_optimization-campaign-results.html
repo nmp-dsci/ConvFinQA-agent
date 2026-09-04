@@ -795,6 +795,16 @@ say what is different this time.</span></div>
 
   <h3>Open, and worth deciding before campaign c02</h3>
   <div class="grid g2">
+    <div class="callout good"><strong>Built: the writer now sees the whole record for the prompt it is
+      replacing.</strong><p>It used to see one run's failures plus a one-line summary of each past attempt. Two gaps:
+      the failures were only the ones <em>that</em> run sampled, and the outcomes were counts. Both are closed.
+      <code>diagnoses_for_agent</code> gathers every failure ever recorded against the exact prompt text being
+      replaced — keyed on the per-agent prompt <strong>hash</strong>, not the bundle version, because a bundle is
+      four prompts and <code>v2</code> and <code>v8</code> share one preprocess prompt but not one retriever prompt.
+      And each gate now records <code>flips.json</code>, so a rejected attempt reports not "broke 23" but the
+      twenty-three questions, with the answer before and after. That is the actionable half: nearly every rejection
+      here was net-positive-but-not-significant, which is a collateral-damage problem, and "broke 23" cannot be
+      written against while "this turn used to answer 4.2 and now answers greater(4.2, 0)" can.</p></div>
     <div class="callout info"><strong>Rejected-but-real changes, and what to do with them now.</strong>
       <p>The two preprocess candidates sat at +2.3pp and +2.6pp with P(Δ&nbsp;&gt;&nbsp;0) of 0.79 and 0.87 — they
         look like a real improvement the split is too small to confirm. The gate is right to refuse each one; the
@@ -802,13 +812,11 @@ say what is different this time.</span></div>
         re-target preprocess <em>on top of it</em>: the retriever fix changed what preprocess receives, so the
         faults it was being blamed for may not survive the new baseline. Which is also the argument for the rotation
         cap being about ordering rather than abandonment.</p></div>
-    <div class="callout info"><strong>The noise floor is still unmeasured.</strong><p>Re-running the same version
-      gives a different CSV (v3_1 on train10 scored 61.4 / 63.6 / 63.6%). One extra gate pass of <code>v2</code>
-      against itself would put a number on how much of any Δ is temperature, and at this split size that context is
-      not optional. ~$1.50.</p></div>
-    <div class="callout info"><strong>Diagnosis is 70% of the wall clock.</strong><p>Fifty sequential Opus calls at
-      ~27s each. Batching them concurrently is the single biggest speed-up available and nothing about the loop
-      requires them to be serial — they are independent by construction.</p></div>
+    <div class="callout good"><strong>Built: diagnosis now runs concurrently.</strong><p>It was 70% of the wall
+      clock — fifty sequential Opus calls at ~27s each — for no reason: no diagnosis reads another's result, so the
+      serial loop only converted that independence into waiting. The cases now run under the same semaphore the eval
+      runner uses (<code>--concurrency</code>, default 8) and are reassembled in case order, so the JSONL artifact
+      and the printed log do not depend on which call returned first.</p></div>
     <div class="callout bad"><strong>Fixed mid-campaign: one flaky call aborted experiment 3.</strong>
       <p>After 35 successful diagnoses, a single Agent SDK call returned no content at all and the exception took the
         whole cycle with it — the train pass, the diagnoses, twenty minutes of work, discarded. The failure is

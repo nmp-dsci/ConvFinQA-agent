@@ -31,6 +31,7 @@ memory: the next cycle reads them back rather than starting blind.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
@@ -142,8 +143,10 @@ gold_suspect=true, and lower your confidence."""
 PROMPT_WRITER_PROMPT = """You maintain the system prompt of ONE subagent in a
 four-stage financial Q&A pipeline (triage -> preprocess -> retriever ->
 calculator). You are given that agent's current prompt, the failures diagnosed
-against it, and the history of every previous rewrite of this same agent with
-what the gate said about each.
+against it in the run that just ran, EVERY OTHER failure ever recorded against
+this exact prompt text, and the history of every previous rewrite of this same
+agent with what the gate said about each — including, for the rewrites that
+were rejected, the individual questions they broke.
 
 Return a COMPLETE REPLACEMENT prompt. You may reorder, restructure, compress,
 delete, or rewrite from scratch — you are not appending to what is there. A
@@ -162,6 +165,16 @@ Hard constraints, all of them load-bearing:
   presuppose changes to another stage.
 - Read the attempt history before writing. If a change was already REJECTED,
   do not propose it again unless you can say what is different this time.
+- Weigh what past rewrites BROKE as heavily as what they fixed. Nearly every
+  rejection here was net-positive-but-not-significant: the fixes were real and
+  the collateral damage cancelled them out. The questions listed under BROKE
+  are ones this agent used to get right. Your rewrite has to keep getting them
+  right, so prefer a narrow rule with a stated precondition over a broad
+  instruction that changes behaviour on turns that were never failing.
+- `failures_this_run` is a sample; `failures_same_prompt` is the accumulated
+  record of what this exact prompt gets wrong across every run that used it.
+  Treat a mode that recurs across both as the real target and a mode appearing
+  once as possible noise.
 
 You have read-only tools for the record: `search_attempts` (rewrite history and
 outcomes), `get_prompt` (any past version's prompt for any agent), and
@@ -305,8 +318,14 @@ async def diagnose_run(
     version: str,
     *,
     experiment: str = OPTIMIZATION_EXPERIMENT,
+    concurrency: int = 8,
 ) -> dict[str, Any]:
-    """Diagnose every first-wrong case of one eval run; return the summary."""
+    """Diagnose every first-wrong case of one eval run; return the summary.
+
+    Cases run concurrently under a semaphore, matching the eval runner. They are
+    independent — no diagnosis reads another's result — so the serial version
+    only ever converted that independence into wall clock.
+    """
     from convfinqa.tracking import mlflow_log
 
     cases = first_wrong_cases(csv_path)
@@ -336,6 +355,7 @@ async def diagnose_run(
             "source_csv": str(csv_path),
             "n_cases": len(cases),
             "n_prior_diagnoses": len(memory),
+            "concurrency": concurrency,
         },
         tags={"loop": "evalloop", "stage": "diagnose"},
         experiment=experiment,
@@ -345,55 +365,63 @@ async def diagnose_run(
         actor_model=teacher_model(),
         omit_fingerprint=("lm_max",),
     ) as rec:
-        for _, row in cases.iterrows():
+        sem = asyncio.Semaphore(max(1, concurrency))
+
+        async def one(
+            order: int, row: pd.Series
+        ) -> tuple[int, dict[str, Any] | None, dict[str, Any] | None, dict[str, Any]]:
+            """Diagnose one case. Never raises — a bad case is counted, not fatal."""
             payload = case_payload(row)
             derived = str(payload["derived_attribution"])
-            with tracing.span(
-                f"diagnose {row.report_id} q{int(row.turn_index)}",
-                attributes={
-                    "report_id": row.report_id,
-                    "turn_index": int(row.turn_index),
-                    "question": str(row.question),
-                    "gold_answer": str(row.gold_answer),
-                    "pipeline_answer": str(row.pred_answer),
-                    # What gold says failed, before the teacher is asked.
-                    "derived_attribution": derived,
-                },
-                trace_tags={
-                    "model_version_id": version,
-                    "run_name": run_name,
-                    "stage": "diagnose",
-                },
-            ) as trace_span:
-                try:
-                    output, usage = await _diagnose_case(payload, memory_text)
-                except Exception as exc:  # noqa: BLE001 — one bad case must not sink the pass
-                    # The runner already takes this position for conversations,
-                    # and a diagnosis pass is worth more: fifty calls, twenty
-                    # minutes, and the whole cycle downstream of it. A case that
-                    # cannot be diagnosed is counted and skipped, so the target
-                    # is picked from the cases that *did* work rather than from
-                    # nothing at all.
-                    failures.append({"report_id": row.report_id, "error": repr(exc)})
-                    print(f"  [skip] {row.report_id}: {exc}")  # noqa: T201
-                    continue
-            # The span opened knowing only what gold derived. Now that the
-            # teacher has answered, put its verdict *and its reasoning* on the
-            # same span — an attribution with no stated reason is not
-            # reviewable, and reviewing the disputes is the whole point of
-            # recording them.
-            trace_span.set(
-                failed_agent=output.failed_agent,
-                failure_mode=output.failure_mode,
-                reason=output.attribution_reason,
-                what_went_wrong=output.what_went_wrong,
-                evidence=output.evidence,
-                proposed_rule=output.proposed_rule,
-                confidence=float(output.confidence),
-                gold_suspect=bool(output.gold_suspect),
-                attribution_disputed=output.failed_agent != derived,
-            )
-            _accumulate_usage(usage_total, usage)
+            async with sem:
+                with tracing.span(
+                    f"diagnose {row.report_id} q{int(row.turn_index)}",
+                    attributes={
+                        "report_id": row.report_id,
+                        "turn_index": int(row.turn_index),
+                        "question": str(row.question),
+                        "gold_answer": str(row.gold_answer),
+                        "pipeline_answer": str(row.pred_answer),
+                        # What gold says failed, before the teacher is asked.
+                        "derived_attribution": derived,
+                    },
+                    trace_tags={
+                        "model_version_id": version,
+                        "run_name": run_name,
+                        "stage": "diagnose",
+                    },
+                ) as trace_span:
+                    try:
+                        output, usage = await _diagnose_case(payload, memory_text)
+                    except Exception as exc:  # noqa: BLE001 — one bad case must not sink the pass
+                        # The runner already takes this position for
+                        # conversations, and a diagnosis pass is worth more:
+                        # fifty calls and the whole cycle downstream of them. A
+                        # case that cannot be diagnosed is counted and skipped,
+                        # so the target is picked from the cases that *did*
+                        # work rather than from nothing at all.
+                        return (
+                            order,
+                            None,
+                            {"report_id": row.report_id, "error": repr(exc)},
+                            {},
+                        )
+                # The span opened knowing only what gold derived. Now that the
+                # teacher has answered, put its verdict *and its reasoning* on
+                # the same span — an attribution with no stated reason is not
+                # reviewable, and reviewing the disputes is the whole point of
+                # recording them.
+                trace_span.set(
+                    failed_agent=output.failed_agent,
+                    failure_mode=output.failure_mode,
+                    reason=output.attribution_reason,
+                    what_went_wrong=output.what_went_wrong,
+                    evidence=output.evidence,
+                    proposed_rule=output.proposed_rule,
+                    confidence=float(output.confidence),
+                    gold_suspect=bool(output.gold_suspect),
+                    attribution_disputed=output.failed_agent != derived,
+                )
             d = output.model_dump()
             d.update(
                 report_id=row.report_id,
@@ -403,10 +431,28 @@ async def diagnose_run(
                 derived_agent=derived,
                 attribution_disputed=d["failed_agent"] != derived,
             )
+            return order, d, None, usage
+
+        # The cases are independent by construction — one diagnosis never reads
+        # another's result — so running them serially bought nothing and cost
+        # the whole pass: fifty calls at ~27s each is over twenty minutes of
+        # wall clock, which was the single largest term in a cycle.
+        settled = await asyncio.gather(
+            *(one(i, row) for i, (_, row) in enumerate(cases.iterrows()))
+        )
+        # Reassembled in case order, so the JSONL artifact and the printed log
+        # do not depend on which call happened to return first.
+        for _, d, failure, usage in sorted(settled, key=lambda r: r[0]):
+            if failure is not None:
+                failures.append(failure)
+                print(f"  [skip] {failure['report_id']}: {failure['error']}")  # noqa: T201
+                continue
+            assert d is not None
+            _accumulate_usage(usage_total, usage)
             diagnoses.append(d)
             mark = " DISPUTED" if d["attribution_disputed"] else ""
             print(  # noqa: T201
-                f"  [{row.report_id} q{int(row.turn_index)}] gold->{derived}"
+                f"  [{d['report_id']} q{d['turn_index']}] gold->{d['derived_agent']}"
                 f" teacher->{d['failed_agent']}{mark}"
                 f" · {d['failure_mode']} (conf {d['confidence']:.2f})"
             )
@@ -543,6 +589,18 @@ async def propose_version(
     base_prompts = prompts_pkg.load(base_version)
     history = ledger.ledger_text(target)
     n_prior = len(ledger.attempts(target_agent=target, limit=50))
+    # Every failure ever recorded against the exact prompt text being replaced,
+    # not just the ones this cycle's run happened to sample. Cases already in
+    # `targeted` are dropped so the writer does not read one turn twice and
+    # mistake a duplicate for a recurring mode.
+    seen_cases = {
+        (str(d.get("report_id")), int(d.get("turn_index", -1))) for d in targeted
+    }
+    prior_failures = [
+        d
+        for d in ledger.diagnoses_for_agent(target, base_version, experiment=experiment)
+        if (str(d.get("report_id")), int(d.get("turn_index", -1))) not in seen_cases
+    ]
     tracing.enable()
     with mlflow_log.run(
         f"propose-{new_version}-{target}",
@@ -553,6 +611,7 @@ async def propose_version(
             "new_version": new_version,
             "n_diagnoses": len(targeted),
             "n_prior_attempts": n_prior,
+            "n_failures_same_prompt": len(prior_failures),
             **({"campaign": campaign} if campaign else {}),
             **({"experiment_label": label} if label else {}),
         },
@@ -575,7 +634,8 @@ async def propose_version(
                     {
                         "target_agent": target,
                         "current_prompt": base_prompts[target],
-                        "failures": [
+                        "failures_same_prompt": prior_failures,
+                        "failures_this_run": [
                             {
                                 "failure_mode": d["failure_mode"],
                                 "what_went_wrong": d["what_went_wrong"],
@@ -863,6 +923,7 @@ def gate_targeted(
 def log_gate_verdict(
     verdict: dict[str, Any],
     *,
+    comparison: Any = None,
     campaign: str | None = None,
     label: str | None = None,
     experiment: str = OPTIMIZATION_EXPERIMENT,
@@ -873,6 +934,13 @@ def log_gate_verdict(
     logged and verdicts were printed to a terminal. A rejected idea could
     therefore be proposed again next cycle, indefinitely. This is the run the
     prompt writer's ledger joins its proposals against.
+
+    `comparison` is the `ComparisonResult`, and passing it writes `flips.json`:
+    the individual questions the candidate fixed and, more to the point, the
+    ones it broke. Counts alone tell the next writer that its predecessor broke
+    eighteen questions; only the questions themselves tell it *which* eighteen,
+    which is the difference between "be more careful" and a specific rule that
+    stops a specific kind of collateral damage.
     """
     from convfinqa.tracking import mlflow_log
 
@@ -921,6 +989,14 @@ def log_gate_verdict(
                 },
             },
         )
+        if comparison is not None:
+            rec.dict_artifact(
+                "flips.json",
+                {
+                    "broken": [f.as_dict() for f in comparison.regressions],
+                    "fixed": [f.as_dict() for f in comparison.improvements],
+                },
+            )
         rec.metrics(
             {
                 "accuracy_delta": float(stats["accuracy_delta"]),
