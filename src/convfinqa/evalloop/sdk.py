@@ -76,13 +76,20 @@ async def run_structured(
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
     attempts: int = 2,
-    refs: dict[str, Any] | None = None,
+    refs: dict[str, Any] | None,
 ) -> tuple[T, dict[str, Any]]:
     """Run one Agent SDK turn and validate its reply against `schema`.
 
-    `refs` says how to reconstruct this call's prompts — see `prompt_refs`. When
-    given, the span records the references and a short head rather than tens of
-    kilobytes of text that is identical on every other span of the run.
+    `refs` says how to reconstruct this call's prompts — see `prompt_refs`. The
+    span records those references and a short head rather than tens of kilobytes
+    of text identical on every other span of the run.
+
+    It is **required and has no default**, deliberately. Since the span no longer
+    stores the prompt text, a call site that forgot to pass refs would record a
+    prompt that is neither included nor recoverable — strictly worse than the
+    text dump this replaced. Requiring the argument makes that a type error at
+    the new call site instead of a discovery weeks later in the Traces tab. Pass
+    an explicit `None` if a call genuinely has nothing worth referencing.
 
     Retries once by default, because the observed failure mode is transient: a
     call returns no content at all, and the next identical call succeeds. One

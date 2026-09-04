@@ -261,7 +261,7 @@ def case_payload(row: pd.Series) -> dict[str, Any]:
 async def _diagnose_case(
     payload: dict[str, Any],
     memory_text: str,
-    refs: dict[str, Any] | None = None,
+    refs: dict[str, Any] | None,
 ) -> tuple[Diagnosis, dict[str, Any]]:
     """One diagnosis, on the Agent SDK, validated against the same schema."""
     from convfinqa.evalloop.sdk import run_structured

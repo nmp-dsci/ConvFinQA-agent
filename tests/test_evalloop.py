@@ -889,7 +889,7 @@ async def test_run_structured_retries_a_transient_empty_reply() -> None:
     sdk._run_structured_once = flaky  # type: ignore[assignment]
     try:
         out, _ = await sdk.run_structured(
-            "hi", schema=Reply, system_prompt="s", max_turns=1
+            "hi", schema=Reply, system_prompt="s", max_turns=1, refs=None
         )
     finally:
         sdk._run_structured_once = original  # type: ignore[assignment]
@@ -903,7 +903,9 @@ async def test_run_structured_retries_a_transient_empty_reply() -> None:
     sdk._run_structured_once = always  # type: ignore[assignment]
     try:
         with pytest.raises(sdk.TeacherCallError, match="still nothing"):
-            await sdk.run_structured("hi", schema=Reply, system_prompt="s", attempts=2)
+            await sdk.run_structured(
+                "hi", schema=Reply, system_prompt="s", attempts=2, refs=None
+            )
     finally:
         sdk._run_structured_once = original  # type: ignore[assignment]
 
@@ -1320,7 +1322,12 @@ async def test_agent_sdk_calls_open_a_traced_llm_span(monkeypatch: Any) -> None:
 
     monkeypatch.setattr(sdk, "_run_structured_once", fake_once)
 
-    out, _ = await sdk.run_structured("say ok", schema=Ping, system_prompt="reply json")
+    out, _ = await sdk.run_structured(
+        "say ok",
+        schema=Ping,
+        system_prompt="reply json",
+        refs={"user_prompt": {"k": 1}},
+    )
     assert out.answer == "OK"
     assert len(opened) == 1
     span = opened[0]
@@ -1387,7 +1394,7 @@ async def test_a_retried_agent_sdk_call_records_both_attempts(
 
     monkeypatch.setattr(sdk, "_run_structured_once", flaky)
 
-    out, _ = await sdk.run_structured("x", schema=Ping, system_prompt="s")
+    out, _ = await sdk.run_structured("x", schema=Ping, system_prompt="s", refs=None)
     assert out.answer == "OK"
     assert len(opened) == 2, "the retry reused one span, hiding the failed attempt"
     assert opened[0]["attributes"]["attempt"] == 1
@@ -1433,3 +1440,42 @@ def test_agent_prompt_ref_names_the_prompt_the_way_the_ledger_does() -> None:
     assert ref["agent"] == "preprocess"
     assert ref["seq"].startswith("p")
     assert prompt_refs.resolve(ref) == text
+
+
+def test_every_agent_sdk_call_site_must_supply_prompt_refs() -> None:
+    """`refs` has no default, so a new call site cannot silently omit it.
+
+    Spans no longer carry prompt text, so a call that forgot refs would record a
+    prompt that is neither stored nor recoverable — strictly worse than the text
+    dump this replaced, and invisible until someone opened the Traces tab weeks
+    later. Requiring the argument turns that into a type error at the call site."""
+    import inspect
+
+    from convfinqa.evalloop import sdk, teacher
+
+    for fn in (sdk.run_structured, teacher._diagnose_case):
+        refs = inspect.signature(fn).parameters["refs"]
+        assert refs.default is inspect.Parameter.empty, (
+            f"{fn.__qualname__} gave `refs` a default; a call site that omits it "
+            "would record an unrecoverable prompt"
+        )
+
+
+def test_agent_sdk_is_reached_through_exactly_one_chokepoint() -> None:
+    """The span lives in `run_structured`, so nothing may bypass it.
+
+    A second path to ClaudeSDKClient would produce teacher calls with no trace at
+    all — the original bug — and would do so silently, since traces would still
+    be written by the surrounding spans."""
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1] / "src" / "convfinqa"
+    users = sorted(
+        p.relative_to(root).as_posix()
+        for p in root.rglob("*.py")
+        if "ClaudeSDKClient(" in p.read_text()
+    )
+    assert users == ["evalloop/sdk.py"], (
+        "the Agent SDK is constructed outside evalloop/sdk.py; that call path has "
+        f"no MLflow span and no prompt refs: {users}"
+    )
