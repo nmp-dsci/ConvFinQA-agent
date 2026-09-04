@@ -1479,3 +1479,44 @@ def test_agent_sdk_is_reached_through_exactly_one_chokepoint() -> None:
         "the Agent SDK is constructed outside evalloop/sdk.py; that call path has "
         f"no MLflow span and no prompt refs: {users}"
     )
+
+
+def test_targeting_penalises_a_thinly_evidenced_agent() -> None:
+    """Pooling on the raw rate re-creates the problem pooling exists to solve.
+
+    Real numbers from c02-e01: the retriever scored 18/45 = 40.0% against
+    preprocess's 71/195 = 36.4%, and won — but the retriever's 40% was a single
+    draw of a prompt rewritten the cycle before, while preprocess's rested on
+    four draws. A point estimate lets the noisier side win on noise, so the loop
+    spent an experiment on the wrong agent and it gated at exactly +0.00pp.
+
+    Ranking on the Wilson lower bound fixes it without a tuned threshold, and
+    stays positive whenever any fault is recorded so a freshly rewritten agent
+    is never unreachable."""
+    from convfinqa.evalloop import campaign, ledger
+
+    draw = {"triage": 7, "preprocess": 13, "retriever": 18, "calculator": 7}
+    prior = {
+        "triage": {"faults": 24, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+        "preprocess": {"faults": 58, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+        "retriever": {"faults": 0, "cases": 0, "n_runs": 0, "versions": []},
+        "calculator": {"faults": 22, "cases": 150, "n_runs": 3, "versions": ["v2"]},
+    }
+    merged = ledger.merge_draw(prior, draw, "v8")
+
+    # The retriever still has the higher raw rate...
+    assert merged["retriever"]["rate"] > merged["preprocess"]["rate"]
+    # ...but not once its thinner evidence is accounted for.
+    assert merged["preprocess"]["score"] > merged["retriever"]["score"]
+    assert campaign.pick_target(draw, [], pooled=merged)[0] == "preprocess"
+
+    # An agent with only this draw is still reachable — the other failure mode.
+    only_draw = ledger.merge_draw(
+        {a: {"faults": 0, "cases": 0, "n_runs": 0, "versions": []} for a in prior},
+        {"triage": 0, "preprocess": 0, "retriever": 20, "calculator": 0},
+        "v8",
+    )
+    assert only_draw["retriever"]["score"] > 0
+    assert (
+        campaign.pick_target({"retriever": 20}, [], pooled=only_draw)[0] == "retriever"
+    )

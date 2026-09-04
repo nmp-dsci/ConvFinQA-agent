@@ -117,7 +117,11 @@ def pick_target(
 
     def _weight(agent: str) -> float:
         if pooled:
-            return float(pooled.get(agent, {}).get("rate", 0.0))
+            # The Wilson lower bound, not the rate — see `ledger._score`. The
+            # agents do not carry equal evidence, so a point estimate lets a
+            # single noisy draw outrank a well-measured rival.
+            entry = pooled.get(agent, {})
+            return float(entry.get("score", entry.get("rate", 0.0)))
         return float(counts.get(agent, 0))
 
     def _evidence(agent: str) -> int:
@@ -144,6 +148,7 @@ def pick_target(
             note = (
                 f"highest pooled first-fault rate "
                 f"({ev.get('faults', 0)}/{ev.get('cases', 0)} = "
+                f"{float(ev.get('rate', 0.0)):.1%}, Wilson lower bound "
                 f"{_weight(agent):.1%} across {ev.get('n_runs', 0)} train "
                 f"draw(s) of this prompt; {counts.get(agent, 0)} in this draw)"
             )

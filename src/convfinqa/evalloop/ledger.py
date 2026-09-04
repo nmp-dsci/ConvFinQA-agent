@@ -424,9 +424,40 @@ def fault_history(
             out[agent]["n_runs"] += 1
             out[agent]["versions"].append(version)
     for agent in AGENTS:
-        cases = out[agent]["cases"]
-        out[agent]["rate"] = (out[agent]["faults"] / cases) if cases else 0.0
+        _score(out[agent])
     return out
+
+
+Z_95 = 1.959963984540054
+
+
+def _score(entry: dict[str, Any]) -> None:
+    """Set `rate` and the `score` targeting ranks on, in place.
+
+    `score` is the **lower bound of the Wilson interval** on the fault rate, not
+    the rate itself. Ranking on the raw rate re-creates the very problem pooling
+    exists to solve, because the agents do not carry equal evidence: c02-e01
+    picked the retriever at 18/45 = 40.0% over preprocess at 71/195 = 36.4%, and
+    the retriever's 40% was one draw of a prompt rewritten the cycle before while
+    preprocess's was four draws. A point estimate lets the noisier side win on
+    noise.
+
+    The Wilson bound is the standard fix and needs no tuning: it penalises a
+    small sample in proportion to how small it is, so a freshly rewritten agent
+    has to look *clearly* worse — not marginally worse — before the loop spends
+    an experiment on it. It stays strictly positive whenever any fault is
+    recorded, so a new agent is never unreachable, which was the other failure.
+    """
+    faults, cases = int(entry.get("faults", 0)), int(entry.get("cases", 0))
+    entry["rate"] = (faults / cases) if cases else 0.0
+    if not cases or not faults:
+        entry["score"] = 0.0
+        return
+    p_hat, z = faults / cases, Z_95
+    denom = 1.0 + z * z / cases
+    centre = p_hat + z * z / (2 * cases)
+    margin = z * ((p_hat * (1 - p_hat) / cases) + z * z / (4 * cases * cases)) ** 0.5
+    entry["score"] = max(0.0, (centre - margin) / denom)
 
 
 def merge_draw(
@@ -451,6 +482,5 @@ def merge_draw(
         out[agent]["cases"] = int(out[agent].get("cases", 0)) + n
         out[agent]["n_runs"] = int(out[agent].get("n_runs", 0)) + 1
         out[agent]["versions"] = [*out[agent].get("versions", []), version]
-        cases = out[agent]["cases"]
-        out[agent]["rate"] = (out[agent]["faults"] / cases) if cases else 0.0
+        _score(out[agent])
     return out
