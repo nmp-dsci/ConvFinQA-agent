@@ -192,6 +192,11 @@ def main() -> None:
         action="store_true",
         help="Report what would change without writing any metric.",
     )
+    ba.add_argument(
+        "--force",
+        action="store_true",
+        help="Recompute even runs already scored by the current rule.",
+    )
 
     cy = sub.add_parser(
         "cycle",
@@ -483,7 +488,10 @@ def main() -> None:
         kwargs = {"experiment": args.experiment} if args.experiment else {}
         print(  # noqa: T201
             json.dumps(
-                ledger.backfill_attribution(dry_run=args.dry_run, **kwargs), indent=2
+                ledger.backfill_attribution(
+                    dry_run=args.dry_run, force=args.force, **kwargs
+                ),
+                indent=2,
             )
         )
 

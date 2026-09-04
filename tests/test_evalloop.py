@@ -1936,3 +1936,71 @@ def test_the_adjudicator_ref_rebuilds_its_own_prompt_not_the_diagnosis(
     stale = {**ref, "sha": prompt_refs.sha(text + " drifted")}
     with pytest.raises(prompt_refs.UnresolvedRefError, match="has changed since"):
         prompt_refs.resolve(stale)
+
+
+def test_the_attribution_rule_id_is_deterministic_and_tracks_the_logic() -> None:
+    """The staleness key must be derived, not remembered.
+
+    `backfill_attribution`'s first guard asked only whether a run had been
+    recomputed at all, so when the rule itself changed it reported every run as
+    already done and silently left the ledger pooling two measurements.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    rule = stage_scores.attribution_rule_id()
+    assert rule == stage_scores.attribution_rule_id()
+    assert len(rule) == 12 and all(c in "0123456789abcdef" for c in rule)
+
+
+def test_backfill_reuses_adjudications_instead_of_discarding_them(
+    tmp_path: Path,
+) -> None:
+    """A backfill must not leave a run less informed than it found it.
+
+    Ambiguous cases are settled by a model call. Recomputing without reading
+    those back would push them into `ambiguous` again and throw the answer away.
+    """
+    from convfinqa.evalloop import ledger
+
+    jsonl = tmp_path / "diagnoses.jsonl"
+    jsonl.write_text(
+        "\n".join(
+            json.dumps(d)
+            for d in [
+                {
+                    "report_id": "R/1.pdf",
+                    "turn_index": 2,
+                    "adjudicated": True,
+                    "derived_agent": "retriever",
+                },
+                {
+                    "report_id": "R/2.pdf",
+                    "turn_index": 0,
+                    "adjudicated": False,
+                    "derived_agent": "preprocess",
+                },
+                {
+                    "report_id": "R/3.pdf",
+                    "turn_index": 1,
+                    "adjudicated": True,
+                    "derived_agent": "ambiguous",  # not an agent — must be ignored
+                },
+            ]
+        )
+    )
+
+    class FakeClient:
+        def download_artifacts(self, run_id: str, name: str) -> str:
+            assert name == "diagnoses.jsonl"
+            return str(jsonl)
+
+    settled = ledger._adjudications(FakeClient(), "run-1")
+    # only the adjudicated case, keyed by (report, turn)
+    assert settled == {("R/1.pdf", 2): "retriever"}
+
+    class NoArtifact:
+        def download_artifacts(self, run_id: str, name: str) -> str:
+            raise FileNotFoundError(name)
+
+    # a missing artifact yields nothing rather than inventing a verdict
+    assert ledger._adjudications(NoArtifact(), "run-2") == {}

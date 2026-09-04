@@ -437,6 +437,9 @@ def fault_history(
     return out
 
 
+#: The four subagents, for validating a verdict read back from an artifact.
+AGENT_NAMES = ("triage", "preprocess", "retriever", "calculator")
+
 Z_95 = 1.959963984540054
 
 
@@ -495,10 +498,35 @@ def merge_draw(
     return out
 
 
+def _adjudications(client: Any, run_id: str) -> dict[tuple[str, int], str]:
+    """Adjudicated verdicts recorded on a diagnose run, by (report, turn).
+
+    Read back from the run's own `diagnoses.jsonl`, which records `adjudicated`
+    and the resulting `derived_agent` per case. Absent or unreadable, the caller
+    simply keeps `ambiguous` — a missing artifact must not invent a verdict.
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    try:
+        local = _Path(client.download_artifacts(run_id, "diagnoses.jsonl"))
+        rows = [
+            _json.loads(line) for line in local.read_text().splitlines() if line.strip()
+        ]
+    except Exception:  # noqa: BLE001 — no artifact is a normal, older run
+        return {}
+    return {
+        (str(r.get("report_id")), int(r.get("turn_index", 0))): str(r["derived_agent"])
+        for r in rows
+        if r.get("adjudicated") and r.get("derived_agent") in AGENT_NAMES
+    }
+
+
 def backfill_attribution(
     *,
     experiment: str = OPTIMIZATION_EXPERIMENT,
     dry_run: bool = False,
+    force: bool = False,
 ) -> list[dict[str, Any]]:
     """Recompute every past diagnose run's fault counts under the current rule.
 
@@ -507,6 +535,10 @@ def backfill_attribution(
     bound, so a store holding counts from *both* rules is not a larger sample of
     one measurement — it is two measurements averaged, and the pooling that was
     built to remove noise would be adding a bias instead.
+
+    Runs already carrying the current rule's fingerprint are skipped; a run
+    scored by an older rule is recomputed rather than reported as done. `force`
+    recomputes regardless. See `stage_scores.attribution_rule_id`.
 
     Recomputation, not migration: each run names the CSV it diagnosed in
     `source_csv`, that CSV is committed, and attribution is a pure function of
@@ -530,8 +562,9 @@ def backfill_attribution(
         if not source or not path.exists():
             out.append({"run": name, "status": "skipped — source CSV not found"})
             continue
-        if "n_attributed" in run.data.metrics:
-            out.append({"run": name, "status": "already recomputed"})
+        rule = stage_scores.attribution_rule_id()
+        if not force and run.data.tags.get("attribution_rule") == rule:
+            out.append({"run": name, "status": "already on the current rule"})
             continue
 
         df = pd.read_csv(path)
@@ -539,10 +572,22 @@ def backfill_attribution(
         stage_scores.score_rows(df)
         first_wrong = df[df.turn_index == df.first_wrong_turn]
         docs = stage_scores.report_documents()
-        verdicts = [
-            stage_scores.attribute(row, docs.get(str(row.get("report_id")), ""))
-            for row in stage_scores.with_prior_gold(first_wrong)
-        ]
+        # Adjudications the run already paid a model call for. Recomputing
+        # without them would push those cases back into `ambiguous` and *lose*
+        # information — a backfill that leaves a run worse informed than it
+        # found it is not a backfill.
+        settled = _adjudications(client, run_id)
+        verdicts = []
+        for row in stage_scores.with_prior_gold(first_wrong):
+            verdict = stage_scores.attribute(
+                row, docs.get(str(row.get("report_id")), "")
+            )
+            if verdict == "ambiguous":
+                verdict = settled.get(
+                    (str(row.get("report_id")), int(row.get("turn_index", 0))),
+                    verdict,
+                )
+            verdicts.append(verdict)
         counts = {a: verdicts.count(a) for a in AGENTS}
         unattributed = {v: verdicts.count(v) for v in stage_scores.NON_AGENT}
         n_attributed = sum(counts.values())
@@ -557,16 +602,18 @@ def backfill_attribution(
             "n_attributed": n_attributed,
             "status": "would rewrite" if dry_run else "rewritten",
         }
-        # `ambiguous` is unresolved here by construction: adjudicating it needs a
-        # model call per case, and a backfill over the whole store is not the
-        # place to spend that. Those cases stay out of the counts entirely,
-        # which understates every agent equally rather than guessing.
+        # An `ambiguous` case with no recorded adjudication stays unresolved:
+        # settling it needs a model call, and a backfill over the whole store is
+        # not the place to spend that. Those cases stay out of the counts
+        # entirely, which understates every agent equally rather than guessing.
         if not dry_run:
             for agent, value in counts.items():
                 client.log_metric(run_id, f"faults_{agent}", float(value))
             for verdict, value in unattributed.items():
                 client.log_metric(run_id, f"unattributed_{verdict}", float(value))
             client.log_metric(run_id, "n_attributed", float(n_attributed))
-            client.set_tag(run_id, "attribution_rule", "2026-09-04")
+            # The fingerprint of the rule that produced these counts, so a later
+            # backfill can tell "already done" from "done by an older rule".
+            client.set_tag(run_id, "attribution_rule", rule)
         out.append(record)
     return out

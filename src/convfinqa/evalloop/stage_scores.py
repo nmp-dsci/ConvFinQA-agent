@@ -336,6 +336,44 @@ def missing_operands(row: Any, retrieved: list[str]) -> list[str]:
     return missing
 
 
+def attribution_rule_id() -> str:
+    """A fingerprint of the attribution logic itself, for staleness checks.
+
+    `backfill_attribution` needs to know whether a stored fault count was
+    produced by *this* rule. Its first guard asked only whether a run had been
+    recomputed at all, which cannot notice the thing that matters: the rule
+    changing underneath. That is not hypothetical — the rule changed twice in a
+    day (the rewrite, then a tolerance and multiset fix), and the second time
+    the guard silently reported every run as already done.
+
+    Derived from source rather than a hand-bumped constant, because a constant
+    someone must remember to bump is the same failure with an extra step. The
+    cost of getting it wrong is asymmetric: a spurious recompute is a few
+    seconds of arithmetic over committed CSVs and no API calls, while a missed
+    one leaves the ledger pooling two different measurements under one Wilson
+    bound. So this deliberately over-triggers — editing a comment in any of
+    these functions is enough — and that is the cheap direction to be wrong in.
+    """
+    import hashlib
+    import inspect
+
+    from convfinqa.evaluation import program_exec
+
+    parts = [
+        inspect.getsource(fn)
+        for fn in (
+            first_fault,
+            missing_operands,
+            retriever_declined,
+            gold_document_operands,
+            program_exec.execute,
+            program_exec.result_matches,
+            program_exec.bind_and_execute,
+        )
+    ]
+    return hashlib.sha256("".join(parts).encode()).hexdigest()[:12]
+
+
 def first_fault(row: Any, doc: str | None = None) -> str | None:
     """The first stage whose gold-derived check fails, in pipeline order.
 
