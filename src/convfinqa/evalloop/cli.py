@@ -182,6 +182,17 @@ def main() -> None:
         help="Recompute and check against each verdict, but write nothing.",
     )
 
+    ba = sub.add_parser(
+        "backfill-attribution",
+        help="Recompute past diagnose runs' fault counts under the current rule.",
+    )
+    ba.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    ba.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would change without writing any metric.",
+    )
+
     cy = sub.add_parser(
         "cycle",
         help="One full experiment: train -> diagnose -> rewrite -> gate -> decide.",
@@ -464,6 +475,16 @@ def main() -> None:
         kwargs = {"experiment": args.experiment} if args.experiment else {}
         print(  # noqa: T201
             json.dumps(ledger.backfill_flips(dry_run=args.dry_run, **kwargs), indent=2)
+        )
+
+    elif args.cmd == "backfill-attribution":
+        from convfinqa.evalloop import ledger
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        print(  # noqa: T201
+            json.dumps(
+                ledger.backfill_attribution(dry_run=args.dry_run, **kwargs), indent=2
+            )
         )
 
     elif args.cmd == "backfill-prompts":

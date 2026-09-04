@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The &ldquo;no&rdquo; Turns — Root Cause &amp; Proposed Fix (s08)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Design source (2): the project's own system — frontend/src/tokens.css, the same
+   palette s02 and s03 used. Dark-first, light variant, monotonic elevation. */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4); --bad-line:rgba(239,130,130,.45);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1100px;
+}
+:root[data-theme="light"]{
+  --ground:#eeecea; --panel:#faf9f8; --panel-2:#e6e3e0;
+  --line:#dedad6; --line-2:#c6c1bb;
+  --text:#22252a; --muted:#55595f; --faint:#5f636a;
+  --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --amber-line:rgba(143,83,9,.4);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --good-line:rgba(23,112,73,.38); --info-line:rgba(29,84,171,.35); --bad-line:rgba(168,50,41,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;min-width:0}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.026em;margin:0 0 18px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,29px);line-height:1.18;letter-spacing:-.018em;margin:0 0 14px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:30px 0 10px;letter-spacing:-.004em;font-weight:600}
+h4{font-family:var(--mono);font-size:10.5px;margin:22px 0 8px;color:var(--faint);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+p{margin:0 0 14px;max-width:74ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:74ch}
+li{margin:0 0 7px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 16px}
+pre code{background:none;padding:0;font-size:inherit}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18px;color:var(--muted);max-width:68ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;min-width:0}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:26px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px;max-width:340px}
+.metric .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+td code{white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.warn{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.chip.bad{color:var(--bad);border-color:var(--bad-line)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px;min-width:0}
+.callout.bad{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px;min-width:0}
+figure svg{width:100%;height:auto;display:block;color:var(--text)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:76ch}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.phase{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 22px;margin:0 0 16px;min-width:0}
+.phase .hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+.phase .hd .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.1em;font-weight:600}
+.phase .hd h3{margin:0;font-size:17px}
+.phase .hd .eff{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:auto;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13.5px;margin:10px 0 0}
+.kv dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding-top:4px;white-space:nowrap}
+.kv dd{margin:0;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.opt{display:grid;gap:12px;margin:0 0 18px}
+@media(min-width:760px){.opt.o2{grid-template-columns:repeat(2,minmax(0,1fr))}.opt.o3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.opt .card.rec{border-color:var(--amber-line);box-shadow:0 0 0 1px var(--amber-soft) inset}
+.opt .card .tag{margin-bottom:8px}
+.cite{font-size:12.5px;color:var(--faint);font-family:var(--mono);overflow-wrap:anywhere}
+/* decision forms — native controls, local state, one queued prompt per question */
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 14px;min-width:0}
+form.q legend,form.q .qt{font-weight:600;margin:0 0 8px;padding:0}
+form.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;border:1px solid transparent;cursor:pointer;font-size:14px;min-width:0}
+form.q label:hover{background:var(--panel-2)}
+form.q label:has(input:checked){border-color:var(--amber-line);background:var(--amber-soft)}
+form.q input[type=radio]{margin-top:5px;accent-color:var(--amber);flex:0 0 auto}
+form.q textarea{width:100%;min-height:54px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;font-family:var(--ui);font-size:13.5px;margin-top:8px;resize:vertical}
+form.q .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+form.q button{background:var(--amber);color:var(--amber-ink);border:none;border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+form.q button:hover{filter:brightness(1.06)}
+form.q .status{font-family:var(--mono);font-size:11px;color:var(--faint)}
+form.q .status.queued{color:var(--good)}
+.foot{color:var(--faint);font-size:13px;margin-top:26px}
+.paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;overflow-x:auto;min-width:0;width:min(1500px,calc(100vw - 56px));margin-left:calc(50% - min(750px,50vw - 28px))}
+.paper img{display:block;min-width:980px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line-2)}
+.legend .b::before{background:#a5d8ff}.legend .v::before{background:#d0bfff}.legend .g::before{background:#b2f2bb}.legend .r::before{background:#ffc9c9;border-style:dashed}.legend .n::before{background:#e9ecef;border-style:dashed}
+td.st{white-space:nowrap}
+table.wrap{min-width:720px;table-layout:fixed}table.wrap td code{white-space:normal;overflow-wrap:anywhere}table.wrap td{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* s07 additions */
+.shot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;overflow:hidden;margin:0 0 8px}
+.shot img{display:block;width:100%;height:auto;border-radius:6px}
+.term{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-family:var(--mono);
+font-size:12.5px;line-height:1.6;overflow-x:auto;margin:0 0 16px;color:var(--muted);white-space:pre}
+.term b{color:var(--text);font-weight:600}
+.term .ok{color:var(--good)}.term .no{color:var(--bad)}.term .hi{color:var(--amber)}.term .dim{color:var(--faint)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 20px}
+.steps li{counter-increment:s;position:relative;padding:0 0 14px 40px;margin:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:99px;
+border:1px solid var(--amber-line);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:600;
+display:grid;place-items:center;background:var(--panel)}
+.steps li strong{display:block}
+.ship{display:grid;gap:10px;margin:0 0 20px}
+@media(min-width:760px){.ship{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ship .item{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 16px;min-width:0}
+.ship .item h4{margin:0 0 6px;color:var(--amber)}
+.ship .item p{margin:0;font-size:13.5px;color:var(--muted)}
+.diffbox{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);
+font-size:12px;line-height:1.55;overflow-x:auto;margin:0 0 16px;white-space:pre}
+.diffbox .a{color:var(--good)}.diffbox .d{color:var(--bad)}.diffbox .h{color:var(--violet)}
+</style>
+<style>
+.trace{display:grid;gap:0;margin:0 0 6px}
+.trace .stg{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 16px;min-width:0}
+.trace .stg.ok{border-left:3px solid var(--good)}
+.trace .stg.warn{border-left:3px solid var(--amber)}
+.trace .stg.bad{border-left:3px solid var(--bad)}
+.trace .stg h4{margin:0 0 6px;color:var(--faint)}
+.trace .stg .io{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere;line-height:1.5}
+.trace .stg .io b{color:var(--text);font-weight:600}
+.trace .arw{justify-self:center;color:var(--faint);font-family:var(--mono);font-size:15px;line-height:1;padding:5px 0}
+.verdictbar{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 18px}
+.verdictbar div{flex:1 1 90px;padding:9px 12px;font-family:var(--mono);font-size:11.5px;border-right:1px solid var(--line);min-width:0}
+.verdictbar div:last-child{border-right:none}
+.verdictbar .k{color:var(--faint);display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="top">
+  <p class="eyebrow">deep dive &middot; s08 &middot; 2026-09-04</p>
+  <h1>The &ldquo;no&rdquo; turns</h1>
+  <p class="lede">About one turn in fifty answers the literal string <code>no</code> to a question whose gold answer is a number. It is never right. It has survived five optimisation experiments, and it is not a hallucination &mdash; the calculator prompt instructs it.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="v">2.0%</div><div class="l">of calculator turns hit it (5 of 247, champion v8)</div></div>
+    <div class="metric"><div class="v">0.0%</div><div class="l">accuracy on those turns, against 78.5% elsewhere</div></div>
+    <div class="metric"><div class="v">12&ndash;28%</div><div class="l">of every experiment&rsquo;s collateral damage</div></div>
+    <div class="metric"><div class="v">0 of 5</div><div class="l">experiments that targeted the agent responsible</div></div>
+  </div>
+
+  <div class="callout bad"><strong>The finding in one line.</strong><p>The calculator prompt uses <code>no</code> &mdash; a value inside the legitimate answer space &mdash; as an out-of-band signal for &ldquo;I cannot compute this&rdquo;. A refusal is therefore indistinguishable from an answer, which is why it scores as wrong, reads as a preprocess fault, and cannot be fixed from any prompt except the calculator&rsquo;s own.</p></div>
+
+  <div class="toc">
+    <a href="#trace"><span class="n">01</span><span>The trace: where <code>no</code> is born</span></a>
+    <a href="#instructed"><span class="n">02</span><span>It is instructed, not hallucinated</span></a>
+    <a href="#evidence"><span class="n">03</span><span>Evidence across six versions</span></a>
+    <a href="#missed"><span class="n">04</span><span>Why five experiments missed it</span></a>
+    <a href="#trap"><span class="n">05</span><span>The trap: the obvious fix loses</span></a>
+    <a href="#fix"><span class="n">06</span><span>The proposed fix</span></a>
+    <a href="#effect"><span class="n">07</span><span>Expected effect, stated honestly</span></a>
+    <a href="#decide"><span class="n">08</span><span>Risks &amp; what I need from you</span></a>
+  </div>
+</section>
+
+<section id="trace">
+  <h2>01 &middot; The trace: where <code>no</code> is born</h2>
+  <p>One turn, walked through all four agents. Every value below is read from the champion run&rsquo;s own captured stage I/O (<code>calculator_io</code>, <code>retriever_io</code>, <code>preprocess_io</code>), not reconstructed.</p>
+
+  <div class="verdictbar">
+    <div><span class="k">report</span>Double_ECL/2017/page_96.pdf</div>
+    <div><span class="k">turn</span>q2</div>
+    <div><span class="k">gold</span>&minus;108</div>
+    <div><span class="k">pipeline</span><span style="color:var(--bad)">no</span></div>
+    <div><span class="k">version</span>v8 &middot; t2.p2.r5.c2</div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 900 250" role="img" aria-labelledby="t1">
+      <title id="t1">Four pipeline stages; the retriever reports one value not found and the calculator converts that into the literal answer "no"</title>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity=".5"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Mono, monospace" font-size="12">
+        <g id="s-triage"><title>triage: classified the turn as a program turn, correctly</title>
+          <rect x="8" y="70" width="150" height="62" rx="8" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+          <text x="83" y="95" text-anchor="middle" fill="currentColor" font-size="13">triage</text>
+          <text x="83" y="115" text-anchor="middle" fill="#4ecb9d" font-size="11">program &check;</text></g>
+        <line x1="160" y1="101" x2="190" y2="101" stroke="currentColor" marker-end="url(#ar)" opacity=".5"/>
+        <g id="s-pre"><title>preprocess: planned two sub-questions and the program subtract(B, A) — correct</title>
+          <rect x="192" y="70" width="160" height="62" rx="8" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+          <text x="272" y="93" text-anchor="middle" fill="currentColor" font-size="13">preprocess</text>
+          <text x="272" y="112" text-anchor="middle" fill="#4ecb9d" font-size="10.5">subtract(B, A) &check;</text>
+          <text x="272" y="126" text-anchor="middle" fill="currentColor" font-size="9.5" opacity=".65">2 sub-questions</text></g>
+        <line x1="354" y1="101" x2="384" y2="101" stroke="currentColor" marker-end="url(#ar)" opacity=".5"/>
+        <g id="s-ret"><title>retriever: found 2017 = 239 but reported 2018 as not found</title>
+          <rect x="386" y="60" width="170" height="82" rx="8" fill="none" stroke="#f0a93f" stroke-opacity=".7"/>
+          <text x="471" y="84" text-anchor="middle" fill="currentColor" font-size="13">retriever</text>
+          <text x="471" y="103" text-anchor="middle" fill="#4ecb9d" font-size="10.5">2017 &rarr; 239</text>
+          <text x="471" y="120" text-anchor="middle" fill="#f0a93f" font-size="10.5">2018 &rarr; not found</text>
+          <text x="471" y="134" text-anchor="middle" fill="currentColor" font-size="9" opacity=".6">missed 131 in the table</text></g>
+        <line x1="558" y1="101" x2="588" y2="101" stroke="currentColor" marker-end="url(#ar)" opacity=".5"/>
+        <g id="s-calc"><title>calculator: cannot bind operand B, so by prompt instruction emits the literal string no</title>
+          <rect x="590" y="60" width="180" height="82" rx="8" fill="none" stroke="#ef8282" stroke-opacity=".85" stroke-dasharray="4 3"/>
+          <text x="680" y="84" text-anchor="middle" fill="currentColor" font-size="13">calculator</text>
+          <text x="680" y="103" text-anchor="middle" fill="#ef8282" font-size="10.5">cannot bind B</text>
+          <text x="680" y="122" text-anchor="middle" fill="#ef8282" font-size="13" font-weight="600">answer: &ldquo;no&rdquo;</text></g>
+        <line x1="772" y1="101" x2="800" y2="101" stroke="currentColor" marker-end="url(#ar)" opacity=".5"/>
+        <g id="s-score"><title>scoring: "no" is compared against the numeric gold -108 and marked wrong</title>
+          <text x="806" y="96" fill="#ef8282" font-size="11">scored</text>
+          <text x="806" y="112" fill="#ef8282" font-size="11">wrong</text></g>
+        <text x="8" y="182" fill="currentColor" font-size="11" opacity=".75">Three of four stages behaved correctly. The fourth converted a data gap into a</text>
+        <text x="8" y="200" fill="currentColor" font-size="11" opacity=".75">boolean-shaped answer &mdash; and that is the only place the defect lives.</text>
+        <text x="8" y="228" fill="#f0a93f" font-size="11">Attribution blames the retriever here. The retriever is the cause of the gap; the calculator is the cause of the &ldquo;no&rdquo;.</text>
+      </g>
+    </svg>
+    <figcaption>Read from <code>evaluation/predictions/evalloop/evalloop-test100-v8&middot;t2p2r5c2-20260904_052739.csv</code>, row <code>Double_ECL/2017/page_96.pdf</code> q2.</figcaption>
+  </figure>
+
+  <div class="trace grid">
+    <div class="stg ok"><h4>preprocess &mdash; correct</h4><div class="io">sub-questions: <b>&ldquo;total rental expense under operating leases in 2017&rdquo;</b>, <b>&ldquo;&hellip; in 2018&rdquo;</b><br>program: <b>subtract(B, A)</b></div></div>
+    <div class="arw">&darr;</div>
+    <div class="stg warn"><h4>retriever &mdash; one value missed</h4><div class="io">2017 &rarr; <b>239</b> &nbsp;&middot;&nbsp; 2018 &rarr; <b>&ldquo;not found&rdquo;</b><br><span style="color:var(--faint)">Its own reasoning: &ldquo;the document does not report a total rental expense figure for 2018&rdquo;. Gold disagrees &mdash; 131 is present &mdash; so this is a genuine retriever miss.</span></div></div>
+    <div class="arw">&darr;</div>
+    <div class="stg bad"><h4>calculator &mdash; the defect</h4><div class="io">input: <b>[{2017: &ldquo;239&rdquo;}, {2018: &ldquo;not found&rdquo;}]</b>, program <b>subtract(B, A)</b><br>output: <b style="color:var(--bad)">{&ldquo;answer&rdquo;: &ldquo;no&rdquo;}</b> &mdash; a single <code>final_result</code> tool call, no computation attempted</div></div>
+  </div>
+  <p class="small muted">The calculator did the only thing its contract allows. <code>CalcOut</code> is <code>{answer: str}</code> &mdash; there is no field in which to say &ldquo;I could not compute this&rdquo;, so the refusal has to be smuggled out through the answer.</p>
+</section>
+
+<section id="instructed">
+  <h2>02 &middot; It is instructed, not hallucinated</h2>
+  <p>This is the part that changes what to do about it. The behaviour is written into the calculator prompt, twice &mdash; and the second time, in the same sentence as the legitimate boolean answer.</p>
+
+  <h4>calculator prompt (c2) &middot; processing rule 1</h4>
+  <div class="term">&hellip; If any clearly required value is missing or mismatched (e.g., the current question asks for a
+single-year value but the only available answer is a multi-year total or a different metric),
+you cannot produce a numeric answer. <b class="no">In that case, the final answer is `no`.</b> Do not guess.</div>
+
+  <h4>calculator prompt (c2) &middot; final answer formatting</h4>
+  <div class="term"><b>For yes/no, which-one, or comparison questions</b>: if the question can be answered with the
+available data, use the `greater` tool and then output <b class="ok">`yes`, `no`</b>, or the variable letter
+&hellip; as appropriate. <b class="no">If the question cannot be answered because the retrieved data is
+mismatched or insufficient, output `no`.</b></div>
+
+  <div class="callout bad"><strong>One token, two meanings, one sentence.</strong><p>In that second passage <code>no</code> means <em>&ldquo;the comparison is false&rdquo;</em> and <em>&ldquo;I could not compute this&rdquo;</em>. Nothing downstream &mdash; not the scorer, not the attribution rule, not a human reading the CSV &mdash; can tell the two apart. Using an in-band value as an out-of-band signal is the whole bug.</p></div>
+
+  <p>The consequences follow mechanically:</p>
+  <ul>
+    <li><strong>It always scores wrong</strong> against a numeric gold. Confirmed: 0 of 5 correct, against 78.5% on turns where every operand was found.</li>
+    <li><strong>It is invisible as a refusal.</strong> In every CSV, metric and trace it looks like the pipeline confidently answered a yes/no question.</li>
+    <li><strong>It misdirects attribution.</strong> Gold-derived attribution walks triage &rarr; preprocess &rarr; retriever &rarr; calculator and stops at the first failing check, so a missing operand is filed against the <em>retriever</em> or <em>preprocess</em> &mdash; both of which are upstream, and neither of which chose to say <code>no</code>.</li>
+  </ul>
+</section>
+
+<section id="evidence">
+  <h2>03 &middot; Evidence across six versions</h2>
+  <p>Every version ever gated produces these answers, at a stable rate, with the same number correct.</p>
+
+  <div class="scroll-x"><table>
+    <thead><tr><th>version</th><th>composition</th><th class="num">questions</th><th class="num">yes/no answers</th><th class="num">of which correct</th><th>calculator prompt</th></tr></thead>
+    <tbody>
+      <tr><td><code>v2</code></td><td class="mono small">t2.p2.r2.c2</td><td class="num">349</td><td class="num">12</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+      <tr><td><code>v6</code></td><td class="mono small">t2.p5.r2.c2</td><td class="num">349</td><td class="num">8</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+      <tr><td><code>v7</code></td><td class="mono small">t2.p6.r2.c2</td><td class="num">349</td><td class="num">12</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+      <tr><td><code>v8</code> <span class="chip good">champion</span></td><td class="mono small">t2.p2.r5.c2</td><td class="num">349</td><td class="num">9</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+      <tr><td><code>v9</code></td><td class="mono small">t2.p2.r6.c2</td><td class="num">349</td><td class="num">5</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+      <tr><td><code>v10</code></td><td class="mono small">t2.p7.r5.c2</td><td class="num">349</td><td class="num">8</td><td class="num">2</td><td class="mono small">ba740497</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout"><strong>The calculator prompt has never changed.</strong><p>Every composition above ends in <code>c2</code>, hash <code>ba740497</code>. Preprocess has moved through p2, p5, p6, p7; the retriever through r2, r5, r6. <strong>The calculator has been <code>c2</code> for every run in this lineage</strong>, which is exactly why the rate never moves.</p></div>
+
+  <h3>The same defect, seen from the gate</h3>
+  <p>As a share of each experiment&rsquo;s collateral damage &mdash; the questions a challenger broke that the baseline got right:</p>
+  <div class="scroll-x"><table>
+    <thead><tr><th>experiment</th><th>target agent</th><th class="num">fixed</th><th class="num">broken</th><th class="num">broken by a yes/no answer</th></tr></thead>
+    <tbody>
+      <tr><td><code>c01-e01</code></td><td>preprocess</td><td class="num">31</td><td class="num">23</td><td class="num">4 &nbsp;<span class="muted">(17%)</span></td></tr>
+      <tr><td><code>c01-e02</code></td><td>preprocess</td><td class="num">27</td><td class="num">18</td><td class="num">5 &nbsp;<span class="muted">(28%)</span></td></tr>
+      <tr><td><code>c01-e03</code></td><td>retriever</td><td class="num">34</td><td class="num">18</td><td class="num">4 &nbsp;<span class="muted">(22%)</span></td></tr>
+      <tr><td><code>c02-e01</code></td><td>retriever</td><td class="num">17</td><td class="num">17</td><td class="num">2 &nbsp;<span class="muted">(12%)</span></td></tr>
+      <tr><td><code>c02-e02</code></td><td>preprocess</td><td class="num">20</td><td class="num">18</td><td class="num">4 &nbsp;<span class="muted">(22%)</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Roughly a fifth of all collateral damage in both campaigns, at the same rate whether the experiment targeted preprocess or the retriever &mdash; which is itself evidence that neither is the cause.</p>
+</section>
+
+<section id="missed">
+  <h2>04 &middot; Why five experiments missed it</h2>
+  <p>This is not bad luck. Three properties of the loop conspired to hide it, and each is worth fixing on its own.</p>
+
+  <div class="grid g3">
+    <div class="card"><h3>Attribution points upstream</h3><p class="small muted">First-fault attribution stops at the first failing check in pipeline order. A missing operand fails the <em>retriever</em> check, so the case is filed against the retriever &mdash; and the calculator, which chose the word <code>no</code>, is never reached.</p></div>
+    <div class="card"><h3>The target is picked from fault counts</h3><p class="small muted">Because these cases are filed upstream, the calculator&rsquo;s fault count stays low and it is never selected. Across five experiments: <strong>preprocess &times;3, retriever &times;2, calculator &times;0</strong>.</p></div>
+    <div class="card"><h3>A refusal looks like an answer</h3><p class="small muted">Nothing in the CSV, the metric panel or the gate distinguishes <code>no</code>-as-abstention from <code>no</code>-as-answer, so no report ever showed a refusal rate to notice.</p></div>
+  </div>
+
+  <div class="callout bad"><strong>The loop tried to fix it and failed &mdash; which is the confirmation.</strong>
+  <p>Given the backfilled flip records, the c02-e02 prompt writer identified this failure mode by name and designed against it:</p>
+  <div class="term" style="margin:10px 0"><span class="dim">&ldquo;</span>Two prior rewrites (v6, v7) &hellip; were rejected: their collateral damage was concentrated in
+turns that went from a correct number to <b class="no">the degenerate non-answer &ldquo;no&rdquo;</b> &hellip; So this
+rewrite deliberately does something different: it preserves v8&rsquo;s spine &hellip; and adds only
+precondition-gated sections plus an explicit output-validity checklist.<span class="dim">&rdquo;</span></div>
+  <p>It wrote a preprocess rule against a calculator behaviour. The rate afterwards: <strong>22%, unchanged</strong>. A correct diagnosis of the symptom, aimed at an agent that cannot produce it &mdash; because the loop only let it edit preprocess.</p></div>
+</section>
+
+<section id="trap">
+  <h2>05 &middot; The trap: the obvious fix loses accuracy</h2>
+  <p>The tempting fix is &ldquo;stop abstaining &mdash; always evaluate the program&rdquo;. I tested that against the champion&rsquo;s own cases with the repo&rsquo;s own scorer, <code>evaluation.metrics.numeric_match</code>. It is <strong>net negative</strong>.</p>
+
+  <div class="scroll-x"><table class="wrap">
+    <thead><tr><th>case</th><th>program &amp; values</th><th>today</th><th>if forced to evaluate</th><th class="st">effect</th></tr></thead>
+    <tbody>
+      <tr><td class="mono small">Single_UNP/2013 q1</td><td class="mono small">multiply(divide(-6, A), 100)<br>A = 637</td><td><code>no</code> &mdash; wrong<br><span class="muted small">gold &minus;1%</span></td><td><code>-0.9%</code><br><span class="muted small">numeric_match &rarr; True</span></td><td class="st"><span class="chip good">+1</span></td></tr>
+      <tr><td class="mono small">Double_STZ/2005 q0</td><td class="mono small">subtract(A, B)<br>1137.4, 1030.7</td><td><code>yes</code> &mdash; <strong>right</strong><br><span class="muted small">gold &ldquo;yes&rdquo;</span></td><td><code>106.7</code><br><span class="muted small">numeric_match &rarr; False</span></td><td class="st"><span class="chip bad">&minus;1</span></td></tr>
+      <tr><td class="mono small">Double_MRO/2008 q2</td><td class="mono small">divide(A, B)<br>3.27, 2.45</td><td><code>yes</code> &mdash; <strong>right</strong><br><span class="muted small">gold &ldquo;yes&rdquo;</span></td><td><code>1.3347</code><br><span class="muted small">numeric_match &rarr; False</span></td><td class="st"><span class="chip bad">&minus;1</span></td></tr>
+      <tr><td class="mono small">Single_C/2016 q1</td><td class="mono small">multiply(divide(A, B), 100)<br>only 1 value retrieved</td><td><code>no</code> &mdash; wrong</td><td>unevaluable<br><span class="muted small">operand genuinely absent</span></td><td class="st"><span class="chip">0</span></td></tr>
+      <tr><td class="mono small">5 further cases</td><td class="mono small">operand &ldquo;not found&rdquo;</td><td><code>no</code> &mdash; wrong</td><td>unevaluable</td><td class="st"><span class="chip">0</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout bad"><strong>Naive fix: gain 1, lose 2, net &minus;1 turn.</strong><p>The two losses are the important ones. <code>Double_STZ q0</code> asks <em>&ldquo;was the purchase price for hardy greater than for mondavi?&rdquo;</em> &mdash; gold program <code>greater(1137.4, 1030.7)</code>. Preprocess planned <code>subtract(A, B)</code>, the <em>wrong</em> program for a comparison, and the calculator <strong>overrode it and answered the question correctly</strong>. That override is a real capability, not an accident, and a fix that forces literal program evaluation would destroy it.</p></div>
+
+  <p>So the requirement is sharper than &ldquo;stop saying no&rdquo;. Any fix must simultaneously:</p>
+  <ol>
+    <li>make refusal <strong>expressible out of band</strong>, so it stops being scored and read as a boolean;</li>
+    <li><strong>preserve</strong> the calculator&rsquo;s override on genuine comparison questions;</li>
+    <li>not force evaluation when an operand is genuinely absent &mdash; those turns are unwinnable at the calculator, and belong to the retriever.</li>
+  </ol>
+</section>
+
+<section id="fix">
+  <h2>06 &middot; The proposed fix</h2>
+  <p>Three changes. The first is the actual fix; the second makes it visible; the third stops the loop mis-aiming at it again.</p>
+
+  <div class="phase">
+    <div class="hd"><span class="n">FIX 1</span><h3>Give the calculator a way to abstain out of band</h3><span class="eff">src/convfinqa/pipeline/stages.py</span></div>
+    <p class="small">Add a field to <code>CalcOut</code> so a refusal has somewhere to live that is not the answer. <code>answer</code> stays a string so nothing downstream breaks; a refusal sets the flag and leaves the answer empty.</p>
+    <div id="d1"></div>
+    <p class="small muted">Backwards compatible: the field defaults to <code>False</code>, so existing readers, cached CSVs and the demo pack keep working. Only the calculator ever sets it.</p>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">FIX 2</span><h3>Rewrite the two prompt passages &mdash; calculator c2 &rarr; c3</h3><span class="eff">generated by <code>evalloop propose</code></span></div>
+    <p class="small">Remove <code>no</code> as a sentinel in both places, keep &ldquo;do not guess&rdquo;, and <strong>explicitly preserve the comparison override</strong> that saves <code>Double_STZ q0</code> and <code>Double_MRO q2</code>.</p>
+    <div id="d2"></div>
+  </div>
+
+  <div class="phase">
+    <div class="hd"><span class="n">FIX 3</span><h3>Attribute an abstention to the calculator, and report the rate</h3><span class="eff">evalloop/stage_scores.py</span></div>
+    <p class="small">An abstention currently files against whichever upstream check fails first, which is how the loop spent five experiments upstream of the cause. With an explicit flag, <code>first_fault()</code> can name it, and the metric panel can carry a refusal rate so it is never invisible again.</p>
+    <ul class="small">
+      <li>Add <code>calculator_abstained</code> to the per-agent metric panel &mdash; a number that would have made this a one-look finding.</li>
+      <li>In <code>first_fault()</code>, when the calculator abstained <em>and</em> every operand was present, the fault is the calculator&rsquo;s. When an operand was genuinely missing, keep it upstream &mdash; that is a real retriever miss and the attribution is right.</li>
+    </ul>
+  </div>
+
+  <h3>Sequencing</h3>
+  <ol class="small">
+    <li><strong>Fix 1 + Fix 3 first</strong>, with no prompt change. They are pure instrumentation: they cannot change accuracy, and they turn the next run into a measurement of how often this actually fires.</li>
+    <li><strong>Then Fix 2 as one targeted experiment</strong> &mdash; <code>--target calculator</code>, gated normally. It would be the first experiment in either campaign to touch <code>c2</code>.</li>
+  </ol>
+  <p class="small muted">Running the prompt change first would confound the two: any accuracy move would be unattributable between the new contract and the new wording.</p>
+</section>
+
+<section id="effect">
+  <h2>07 &middot; Expected effect, stated honestly</h2>
+  <div class="callout"><strong>I do not expect this to move accuracy much.</strong><p>Of the nine cases in the champion run, five have a genuinely absent operand and are unwinnable at the calculator, one is a real arity failure, two are already correct, and <strong>one</strong> is recoverable. A realistic direct gain is <strong>one to two turns on 349 &mdash; roughly +0.3 to +0.6pp</strong>, which on this split is well inside the noise the gate is built to reject. It would very likely <em>not</em> promote on its own.</p></div>
+
+  <p>The case for doing it anyway is diagnostic, not numerical:</p>
+  <div class="ship">
+    <div class="item"><h4>It stops corrupting the answer space</h4><p>Two of the champion&rsquo;s &ldquo;correct&rdquo; boolean answers are only correct because the refusal token happens to collide with the gold. That is luck being scored as skill in every report on the board.</p></div>
+    <div class="item"><h4>It unblocks the next real experiment</h4><p>~20% of every challenger&rsquo;s collateral damage is currently this defect. Removing it makes the remaining flips a cleaner signal about the prompt actually being tested.</p></div>
+    <div class="item"><h4>It stops the loop chasing a phantom</h4><p>Two preprocess experiments have already been partly spent on it, including one that named it explicitly and could not fix it from where it was standing.</p></div>
+    <div class="item"><h4>It makes the failure countable</h4><p>A refusal rate in the metric panel converts &ldquo;why do we keep seeing no?&rdquo; from an investigation into a number on a dashboard.</p></div>
+  </div>
+
+  <p class="small muted">If the honest expected gain being this small changes your mind about doing it, that is a reasonable conclusion and I would rather you reach it from the real number than from an optimistic one.</p>
+</section>
+
+<section id="decide">
+  <h2>08 &middot; Risks &amp; what I need from you</h2>
+
+  <div class="grid g2">
+    <div class="card"><h3>Risk &middot; the override is fragile</h3><p class="small muted">The comparison override that saves two turns is undocumented behaviour &mdash; the calculator deciding to answer a boolean despite being handed <code>subtract(A, B)</code>. Rewriting the prompt around it could disturb it. Mitigation: the two cases are named, and the gate would catch a loss. But two turns is inside the noise, so the gate might <em>not</em> catch it.</p></div>
+    <div class="card"><h3>Risk &middot; changing a schema mid-campaign</h3><p class="small muted"><code>CalcOut</code> is read by the runner, the demo pack and cached CSVs. The new field defaults to <code>False</code> so nothing breaks, but <code>serving/demo_pack</code> asserts its events match <code>turn_events</code> exactly &mdash; that contract needs re-checking before shipping.</p></div>
+    <div class="card"><h3>Risk &middot; abstention could get more common</h3><p class="small muted">Making refusal cheap and legitimate might make the calculator refuse more often, trading wrong answers for no answers. Both score identically, so it would be invisible in accuracy but real in usefulness. The new refusal-rate metric is what would catch it.</p></div>
+    <div class="card"><h3>Non-risk &middot; the 5 missing-operand turns</h3><p class="small muted">Worth being clear: this fix does <strong>not</strong> recover those. They are retriever misses &mdash; in the traced case the document does contain the 2018 figure and the retriever said it did not. That is a separate piece of work.</p></div>
+  </div>
+
+  <h3>Decisions</h3>
+  <p class="small muted">Each choice queues a specific prompt back to me; nothing is applied until you send it.</p>
+
+  <form class="q" data-q="scope">
+    <p class="qt">1 &middot; How much of this should I build?</p>
+    <label><input type="radio" name="scope" value="Build Fix 1 (CalcOut abstention field) and Fix 3 (attribution + refusal-rate metric) now as pure instrumentation, no prompt change, so the next run measures the true rate. Hold Fix 2 for a separate gated experiment."><span><strong>Instrumentation first, then a gated prompt experiment</strong> <span class="chip warn">recommended</span><br><span class="small muted">Fix 1 + Fix 3 cannot change accuracy; they make the next run a measurement. Fix 2 follows as one clean experiment.</span></span></label>
+    <label><input type="radio" name="scope" value="Build all three fixes together, including the calculator prompt rewrite c2 to c3, and gate it as a single experiment."><span><strong>All three at once</strong><br><span class="small muted">Faster, but the contract change and the wording change become unattributable to each other.</span></span></label>
+    <label><input type="radio" name="scope" value="Build only Fix 3 — the refusal-rate metric and attribution change — and leave the calculator contract and prompt alone for now."><span><strong>Measure only</strong><br><span class="small muted">Cheapest. Quantifies the defect without touching the pipeline.</span></span></label>
+    <label><input type="radio" name="scope" value="Do not act on the no-turns finding — the expected gain is too small to be worth the risk. Record it as a known defect and move on."><span><strong>Nothing &mdash; not worth it</strong><br><span class="small muted">A defensible read of a +0.3&ndash;0.6pp expected gain.</span></span></label>
+    <textarea placeholder="Anything to add?"></textarea>
+    <div class="row"><button type="button">Queue this</button><span class="status">not queued</span></div>
+  </form>
+
+  <form class="q" data-q="target">
+    <p class="qt">2 &middot; Should the calculator experiment bypass the targeting rule?</p>
+    <label><input type="radio" name="target" value="Force the next experiment to target the calculator with --target calculator, overriding the pooled fault ranking, because the ranking cannot see this defect by construction."><span><strong>Force <code>--target calculator</code></strong> <span class="chip warn">recommended</span><br><span class="small muted">The pooled ranking files these cases upstream, so it will never choose the calculator on its own until Fix 3 lands.</span></span></label>
+    <label><input type="radio" name="target" value="Land Fix 3 first so abstentions are attributed to the calculator, then let the normal pooled targeting choose on its own without forcing a target."><span><strong>Let Fix 3 change the ranking, then let the loop choose</strong><br><span class="small muted">More honest to the campaign protocol; costs an extra cycle before anything is tried.</span></span></label>
+    <textarea placeholder="Anything to add?"></textarea>
+    <div class="row"><button type="button">Queue this</button><span class="status">not queued</span></div>
+  </form>
+
+  <form class="q" data-q="retriever">
+    <p class="qt">3 &middot; The separate retriever finding &mdash; chase it now?</p>
+    <p class="small muted" style="margin:-4px 0 8px">In the traced case the retriever reported 2018 as &ldquo;not found&rdquo; while the document contains 131. Five turns in the champion run hit a missing operand and all five are unwinnable downstream.</p>
+    <label><input type="radio" name="retriever" value="Investigate the five missing-operand turns as a separate piece of work: check how often the retriever reports not-found for a value the gold program proves is present, and report before proposing anything."><span><strong>Investigate it separately</strong><br><span class="small muted">A false &ldquo;not found&rdquo; rate is measurable from gold without any API calls.</span></span></label>
+    <label><input type="radio" name="retriever" value="Leave the retriever not-found finding for later; focus only on the calculator abstention defect for now."><span><strong>Leave it for now</strong><br><span class="small muted">Keeps this thread to one defect.</span></span></label>
+    <textarea placeholder="Anything to add?"></textarea>
+    <div class="row"><button type="button">Queue this</button><span class="status">not queued</span></div>
+  </form>
+
+  <p class="foot">Sources: <code>evaluation/predictions/evalloop/evalloop-test100-{v2,v6,v7,v8,v9,v10}&hellip;.csv</code> (captured stage I/O per turn) &middot; <code>flips.json</code> on all five gate runs in the <code>convfinqa-optimization</code> MLflow experiment &middot; <code>src/convfinqa/prompts/v8.py</code> (calculator, hash <code>ba740497</code>) &middot; <code>src/convfinqa/pipeline/stages.py</code> &middot; scored with <code>convfinqa.evaluation.metrics.numeric_match</code>. Every figure on this page was computed from those files, not estimated.</p>
+</section>
+
+</div>
+
+<script type="module">
+import { FileDiff } from "https://esm.sh/@pierre/diffs@1.2.10?bundle";
+const opts = { theme:{light:"github-light",dark:"github-dark"}, themeType:"dark", overflow:"wrap", diffStyle:"unified" };
+
+new FileDiff(opts).render({
+  containerWrapper: document.querySelector("#d1"),
+  oldFile: { name:"src/convfinqa/pipeline/stages.py", contents:
+`class CalcOut(BaseModel):
+    """Mirrors CalculationSignature output."""
+
+    answer: str
+` },
+  newFile: { name:"src/convfinqa/pipeline/stages.py", contents:
+`class CalcOut(BaseModel):
+    """Mirrors CalculationSignature output."""
+
+    answer: str
+    # A refusal needs somewhere to live that is not the answer. The prompt
+    # used to say "the final answer is \`no\`" when an operand was missing,
+    # which put an out-of-band signal inside the in-band answer space: the
+    # same token then meant both "the comparison is false" and "I could not
+    # compute this", and nothing downstream could tell them apart.
+    insufficient_evidence: bool = False
+` },
+});
+
+new FileDiff(opts).render({
+  containerWrapper: document.querySelector("#d2"),
+  oldFile: { name:"prompts/calculator (c2)", contents:
+`   ... you cannot produce a numeric answer. In that case, the final
+   answer is \`no\`. Do not guess.
+
+   - For yes/no, which-one, or comparison questions: if the question can
+     be answered with the available data, use the \`greater\` tool and then
+     output \`yes\`, \`no\`, or the variable letter of the greater item as
+     appropriate. If the question cannot be answered because the retrieved
+     data is mismatched or insufficient, output \`no\`.
+` },
+  newFile: { name:"prompts/calculator (c3, proposed)", contents:
+`   ... you cannot produce a numeric answer. In that case set
+   \`insufficient_evidence: true\` and leave \`answer\` empty. Do not guess,
+   and do not answer \`no\` — \`no\` is a real answer to a comparison
+   question, so using it to mean "I could not compute" makes a refusal
+   indistinguishable from an answer.
+
+   - For yes/no, which-one, or comparison questions: if the question is a
+     genuine comparison, answer it from the retrieved values with \`yes\`,
+     \`no\`, or the variable letter — even when the planned program is not
+     \`greater\`. The plan is a hint; the question decides. If the retrieved
+     data is mismatched or insufficient, set \`insufficient_evidence: true\`
+     and leave \`answer\` empty.
+` },
+});
+
+for (const f of document.querySelectorAll("form.q")) {
+  const btn = f.querySelector("button"), st = f.querySelector(".status");
+  btn.addEventListener("click", () => {
+    const sel = f.querySelector("input:checked");
+    if (!sel) { st.textContent = "pick an option first"; return; }
+    const note = f.querySelector("textarea").value.trim();
+    const text = sel.value + (note ? " Note: " + note : "");
+    if (window.lavish?.queuePrompt) window.lavish.queuePrompt(text);
+    else navigator.clipboard?.writeText(text);
+    st.textContent = "queued"; st.classList.add("queued");
+  });
+}
+</script>
+</body>
+</html>

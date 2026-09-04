@@ -52,6 +52,57 @@ MEMORY_ARTIFACT = "diagnose_memory.txt"
 WRITER_PROMPT_ARTIFACT = "writer_prompt.txt"
 
 
+ADJUDICATOR_PROMPT = """You settle ONE narrow question about a failed turn in a
+financial Q&A pipeline, and nothing else.
+
+A preprocessing agent turned a question into a list of sub-questions. A
+retrieval agent answered those sub-questions from a financial report. The gold
+program for this turn needs a specific number that the retriever never returned,
+and that number IS present somewhere in the report.
+
+So exactly one of two things went wrong:
+
+- The sub-questions DID ask for that number, and the retriever failed to find
+  it or talked itself out of it. -> asked_for_it = true
+- The sub-questions did NOT ask for that number — they asked for some other
+  quantity, or for something the report does not report — so the retriever was
+  never given the chance. -> asked_for_it = false
+
+Judge only that. Do not say which agent is worse, do not propose a fix, do not
+comment on the final answer. A sub-question counts as asking for the number if a
+careful analyst reading it against the report would return that value: exact
+wording does not matter, the requested quantity does. Mind the period and the
+entity — "rental expense in 2018" does not ask for "rental expense in 2017".
+
+Answer with asked_for_it and one sentence of reason quoting the sub-question you
+judged against."""
+
+
+class Adjudication(BaseModel):
+    """Whether preprocess actually asked for the operand the retriever missed.
+
+    The one judgement in attribution that the record cannot settle. When an
+    operand is missing and the retriever declined a sub-question, a retrieval
+    miss and a mis-planned question leave *byte-identical* evidence — the
+    observed pair being `Double_BLK` (values sat in the table; the retriever
+    reasoned itself out of them) and `Double_IPG` (preprocess asked for a
+    quantity the report never states). Everything else is derived from gold, for
+    free; this is the ~7% of cases worth paying a model for, and it is a binary
+    question rather than open-ended attribution — which the teacher was measured
+    to get right only 57% of the time.
+    """
+
+    asked_for_it: bool = Field(
+        description=(
+            "True if some sub-question does ask for the missing number, so the "
+            "retriever had its chance and missed. False if none of them does."
+        )
+    )
+    reason: str = Field(
+        description="One sentence, quoting the sub-question you judged against."
+    )
+
+
 class Diagnosis(BaseModel):
     """One first-wrong question, attributed and explained.
 
@@ -219,6 +270,17 @@ def first_wrong_cases(csv_path: Path | str) -> pd.DataFrame:
     df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
     if "triage_turn_type_ok" not in df.columns:
         stage_scores.score_rows(df)
+    # Attribution needs each turn's *earlier* gold answers, to tell an operand
+    # the retriever had to find in the document from one the conversation had
+    # already produced. They must be gathered over the whole frame, before the
+    # first-wrong filter throws the rest of the conversation away.
+    gold_by_conv: dict[Any, dict[int, Any]] = {}
+    for r in df.itertuples():
+        gold_by_conv.setdefault(r.report_id, {})[int(r.turn_index)] = r.gold_answer
+    df["prior_gold_answers"] = [
+        [v for t, v in gold_by_conv[r.report_id].items() if t < int(r.turn_index)]
+        for r in df.itertuples()
+    ]
     return df[df.turn_index == df.first_wrong_turn].copy()
 
 
@@ -247,6 +309,10 @@ def case_payload(row: pd.Series) -> dict[str, Any]:
             "retriever_operand_recall": row.get("retriever_operand_recall"),
             "calculator_ok": row.get("calculator_ok"),
         },
+        "missing_gold_operands": stage_scores.missing_operands(
+            row, [a for _q, a in stage_scores.retrieved_pairs(row)]
+        ),
+        "planned_sub_questions": stage_scores.planned_sub_questions(row),
         "report_id": row.report_id,
         "question": row.question,
         "conversation_history": row.get("history_text") or "(no prior turns)",
@@ -273,6 +339,113 @@ async def _diagnose_case(
         max_turns=4,
         refs=refs,
     )
+
+
+async def _adjudicate_case(
+    payload: dict[str, Any],
+    refs: dict[str, Any] | None,
+) -> tuple[Adjudication, dict[str, Any]]:
+    """Ask the one binary question the record cannot settle."""
+    from convfinqa.evalloop.sdk import run_structured
+
+    return await run_structured(
+        json.dumps(payload, default=str),
+        schema=Adjudication,
+        system_prompt=ADJUDICATOR_PROMPT,
+        max_turns=2,
+        refs=refs,
+    )
+
+
+def adjudication_payload(row: pd.Series) -> dict[str, Any]:
+    """The minimum needed to judge whether preprocess asked for the operand.
+
+    Deliberately not `case_payload`: the adjudicator is not being asked to
+    attribute the failure, and handing it the gold answer, the pipeline's answer
+    and all four stage captures would invite it to do so.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    pairs = stage_scores.retrieved_pairs(row)
+    return {
+        "question": row.question,
+        "conversation_history": row.get("history_text") or "(no prior turns)",
+        "missing_numbers": stage_scores.missing_operands(row, [a for _q, a in pairs]),
+        "sub_questions_preprocess_asked": stage_scores.planned_sub_questions(row),
+        "what_the_retriever_returned": [{"question": q, "answer": a} for q, a in pairs],
+    }
+
+
+async def resolve_ambiguous(
+    cases: pd.DataFrame,
+    csv_path: Path | str,
+    *,
+    concurrency: int = 8,
+) -> dict[int, dict[str, Any]]:
+    """Adjudicate every `ambiguous` case; returns {row position: verdict}.
+
+    A missing operand that IS in the document, where the retriever declined a
+    sub-question, is the one branch gold cannot decide — so it is the one branch
+    that costs a model call. About 7% of first-wrong cases reach it.
+
+    A failed adjudication is left unresolved rather than guessed: the case stays
+    `ambiguous` and is excluded from targeting, which is the honest outcome and
+    the same position `first_fault` takes.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    positions = [
+        i
+        for i, (_, row) in enumerate(cases.iterrows())
+        if stage_scores.attribute(row) == "ambiguous"
+    ]
+    if not positions:
+        return {}
+    sem = asyncio.Semaphore(max(1, concurrency))
+    rows = list(cases.iterrows())
+
+    async def one(position: int) -> tuple[int, dict[str, Any] | None]:
+        _, row = rows[position]
+        async with sem:
+            with tracing.span(
+                f"adjudicate {row.report_id} q{int(row.turn_index)}",
+                span_type="AGENT",
+                attributes={
+                    "report_id": row.report_id,
+                    "turn_index": int(row.turn_index),
+                },
+            ) as span:
+                payload = adjudication_payload(row)
+                span.inputs(payload)
+                try:
+                    verdict, _usage = await _adjudicate_case(
+                        payload,
+                        {
+                            "system_prompt": prompt_refs.teacher_prompt_ref(
+                                "ADJUDICATOR_PROMPT", ADJUDICATOR_PROMPT
+                            ),
+                            "user_prompt": prompt_refs.diagnose_case_ref(
+                                str(csv_path),
+                                str(row.report_id),
+                                int(row.turn_index),
+                            ),
+                        },
+                    )
+                except Exception as exc:  # noqa: BLE001 — an unresolved case is not a fatal one
+                    span.set(error=repr(exc))
+                    return position, None
+                # It asked for it, so the retriever had its chance and missed.
+                # It did not, so the retriever was never given the chance.
+                agent = "retriever" if verdict.asked_for_it else "preprocess"
+                span.outputs({"agent": agent, "reason": verdict.reason})
+                return position, {
+                    "agent": agent,
+                    "asked_for_it": bool(verdict.asked_for_it),
+                    "reason": verdict.reason,
+                }
+
+    settled = await asyncio.gather(*(one(i) for i in positions))
+    return {position: v for position, v in settled if v is not None}
 
 
 def prior_diagnoses(experiment: str, limit_runs: int = 5) -> list[dict[str, Any]]:
@@ -333,6 +506,7 @@ async def diagnose_run(
     independent — no diagnosis reads another's result — so the serial version
     only ever converted that independence into wall clock.
     """
+    from convfinqa.evalloop import stage_scores
     from convfinqa.tracking import mlflow_log
 
     cases = first_wrong_cases(csv_path)
@@ -377,6 +551,17 @@ async def diagnose_run(
         # fifty times inside fifty copies of the prompt.
         if memory_text:
             rec.text_artifact(MEMORY_ARTIFACT, memory_text)
+
+        # Settle the one branch gold cannot decide, before diagnosing anything.
+        # Done here rather than inside `one()` so the adjudicated attribution is
+        # what the diagnosing teacher is shown — it should be reasoning about a
+        # resolved case, not re-deriving the same ambiguity from scratch.
+        adjudicated = await resolve_ambiguous(cases, csv_path, concurrency=concurrency)
+        if adjudicated:
+            print(  # noqa: T201
+                f"  adjudicated {len(adjudicated)} ambiguous case(s): "
+                + ", ".join(f"{v['agent']}" for v in adjudicated.values())
+            )
         sem = asyncio.Semaphore(max(1, concurrency))
 
         async def one(
@@ -385,6 +570,11 @@ async def diagnose_run(
             """Diagnose one case. Never raises — a bad case is counted, not fatal."""
             payload = case_payload(row)
             derived = str(payload["derived_attribution"])
+            settled = adjudicated.get(order)
+            if settled is not None:
+                derived = str(settled["agent"])
+                payload["derived_attribution"] = derived
+                payload["adjudication"] = settled
             async with sem:
                 with tracing.span(
                     f"diagnose {row.report_id} q{int(row.turn_index)}",
@@ -456,6 +646,8 @@ async def diagnose_run(
                 turn_index=int(row.turn_index),
                 version=version,
                 derived_agent=derived,
+                adjudicated=settled is not None,
+                adjudication_reason=(settled or {}).get("reason", ""),
                 attribution_disputed=d["failed_agent"] != derived,
             )
             return order, d, None, usage
@@ -491,11 +683,20 @@ async def diagnose_run(
         counts = {
             a: sum(1 for d in diagnoses if d["derived_agent"] == a) for a in AGENTS
         }
+        # Verdicts that name no agent. They are excluded from targeting on both
+        # sides of the ratio: a gold label we do not trust, or a record we
+        # cannot read, is not evidence against any prompt, and folding it into
+        # the denominator would quietly deflate every agent's fault rate.
+        unattributed = {
+            v: sum(1 for d in diagnoses if d["derived_agent"] == v)
+            for v in stage_scores.NON_AGENT
+        }
+        n_attributed = sum(counts.values())
         teacher_counts = {
             a: sum(1 for d in diagnoses if d["failed_agent"] == a) for a in AGENTS
         }
         n_disputed = sum(1 for d in diagnoses if d["attribution_disputed"])
-        target = max(counts, key=lambda a: counts[a]) if diagnoses else None
+        target = max(counts, key=lambda a: counts[a]) if n_attributed else None
         DIAGNOSTICS_DIR.mkdir(parents=True, exist_ok=True)
         out_path = DIAGNOSTICS_DIR / f"diagnoses_{version}_{stamp}.jsonl"
         out_path.write_text("".join(json.dumps(d) + "\n" for d in diagnoses))
@@ -511,7 +712,10 @@ async def diagnose_run(
                 "attribution_agreement": round(1 - n_disputed / len(diagnoses), 4)
                 if diagnoses
                 else 0.0,
+                "n_attributed": float(n_attributed),
+                "n_adjudicated": float(len(adjudicated)),
                 **{f"faults_{a}": float(counts[a]) for a in AGENTS},
+                **{f"unattributed_{v}": float(n) for v, n in unattributed.items()},
                 **{f"teacher_faults_{a}": float(teacher_counts[a]) for a in AGENTS},
                 **{f"teacher_{k}": v for k, v in usage_total.items()},
             }
@@ -530,6 +734,9 @@ async def diagnose_run(
             "n_failures": len(failures),
             "failures": failures,
             "counts": counts,
+            "unattributed": unattributed,
+            "n_attributed": n_attributed,
+            "n_adjudicated": len(adjudicated),
             "teacher_counts": teacher_counts,
             "n_attribution_disputed": n_disputed,
             "target": target,

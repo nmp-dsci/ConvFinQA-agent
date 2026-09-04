@@ -408,8 +408,17 @@ def fault_history(
         # An aborted pass logs no fault metrics; it is absence of evidence.
         if not version or not any(f"faults_{a}" in metrics for a in AGENTS):
             continue
+        # The denominator is *attributed* cases, not diagnosed ones. Since
+        # 2026-09-04 attribution may return a verdict that names no agent
+        # (`gold_suspect`, `ambiguous`, `unscorable`); those are evidence about
+        # the dataset or about our own instrumentation, not about any prompt, so
+        # counting them below the line would deflate every agent's fault rate
+        # equally and make the Wilson bound read as though we had more evidence
+        # than we do. Older runs logged no `n_attributed`, and for them the sum
+        # of the fault counts *is* the attributed total — so the fallback is
+        # exact rather than approximate, and old and new runs pool correctly.
         n = int(
-            metrics.get("n_diagnosed")
+            metrics.get("n_attributed")
             or sum(metrics.get(f"faults_{a}", 0.0) for a in AGENTS)
         )
         if not n:
@@ -483,4 +492,81 @@ def merge_draw(
         out[agent]["n_runs"] = int(out[agent].get("n_runs", 0)) + 1
         out[agent]["versions"] = [*out[agent].get("versions", []), version]
         _score(out[agent])
+    return out
+
+
+def backfill_attribution(
+    *,
+    experiment: str = OPTIMIZATION_EXPERIMENT,
+    dry_run: bool = False,
+) -> list[dict[str, Any]]:
+    """Recompute every past diagnose run's fault counts under the current rule.
+
+    Attribution was rewritten on 2026-09-04 and moved 37.4% of 554 first-wrong
+    cases. `fault_history` pools draws across cycles and ranks them on a Wilson
+    bound, so a store holding counts from *both* rules is not a larger sample of
+    one measurement — it is two measurements averaged, and the pooling that was
+    built to remove noise would be adding a bias instead.
+
+    Recomputation, not migration: each run names the CSV it diagnosed in
+    `source_csv`, that CSV is committed, and attribution is a pure function of
+    it. A run whose CSV is missing is **skipped, not estimated** — the same
+    position `backfill_flips` takes, for the same reason. Nothing else on the
+    run is touched: the diagnoses artifact still records what the teacher said
+    at the time, which is history and not ours to rewrite.
+    """
+    import pandas as pd
+
+    from convfinqa.evalloop import stage_scores
+    from convfinqa.evalloop.teacher import AGENTS
+
+    client = _client()
+    out: list[dict[str, Any]] = []
+    for run in _runs(client, experiment, "diagnose"):
+        run_id = run.info.run_id
+        name = run.data.tags.get("mlflow.runName", run_id)
+        source = run.data.params.get("source_csv", "")
+        path = Path(source)
+        if not source or not path.exists():
+            out.append({"run": name, "status": "skipped — source CSV not found"})
+            continue
+        if "n_attributed" in run.data.metrics:
+            out.append({"run": name, "status": "already recomputed"})
+            continue
+
+        df = pd.read_csv(path)
+        df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
+        stage_scores.score_rows(df)
+        first_wrong = df[df.turn_index == df.first_wrong_turn]
+        docs = stage_scores.report_documents()
+        verdicts = [
+            stage_scores.attribute(row, docs.get(str(row.get("report_id")), ""))
+            for row in stage_scores.with_prior_gold(first_wrong)
+        ]
+        counts = {a: verdicts.count(a) for a in AGENTS}
+        unattributed = {v: verdicts.count(v) for v in stage_scores.NON_AGENT}
+        n_attributed = sum(counts.values())
+        before = {a: int(run.data.metrics.get(f"faults_{a}", 0.0)) for a in AGENTS}
+        record = {
+            "run": name,
+            "run_id": run_id,
+            "n_cases": len(verdicts),
+            "before": before,
+            "after": counts,
+            "unattributed": unattributed,
+            "n_attributed": n_attributed,
+            "status": "would rewrite" if dry_run else "rewritten",
+        }
+        # `ambiguous` is unresolved here by construction: adjudicating it needs a
+        # model call per case, and a backfill over the whole store is not the
+        # place to spend that. Those cases stay out of the counts entirely,
+        # which understates every agent equally rather than guessing.
+        if not dry_run:
+            for agent, value in counts.items():
+                client.log_metric(run_id, f"faults_{agent}", float(value))
+            for verdict, value in unattributed.items():
+                client.log_metric(run_id, f"unattributed_{verdict}", float(value))
+            client.log_metric(run_id, "n_attributed", float(n_attributed))
+            client.set_tag(run_id, "attribution_rule", "2026-09-04")
+        out.append(record)
     return out

@@ -569,67 +569,229 @@ async def test_release_moves_the_released_alias_on_pass(
 # ── campaign protocol: attribution, manifest v2, the significance gate ──
 
 
-def test_first_fault_walks_the_pipeline_in_order() -> None:
-    """The first failing gold-derived check wins, whatever fails after it."""
+def _row(**over: object) -> dict[str, object]:
+    """A first-wrong turn as attribution sees it: gold, plan, and what came back."""
+    row: dict[str, object] = {
+        "report_id": "R/2020/page_1.pdf",
+        "turn_index": 1,
+        "pred_turn_type": "program",
+        "gold_program": "subtract(200, 50)",
+        "pred_program": "subtract(A, B)",
+        "gold_answer": "150",
+        "pred_answer": "150",
+        "correct": True,
+        "prior_gold_answers": [],
+        "pred_sub_questions": json.dumps(["value in 2020", "value in 2019"]),
+        "retriever_io": json.dumps(
+            {
+                "output": {
+                    "answers": [
+                        {"question": "value in 2020", "answer": "200"},
+                        {"question": "value in 2019", "answer": "50"},
+                    ]
+                }
+            }
+        ),
+    }
+    row.update(over)
+    return row
+
+
+DOC = "the value was 200 in 2020 and 50 in 2019, against 999 elsewhere"
+
+
+def test_attribution_derives_triage_from_the_gold_program_shape() -> None:
+    """The expected turn type follows from gold, not from a column that can drift."""
     from convfinqa.evalloop import stage_scores
 
-    every_check_fails = {
-        "triage_turn_type_ok": False,
-        "preprocess_skeleton_ok": False,
-        "retriever_operand_recall": 0.0,
-        "calculator_ok": False,
-    }
-    assert stage_scores.first_fault(every_check_fails) == "triage"
-    assert (
-        stage_scores.first_fault({**every_check_fails, "triage_turn_type_ok": True})
-        == "preprocess"
-    )
+    # gold is a bare number, so the turn was a number turn and triage called it wrong
     assert (
         stage_scores.first_fault(
-            {
-                **every_check_fails,
-                "triage_turn_type_ok": True,
-                "preprocess_skeleton_ok": True,
-            }
+            _row(gold_program="200", pred_turn_type="program"), DOC
         )
-        == "retriever"
+        == "triage"
     )
-    # partial recall is a retriever fault, not a calculator one
-    assert (
-        stage_scores.first_fault(
+    # gold is a program and triage said number
+    assert stage_scores.first_fault(_row(pred_turn_type="number"), DOC) == "triage"
+    # agreement is not a fault
+    assert stage_scores.first_fault(_row(), DOC) is None
+
+
+def test_a_missing_operand_is_preprocess_when_the_retriever_answered_everything() -> (
+    None
+):
+    """It answered every sub-question it was given, so none of them asked for it.
+
+    This is the case the old rule charged to the retriever, and it is the single
+    largest re-attribution in the rewrite: 69 of 554 cases.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    row = _row(
+        gold_program="subtract(200, 75)",
+        gold_answer="125",
+        correct=False,
+        # both sub-questions came back with a number; neither is the 75 gold needs
+        retriever_io=json.dumps(
             {
-                "triage_turn_type_ok": True,
-                "preprocess_skeleton_ok": True,
-                "retriever_operand_recall": 0.5,
-                "calculator_ok": False,
+                "output": {
+                    "answers": [
+                        {"question": "value in 2020", "answer": "200"},
+                        {"question": "value in 2019", "answer": "50"},
+                    ]
+                }
             }
-        )
-        == "retriever"
+        ),
     )
-    # a number turn has no skeleton and no calculator verdict — None, not a fault
-    assert (
-        stage_scores.first_fault(
+    assert stage_scores.first_fault(row, DOC + " and 75 too") == "preprocess"
+
+
+def test_a_missing_operand_is_ambiguous_when_the_retriever_declined() -> None:
+    """Retrieval miss and mis-planned question leave identical evidence here."""
+    from convfinqa.evalloop import stage_scores
+
+    row = _row(
+        gold_program="subtract(200, 75)",
+        gold_answer="125",
+        correct=False,
+        retriever_io=json.dumps(
             {
-                "triage_turn_type_ok": True,
-                "preprocess_skeleton_ok": None,
-                "retriever_operand_recall": 1.0,
-                "calculator_ok": None,
+                "output": {
+                    "answers": [
+                        {"question": "value in 2020", "answer": "200"},
+                        {"question": "value in 2019", "answer": "not reported"},
+                    ]
+                }
             }
-        )
-        is None
+        ),
     )
-    # ...and `attribute` gives that case to the calculator, which owns final form
-    assert (
-        stage_scores.attribute(
+    assert stage_scores.first_fault(row, DOC + " and 75 too") == "ambiguous"
+    # ambiguous names no agent, so targeting must never see it as one
+    assert "ambiguous" in stage_scores.NON_AGENT
+    assert "ambiguous" not in stage_scores.AGENT_ORDER
+
+
+def test_an_operand_absent_from_the_document_is_a_gold_suspect_not_a_fault() -> None:
+    """Gold citing a number the report never states is a dataset error."""
+    from convfinqa.evalloop import stage_scores
+
+    row = _row(
+        gold_program="subtract(200, 4242)",
+        gold_answer="-4042",
+        correct=False,
+    )
+    assert stage_scores.first_fault(row, DOC) == "gold_suspect"
+
+
+def test_the_plan_is_judged_by_execution_not_by_its_shape() -> None:
+    """A differently shaped plan that reaches gold is not a preprocess fault.
+
+    `pred_program` is symbolic, so its op list says nothing on its own. Gold
+    computes the denominator in two steps and the plan takes it in one; the
+    values agree, so the wrong final answer is the calculator's — the old
+    skeleton comparison called this preprocess.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    doc = "capital leases 1898 and total 7807"
+    reaches_gold = _row(
+        gold_program="divide(1898, 7807)",
+        gold_answer="24%",
+        pred_program="divide(A, B)",
+        pred_answer="0.24311515306775972",  # right value, wrong final form
+        correct=False,
+        pred_sub_questions=json.dumps(["capital leases", "the sum"]),
+        retriever_io=json.dumps(
             {
-                "triage_turn_type_ok": True,
-                "preprocess_skeleton_ok": None,
-                "retriever_operand_recall": 1.0,
-                "calculator_ok": None,
+                "output": {
+                    "answers": [
+                        {"question": "capital leases", "answer": "1898"},
+                        {"question": "the sum", "answer": "7807"},
+                    ]
+                }
             }
-        )
-        == "calculator"
+        ),
     )
+    assert stage_scores.first_fault(reaches_gold, doc) == "calculator"
+
+    # same operands, a plan that cannot produce gold from them
+    cannot_reach_gold = {**reaches_gold, "pred_program": "subtract(A, B)"}
+    assert stage_scores.first_fault(cannot_reach_gold, doc) == "preprocess"
+
+
+def test_an_operand_folded_into_a_history_answer_still_reads_as_missing() -> None:
+    """Known limitation, pinned so a change to it is deliberate.
+
+    Gold may spell out an operand the pipeline never needed because an earlier
+    turn already produced the value it feeds into. `Single_UNP/2013 q1` is the
+    live case: gold is `subtract(631, 637), divide(#0, 637)` while the plan
+    divides the change already in history by 637 and is arithmetically right.
+    `gold_document_operands` drops operands that *equal* a prior gold answer,
+    not ones subsumed into it, so 631 reads as missing and the turn is charged
+    to preprocess rather than to the calculator.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    row = _row(
+        gold_program="subtract(631, 637), divide(#0, 637)",
+        gold_answer="-1%",
+        pred_program="divide(A, B)",
+        pred_answer="no",
+        correct=False,
+        pred_sub_questions=json.dumps(["the change", "the 2011 value"]),
+        retriever_io=json.dumps(
+            {
+                "output": {
+                    "answers": [
+                        {"question": "the change", "answer": "-6"},
+                        {"question": "the 2011 value", "answer": "637"},
+                    ]
+                }
+            }
+        ),
+        prior_gold_answers=["-6"],
+    )
+    assert stage_scores.first_fault(row, "631 637 -6") == "preprocess"
+
+
+def test_a_plan_that_cannot_be_bound_is_charged_to_preprocess() -> None:
+    """Emitting a bare value, or an ask nothing can answer, is a planning fault."""
+    from convfinqa.evalloop import stage_scores
+
+    # preprocess returned a number where a program belongs
+    no_plan = _row(pred_program="1.0129716981132078", correct=False)
+    assert stage_scores.first_fault(no_plan, DOC) == "preprocess"
+
+    # it planned a third sub-question that never came back
+    over_planned = _row(
+        correct=False,
+        pred_program="subtract(A, C)",
+        pred_sub_questions=json.dumps(["value in 2020", "value in 2019", "a third"]),
+    )
+    assert stage_scores.first_fault(over_planned, DOC) == "preprocess"
+
+
+def test_a_number_turn_is_the_retrievers_unless_the_value_came_back() -> None:
+    """No plan and nothing to compute, so the value was surfaced or it was not."""
+    from convfinqa.evalloop import stage_scores
+
+    missed = _row(
+        gold_program="",
+        pred_turn_type="number",
+        gold_answer="4242",
+        correct=False,
+    )
+    assert stage_scores.first_fault(missed, DOC) == "retriever"
+
+    found_but_wrong = {**missed, "gold_answer": "200"}
+    assert stage_scores.first_fault(found_but_wrong, DOC) == "calculator"
+
+
+def test_attribute_still_falls_back_to_the_calculator() -> None:
+    """A wrong answer with every check passing is the calculator's by elimination."""
+    from convfinqa.evalloop import stage_scores
+
+    assert stage_scores.attribute(_row(correct=False), DOC) == "calculator"
 
 
 def test_one_sided_mcnemar_is_half_the_two_sided_p() -> None:
@@ -1520,3 +1682,87 @@ def test_targeting_penalises_a_thinly_evidenced_agent() -> None:
     assert (
         campaign.pick_target({"retriever": 20}, [], pooled=only_draw)[0] == "retriever"
     )
+
+
+def test_program_exec_binds_placeholders_in_sub_question_order() -> None:
+    """The n-th placeholder is the n-th sub-question — that is the whole contract."""
+    from convfinqa.evaluation.program_exec import bind_and_execute, execute
+
+    assert execute("subtract(631, 637)") == -6.0
+    # a ratio against a percentage gold is a match; the scales are conventions
+    assert bind_and_execute("divide(A, B)", ["1898", "7807"], "24%") is True
+    # ...but dropping a x1000 the gold program has is not
+    assert bind_and_execute("divide(A, B)", ["2.5", "3195"], "78%") is False
+    # `greater` answers yes/no
+    assert bind_and_execute("greater(A, B)", ["3.27", "2.45"], "yes") is True
+    # an unbindable plan is None — undecidable, not wrong
+    assert bind_and_execute("divide(A, B)", ["not reported", "7807"], "24%") is None
+    assert bind_and_execute("1.013", [], "1.013") is None
+
+
+def test_adjudication_maps_the_binary_answer_to_the_right_agent() -> None:
+    """asked_for_it means the retriever had its chance; not asked means preprocess."""
+    import asyncio
+
+    from convfinqa.evalloop import teacher
+
+    seen: list[dict[str, Any]] = []
+
+    async def fake(payload: dict[str, Any], refs: Any) -> tuple[Any, dict[str, Any]]:
+        seen.append(payload)
+        asked = any("2019" in q for q in payload["sub_questions_preprocess_asked"])
+        return teacher.Adjudication(asked_for_it=asked, reason="because"), {}
+
+    def frame(sub_questions: list[str]) -> pd.DataFrame:
+        return pd.DataFrame(
+            [
+                _row(
+                    gold_program="subtract(200, 75)",
+                    gold_answer="125",
+                    correct=False,
+                    first_wrong_turn=1,
+                    question="what changed?",
+                    pred_sub_questions=json.dumps(sub_questions),
+                    retriever_io=json.dumps(
+                        {
+                            "output": {
+                                "answers": [
+                                    {"question": sub_questions[0], "answer": "200"},
+                                    {
+                                        "question": sub_questions[-1],
+                                        "answer": "not reported",
+                                    },
+                                ]
+                            }
+                        }
+                    ),
+                )
+            ]
+        )
+
+    original = teacher._adjudicate_case
+    teacher._adjudicate_case = fake  # type: ignore[assignment]
+    try:
+        asked = asyncio.run(
+            teacher.resolve_ambiguous(
+                frame(["value in 2020", "value in 2019"]), "x.csv"
+            )
+        )
+        not_asked = asyncio.run(
+            teacher.resolve_ambiguous(
+                frame(["value in 2020", "something unrelated"]), "x.csv"
+            )
+        )
+    finally:
+        teacher._adjudicate_case = original  # type: ignore[assignment]
+
+    # it did ask for the missing value, so the retriever had its chance and missed
+    assert asked[0] == {
+        "agent": "retriever",
+        "asked_for_it": True,
+        "reason": "because",
+    }
+    # it never asked, so the retriever was never given the chance
+    assert not_asked[0]["agent"] == "preprocess"
+    # the adjudicator is not attributing, so it is never shown the gold answer
+    assert "gold_answer" not in seen[0] and "pipeline_answer" not in seen[0]

@@ -199,52 +199,231 @@ TARGET_METRIC = {
 }
 
 
-# --- Gold-derived attribution (M3/W0) ---------------------------------------
+# --- Gold-derived attribution -------------------------------------------------
 #
-# The same four checks, read in pipeline order: the first one that fails is
-# where the turn first diverged from what gold says should have happened. This
-# replaces asking an LLM to attribute — it is free, deterministic, and it is the
-# thing the per-agent panel was already computing. The teacher is told the
-# answer and may dissent; a dissent is recorded, never silently overridden.
+# The same checks, read in pipeline order: the first one that fails is where the
+# turn first diverged from what gold says should have happened. Deterministic
+# and free, and it is what `pick_target` ranks on.
+#
+# Rewritten 2026-09-04 after hand-attributing seven failures and disagreeing
+# with the shipped rule on five of them. Re-scoring all twelve committed runs
+# moved 37.4% of 554 first-wrong cases; the retriever's share fell by 62%. Three
+# things were wrong:
+#
+# 1. **Plan shape was judged before operand coverage.** A skeleton mismatch
+#    short-circuited before the retriever check ran, so preprocess won ties it
+#    should have lost. The order now follows the data dependency: `pred_program`
+#    is symbolic, its placeholders bind to the retriever's answers, so the plan
+#    genuinely cannot be evaluated until coverage is known.
+# 2. **Skeleton equality is not a valid test for a symbolic plan.** It punished
+#    correct plans shaped differently from gold and passed wrong plans that
+#    happened to share a shape. `bind_and_execute` replaces it.
+# 3. **Every case had to name an agent.** The fallback charged the calculator,
+#    so a bad gold label or an unreadable record was billed to an innocent
+#    agent. `NON_AGENT` verdicts exist so that stops.
 
 AGENT_ORDER = ("triage", "preprocess", "retriever", "calculator")
 
+#: Verdicts that deliberately name no subagent. They are excluded from
+#: targeting's numerator *and* denominator — charging an agent for a gold label
+#: we do not trust is how a campaign spends an experiment on nothing.
+NON_AGENT = ("gold_suspect", "ambiguous", "unscorable")
 
-def first_fault(row: Any) -> str | None:
+_NOT_FOUND_RE = re.compile(
+    r"not (?:found|reported|available|given|stated|disclosed|provided|present)"
+    r"|unavailable|not in the|no (?:value|figure|data)|cannot be|unknown|n/a",
+    re.IGNORECASE,
+)
+
+_docs_cache: dict[str, str] | None = None
+
+
+def report_documents() -> dict[str, str]:
+    """Every report's raw text, keyed by report id, read once and cached.
+
+    Needed for exactly one check — is the operand gold cites anywhere in the
+    document? — but that check is what separates a retrieval failure from a
+    dataset error, and the loop has been charging the former for the latter.
+    """
+    global _docs_cache
+    if _docs_cache is None:
+        from convfinqa.data.loader import load_raw_dataset
+
+        docs: dict[str, str] = {}
+        for items in load_raw_dataset().values():
+            if not isinstance(items, list):
+                continue
+            for record in items:
+                rid = record.get("id")
+                if rid and rid not in docs:
+                    docs[rid] = json.dumps(record.get("doc", ""))
+        _docs_cache = docs
+    return _docs_cache
+
+
+def retrieved_pairs(row: Any) -> list[tuple[str, str]]:
+    """The retriever's (sub-question, answer) pairs for one turn."""
+    get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
+    raw = get("retriever_io")
+    if not isinstance(raw, str) or not raw.strip():
+        return []
+    try:
+        io = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    answers = ((io or {}).get("output") or {}).get("answers") or []
+    return [
+        (str(a.get("question", "")), str(a.get("answer", "")))
+        for a in answers
+        if isinstance(a, dict)
+    ]
+
+
+def planned_sub_questions(row: Any) -> list[str]:
+    """What preprocess asked for, as planned — not as answered."""
+    get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
+    raw = get("pred_sub_questions")
+    if not isinstance(raw, str) or not raw.strip():
+        return []
+    try:
+        loaded = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    return [str(q) for q in loaded] if isinstance(loaded, list) else []
+
+
+def retriever_declined(row: Any) -> bool:
+    """Did the retriever fail to return a usable number for some sub-question?
+
+    Either it said so in words, or it returned something with no number in it,
+    or a planned sub-question got no answer row at all.
+    """
+    pairs = retrieved_pairs(row)
+    if not pairs:
+        return True
+    for _question, answer in pairs:
+        if _to_float(answer) is None or _NOT_FOUND_RE.search(answer):
+            return True
+    return len(planned_sub_questions(row)) > len(pairs)
+
+
+def missing_operands(row: Any, retrieved: list[str]) -> list[str]:
+    """Gold operands the retriever was responsible for and did not return."""
+    get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
+    prior = get("prior_gold_answers") or []
+    needed = gold_document_operands(get("gold_program"), list(prior))
+    return [g for g in needed if not any(_values_match(v, g) for v in retrieved)]
+
+
+def first_fault(row: Any, doc: str | None = None) -> str | None:
     """The first stage whose gold-derived check fails, in pipeline order.
 
-    ``None`` means every check passed — for a wrong answer that is itself
-    informative (the failure is outside what gold can adjudicate), and the
-    caller attributes it to the calculator, which owns the final form.
+    ``None`` means every check passed, which for a wrong answer is itself
+    informative: the failure is outside what gold can adjudicate.
+
+    `doc` is the report's raw text, used only to tell a retrieval miss from a
+    gold operand that is not in the document at all. Omitted, it is looked up.
     """
     get = row.get if hasattr(row, "get") else (lambda k, d=None: getattr(row, k, d))
+    from convfinqa.evaluation.program_exec import bind_and_execute
 
-    def _bad(value: Any) -> bool:
-        return value is False or value == 0.0 or str(value).lower() == "false"
-
-    if _bad(get("triage_turn_type_ok")):
+    # 1 — triage. The expected turn type follows from the gold program's shape,
+    # so it is derived here rather than read from a column that could drift.
+    gold_ops = parse_program(get("gold_program"))
+    expected = "number" if gold_ops is None else "program"
+    pred_tt = str(get("pred_turn_type") or "").lower()
+    if pred_tt and pred_tt != expected:
         return "triage"
-    if _bad(get("preprocess_skeleton_ok")):
+
+    pairs = retrieved_pairs(row)
+    retrieved = [answer for _question, answer in pairs]
+
+    if gold_ops is None:
+        # Number turn: there is no plan and nothing to compute, so the retriever
+        # either surfaced the value or it did not.
+        if not any(_values_match(v, get("gold_answer")) for v in retrieved):
+            return "retriever"
+        return None if get("correct") else "calculator"
+
+    # 2 — operand coverage, and who is answerable for a gap. This runs *before*
+    # the plan check because the plan cannot be bound without it.
+    missing = missing_operands(row, retrieved)
+    if missing:
+        if doc is None:
+            doc = report_documents().get(str(get("report_id")), "")
+        # Only claim the label is wrong when we actually hold the document. With
+        # no text every operand reads as absent, which would turn an unmatched
+        # report id — a stale manifest, a renamed split — into a store full of
+        # `gold_suspect` and quietly empty the fault counts.
+        if doc and any(m not in doc for m in missing):
+            # Gold cites a number the report never states. Not a pipeline fault.
+            return "gold_suspect"
+        if retriever_declined(row):
+            # Indistinguishable from the record: the retriever may have missed a
+            # value that was there, or preprocess may have asked for something
+            # the report does not answer. `Double_BLK` and `Double_IPG` produce
+            # byte-identical evidence with opposite correct verdicts.
+            return "ambiguous"
+        # It answered every sub-question it was given, and the operand still is
+        # not among them — so none of those questions asked for it.
         return "preprocess"
-    recall = get("retriever_operand_recall")
-    if recall is not None and not (isinstance(recall, float) and math.isnan(recall)):
-        try:
-            if float(recall) < 1.0:
-                return "retriever"
-        except (TypeError, ValueError):
-            pass
-    if _bad(get("calculator_ok")):
-        return "calculator"
-    return None
+
+    # 3 — the plan, bound to the values it planned for and executed.
+    reaches = bind_and_execute(get("pred_program"), retrieved, get("gold_answer"))
+    if reaches is None:
+        # The plan would not bind and run. Every mode of that seen in practice
+        # is preprocess's: emitting a bare value or a malformed call instead of
+        # a program (`1.0129…`, `A`, `subtract(subtract(B, A))`), or planning a
+        # sub-question that nothing could answer, which leaves its placeholder
+        # unbound. `unscorable` is kept for a record we genuinely cannot read.
+        if parse_program(get("pred_program")) is None:
+            return "preprocess"  # no plan was emitted at all
+        if any(_to_float(a) is None for _q, a in pairs) or len(
+            planned_sub_questions(row)
+        ) > len(pairs):
+            return "preprocess"  # planned an ask nothing could answer
+        return "unscorable"
+    if reaches is False:
+        return "preprocess"
+
+    # 4 — everything upstream is sound, so a wrong answer is the calculator's.
+    return None if get("correct") else "calculator"
 
 
-def attribute(row: Any) -> str:
+def attribute(row: Any, doc: str | None = None) -> str:
     """``first_fault`` with the honest fallback: nothing gold can see, so calculator."""
-    return first_fault(row) or "calculator"
+    return first_fault(row, doc) or "calculator"
 
 
 def attribute_frame(df: pd.DataFrame) -> pd.Series:
     """Per-row gold-derived attribution for a scored run frame."""
     if "triage_turn_type_ok" not in df.columns:
         score_rows(df)
-    return pd.Series([attribute(r._asdict()) for r in df.itertuples()], index=df.index)
+    docs = report_documents()
+    rows = with_prior_gold(df)
+    return pd.Series(
+        [attribute(r, docs.get(str(r.get("report_id")), "")) for r in rows],
+        index=df.index,
+    )
+
+
+def with_prior_gold(df: pd.DataFrame) -> list[dict[str, Any]]:
+    """Row dicts carrying `prior_gold_answers` — the conversation's earlier golds.
+
+    Attribution needs them to know which of gold's operands the retriever was
+    actually responsible for: an operand that is an earlier answer in the same
+    conversation comes from history, not from the document.
+    """
+    gold_by_conv: dict[str, dict[int, Any]] = {}
+    for r in df.itertuples():
+        gold_by_conv.setdefault(r.report_id, {})[int(r.turn_index)] = r.gold_answer
+    out: list[dict[str, Any]] = []
+    for r in df.itertuples():
+        row = r._asdict()
+        row["prior_gold_answers"] = [
+            v
+            for t, v in gold_by_conv[row["report_id"]].items()
+            if t < int(row["turn_index"])
+        ]
+        out.append(row)
+    return out
