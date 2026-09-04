@@ -33,7 +33,6 @@ out in that case.
 from __future__ import annotations
 
 import hashlib
-import json
 from typing import Any
 
 
@@ -70,16 +69,53 @@ def run_artifact_ref(name: str, text: str, *, run_id: str = "") -> dict[str, Any
 
 
 def diagnose_case_ref(
-    csv_path: str, report_id: str, turn_index: int, *, memory: str = ""
+    csv_path: str,
+    report_id: str,
+    turn_index: int,
+    *,
+    memory: str = "",
+    text: str = "",
 ) -> dict[str, Any]:
-    """A reference to one diagnosed case: a CSV row plus the pass's memory block."""
-    return {
+    """A reference to one diagnosed case: a CSV row plus the pass's memory block.
+
+    `text` is the prompt this stands for. Pass it: without a `sha` there is
+    nothing for `resolve` to check against, so a rebuild that has silently
+    drifted — a changed `case_payload`, an edited CSV — comes back looking like
+    the text that ran.
+    """
+    ref: dict[str, Any] = {
         "kind": "diagnose_case",
         "csv": str(csv_path),
         "report_id": report_id,
         "turn_index": int(turn_index),
         "memory_artifact": memory,
     }
+    if text:
+        ref["sha"] = sha(text)
+    return ref
+
+
+def adjudicate_case_ref(
+    csv_path: str, report_id: str, turn_index: int, *, text: str = ""
+) -> dict[str, Any]:
+    """A reference to one adjudicated case — a *different* prompt from its diagnosis.
+
+    The adjudicator is handed a deliberately narrow payload: the question, the
+    sub-questions, what came back, and the missing numbers, with the gold answer
+    and the pipeline's answer withheld because it is settling one fact rather
+    than attributing blame. A `diagnose_case` ref cannot stand for it — that
+    kind rebuilds through `teacher.case_payload` and would hand back the full
+    diagnosis payload as though it were the text the adjudicator saw.
+    """
+    ref: dict[str, Any] = {
+        "kind": "adjudicate_case",
+        "csv": str(csv_path),
+        "report_id": report_id,
+        "turn_index": int(turn_index),
+    }
+    if text:
+        ref["sha"] = sha(text)
+    return ref
 
 
 class UnresolvedRefError(RuntimeError):
@@ -115,6 +151,8 @@ def resolve(ref: dict[str, Any], *, run_id: str = "") -> str:
         text = _download_text(str(ref.get("name")), ref.get("run_id") or run_id)
     elif kind == "diagnose_case":
         text = _rebuild_case(ref, run_id=run_id)
+    elif kind == "adjudicate_case":
+        text = _rebuild_adjudication(ref)
     else:
         raise UnresolvedRefError(f"unknown reference kind {kind!r}")
 
@@ -147,28 +185,54 @@ def _download_text(name: str, run_id: str) -> str:
         ) from exc
 
 
-def _rebuild_case(ref: dict[str, Any], *, run_id: str) -> str:
-    """Rebuild a diagnosis user prompt from its CSV row and the pass's memory."""
-    from pathlib import Path
+def _case_row(ref: dict[str, Any]) -> Any:
+    """The committed CSV row a case reference points at, prepared as it was.
 
-    import pandas as pd
+    Goes through `teacher.first_wrong_cases` rather than a bare `read_csv`
+    because that is what the call site did, and the difference is not cosmetic:
+    it derives `prior_gold_answers`, which is not a column in the CSV and which
+    both payloads depend on. Reading the file directly rebuilds a *different*
+    prompt — caught by the sha guard, which is the whole reason to carry one.
+    """
+    from pathlib import Path
 
     from convfinqa.evalloop import teacher
 
     csv = Path(str(ref["csv"]))
     if not csv.exists():
         raise UnresolvedRefError(f"predictions CSV is gone: {csv}")
-    frame = pd.read_csv(csv)
-    rows = frame[
-        (frame["report_id"] == ref["report_id"])
-        & (frame["turn_index"] == ref["turn_index"])
-    ]
-    if rows.empty:
-        raise UnresolvedRefError(
-            f"{ref['report_id']} q{ref['turn_index']} is not in {csv.name}"
-        )
-    payload = teacher.case_payload(rows.iloc[0])
+    # `iterrows`, not `.iloc[]`, because that is how both call sites walk the
+    # frame — and it is not an equivalent choice: `iterrows` coerces a row to a
+    # single dtype, so an integer column comes back as `4.0` where `.iloc[]`
+    # keeps `4`. The rebuilt prompt then differs from the one that was sent by
+    # exactly that much, which the sha guard reports as a changed prompt.
+    for _index, row in teacher.first_wrong_cases(csv).iterrows():
+        if str(row["report_id"]) == str(ref["report_id"]) and int(
+            row["turn_index"]
+        ) == int(ref["turn_index"]):
+            return row
+    raise UnresolvedRefError(
+        f"{ref['report_id']} q{ref['turn_index']} is not in {csv.name}"
+    )
+
+
+def _rebuild_case(ref: dict[str, Any], *, run_id: str) -> str:
+    """Rebuild a diagnosis user prompt from its CSV row and the pass's memory."""
+    from convfinqa.evalloop import teacher
+
     memory = ""
     if ref.get("memory_artifact"):
         memory = _download_text(str(ref["memory_artifact"]), run_id)
-    return json.dumps(payload, default=str) + memory
+    return teacher.diagnose_prompt_text(teacher.case_payload(_case_row(ref)), memory)
+
+
+def _rebuild_adjudication(ref: dict[str, Any]) -> str:
+    """Rebuild an adjudication user prompt from its CSV row.
+
+    Shares `_case_row` with the diagnosis rebuild but goes through
+    `teacher.adjudication_prompt_text`, which is what keeps the two prompts
+    distinct on the way back out as well as on the way in.
+    """
+    from convfinqa.evalloop import teacher
+
+    return teacher.adjudication_prompt_text(_case_row(ref))

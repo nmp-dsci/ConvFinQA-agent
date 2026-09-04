@@ -324,6 +324,22 @@ def case_payload(row: pd.Series) -> dict[str, Any]:
     }
 
 
+def diagnose_prompt_text(payload: dict[str, Any], memory_text: str) -> str:
+    """The exact user prompt a diagnosis call sends.
+
+    One builder, used by the call site and by `prompt_refs._rebuild_case`. The
+    span stores a reference rather than the text, so if these two ever
+    disagreed, `resolve` would return a prompt that was never sent — and the
+    sha guard can only catch that if both sides go through here.
+    """
+    return json.dumps(payload, default=str) + memory_text
+
+
+def adjudication_prompt_text(row: pd.Series) -> str:
+    """The exact user prompt an adjudication call sends. See `diagnose_prompt_text`."""
+    return json.dumps(adjudication_payload(row), default=str)
+
+
 async def _diagnose_case(
     payload: dict[str, Any],
     memory_text: str,
@@ -333,7 +349,7 @@ async def _diagnose_case(
     from convfinqa.evalloop.sdk import run_structured
 
     return await run_structured(
-        json.dumps(payload, default=str) + memory_text,
+        diagnose_prompt_text(payload, memory_text),
         schema=Diagnosis,
         system_prompt=TEACHER_PROMPT,
         max_turns=4,
@@ -349,7 +365,7 @@ async def _adjudicate_case(
     from convfinqa.evalloop.sdk import run_structured
 
     return await run_structured(
-        json.dumps(payload, default=str),
+        json.dumps(payload, default=str),  # == adjudication_prompt_text(row)
         schema=Adjudication,
         system_prompt=ADJUDICATOR_PROMPT,
         max_turns=2,
@@ -424,10 +440,15 @@ async def resolve_ambiguous(
                             "system_prompt": prompt_refs.teacher_prompt_ref(
                                 "ADJUDICATOR_PROMPT", ADJUDICATOR_PROMPT
                             ),
-                            "user_prompt": prompt_refs.diagnose_case_ref(
+                            # Its own ref kind, not `diagnose_case`: that one
+                            # rebuilds through `case_payload` and would hand
+                            # back the full diagnosis payload as though it were
+                            # what the adjudicator saw.
+                            "user_prompt": prompt_refs.adjudicate_case_ref(
                                 str(csv_path),
                                 str(row.report_id),
                                 int(row.turn_index),
+                                text=adjudication_prompt_text(row),
                             ),
                         },
                     )
@@ -607,6 +628,7 @@ async def diagnose_run(
                                     str(row.report_id),
                                     int(row.turn_index),
                                     memory=MEMORY_ARTIFACT if memory_text else "",
+                                    text=diagnose_prompt_text(payload, memory_text),
                                 ),
                             },
                         )

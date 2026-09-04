@@ -1766,3 +1766,56 @@ def test_adjudication_maps_the_binary_answer_to_the_right_agent() -> None:
     assert not_asked[0]["agent"] == "preprocess"
     # the adjudicator is not attributing, so it is never shown the gold answer
     assert "gold_answer" not in seen[0] and "pipeline_answer" not in seen[0]
+
+
+def test_the_adjudicator_ref_rebuilds_its_own_prompt_not_the_diagnosis(
+    tmp_path: Path,
+) -> None:
+    """An `adjudicate_case` ref must not resolve through `case_payload`.
+
+    The adjudicator is handed a deliberately narrow payload — the gold answer
+    and the pipeline's answer are withheld, because it settles one fact rather
+    than attributing blame. Recording a `diagnose_case` ref for that call would
+    hand the full diagnosis payload back as though it were what the adjudicator
+    saw, and with no `sha` there is nothing to catch it.
+    """
+    from convfinqa.evalloop import prompt_refs, teacher
+
+    row = _row(
+        gold_program="subtract(200, 75)",
+        gold_answer="125",
+        pred_answer="no",
+        correct=False,
+        first_wrong_turn=1,
+        question="what changed?",
+        history_text="",
+    )
+    csv = tmp_path / "run.csv"
+    # as the eval runner writes it: no `prior_gold_answers` column, because that
+    # is derived by `first_wrong_cases` and not part of the CSV
+    on_disk = {k: v for k, v in row.items() if k != "prior_gold_answers"}
+    pd.DataFrame([on_disk]).to_csv(csv, index=False)
+
+    prepared = teacher.first_wrong_cases(csv).iloc[0]
+    text = teacher.adjudication_prompt_text(prepared)
+    ref = prompt_refs.adjudicate_case_ref(
+        str(csv), str(row["report_id"]), int(row["turn_index"]), text=text
+    )
+    assert ref["kind"] == "adjudicate_case"
+    assert ref["sha"] == prompt_refs.sha(text)
+
+    resolved = prompt_refs.resolve(ref)
+    assert resolved == text
+    # what the adjudicator is *not* shown must not come back through the ref
+    assert "gold_answer" not in resolved
+    assert "pipeline_answer" not in resolved
+    assert "derived_attribution" not in resolved
+    # ...which is exactly what a diagnose_case ref would have returned
+    assert "gold_answer" in teacher.diagnose_prompt_text(
+        teacher.case_payload(prepared), ""
+    )
+
+    # and a ref whose text has drifted is refused, not approximated
+    stale = {**ref, "sha": prompt_refs.sha(text + " drifted")}
+    with pytest.raises(prompt_refs.UnresolvedRefError, match="has changed since"):
+        prompt_refs.resolve(stale)
