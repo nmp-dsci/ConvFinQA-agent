@@ -57,3 +57,6 @@ frontend/tsconfig.*.tsbuildinfo
 # Local MLflow server state (tracking DB + artifacts volume) — dev state,
 # like mlruns/; the committed snapshot is what ships.
 .mlflow/
+# A local sqlite store MLflow falls back to when MLFLOW_TRACKING_URI is unset;
+# the real store is the ./.mlflow volume the compose service mounts.
+mlflow.db

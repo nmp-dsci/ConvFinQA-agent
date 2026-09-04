@@ -47,11 +47,30 @@ def enable() -> bool:
         import mlflow.pydantic_ai as _autolog_mod
 
         _autolog_mod.autolog()
+        # The autologger writes what pydantic-ai hands it, which is mostly
+        # framework internals: serialised toolsets, duplicated run state, and
+        # the same four system prompts on every call. Trim them on the way out
+        # — see `span_trim` for what goes and why each is recoverable.
+        _install_trimmer()
     except Exception:  # noqa: BLE001 — tracing is never load-bearing
         log.warning("mlflow tracing unavailable; continuing without it", exc_info=True)
         return False
     _enabled = True
     return True
+
+
+def _install_trimmer() -> None:
+    """Register the span processor that drops the repetitive bulk."""
+    try:
+        import mlflow.tracing
+
+        from convfinqa.tracking.span_trim import trim_span
+
+        mlflow.tracing.configure(span_processors=[trim_span])
+    except Exception:  # noqa: BLE001 — a fat trace beats no trace
+        log.warning(
+            "span trimming unavailable; traces will be full size", exc_info=True
+        )
 
 
 def enabled() -> bool:

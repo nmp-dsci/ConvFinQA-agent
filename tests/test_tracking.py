@@ -8,6 +8,7 @@ regression, not an improvement — which is the whole reason the gate exists.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -646,3 +647,113 @@ def test_teacher_runs_do_not_claim_a_model_they_never_call(
     assert logged["lm_mini"] == "deepseek-v4-flash"  # the bundle under study
     # the join key is unchanged by the trim
     assert tagged["bundle_id"] == bundle_id(bundle_fingerprint(version="v2"))
+
+
+def test_span_trim_drops_framework_bulk_and_keeps_the_reasoning() -> None:
+    """The pipeline's traces were 99.4% of the store and mostly not information.
+
+    A tool-call span carried pydantic-ai's serialised toolset, the whole message
+    history, and the user prompt again — 86% of the payload, all of it either
+    framework internals or a verbatim copy of what the model span in the same
+    trace already holds. The call itself, which is the part anyone reads a trace
+    for, was 817 bytes of 5,726."""
+    from convfinqa.tracking import span_trim
+
+    payload = {
+        "validated": {
+            "call": {"tool_name": "divide", "args": '{"a": 80.67, "b": 100}'},
+            "tool": {"toolset": {"output_schema": "x" * 5000}},
+            "ctx": {
+                "messages": [{"parts": ["y" * 5000]}],
+                "prompt": "z" * 5000,
+                "model": "deepseek-v4-flash",
+                "usage": {"input_tokens": 10},
+            },
+            "validated_args": {"a": 80.67, "b": 100},
+        }
+    }
+    out = span_trim._trim_tool_call(payload)["validated"]
+    assert out["call"]["tool_name"] == "divide", "dropped the call itself"
+    assert out["validated_args"] == {"a": 80.67, "b": 100}
+    assert out["tool"] == span_trim.DROPPED
+    assert out["ctx"]["messages"] == span_trim.DROPPED
+    assert out["ctx"]["prompt"] == span_trim.DROPPED
+    # Small ctx keys stay: they are what makes the call attributable.
+    assert out["ctx"]["model"] == "deepseek-v4-flash"
+    assert out["ctx"]["usage"] == {"input_tokens": 10}
+
+
+def test_span_trim_keeps_agent_output_and_drops_duplicated_state() -> None:
+    """`_state` and `_new_messages_serialized` were ~112 KB each beside a 1.9 KB
+    output, and the messages are already recorded by the model span below."""
+    from convfinqa.tracking import span_trim
+
+    out = span_trim._trim_agent_run(
+        {
+            "output": {"answer": "42"},
+            "_state": {"big": "x" * 9000},
+            "_new_messages_serialized": "y" * 9000,
+            "_output_tool_name": "final_result",
+        }
+    )
+    assert out["output"] == {"answer": "42"}
+    assert out["_output_tool_name"] == "final_result"
+    assert out["_state"] == span_trim.DROPPED
+    assert out["_new_messages_serialized"] == span_trim.DROPPED
+
+
+def test_span_trim_substitutes_a_registered_prompt_for_its_ledger_name() -> None:
+    """The agent prompts are the bulk of a model request and repeat on every call.
+
+    Matching is on the *stripped* text: pydantic-ai hands the model its
+    instructions with trailing whitespace removed, so hashing the raw module
+    constant matches nothing and fails silently — leaving every prompt inline,
+    which is exactly the bug this replaced."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import span_trim
+
+    calculator = prompts_pkg.load("v2")["calculator"]
+    assert calculator.endswith("\n"), "fixture assumption: module text has a newline"
+    as_delivered = calculator.rstrip()  # what pydantic-ai actually sends
+
+    ref = span_trim._prompt_ref(as_delivered)
+    assert ref and ref.startswith("calculator"), (
+        f"stripped prompt did not resolve to a ledger name: {ref!r}"
+    )
+
+    out = span_trim._trim_model_request(
+        {
+            "messages": [
+                {
+                    "instructions": as_delivered,
+                    "parts": [{"content": "what was the change in operating income?"}],
+                }
+            ]
+        }
+    )
+    message = out["messages"][0]
+    assert message["instructions"] == f"<prompt_ref: {ref}>"
+    # The question is the reasoning, and it stays.
+    assert message["parts"][0]["content"].startswith("what was the change")
+
+
+def test_span_trim_never_raises_and_respects_the_escape_hatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A span processor runs inside the tracing path on every span.
+
+    An exception here would turn observability into a source of failures in the
+    thing being observed, so `trim_span` swallows everything."""
+    from convfinqa.tracking import span_trim
+
+    class Exploding:
+        name = "Agent.run"
+
+        @property
+        def outputs(self) -> Any:
+            raise RuntimeError("boom")
+
+    span_trim.trim_span(Exploding())  # must not raise
+
+    monkeypatch.setenv("MLFLOW_TRACE_FULL", "1")
+    assert not span_trim.enabled(), "MLFLOW_TRACE_FULL must disable trimming"
