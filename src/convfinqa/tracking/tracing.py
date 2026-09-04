@@ -6,6 +6,17 @@ the two levels the autologger cannot infer, the conversation (report) and the
 turn (question), and stamps the run identity (version, split, run name) on the
 trace so a span joins back to the experiment run that produced it.
 
+**The Agent SDK gets none of that and must be instrumented by hand.** The four
+pipeline agents run on pydantic-ai in this process, so autologging sees every
+call. The teacher and the prompt writer do not: `claude_agent_sdk` spawns the
+`claude` CLI as a *subprocess*, and no in-process client is ever constructed, so
+there is nothing for any autologger to patch — and there is no
+`mlflow.claude_agent_sdk` integration to enable. Without a manual span the whole
+teacher call is invisible: a trace with one empty wrapper span, no prompt, no
+reply, no tokens, no cost. `evalloop/sdk.py` opens that span around the single
+chokepoint every Agent SDK call passes through; if a second call path to the SDK
+is ever added, it needs the same treatment or it will silently record nothing.
+
 Off unless something calls `enable()`: the eval loop always does (it already
 requires MLflow), serving does when `MLFLOW_TRACING=1`. Importing this module
 never imports mlflow — serving must stay cheap to start and the demo container
@@ -73,11 +84,27 @@ class SpanHandle:
                 if value is not None:
                     self._span.set_attribute(key, value)
 
+    def inputs(self, value: Any) -> None:
+        """Record what went in. The trace UI leads with this; a span without it
+        renders as an empty box whatever attributes it carries."""
+        if self._span is None:
+            return
+        with contextlib.suppress(Exception):
+            self._span.set_inputs(value)
+
+    def outputs(self, value: Any) -> None:
+        """Record what came back."""
+        if self._span is None:
+            return
+        with contextlib.suppress(Exception):
+            self._span.set_outputs(value)
+
 
 @contextlib.contextmanager
 def span(
     name: str,
     *,
+    span_type: str = "UNKNOWN",
     attributes: dict[str, Any] | None = None,
     trace_tags: dict[str, Any] | None = None,
 ) -> Iterator[SpanHandle]:
@@ -86,8 +113,13 @@ def span(
     `trace_tags` are set on the whole trace (not the span), so pass them on the
     outermost span only — they are what joins a trace to its run and version.
 
-    Yields a `SpanHandle` so the caller can attach attributes it only learns
-    from the work inside the block.
+    `span_type` is one of MLflow's span types (`LLM`, `AGENT`, `TOOL`, `CHAIN`,
+    …). It is worth setting: the UI groups and renders by type, and a span left
+    `UNKNOWN` is shown as an anonymous box even when it is the model call the
+    whole trace exists to record.
+
+    Yields a `SpanHandle` so the caller can attach attributes, inputs and
+    outputs it only learns from the work inside the block.
     """
     if not _enabled:
         yield SpanHandle()
@@ -97,7 +129,9 @@ def span(
     except Exception:  # noqa: BLE001
         yield SpanHandle()
         return
-    with mlflow.start_span(name, attributes=attributes or {}) as active:
+    with mlflow.start_span(
+        name, span_type=span_type, attributes=attributes or {}
+    ) as active:
         if trace_tags:
             with contextlib.suppress(Exception):
                 mlflow.update_current_trace(

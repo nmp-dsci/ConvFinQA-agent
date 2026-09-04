@@ -376,6 +376,7 @@ async def diagnose_run(
             async with sem:
                 with tracing.span(
                     f"diagnose {row.report_id} q{int(row.turn_index)}",
+                    span_type="AGENT",
                     attributes={
                         "report_id": row.report_id,
                         "turn_index": int(row.turn_index),
@@ -627,8 +628,17 @@ async def propose_version(
     ) as rec:
         with tracing.span(
             f"propose {new_version} ({target})",
+            span_type="AGENT",
+            attributes={
+                "target_agent": target,
+                "base_version": base_version,
+                "new_version": new_version,
+                "n_failures_this_run": len(targeted),
+                "n_failures_same_prompt": len(prior_failures),
+                "n_prior_attempts": n_prior,
+            },
             trace_tags={"stage": "propose", "target_agent": target},
-        ):
+        ) as propose_span:
             output, usage = await run_structured(
                 json.dumps(
                     {
@@ -653,6 +663,12 @@ async def propose_version(
                 mcp_servers={"loop": tools.loop_server()},
                 allowed_tools=tools.ALLOWED_TOOLS,
                 max_turns=20,
+            )
+            propose_span.set(
+                summary_of_changes=output.summary_of_changes,
+                rationale=output.rationale,
+                prompt_chars_before=len(base_prompts[target]),
+                prompt_chars_after=len(output.prompt),
             )
 
         problems = validate_prompt(target, base_prompts[target], output.prompt)

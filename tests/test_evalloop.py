@@ -1266,3 +1266,128 @@ def test_merge_draw_folds_the_current_pass_in_exactly_once() -> None:
     assert merged["preprocess"]["n_runs"] == 4
     assert merged["preprocess"]["cases"] == 190
     assert merged["preprocess"]["faults"] == 68
+
+
+async def test_agent_sdk_calls_open_a_traced_llm_span(monkeypatch: Any) -> None:
+    """Teacher calls are invisible to MLflow unless this span is opened by hand.
+
+    The pipeline agents are autologged because pydantic-ai runs in-process; the
+    Agent SDK spawns the `claude` CLI as a subprocess, so no autologger can see
+    a teacher call. The failure mode is silent — traces still appear, with one
+    empty wrapper span and no prompt, reply, tokens or cost — so this pins the
+    instrumentation rather than trusting a future refactor to notice."""
+    import contextlib
+
+    from convfinqa.evalloop import sdk
+    from convfinqa.tracking import tracing
+
+    class Ping(BaseModel):
+        answer: str
+
+    opened: list[dict[str, Any]] = []
+
+    class _Handle:
+        def __init__(self, rec: dict[str, Any]) -> None:
+            self.rec = rec
+
+        def set(self, **kw: Any) -> None:
+            self.rec.setdefault("attrs", {}).update(kw)
+
+        def inputs(self, v: Any) -> None:
+            self.rec["inputs"] = v
+
+        def outputs(self, v: Any) -> None:
+            self.rec["outputs"] = v
+
+    @contextlib.contextmanager
+    def fake_span(name: str, **kw: Any) -> Any:
+        rec = {"name": name, **kw}
+        opened.append(rec)
+        yield _Handle(rec)
+
+    monkeypatch.setattr(tracing, "span", fake_span)
+
+    async def fake_once(prompt: str, **kw: Any) -> tuple[Any, dict[str, Any]]:
+        return Ping(answer="OK"), {
+            "duration_ms": 1568,
+            "num_turns": 2,
+            "total_cost_usd": 0.14,
+            "usage": {"input_tokens": 2, "output_tokens": 53},
+            "tools_used": ["StructuredOutput"],
+        }
+
+    monkeypatch.setattr(sdk, "_run_structured_once", fake_once)
+
+    out, _ = await sdk.run_structured("say ok", schema=Ping, system_prompt="reply json")
+    assert out.answer == "OK"
+    assert len(opened) == 1
+    span = opened[0]
+    assert span["span_type"] == "LLM", "span left UNKNOWN renders as an anonymous box"
+    # The prompt and the reply are the point — attributes alone leave the trace
+    # UI blank, which is what "no logs for the agent_sdk run" looked like.
+    assert span["inputs"]["prompt"] == "say ok"
+    assert span["outputs"] == {"answer": "OK"}
+    assert span["attributes"]["model"]
+    assert span["attrs"]["total_cost_usd"] == 0.14
+    assert span["attrs"]["input_tokens"] == 2
+
+
+async def test_a_retried_agent_sdk_call_records_both_attempts(
+    monkeypatch: Any,
+) -> None:
+    """A transient empty reply should be visible, not swallowed by the retry.
+
+    One call in fifty returns no content and the next identical call succeeds.
+    If the retry shared a span the record would show only a slow success, hiding
+    the flakiness that aborted a whole cycle before it was handled."""
+    import contextlib
+
+    from convfinqa.evalloop import sdk
+    from convfinqa.tracking import tracing
+
+    class Ping(BaseModel):
+        answer: str
+
+    opened: list[dict[str, Any]] = []
+
+    class _Handle:
+        def __init__(self, rec: dict[str, Any]) -> None:
+            self.rec = rec
+
+        def set(self, **kw: Any) -> None:
+            self.rec.setdefault("attrs", {}).update(kw)
+
+        def inputs(self, v: Any) -> None:
+            pass
+
+        def outputs(self, v: Any) -> None:
+            pass
+
+    @contextlib.contextmanager
+    def fake_span(name: str, **kw: Any) -> Any:
+        rec = {"name": name, **kw}
+        opened.append(rec)
+        yield _Handle(rec)
+
+    monkeypatch.setattr(tracing, "span", fake_span)
+    monkeypatch.setattr(sdk.asyncio, "sleep", lambda _s: asyncio_noop())
+
+    async def asyncio_noop() -> None:
+        return None
+
+    calls = {"n": 0}
+
+    async def flaky(prompt: str, **kw: Any) -> tuple[Any, dict[str, Any]]:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise sdk.TeacherCallError("the SDK returned no content at all")
+        return Ping(answer="OK"), {}
+
+    monkeypatch.setattr(sdk, "_run_structured_once", flaky)
+
+    out, _ = await sdk.run_structured("x", schema=Ping, system_prompt="s")
+    assert out.answer == "OK"
+    assert len(opened) == 2, "the retry reused one span, hiding the failed attempt"
+    assert opened[0]["attributes"]["attempt"] == 1
+    assert "no content" in opened[0]["attrs"]["error"]
+    assert opened[1]["attributes"]["attempt"] == 2

@@ -16,6 +16,14 @@ implementation could not have:
 What it does *not* change is the contract: every call still returns an instance
 of the same pydantic model the pydantic-ai version returned, validated here, so
 callers and artifacts are unchanged.
+
+It does change one thing that has to be paid for by hand: **observability**. The
+pipeline agents are autologged into MLflow because pydantic-ai runs in this
+process; the SDK runs the `claude` CLI as a subprocess, so no autologger can see
+a teacher call and none of it reaches the Traces tab on its own. `run_structured`
+is the one place every Agent SDK call passes through, so the span is opened here
+— prompt, reply, model, turns, tools, tokens and cost — and a second call path
+to the SDK would need the same, or it would record nothing at all.
 """
 
 from __future__ import annotations
@@ -27,6 +35,11 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
+
+# Prompts here can be very large — the writer is handed a whole system prompt,
+# every failure against it, and the attempt ledger. Traces are for reading, so
+# what is recorded is capped; the artifacts hold the full text either way.
+MAX_TRACED_CHARS = 20_000
 
 
 class TeacherCallError(RuntimeError):
@@ -71,21 +84,60 @@ async def run_structured(
     put it on the right MLflow run; the campaign's throughput limit is teacher
     calls, so an unrecorded one is a gap in the only number that constrains it.
     """
+    from convfinqa.llm import LM_TEACHER_MODEL
+    from convfinqa.tracking import tracing
+
     last: Exception | None = None
-    for attempt in range(max(1, attempts)):
-        try:
-            return await _run_structured_once(
-                prompt,
-                schema=schema,
-                system_prompt=system_prompt,
-                mcp_servers=mcp_servers,
-                allowed_tools=allowed_tools,
-                max_turns=max_turns,
+    n = max(1, attempts)
+    for attempt in range(n):
+        # One span per attempt, so a transient empty reply is visible as a
+        # failed call followed by a successful one rather than disappearing
+        # into a retry loop that reports only its final result.
+        with tracing.span(
+            f"agent_sdk {schema.__name__}",
+            span_type="LLM",
+            attributes={
+                "model": LM_TEACHER_MODEL,
+                "schema": schema.__name__,
+                "attempt": attempt + 1,
+                "max_attempts": n,
+                "max_turns": max_turns,
+                "allowed_tools": list(allowed_tools or []),
+            },
+        ) as span:
+            span.inputs(
+                {
+                    "system_prompt": system_prompt[:MAX_TRACED_CHARS],
+                    "prompt": prompt[:MAX_TRACED_CHARS],
+                }
             )
-        except TeacherCallError as exc:
-            last = exc
-            if attempt + 1 < max(1, attempts):
-                await asyncio.sleep(2.0 * (attempt + 1))
+            try:
+                parsed, usage = await _run_structured_once(
+                    prompt,
+                    schema=schema,
+                    system_prompt=system_prompt,
+                    mcp_servers=mcp_servers,
+                    allowed_tools=allowed_tools,
+                    max_turns=max_turns,
+                )
+            except TeacherCallError as exc:
+                span.set(error=repr(exc))
+                last = exc
+                if attempt + 1 < n:
+                    await asyncio.sleep(2.0 * (attempt + 1))
+                continue
+            span.outputs(parsed.model_dump())
+            tokens = usage.get("usage") or {}
+            span.set(
+                duration_ms=usage.get("duration_ms"),
+                num_turns=usage.get("num_turns"),
+                tools_used=usage.get("tools_used"),
+                total_cost_usd=usage.get("total_cost_usd"),
+                input_tokens=tokens.get("input_tokens"),
+                output_tokens=tokens.get("output_tokens"),
+                cache_read_input_tokens=tokens.get("cache_read_input_tokens"),
+            )
+            return parsed, usage
     raise last if last else TeacherCallError("no attempt was made")
 
 
