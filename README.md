@@ -309,6 +309,14 @@ vs 81.66% (+8.88pp, p=0.0003), the gain concentrated on program turns
 alongside that figure — a public-dataset contamination risk and a
 model/architecture confound — rather than hiding them.
 
+`run --sdk-model <id>` scores the same `sdk_vN` prompt on a different model as a
+plain scoring pass — no optimisation, no promotion — and `story.sdk_model_comparison`
+pairs it against the reference model on the write-up's model-swap table. Swapping
+claude-sonnet-5 for claude-haiku-4-5-20251001 measured the model's share of the
+confound above: 87.39% vs 90.54% (−3.15pp), still +5.73pp over the optimised
+pipeline — the architecture half stays open, since running the four-agent pipeline
+on a Claude model needs an API endpoint this project deliberately does not use.
+
 ## Demo mode
 
 ```bash
