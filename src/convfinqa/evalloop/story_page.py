@@ -563,6 +563,92 @@ because an average over the two describes neither.</p>
 <tbody>{"".join(rows)}</tbody></table></div>"""
 
 
+def _model_swap(comparison: dict[str, Any] | None) -> str:
+    """The sdk champion on each model it was scored on, paired against the reference.
+
+    The cross-runtime comparison changed model and architecture in one step and
+    could not separate them. This block is the half that *can* be measured
+    without an API endpoint: the same prompt, the same tools, the same split,
+    the same scoring, and only the model swapped — so a delta here is the
+    model's alone. It renders only once a second model has been scored; a page
+    with one model has nothing to compare.
+    """
+    comparison = comparison or {}
+    models = comparison.get("models") or []
+    if len(models) < 2:
+        return ""
+    reference = comparison.get("reference_model") or ""
+    pairs = {p.get("candidate_model"): p for p in comparison.get("pairs") or []}
+    rows = []
+    for arm in models:
+        model = str(arm.get("model") or "")
+        by_type = arm.get("by_turn_type") or {}
+        cost = arm.get("cost")
+        wall = arm.get("wall")
+        is_ref = model == reference
+        pair = pairs.get(model) or {}
+        if is_ref:
+            delta_cell = (
+                '<td class="num">reference</td><td class="num">—</td><td>—</td>'
+            )
+        elif pair.get("delta_pp") is None:
+            delta_cell = (
+                '<td class="num">—</td><td class="num">—</td>'
+                '<td><span class="pill no">not measured</span></td>'
+            )
+        else:
+            d = float(pair["delta_pp"])
+            p = pair.get("p_value")
+            ci = pair.get("ci") or [None, None]
+            sig = pair.get("significant")
+            cls = "good" if d > 0 else ("bad" if d < 0 else "")
+            direction = "better" if d > 0 else "worse"
+            verdict = (
+                f'<span class="pill {"ok" if d > 0 else "no"}">significantly {direction}</span>'
+                if sig
+                else '<span class="pill no">no significant difference</span>'
+            )
+            delta_cell = (
+                f'<td class="num {cls}">{d:+.2f}pp<br><span class="sub">CI [{_pp(ci[0])}, {_pp(ci[1])}]</span></td>'
+                f'<td class="num">{"—" if p is None else f"{float(p):.3g}"}<br>'
+                f'<span class="sub">{pair.get("fixed")}&thinsp;/&thinsp;{pair.get("broken")} flips</span></td>'
+                f"<td>{verdict}</td>"
+            )
+        rows.append(
+            f'<tr><td><span class="mono">{_e(model)}</span>'
+            f'<br><span class="sub">{_e(arm.get("run_name") or "")}</span></td>'
+            f'<td class="num"><strong>{_pct(arm.get("accuracy"))}</strong></td>'
+            f'<td class="num">{_pct(by_type.get("number"))}</td>'
+            f'<td class="num">{_pct(by_type.get("program"))}</td>'
+            f'<td class="num">{_pct(arm.get("program_accuracy"))}</td>'
+            f'<td class="num">{"—" if cost is None else f"${float(cost):.2f}"}</td>'
+            f'<td class="num">{"—" if wall is None else f"{float(wall) / 60:.0f} min"}</td>'
+            f"{delta_cell}</tr>"
+        )
+    version = comparison.get("version") or "the sdk champion"
+    return f"""<h2>The model-swap check: one prompt, two models</h2>
+<p class="sub">The same <span class="mono">{_e(version)}</span> prompt, the same six
+calculator tools, the same {len(models)} runs' worth of gate split, the same
+scoring — only the model differs. This is a scoring pass, not an experiment:
+no prompt was optimised for the second model, nothing was promoted, and the
+paired verdict below is the gate's own test (cluster-corrected McNemar,
+cluster bootstrap CI) read against the reference model's run, with the
+one-sided p taken in the direction of the observed delta — the gate only
+ever looks towards improvement, and a scoring pass has no such bias.</p>
+<div class="scroll"><table>
+<thead><tr><th>model</th><th class="num">accuracy</th><th class="num">number turns</th>
+<th class="num">program turns</th><th class="num">program acc.</th><th class="num">cost</th>
+<th class="num">wall</th><th class="num">delta vs reference</th>
+<th class="num">clustered p (direction of delta)</th><th>verdict</th></tr></thead>
+<tbody>{"".join(rows)}</tbody></table></div>
+<div class="note"><strong>What this does and does not settle.</strong>
+<p>A gap between the two models on the same prompt is the model's contribution
+at this prompt — the prompt was distilled from four DeepSeek agents and then
+scored on both models with no further optimisation, so neither model's figure
+is its ceiling. It still leaves the cross-runtime confound half-open: the
+pipeline was never run on either of these models.</p></div>"""
+
+
 def _sdk_experiment(exp: dict[str, Any]) -> str:
     """One SDK experiment: like `_experiment`, with the class and its edits."""
     promoted = exp.get("promoted")
@@ -765,6 +851,8 @@ the same split the pipeline campaigns gate on</div></div>
 {verdict_html}
 
 {_turn_type_verdict(gate)}
+
+{_model_swap(data.get("sdk_model_comparison"))}
 
 <h2>What is different, and what is not</h2>
 {contamination_note}

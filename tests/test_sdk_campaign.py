@@ -1089,3 +1089,223 @@ def test_arm_carries_the_turn_type_split_and_absence_stays_none() -> None:
     arm = story._arm(record)
     assert arm["by_turn_type"] == {"number": 0.95, "program": 0.88}
     assert story._arm(None)["by_turn_type"] is None
+
+
+# ── The model swap: one prompt, several models ───────────────────────────────
+
+
+def test_sdk_model_slug_keeps_family_and_version_only() -> None:
+    from convfinqa import llm
+
+    assert llm.sdk_model_slug("claude-sonnet-5") == "sonnet-5"
+    assert llm.sdk_model_slug("claude-haiku-4-5-20251001") == "haiku-4-5"
+    assert llm.sdk_model_slug("claude-opus-5") == "opus-5"
+
+
+def test_prior_sdk_model_reads_the_slug_and_accepts_a_pre_slug_name() -> None:
+    from convfinqa.evalloop import runner
+
+    assert (
+        runner.prior_sdk_model("sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv")
+        is None
+    )
+    assert (
+        runner.prior_sdk_model(
+            "sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_090517.csv"
+        )
+        == "haiku-4-5"
+    )
+
+
+def test_resume_refuses_a_different_model(tmp_path: Path) -> None:
+    """A pass is one model's evidence; stitching two models would be neither's."""
+    import pandas as pd
+
+    from convfinqa.evalloop import runner
+
+    prior = pd.DataFrame(
+        {
+            "report_id": ["r1"],
+            "split": ["test"],
+            "model_version_id": ["sdk_v1"],
+            "runtime": ["agent_sdk"],
+        }
+    )
+    path = tmp_path / "sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_090517.csv"
+    kwargs = dict(
+        split="test",
+        version="sdk_v1",
+        runtime="agent_sdk",
+        report_ids=["r1"],
+        train_seed=None,
+    )
+    with pytest.raises(ValueError, match="ran model 'haiku-4-5'"):
+        runner.check_resume(prior, path, sdk_model_slug="sonnet-5", **kwargs)
+    runner.check_resume(prior, path, sdk_model_slug="haiku-4-5", **kwargs)
+    # A pre-slug name ran the default model and is accepted as any reference.
+    old = tmp_path / "sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv"
+    runner.check_resume(prior, old, sdk_model_slug="sonnet-5", **kwargs)
+
+
+def test_sdk_model_comparison_groups_by_model_with_the_reference_first() -> None:
+    from convfinqa.evalloop import story
+
+    sonnet = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-1", "sdk_v1", "agent_sdk", 2, accuracy=0.9
+    )
+    sonnet["params"]["sdk_model"] = "claude-sonnet-5"
+    haiku = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-1",
+        "sdk_v1",
+        "agent_sdk",
+        3,
+        accuracy=0.8,
+    )
+    haiku["params"]["sdk_model"] = "claude-haiku-4-5-20251001"
+    older_haiku = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-0",
+        "sdk_v1",
+        "agent_sdk",
+        1,
+        accuracy=0.5,
+    )
+    older_haiku["params"]["sdk_model"] = "claude-haiku-4-5-20251001"
+    other_prompt = _eval("sdk-evalloop-test100-sdk_v2·s2-1", "sdk_v2", "agent_sdk", 4)
+    other_prompt["params"]["sdk_model"] = "claude-haiku-4-5-20251001"
+    pre_slug = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-0", "sdk_v1", "agent_sdk", 0, accuracy=0.7
+    )
+    pre_slug["params"].pop("sdk_model", None)
+
+    out = story.sdk_model_comparison(
+        [haiku, older_haiku, sonnet, other_prompt, pre_slug],
+        sdk_champion="sdk_v1",
+        reference_model="claude-sonnet-5",
+        read_csvs=False,
+    )
+    assert out["version"] == "sdk_v1" and out["reference_model"] == "claude-sonnet-5"
+    assert [m["model"] for m in out["models"]] == [
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001",
+    ]
+    # The latest run per model, not the best; a run without the param is the
+    # reference model's and loses to the later reference run.
+    assert out["models"][0]["accuracy"] == 0.9
+    assert out["models"][1]["accuracy"] == 0.8
+    (pair,) = out["pairs"]
+    assert pair["candidate_model"] == "claude-haiku-4-5-20251001"
+    assert pair["baseline_run"] == "sdk-evalloop-test100-sdk_v1·s1-1"
+    # No CSV was read, so no statistic is a number.
+    assert (
+        pair["delta_pp"] is None
+        and pair["p_value"] is None
+        and pair["ci"] == [None, None]
+    )
+
+    empty = story.sdk_model_comparison([], sdk_champion="sdk_v1", reference_model="x")
+    assert empty["models"] == [] and empty["pairs"] == []
+
+
+def test_runtime_comparison_keeps_the_sdk_arm_on_the_reference_model() -> None:
+    """A model-swap pass must not silently become the arm the gate was run on."""
+    from convfinqa.evalloop import story
+
+    sonnet = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-1", "sdk_v1", "agent_sdk", 2, accuracy=0.9
+    )
+    sonnet["params"]["sdk_model"] = "claude-sonnet-5"
+    haiku = _eval(
+        "sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-1",
+        "sdk_v1",
+        "agent_sdk",
+        9,
+        accuracy=0.8,
+    )
+    haiku["params"]["sdk_model"] = "claude-haiku-4-5-20251001"
+    out = story.runtime_comparison(
+        [sonnet, haiku],
+        [],
+        champion="v8",
+        sdk_champion="sdk_v1",
+        reference_model="claude-sonnet-5",
+    )
+    assert out["agent_sdk"]["accuracy"] == 0.9
+    assert out["agent_sdk"]["model"] == "claude-sonnet-5"
+
+
+def test_sdk_page_shows_the_model_swap_only_with_two_models() -> None:
+    from convfinqa.evalloop.story_page import render_sdk_page
+
+    one = {
+        "version": "sdk_v1",
+        "reference_model": "claude-sonnet-5",
+        "models": [{"model": "claude-sonnet-5", "accuracy": 0.9}],
+        "pairs": [],
+    }
+    assert "model-swap" not in render_sdk_page(_story(sdk_model_comparison=one)).lower()
+    two = {
+        **one,
+        "models": [
+            {"model": "claude-sonnet-5", "accuracy": 0.9, "run_name": "a"},
+            {"model": "claude-haiku-4-5-20251001", "accuracy": 0.8, "run_name": "b"},
+        ],
+        "pairs": [
+            {
+                "baseline_model": "claude-sonnet-5",
+                "candidate_model": "claude-haiku-4-5-20251001",
+                "delta_pp": -10.0,
+                "p_value": 0.001,
+                "ci": [-0.15, -0.05],
+                "fixed": 3,
+                "broken": 38,
+                "significant": True,
+            }
+        ],
+    }
+    html = render_sdk_page(_story(sdk_model_comparison=two))
+    assert "model-swap" in html.lower()
+    assert "claude-haiku-4-5-20251001" in html and "-10.00pp" in html
+    assert "significantly worse" in html
+    # A pair without statistics says so instead of printing a zero.
+    unmeasured = {**two, "pairs": []}
+    html = render_sdk_page(_story(sdk_model_comparison=unmeasured))
+    assert "not measured" in html and "+0.00pp" not in html
+
+
+def test_model_pair_p_is_taken_in_the_direction_of_the_delta(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A worse model must read as significantly worse, not as 'no effect'."""
+    import pandas as pd
+
+    from convfinqa.evalloop import runner, story
+
+    monkeypatch.setattr(runner, "PREDICTIONS_DIR", tmp_path)
+    rows = []
+    for r in range(40):
+        for t in range(3):
+            rows.append(
+                {
+                    "report_id": f"r{r}",
+                    "turn_index": t,
+                    "question_id": f"r{r}_q{t}",
+                    "gold_turn_type": "Program",
+                    "split": "test",
+                    "model_version_id": "sdk_v1",
+                }
+            )
+    base = pd.DataFrame(rows)
+    base["correct"] = True
+    cand = base.copy()
+    # The candidate loses one turn in each of 14 different conversations and
+    # gains nothing: clearly worse, and clustered so the z is honest.
+    cand.loc[cand.index[::9][:14], "correct"] = False
+    base.to_csv(tmp_path / "base.csv", index=False)
+    cand.to_csv(tmp_path / "cand.csv", index=False)
+    pair = story._paired_from_csvs("base", "cand")
+    assert pair["delta_pp"] < 0
+    assert pair["cluster_z"] < 0
+    assert pair["p_value"] < 0.05 and pair["significant"] is True
+    # The other way round it is the same evidence read as an improvement.
+    back = story._paired_from_csvs("cand", "base")
+    assert back["delta_pp"] == -pair["delta_pp"] and back["p_value"] == pair["p_value"]

@@ -152,6 +152,45 @@ export interface RuntimeComparison {
   gate: RuntimeGate | null;
 }
 
+/** The sdk champion scored on one model — an arm plus the model it ran on. */
+export interface SdkModelArm extends RuntimeArm {
+  model: string | null;
+  n_scored?: number | null;
+}
+
+/**
+ * One model's paired verdict against the reference model's run of the same
+ * prompt: the gate's own test, computed from the two committed CSVs. Every
+ * statistic is null when either CSV is missing or incomplete.
+ */
+export interface SdkModelPair {
+  baseline_model: string;
+  candidate_model: string;
+  baseline_run: string | null;
+  candidate_run: string | null;
+  n_compared: number | null;
+  delta_pp: number | null;
+  cluster_z?: number | null;
+  /** One-sided, in the direction of `delta_pp` — not the gate's towards-better p. */
+  p_value: number | null;
+  ci: Array<number | null> | null;
+  fixed: number | null;
+  broken: number | null;
+  significant: boolean | null;
+  by_turn_type?: Partial<Record<'number' | 'program', RuntimeSlice>> | null;
+}
+
+/**
+ * One prompt, several models: the half of the cross-runtime confound that can
+ * be measured. A scoring pass, not an experiment — nothing here promotes.
+ */
+export interface SdkModelComparison {
+  version: string | null;
+  reference_model: string;
+  models: SdkModelArm[];
+  pairs: SdkModelPair[];
+}
+
 export interface ChampionPoint {
   version: string;
   at: number | null;
@@ -183,6 +222,7 @@ export interface CampaignsResponse {
    */
   sdk_champion?: string | null;
   runtime_comparison?: RuntimeComparison | null;
+  sdk_model_comparison?: SdkModelComparison | null;
   sdk_campaigns?: CampaignSummary[];
   sdk_experiments?: CampaignExperiment[];
 }

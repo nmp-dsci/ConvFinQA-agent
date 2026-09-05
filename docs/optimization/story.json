@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-05T15:55:04+00:00",
+ "generated_at": "2026-09-05T23:21:15+00:00",
  "champion": "v8",
  "sdk_champion": "sdk_v1",
  "champion_accuracy": 0.816619,
@@ -447,12 +447,12 @@
      },
      "panel_candidate": {
       "triage": 0.974212,
-      "preprocess": 0.875536,
-      "retriever": 0.785693,
-      "calculator": 0.881857
+      "preprocess": 0.84141,
+      "retriever": 0.778031,
+      "calculator": 0.831224
      },
      "accuracy_baseline": 0.816619,
-     "accuracy_candidate": 0.905444
+     "accuracy_candidate": 0.873926
     },
     {
      "label": "s01-e02",
@@ -483,9 +483,9 @@
      "diff": "",
      "panel_baseline": {
       "triage": 0.974212,
-      "preprocess": 0.875536,
-      "retriever": 0.785693,
-      "calculator": 0.881857
+      "preprocess": 0.84141,
+      "retriever": 0.778031,
+      "calculator": 0.831224
      },
      "panel_candidate": {
       "triage": 0.974212,
@@ -493,7 +493,7 @@
       "retriever": 0.776753,
       "calculator": 0.843882
      },
-     "accuracy_baseline": 0.905444,
+     "accuracy_baseline": 0.873926,
      "accuracy_candidate": 0.876791
     }
    ]
@@ -515,7 +515,9 @@
     "calculator": 0.751055
    },
    "cost": null,
-   "wall": 343.55
+   "wall": 343.55,
+   "program_accuracy": 0.392405,
+   "model": null
   },
   "agent_sdk": {
    "version": "sdk_v1",
@@ -532,7 +534,9 @@
     "calculator": 0.881857
    },
    "cost": 27.624373,
-   "wall": 786.8
+   "wall": 786.8,
+   "program_accuracy": 0.409283,
+   "model": "claude-sonnet-5"
   },
   "gate": {
    "delta_pp": 8.8825,
@@ -573,5 +577,96 @@
     }
    }
   }
+ },
+ "sdk_model_comparison": {
+  "version": "sdk_v1",
+  "reference_model": "claude-sonnet-5",
+  "models": [
+   {
+    "version": "sdk_v1",
+    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "accuracy": 0.905444,
+    "by_turn_type": {
+     "number": 0.954955,
+     "program": 0.882353
+    },
+    "panel": {
+     "triage": 0.974212,
+     "preprocess": 0.875536,
+     "retriever": 0.785693,
+     "calculator": 0.881857
+    },
+    "cost": 27.624373,
+    "wall": 786.8,
+    "program_accuracy": 0.409283,
+    "model": "claude-sonnet-5",
+    "n_scored": null
+   },
+   {
+    "version": "sdk_v1",
+    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
+    "accuracy": 0.873926,
+    "by_turn_type": {
+     "number": 0.963964,
+     "program": 0.831933
+    },
+    "panel": {
+     "triage": 0.974212,
+     "preprocess": 0.84141,
+     "retriever": 0.778031,
+     "calculator": 0.831224
+    },
+    "cost": 17.138659,
+    "wall": 882.31,
+    "program_accuracy": 0.388186,
+    "model": "claude-haiku-4-5-20251001",
+    "n_scored": 349
+   }
+  ],
+  "pairs": [
+   {
+    "baseline_model": "claude-sonnet-5",
+    "candidate_model": "claude-haiku-4-5-20251001",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
+    "n_compared": 349,
+    "delta_pp": -3.1519,
+    "p_value": 0.050525,
+    "ci": [
+     -0.069401,
+     0.00295
+    ],
+    "fixed": 7,
+    "broken": 18,
+    "significant": false,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.963964,
+      "delta_pp": 0.9009,
+      "fixed": 3,
+      "broken": 2,
+      "n_flip_clusters": 4,
+      "cluster_z": 0.378,
+      "cluster_p_one_sided": 0.352728,
+      "mcnemar_p_one_sided": 0.5
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.831933,
+      "delta_pp": -5.042,
+      "fixed": 4,
+      "broken": 16,
+      "n_flip_clusters": 15,
+      "cluster_z": -2.1213,
+      "cluster_p_one_sided": 0.983053,
+      "mcnemar_p_one_sided": 0.99871159
+     }
+    },
+    "cluster_z": -1.6398
+   }
+  ]
  }
 }

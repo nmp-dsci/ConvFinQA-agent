@@ -142,18 +142,49 @@ def pipeline_conversation_fn(agents: dict[str, Any]) -> ConversationFn:
     return run
 
 
-def sdk_conversation_fn(system_prompt: str, version: str) -> ConversationFn:
-    """`backends.agent_sdk.run_conversation` with the session prompt bound."""
+def sdk_conversation_fn(
+    system_prompt: str, version: str, model: str | None = None
+) -> ConversationFn:
+    """`backends.agent_sdk.run_conversation` with the prompt and model bound.
+
+    `model` is the one thing a model-swap pass changes: the prompt, the tools,
+    the split and the scoring are identical, so two passes that differ only
+    here are a paired comparison of the models.
+    """
     from convfinqa.backends import agent_sdk
 
     async def run(
         report_id: str, questions: list[str], **kw: Any
     ) -> tuple[list[str], list[str]]:
         return await agent_sdk.run_conversation(
-            report_id, questions, system_prompt=system_prompt, version=version, **kw
+            report_id,
+            questions,
+            system_prompt=system_prompt,
+            version=version,
+            model=model,
+            **kw,
         )
 
     return run
+
+
+def prior_sdk_model(path: Path | str) -> str | None:
+    """The model slug an sdk run name carries, or None for a pre-slug name.
+
+    `sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_101500` → `haiku-4-5`.
+    A name from before the slug existed (`…·s1-20260905_174627`) returns None:
+    those runs all ran the default model, and their MLflow `sdk_model` param
+    is the record.
+    """
+    stem = Path(path).stem
+    if "·" not in stem:
+        return None
+    tail = stem.rsplit("·", 1)[1]  # s1-haiku-4-5-20260906_101500
+    parts = tail.split("-")
+    if len(parts) < 3:
+        return None
+    middle = parts[1:-1]
+    return "-".join(middle) if middle else None
 
 
 async def _run_conversations(
@@ -338,6 +369,7 @@ def check_resume(
     runtime: str,
     report_ids: list[str],
     train_seed: int | None,
+    sdk_model_slug: str | None = None,
 ) -> None:
     """Refuse a resume that would silently change the question set.
 
@@ -345,9 +377,20 @@ def check_resume(
     runtime, or a report set the current pass does not cover. `--train-seed`
     draws its own reports, so the check there is that every prior report is in
     *this* draw — a different draw is a different question set, and stitching
-    the two would produce a CSV that is not any split.
+    the two would produce a CSV that is not any split. For the sdk runtime a
+    fifth: a different model, read from the prior run name's slug — reused
+    conversations answered by one model and fresh ones by another would be no
+    model's evidence. A pre-slug name is accepted as the default model.
     """
     name = Path(path).name
+    if sdk_model_slug is not None:
+        was_model = prior_sdk_model(path)
+        if was_model is not None and was_model != sdk_model_slug:
+            raise ValueError(
+                f"--resume-from {name} ran model {was_model!r}; this pass is "
+                f"{sdk_model_slug!r}. A pass is one model's evidence; resume "
+                "with the same --sdk-model or start a fresh pass."
+            )
     prior_splits = sorted({str(v) for v in prior["split"].dropna()})
     if prior_splits != [split]:
         raise ValueError(
@@ -434,8 +477,16 @@ async def run_split(
     label: str | None = None,
     runtime: str = "pipeline",
     resume_from: str | Path | None = None,
+    sdk_model: str | None = None,
 ) -> dict[str, Any]:
     """Run one split × version pass; return a summary with the CSV and run id.
+
+    `sdk_model` pins the model the sdk runtime runs on for this pass (default
+    `llm.sdk_model_name()`), so the same prompt can be scored on two models
+    with nothing else changed. The model's slug goes into the run name and the
+    CSV name, and the full id is the `sdk_model` param and tag on the run. It
+    is refused on the pipeline runtime, whose four agents take their model
+    from `llm.py` and not from a pass.
 
     `train_seed` replaces the manifest's train list with a fresh stratified draw
     from ``pool − gate`` — resampling train every cycle is what stops the teacher
@@ -496,6 +547,17 @@ async def run_split(
             f"version {version!r} does not belong to runtime {runtime!r}: "
             "sdk_vN prompts run under --runtime agent_sdk, vN bundles under pipeline"
         )
+    if sdk_model is not None and runtime != "agent_sdk":
+        raise ValueError(
+            f"--sdk-model {sdk_model!r} applies to --runtime agent_sdk only: the "
+            "pipeline's agents take their model from llm.py, not from a pass"
+        )
+    model_slug: str | None = None
+    if runtime == "agent_sdk":
+        from convfinqa.llm import sdk_model_name, sdk_model_slug
+
+        sdk_model = sdk_model or sdk_model_name()
+        model_slug = sdk_model_slug(sdk_model)
     examples = examples_for(report_ids)
     n_questions = sum(len(ex.questions) for ex in examples)
 
@@ -510,6 +572,7 @@ async def run_split(
             runtime=runtime,
             report_ids=report_ids,
             train_seed=train_seed,
+            sdk_model_slug=model_slug,
         )
         reused = reusable_conversations(prior, examples)
     to_run = [ex for ex in examples if str(ex.report_id) not in reused]
@@ -518,23 +581,28 @@ async def run_split(
     from convfinqa.tracking import prompt_ledger
 
     runtime_params: dict[str, Any] = {"runtime": runtime}
+    runtime_tags: dict[str, str] = {}
     if runtime == "agent_sdk":
         from convfinqa.config import settings
-        from convfinqa.llm import sdk_model_name
 
         system_prompt = prompts_pkg.load_sdk(version)
         composition = prompt_ledger.sdk_composition_string(
             prompt_ledger.ensure_sdk(version)  # register the prompt hash first
         )
-        run_conversation = sdk_conversation_fn(system_prompt, version)
+        run_conversation = sdk_conversation_fn(system_prompt, version, sdk_model)
         runtime_params.update(
             {
-                "sdk_model": sdk_model_name(),
+                "sdk_model": sdk_model,
                 "billing": settings.sdk_billing,
                 "max_turns": settings.sdk_max_turns,
                 "sdk_total_tokens_limit": settings.sdk_total_tokens_limit,
             }
         )
+        # A tag as well as a param: the model is a search key (every run of
+        # one model, across versions), and MLflow's run search filters on tags.
+        runtime_tags["sdk_model"] = str(sdk_model)
+        # The slug sits between the composition and the stamp, so a listing
+        # sorted by name groups a prompt's runs and reads the model off each.
         prefix = "sdk-evalloop"
     else:
         from convfinqa.backends.pydantic import make_agents
@@ -551,7 +619,8 @@ async def run_split(
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = (
         f"{prefix}-{split}{len(report_ids)}-{version}"
-        f"·{composition.replace('.', '')}-{stamp}"
+        f"·{composition.replace('.', '')}"
+        f"{'-' + model_slug if model_slug else ''}-{stamp}"
     )
 
     print(  # noqa: T201
@@ -574,6 +643,7 @@ async def run_split(
         "run_name": run_name,
         "environment": environment,
         "runtime": runtime,
+        **runtime_tags,
     }
 
     with mlflow_log.run(
@@ -606,6 +676,7 @@ async def run_split(
             "environment": environment,
             "loop": "evalloop",
             "runtime": runtime,
+            **runtime_tags,
             **({"campaign": campaign} if campaign else {}),
         },
     ) as rec:

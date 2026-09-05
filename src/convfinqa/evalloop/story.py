@@ -244,6 +244,9 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
                 eval_records, champion=champion, sdk_champion=sdk_champion
             ),
         ),
+        "sdk_model_comparison": sdk_model_comparison(
+            eval_records, sdk_champion=sdk_champion
+        ),
     }
 
 
@@ -263,6 +266,10 @@ _ARM_KEYS = (
     # second number in the same place. Stories built before this key carry it as
     # absent, and the serving route derives it from the committed CSV.
     "program_accuracy",
+    # The sdk arm's model, from the run's `sdk_model` param. None on the
+    # pipeline arm, whose four agents' model is fixed in llm.py and not a
+    # property of a pass.
+    "model",
 )
 
 
@@ -290,7 +297,27 @@ def _arm(record: dict[str, Any] | None) -> dict[str, Any]:
         "cost": cost,
         "wall": metrics.get("wall_seconds"),
         "program_accuracy": metrics.get("program_accuracy"),
+        "model": params.get("sdk_model") or None,
     }
+
+
+def _sdk_model_of(record: dict[str, Any], reference_model: str) -> str:
+    """The model an sdk run ran on. Pre-slug runs logged the param too; a run
+    with neither ran the default of its day, which is the reference."""
+    return str((record.get("params") or {}).get("sdk_model") or reference_model)
+
+
+def sdk_reference_model() -> str:
+    """The model the sdk arm is *compared* on: the runtime's default.
+
+    The cross-runtime gate was run on this model, so the arm card and the
+    verdict must keep reading its run even after other models have been scored
+    on the same prompt — a model-swap pass is an extra column beside the
+    comparison, never a silent replacement of the arm.
+    """
+    from convfinqa.llm import sdk_model_name
+
+    return sdk_model_name()
 
 
 TURN_TYPES = ("Number", "Program")
@@ -391,6 +418,7 @@ def runtime_comparison(
     champion: str | None,
     sdk_champion: str | None,
     by_turn_type: dict[str, Any] | None = None,
+    reference_model: str | None = None,
 ) -> dict[str, Any]:
     """The two arms on the gate split, side by side, and the gate between them.
 
@@ -398,11 +426,15 @@ def runtime_comparison(
     ``start_time``, ``params``, ``metrics``); `sdk_gate_rows` are gates-ledger
     rows with ``runtime == "agent_sdk"``. The pipeline arm is the champion's
     latest test100 run, the SDK arm the latest ``sdk-evalloop-test100-*`` run
-    (its `sdk_champion` if one exists, else whichever ran last), and the gate
-    is the latest SDK gate row whose baseline is the pipeline champion — the
-    cross-runtime verdict. Every field is None until the corresponding run
-    exists; the page must not read absence as zero.
+    (its `sdk_champion` if one exists, else whichever ran last) **on the
+    reference model** — `reference_model`, default `llm.sdk_model_name()` —
+    and the gate is the latest SDK gate row whose baseline is the pipeline
+    champion — the cross-runtime verdict. Runs of the same prompt on other
+    models are reported by `sdk_model_comparison`, not here: a model swap must
+    not move the arm the gate row was measured on. Every field is None until
+    the corresponding run exists; the page must not read absence as zero.
     """
+    reference_model = reference_model or sdk_reference_model()
     tests = [
         r
         for r in eval_records
@@ -420,6 +452,7 @@ def runtime_comparison(
         for r in tests
         if (r.get("params") or {}).get("runtime") == "agent_sdk"
         and str(r.get("run_name") or "").startswith("sdk-evalloop-test100-")
+        and _sdk_model_of(r, reference_model) == reference_model
     ]
     if sdk_champion:
         preferred = [
@@ -463,6 +496,125 @@ def runtime_comparison(
         "pipeline": _arm(_latest(pipeline_runs)),
         "agent_sdk": _arm(_latest(sdk_runs)),
         "gate": gate,
+    }
+
+
+def sdk_model_comparison(
+    eval_records: list[dict[str, Any]],
+    *,
+    sdk_champion: str | None,
+    reference_model: str | None = None,
+    read_csvs: bool = True,
+) -> dict[str, Any]:
+    """One prompt, several models: the sdk champion scored on each, paired.
+
+    A model-swap pass keeps the prompt, the tools, the split and the scoring and
+    changes the model, so two such passes are a paired comparison of the models
+    alone — the confound the cross-runtime comparison cannot separate. For each
+    model that has a ``sdk-evalloop-test100-`` run of `sdk_champion` the latest
+    run is one row of ``models`` (the reference model first, then by accuracy);
+    ``pairs`` holds each other model's paired verdict against the reference
+    model's run — the gate's cluster-corrected McNemar and cluster bootstrap
+    CI, computed from the two committed CSVs so it reproduces on any clone, with
+    the one-sided p taken in the direction of the observed delta (see
+    `_paired_from_csvs`: the gate's own p only looks towards improvement). Nothing here promotes and nothing is written to
+    the gates ledger: a scoring pass is a measurement, not an experiment.
+
+    ``models`` is empty until a run exists, and a pair whose CSV is missing or
+    incomplete is reported with its statistics None rather than dropped, so the
+    page can say what was not measured.
+    """
+    reference_model = reference_model or sdk_reference_model()
+    runs = [
+        r
+        for r in eval_records
+        if (r.get("params") or {}).get("split") == "test"
+        and (r.get("params") or {}).get("runtime") == "agent_sdk"
+        and str(r.get("run_name") or "").startswith("sdk-evalloop-test100-")
+        and (
+            sdk_champion is None
+            or (r.get("params") or {}).get("prompts_version") == sdk_champion
+        )
+    ]
+    by_model: dict[str, list[dict[str, Any]]] = {}
+    for r in runs:
+        by_model.setdefault(_sdk_model_of(r, reference_model), []).append(r)
+    arms: list[dict[str, Any]] = []
+    for model, group in by_model.items():
+        latest = _latest(group)
+        arm = _arm(latest)
+        arm["model"] = model
+        arm["n_scored"] = _int((latest or {}).get("metrics", {}).get("n_scored"))
+        arms.append(arm)
+    arms.sort(
+        key=lambda a: (a["model"] != reference_model, -(a.get("accuracy") or 0.0))
+    )
+    reference = next((a for a in arms if a["model"] == reference_model), None)
+    pairs: list[dict[str, Any]] = []
+    for arm in arms:
+        if reference is None or arm is reference:
+            continue
+        pair: dict[str, Any] = {
+            "baseline_model": reference_model,
+            "candidate_model": arm["model"],
+            "baseline_run": reference.get("run_name"),
+            "candidate_run": arm.get("run_name"),
+            "n_compared": None,
+            "delta_pp": None,
+            "p_value": None,
+            "ci": [None, None],
+            "fixed": None,
+            "broken": None,
+            "significant": None,
+            "by_turn_type": None,
+        }
+        if read_csvs and reference.get("run_name") and arm.get("run_name"):
+            pair.update(_paired_from_csvs(reference["run_name"], arm["run_name"]))
+        pairs.append(pair)
+    return {
+        "version": sdk_champion,
+        "reference_model": reference_model,
+        "models": arms,
+        "pairs": pairs,
+    }
+
+
+def _paired_from_csvs(baseline_run: str, candidate_run: str) -> dict[str, Any]:
+    """The gate's own statistics between two committed run CSVs, or {} when
+    either is missing or incomplete — absence stays absence."""
+    from convfinqa.evalloop.gate import gate_runs
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+
+    base = PREDICTIONS_DIR / f"{baseline_run}.csv"
+    cand = PREDICTIONS_DIR / f"{candidate_run}.csv"
+    if not base.exists() or not cand.exists():
+        return {}
+    try:
+        _, stats = gate_runs(
+            base, cand, baseline_version=baseline_run, candidate_version=candidate_run
+        )
+    except Exception:  # noqa: BLE001 — an incomplete pass is "not measured"
+        return {}
+    # The gate's p is one-sided *towards improvement*, because the gate only
+    # ever promotes. A scoring comparison has no privileged direction: a model
+    # that is worse should read as significantly worse, not as "no effect
+    # towards better". So the p reported here is one-sided in the direction of
+    # the observed delta — Φ(−z) when the candidate is ahead, Φ(z) when behind
+    # — and `significant` is that p against the same α.
+    delta = float(stats["accuracy_delta"])
+    z = float(stats.get("cluster_z") or 0.0)
+    p_towards_better = float(stats["cluster_p_one_sided"])
+    p_directed = p_towards_better if delta >= 0 else 1.0 - p_towards_better
+    return {
+        "n_compared": _int(stats.get("n_compared")),
+        "delta_pp": round(delta * 100, 4),
+        "cluster_z": round(z, 4),
+        "p_value": round(p_directed, 6),
+        "ci": [_num(stats.get("delta_ci_lo")), _num(stats.get("delta_ci_hi"))],
+        "fixed": _int(stats.get("fail_to_pass")),
+        "broken": _int(stats.get("pass_to_fail")),
+        "significant": p_directed < float(stats.get("alpha") or 0.05),
+        "by_turn_type": turn_type_gate(base, cand),
     }
 
 
@@ -599,7 +751,7 @@ def with_program_accuracy(
     from convfinqa.tracking.comparator import program_accuracy
 
     out = dict(comparison)
-    for arm in ("pipeline", "agent_sdk"):
+    for arm in [k for k in out if k != "gate"]:
         row = out.get(arm)
         if not isinstance(row, dict):
             continue
@@ -623,6 +775,20 @@ def with_program_accuracy(
     return out
 
 
+def with_model_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """`with_program_accuracy` for the rows of `sdk_model_comparison`."""
+    if not comparison or not comparison.get("models"):
+        return comparison
+    arms = {f"m{i}": row for i, row in enumerate(comparison["models"])}
+    filled = with_program_accuracy({**arms, "gate": None}) or {}
+    return {
+        **comparison,
+        "models": [filled.get(k, row) for k, row in arms.items()],
+    }
+
+
 def render(data: dict[str, Any]) -> str:
     """The published page. Import kept local so `collect` never needs it."""
     from convfinqa.evalloop.story_page import render_page
@@ -638,5 +804,12 @@ def render_sdk(data: dict[str, Any]) -> str:
         data = {
             **data,
             "runtime_comparison": with_program_accuracy(data["runtime_comparison"]),
+        }
+    if data.get("sdk_model_comparison"):
+        data = {
+            **data,
+            "sdk_model_comparison": with_model_program_accuracy(
+                data["sdk_model_comparison"]
+            ),
         }
     return render_sdk_page(data)

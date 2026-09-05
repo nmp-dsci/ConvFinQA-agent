@@ -198,7 +198,24 @@ The invariants, all pinned by tests:
   and metric `n_reused_questions` are logged, and `stage_scores.score_rows` re-scores the
   whole frame so the panel covers reused and fresh rows alike.
 
+- **The model is part of the run's name and record** (2026-09-06). `run --sdk-model <id>`
+  pins the model for one sdk pass; the run name carries its slug between the composition and
+  the stamp (`sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-<stamp>`, `llm.sdk_model_slug`), the
+  full id is the `sdk_model` param **and** tag (a search key), and `--resume-from` refuses a
+  CSV whose name carries a different slug. Runs named before the slug existed ran the default
+  model, which their `sdk_model` param records. **A model swap is a scoring pass, not an
+  experiment**: `story.sdk_model_comparison` reports every model the sdk champion has been
+  scored on and pairs each against the *reference* model (`llm.sdk_model_name()`) with the
+  gate's own test, read from the two committed CSVs; nothing promotes and nothing is written
+  to the gates ledger. `runtime_comparison` pins the sdk arm to the reference model, so a
+  Haiku pass appears as a row in the model-swap table and never becomes the arm the
+  cross-runtime gate was measured on. The page (`docs/optimization/agent-sdk.html`) and
+  `/admin/runtimes` both show the table once a second model exists; `story_check` fails a
+  page that hides it.
+
 ```bash
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-4-5-20251001      # one scoring pass, model swapped, all else equal
 uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \

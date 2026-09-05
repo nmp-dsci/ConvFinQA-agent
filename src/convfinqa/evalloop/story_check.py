@@ -93,6 +93,16 @@ def problems() -> list[str]:
                 "caveat — rebuild with `convfinqa-evalloop story`"
             )
 
+        # A model-swap pass is the one measurement that separates the model from
+        # the architecture, so once the record holds one the page must show it.
+        models = (story.get("sdk_model_comparison") or {}).get("models") or []
+        if len(models) > 1 and "model-swap" not in lowered:
+            out.append(
+                f"{sdk_page.name} does not show the sdk model comparison "
+                f"({len(models)} models in story.json) — rebuild with "
+                "`convfinqa-evalloop story`"
+            )
+
     published = DOCS_DIR / "story.json"
     if published.exists() and published.read_text() != STORY_PATH.read_text():
         out.append(

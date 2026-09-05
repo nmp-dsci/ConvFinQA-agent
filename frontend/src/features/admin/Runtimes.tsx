@@ -21,12 +21,19 @@ import {
   formatPp,
   formatWall,
   isBaselineExperiment,
+  modelRows,
   progression,
   runtimeVerdict,
   sdkCampaign,
   sliceRows,
 } from './runtimeStory';
-import type { ArmDescription, ProgressionPoint, RuntimeVerdict, SliceRow } from './runtimeStory';
+import type {
+  ArmDescription,
+  ModelRow,
+  ProgressionPoint,
+  RuntimeVerdict,
+  SliceRow,
+} from './runtimeStory';
 import { NO_VALUE, formatCount, formatPercent, formatUsd } from '../landing/format';
 
 /**
@@ -252,6 +259,112 @@ export function ArmCard({
           <p className="type-meta mt-2 text-faint">{desc.aliasNote}</p>
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 2b · The model swap: one prompt, several models
+// ---------------------------------------------------------------------------
+
+export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
+  if (!rows.length) {
+    return (
+      <EmptyState>
+        not yet run — the sdk champion has been scored on one model only, so there is nothing to
+        compare
+      </EmptyState>
+    );
+  }
+  return (
+    <div className="min-w-0 overflow-x-auto">
+      <table data-testid="model-swap-table" className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b border-line">
+            {[
+              'model',
+              'accuracy',
+              'number turns',
+              'program turns',
+              'program acc.',
+              'cost',
+              'wall',
+              'delta vs reference',
+              'clustered p (direction of delta)',
+              'verdict',
+            ].map((h) => (
+              <th key={h} className="mono-caps py-1.5 pr-3 font-normal whitespace-nowrap">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.model}
+              data-model={row.shortName}
+              data-effect={row.effect}
+              className="border-b border-line last:border-0"
+            >
+              <td className="py-2 pr-3">
+                <div className="font-mono text-[12px] text-text">{row.shortName}</div>
+                <div className="type-meta break-all text-faint">{row.model}</div>
+              </td>
+              <td className="type-num py-2 pr-3 text-[14px] text-text">
+                {formatPercent(row.accuracy)}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {formatPercent(row.number)}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {formatPercent(row.program)}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {formatPercent(row.programAccuracy)}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">{formatUsd(row.cost)}</td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">{formatWall(row.wall)}</td>
+              <td
+                className={cn(
+                  'type-num py-2 pr-3 text-[12px]',
+                  row.effect === 'better'
+                    ? 'text-good'
+                    : row.effect === 'worse'
+                      ? 'text-bad'
+                      : 'text-muted',
+                )}
+              >
+                {row.isReference ? (
+                  'reference'
+                ) : (
+                  <>
+                    {formatPp(row.deltaPp)}
+                    {row.deltaPp !== null && (
+                      <div className="type-meta text-faint">
+                        CI [{formatPp(row.ciLo)}, {formatPp(row.ciHi)}]
+                      </div>
+                    )}
+                  </>
+                )}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {row.isReference ? NO_VALUE : formatP(row.pValue)}
+                {row.deltaPp !== null && (
+                  <div className="type-meta text-faint">
+                    {formatCount(row.fixed)} / {formatCount(row.broken)} flips
+                  </div>
+                )}
+              </td>
+              <td className="py-2 pr-3">
+                <Verdict ok={row.effect === 'better' ? true : row.effect === 'worse' ? false : null}>
+                  {row.effectLabel}
+                </Verdict>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -745,6 +858,7 @@ export default function Runtimes() {
   const comparison = data?.runtime_comparison ?? null;
   const verdict = runtimeVerdict(comparison, data?.split);
   const rows = sliceRows(comparison?.gate);
+  const swapRows = modelRows(data?.sdk_model_comparison);
   const sdkExperiments = data?.sdk_experiments ?? [];
   const stages = progression(data?.champion_track, comparison, sdkExperiments);
   const campaign = sdkCampaign(data?.sdk_campaigns);
@@ -818,6 +932,22 @@ export default function Runtimes() {
             Both arms have saturated the lookup, so a slice marked <strong>no effect</strong> is
             exactly that: the same accuracy either side, flips in both directions cancelling. The
             entire aggregate gain sits in the program turns.
+          </Caveat>
+        )}
+      </Panel>
+
+      <Panel
+        title="the model swap: one prompt, two models"
+        endpoint="/eval/campaigns"
+        note="The same sdk champion prompt, the same calculator tools, the same gate split and the same scoring — only the model differs. A scoring pass, not an experiment: no prompt was tuned for the second model and nothing was promoted. The p is one-sided in the direction of the observed delta, because unlike the gate this comparison has no preferred direction."
+      >
+        <ModelSwapTable rows={swapRows} />
+        {swapRows.length > 0 && (
+          <Caveat>
+            The delta is the model&rsquo;s contribution <em>at this prompt</em>, which was distilled
+            from four DeepSeek agents and never optimised for either model — so neither figure is
+            that model&rsquo;s ceiling. It answers &ldquo;how much of the SDK arm is the model&rdquo;
+            for the session runtime only; the pipeline was never run on either of these models.
           </Caveat>
         )}
       </Panel>

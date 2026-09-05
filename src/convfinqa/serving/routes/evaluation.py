@@ -333,6 +333,19 @@ def _summary(
     )
 
 
+def _with_model_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Each model row of the sdk model comparison with its program accuracy,
+    derived from its committed CSV the same way the arms' are."""
+    from convfinqa.evalloop.story import with_model_program_accuracy
+
+    try:
+        return with_model_program_accuracy(comparison)
+    except Exception:  # noqa: BLE001 - the record beats a derived figure
+        return comparison
+
+
 def _with_program_accuracy(
     comparison: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
@@ -411,6 +424,9 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         experiments=experiments,
         sdk_champion=data.get("sdk_champion"),
         runtime_comparison=_with_program_accuracy(data.get("runtime_comparison")),
+        sdk_model_comparison=_with_model_program_accuracy(
+            data.get("sdk_model_comparison")
+        ),
         sdk_campaigns=sdk_summaries,
         sdk_experiments=sdk_experiments,
         champion_track=[

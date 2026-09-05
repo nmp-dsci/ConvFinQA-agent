@@ -346,6 +346,27 @@ def sdk_model_name() -> str:
     return settings.sdk_model or LM_SDK_MODEL
 
 
+def sdk_model_slug(model: str | None = None) -> str:
+    """A short, filename-safe name for a model, for run names and CSV names.
+
+    `claude-sonnet-5` → `sonnet-5`, `claude-haiku-4-5-20251001` → `haiku-4-5`.
+    The run name is the one place a reader meets the model before opening the
+    run, so it carries the family and version and drops the vendor prefix and
+    the date snapshot. Runs recorded before this existed have no slug in their
+    name; their model is the `sdk_model` param, which was always logged.
+    """
+    name = (model or sdk_model_name()).strip().lower()
+    for prefix in ("claude-", "anthropic/"):
+        if name.startswith(prefix):
+            name = name[len(prefix) :]
+    parts = name.split("-")
+    # Drop a trailing YYYYMMDD snapshot: it pins the weights, not the family.
+    if len(parts) > 1 and len(parts[-1]) == 8 and parts[-1].isdigit():
+        parts = parts[:-1]
+    slug = "-".join(p for p in parts if p)
+    return "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in slug) or "model"
+
+
 def api_env() -> dict[str, str]:
     """Environment for an Agent SDK child process billed to `ANTHROPIC_API_KEY`.
 

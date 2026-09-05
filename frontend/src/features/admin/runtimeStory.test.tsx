@@ -5,17 +5,20 @@ import {
   PAPER_HUMAN,
   formatP,
   formatWall,
+  modelRows,
+  modelShortName,
   progression,
   runtimeVerdict,
   sliceEffect,
   sliceRows,
 } from './runtimeStory';
-import { ArmCard, ProgressionChart, SliceTable, VerdictBanner } from './Runtimes';
+import { ArmCard, ModelSwapTable, ProgressionChart, SliceTable, VerdictBanner } from './Runtimes';
 import type {
   CampaignExperiment,
   ChampionPoint,
   RuntimeArm,
   RuntimeComparison,
+  SdkModelComparison,
 } from './api';
 
 /**
@@ -395,5 +398,81 @@ describe('formatters keep absence and smallness distinguishable', () => {
     expect(formatWall(786.8)).toBe('13 min');
     expect(formatWall(44)).toBe('44s');
     expect(formatWall(null)).toBe('—');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The model swap: one prompt, two models
+// ---------------------------------------------------------------------------
+
+describe('the model swap', () => {
+  const swap: SdkModelComparison = {
+    version: 'sdk_v1',
+    reference_model: 'claude-sonnet-5',
+    models: [
+      { ...SDK_ARM, model: 'claude-sonnet-5' },
+      {
+        ...SDK_ARM,
+        model: 'claude-haiku-4-5-20251001',
+        run_name: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
+        accuracy: 0.85,
+        by_turn_type: { number: 0.95, program: 0.8 },
+      },
+    ],
+    pairs: [
+      {
+        baseline_model: 'claude-sonnet-5',
+        candidate_model: 'claude-haiku-4-5-20251001',
+        baseline_run: SDK_ARM.run_name,
+        candidate_run: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
+        n_compared: 349,
+        delta_pp: -5.5,
+        p_value: 0.003,
+        ci: [-0.09, -0.02],
+        fixed: 5,
+        broken: 24,
+        significant: true,
+        by_turn_type: null,
+      },
+    ],
+  };
+
+  it('shortens a model id the way the run name does', () => {
+    expect(modelShortName('claude-sonnet-5')).toBe('sonnet-5');
+    expect(modelShortName('claude-haiku-4-5-20251001')).toBe('haiku-4-5');
+  });
+
+  it('puts the reference first and reads the paired verdict off the pair', () => {
+    const rows = modelRows(swap);
+    expect(rows.map((r) => r.shortName)).toEqual(['sonnet-5', 'haiku-4-5']);
+    expect(rows[0].effect).toBe('reference');
+    expect(rows[0].deltaPp).toBeNull();
+    expect(rows[1].effect).toBe('worse');
+    expect(rows[1].deltaPp).toBe(-5.5);
+    expect(rows[1].effectLabel).toMatch(/significantly worse/);
+  });
+
+  it('is empty with one model — a figure is not a comparison', () => {
+    expect(modelRows({ ...swap, models: [swap.models[0]], pairs: [] })).toEqual([]);
+    expect(modelRows(null)).toEqual([]);
+    const html = renderToStaticMarkup(<ModelSwapTable rows={[]} />);
+    expect(html).toMatch(/not yet run/);
+    expect(html).not.toContain('<table');
+  });
+
+  it('marks a pair whose CSV was never read as not measured, not as a zero', () => {
+    const rows = modelRows({ ...swap, pairs: [] });
+    expect(rows[1].effect).toBe('not-measured');
+    const html = renderToStaticMarkup(<ModelSwapTable rows={rows} />);
+    expect(html).toContain('data-effect="not-measured"');
+    expect(html).not.toMatch(/\+0\.00pp/);
+  });
+
+  it('renders one row per model with the model id visible', () => {
+    const html = renderToStaticMarkup(<ModelSwapTable rows={modelRows(swap)} />);
+    expect(html).toContain('data-model="sonnet-5"');
+    expect(html).toContain('data-model="haiku-4-5"');
+    expect(html).toContain('claude-haiku-4-5-20251001');
+    expect(html).toContain('-5.50pp');
   });
 });

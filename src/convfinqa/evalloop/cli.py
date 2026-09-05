@@ -161,6 +161,18 @@ def build_parser() -> argparse.ArgumentParser:
             "--version sdk_vN requires --runtime agent_sdk."
         ),
     )
+    rn.add_argument(
+        "--sdk-model",
+        default=None,
+        metavar="MODEL",
+        help=(
+            "Model for --runtime agent_sdk, e.g. claude-haiku-4-5-20251001 "
+            "(default: SDK_MODEL, else llm.LM_SDK_MODEL). The prompt, tools and "
+            "split stay the same, so two passes differing only here compare the "
+            "models. Its slug goes into the run name; the id is the sdk_model "
+            "param and tag."
+        ),
+    )
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
     gt.add_argument("--baseline-csv", required=True)
@@ -413,6 +425,8 @@ def main() -> None:
         if args.n_reports and args.n_questions:
             ap.error("pass at most one of --n-reports, --n-questions")
         check_runtime(ap, args.runtime, args.version)
+        if args.sdk_model and args.runtime != "agent_sdk":
+            ap.error("--sdk-model applies to --runtime agent_sdk only")
         summary = asyncio.run(
             run_split(
                 args.split,
@@ -426,6 +440,7 @@ def main() -> None:
                 concurrency=args.concurrency,
                 runtime=args.runtime,
                 resume_from=args.resume_from,
+                sdk_model=args.sdk_model,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201

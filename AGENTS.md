@@ -202,8 +202,14 @@ The single-session arm runs the same loop behind `--runtime agent_sdk` with
 # Once: distil the first single-session prompt from the pipeline champion's four
 uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
 
-# Eval one sdk prompt on a split (run name sdk-evalloop-<split><N>-sdk_vN-<stamp>)
+# Eval one sdk prompt on a split (run name sdk-evalloop-<split><N>-sdk_vN·sN-<model slug>-<stamp>)
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk --concurrency 4
+
+# The same prompt on another model: a scoring pass, all else equal, no optimisation.
+# The slug lands in the run name, the id in the `sdk_model` param and tag; the story pairs
+# it against the reference model's run (`sdk_model_comparison`) without touching the arm.
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-4-5-20251001
 
 # Finish a pass the CLI refused part way through (see "Refusals" below)
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \

@@ -315,6 +315,10 @@ class CampaignsResponse(BaseModel):
     # campaigns whose targets are failure classes rather than subagents.
     sdk_champion: str | None = None
     runtime_comparison: dict[str, Any] | None = None
+    # The sdk champion scored on each model it has been run on, paired against
+    # the reference model (`models`, `pairs`). A scoring pass, not an
+    # experiment: nothing in it promotes.
+    sdk_model_comparison: dict[str, Any] | None = None
     sdk_campaigns: list[CampaignSummary] = []
     # The SDK campaigns' experiments, kept in their own list rather than folded
     # into `experiments`: the two arms' rows are not comparable (one names a

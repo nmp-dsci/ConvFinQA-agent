@@ -26,6 +26,7 @@ import type {
   RuntimeComparison,
   RuntimeGate,
   RuntimeSlice,
+  SdkModelComparison,
 } from './api';
 import { NO_VALUE } from '../landing/format';
 import { BASELINES, PAPER } from '../system/paper';
@@ -418,6 +419,97 @@ export function sdkCampaign(
 // ---------------------------------------------------------------------------
 
 /** `786.8` → `13 min`; `44` → `44s`. Wall clock, at the precision it deserves. */
+// ---------------------------------------------------------------------------
+// The model swap: one prompt, several models
+// ---------------------------------------------------------------------------
+
+export type ModelEffect = 'reference' | 'better' | 'worse' | 'no-difference' | 'not-measured';
+
+export interface ModelRow {
+  model: string;
+  /** `haiku-4-5` — the slug the run name carries; what the table leads with. */
+  shortName: string;
+  runName: string | null;
+  accuracy: number | null;
+  number: number | null;
+  program: number | null;
+  programAccuracy: number | null;
+  cost: number | null;
+  wall: number | null;
+  isReference: boolean;
+  deltaPp: number | null;
+  pValue: number | null;
+  ciLo: number | null;
+  ciHi: number | null;
+  fixed: number | null;
+  broken: number | null;
+  effect: ModelEffect;
+  effectLabel: string;
+}
+
+/** `claude-haiku-4-5-20251001` → `haiku-4-5`, the same rule the run name uses. */
+export function modelShortName(model: string): string {
+  const parts = model
+    .toLowerCase()
+    .replace(/^claude-/, '')
+    .split('-')
+    .filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (parts.length > 1 && /^\d{8}$/.test(last)) parts.pop();
+  return parts.join('-') || model;
+}
+
+/**
+ * The rows of the model-swap table: the reference model first, then each other
+ * model with its paired verdict against the reference. Empty until a second
+ * model has been scored — one model is a figure, not a comparison — so the
+ * panel can say so rather than render a one-row table that looks like a result.
+ */
+export function modelRows(comparison: SdkModelComparison | null | undefined): ModelRow[] {
+  const models = comparison?.models ?? [];
+  if (models.length < 2) return [];
+  const reference = comparison?.reference_model ?? '';
+  const pairs = new Map((comparison?.pairs ?? []).map((p) => [p.candidate_model, p]));
+  return models.map((arm) => {
+    const model = arm.model ?? '';
+    const isReference = model === reference;
+    const pair = pairs.get(model) ?? null;
+    const deltaPp = numberOrNull(pair?.delta_pp);
+    let effect: ModelEffect;
+    if (isReference) effect = 'reference';
+    else if (deltaPp === null) effect = 'not-measured';
+    else if (pair?.significant) effect = deltaPp > 0 ? 'better' : 'worse';
+    else effect = 'no-difference';
+    const effectLabel = {
+      reference: 'reference',
+      better: 'significantly better',
+      worse: 'significantly worse',
+      'no-difference': 'no significant difference',
+      'not-measured': 'not measured',
+    }[effect];
+    return {
+      model,
+      shortName: modelShortName(model),
+      runName: arm.run_name ?? null,
+      accuracy: numberOrNull(arm.accuracy),
+      number: numberOrNull(arm.by_turn_type?.number),
+      program: numberOrNull(arm.by_turn_type?.program),
+      programAccuracy: numberOrNull(arm.program_accuracy),
+      cost: numberOrNull(arm.cost),
+      wall: numberOrNull(arm.wall),
+      isReference,
+      deltaPp,
+      pValue: numberOrNull(pair?.p_value),
+      ciLo: numberOrNull(pair?.ci?.[0]),
+      ciHi: numberOrNull(pair?.ci?.[1]),
+      fixed: numberOrNull(pair?.fixed),
+      broken: numberOrNull(pair?.broken),
+      effect,
+      effectLabel,
+    };
+  });
+}
+
 export function formatWall(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return NO_VALUE;
   if (seconds < 90) return `${Math.round(seconds)}s`;
