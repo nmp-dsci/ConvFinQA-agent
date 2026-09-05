@@ -268,8 +268,7 @@ def first_wrong_cases(csv_path: Path | str) -> pd.DataFrame:
 
     df = pd.read_csv(csv_path)
     df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
-    if "triage_turn_type_ok" not in df.columns:
-        stage_scores.score_rows(df)
+    stage_scores._ensure_scored(df)
     # Attribution needs each turn's *earlier* gold answers, to tell an operand
     # the retriever had to find in the document from one the conversation had
     # already produced. They must be gathered over the whole frame, before the
@@ -306,6 +305,7 @@ def case_payload(row: pd.Series) -> dict[str, Any]:
         "derived_checks": {
             "triage_turn_type_ok": row.get("triage_turn_type_ok"),
             "preprocess_skeleton_ok": row.get("preprocess_skeleton_ok"),
+            "preprocess_plan_ok": row.get("preprocess_plan_ok"),
             "retriever_operand_recall": row.get("retriever_operand_recall"),
             "calculator_ok": row.get("calculator_ok"),
         },

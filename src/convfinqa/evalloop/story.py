@@ -27,7 +27,7 @@ DOCS_DIR = REPO_ROOT / "docs" / "optimization"
 AGENTS = ("triage", "preprocess", "retriever", "calculator")
 PANEL_METRICS = {
     "triage": "acc_triage_turn_type",
-    "preprocess": "acc_preprocess_skeleton",
+    "preprocess": "acc_preprocess_plan",
     "retriever": "retriever_operand_recall",
     "calculator": "acc_calculator_exec",
 }

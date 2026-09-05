@@ -33,6 +33,7 @@ from convfinqa.evaluation.metrics import numeric_match, parse_program
 ROW_COLUMNS = [
     "triage_turn_type_ok",
     "preprocess_skeleton_ok",
+    "preprocess_plan_ok",
     "retriever_operand_recall",
     "calculator_ok",
 ]
@@ -133,8 +134,11 @@ def _retrieved_values(row: dict[str, Any]) -> list[str]:
 
 def score_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Add the per-agent columns; returns the same frame, mutated."""
+    from convfinqa.evaluation.program_exec import bind_and_execute
+
     triage_ok: list[bool | None] = []
     skeleton_ok: list[bool | None] = []
+    plan_ok: list[bool | None] = []
     recall: list[float | None] = []
     calc_ok: list[bool | None] = []
 
@@ -170,10 +174,24 @@ def score_rows(df: pd.DataFrame) -> pd.DataFrame:
         else:
             recall.append(None)  # every operand came from history/constants
 
+        # Does the plan, bound to the values the retriever actually returned,
+        # produce the gold answer? This is what the skeleton comparison was
+        # standing in for, and it is a different question: a plan shaped
+        # unlike gold's can be right, and one shaped like it can be wrong.
+        # `None` where there is no plan to score, or none that will bind.
+        plan_ok.append(
+            None
+            if gold_sk is None
+            else bind_and_execute(
+                getattr(r, "pred_program", ""), retrieved, r.gold_answer
+            )
+        )
+
         calc_ok.append(bool(r.correct) if gold_sk is not None else None)
 
     df["triage_turn_type_ok"] = pd.Series(triage_ok, index=df.index, dtype=object)
     df["preprocess_skeleton_ok"] = pd.Series(skeleton_ok, index=df.index, dtype=object)
+    df["preprocess_plan_ok"] = pd.Series(plan_ok, index=df.index, dtype=object)
     df["retriever_operand_recall"] = pd.Series(recall, index=df.index, dtype=object)
     df["calculator_ok"] = pd.Series(calc_ok, index=df.index, dtype=object)
     return df
@@ -190,14 +208,27 @@ def _mean(series: pd.Series) -> float | None:
     return round(sum(float(v) for v in vals) / len(vals), 6)
 
 
+def _ensure_scored(df: pd.DataFrame) -> None:
+    """Score the frame unless it already carries **every** per-row column.
+
+    Checking one sentinel column was not enough: a CSV written before a column
+    was added has the sentinel and not the new column, so scoring was skipped
+    and the panel raised `KeyError` on a run that had simply been recorded
+    earlier. Every committed CSV predates `preprocess_plan_ok`, so that is the
+    normal case here, not an edge one.
+    """
+    if any(column not in df.columns for column in ROW_COLUMNS):
+        score_rows(df)
+
+
 def run_metrics(df: pd.DataFrame) -> dict[str, float]:
     """The per-agent metric panel for one run. Skips metrics with no support."""
-    if "triage_turn_type_ok" not in df.columns:
-        score_rows(df)
+    _ensure_scored(df)
     out: dict[str, float] = {}
     panel = {
         "acc_triage_turn_type": _mean(df["triage_turn_type_ok"]),
         "acc_preprocess_skeleton": _mean(df["preprocess_skeleton_ok"]),
+        "acc_preprocess_plan": _mean(df["preprocess_plan_ok"]),
         "retriever_operand_recall": _mean(df["retriever_operand_recall"]),
         "acc_calculator_exec": _mean(df["calculator_ok"]),
     }
@@ -213,7 +244,13 @@ def run_metrics(df: pd.DataFrame) -> dict[str, float]:
 # The deterministic metric each targeted challenger must move (Phase C).
 TARGET_METRIC = {
     "triage": "acc_triage_turn_type",
-    "preprocess": "acc_preprocess_skeleton",
+    # Execution, not shape. `acc_preprocess_skeleton` compares op lists, which
+    # is invalid for a symbolic plan for the same reason it was removed from
+    # attribution — and it showed: across c03 it moved *against* the accuracy it
+    # was supposed to be evidence for (0.460 -> 0.447 while the challenger
+    # gained 1.43pp). It stays in the panel for continuity, but it no longer
+    # decides anything.
+    "preprocess": "acc_preprocess_plan",
     "retriever": "retriever_operand_recall",
     "calculator": "acc_calculator_exec",
 }
@@ -455,8 +492,7 @@ def attribute(row: Any, doc: str | None = None) -> str:
 
 def attribute_frame(df: pd.DataFrame) -> pd.Series:
     """Per-row gold-derived attribution for a scored run frame."""
-    if "triage_turn_type_ok" not in df.columns:
-        score_rows(df)
+    _ensure_scored(df)
     docs = report_documents()
     rows = with_prior_gold(df)
     return pd.Series(

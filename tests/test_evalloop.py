@@ -2117,3 +2117,65 @@ def test_backfill_attribution_skips_current_recomputes_stale_and_reuses_adjudica
     forced = ledger.backfill_attribution(force=True)
     assert forced[0]["status"] == "rewritten"
     assert tags_written["run-current"]["attribution_rule"] == "rule-current"
+
+
+def test_the_preprocess_target_metric_is_execution_not_shape() -> None:
+    """The metric a preprocess challenger is judged on must track its answers.
+
+    `acc_preprocess_skeleton` compares op lists, which is invalid for a symbolic
+    plan for the same reason it was removed from attribution. Across c03 it
+    moved *against* the accuracy it was meant to be evidence for.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    assert stage_scores.TARGET_METRIC["preprocess"] == "acc_preprocess_plan"
+
+    # gold computes the denominator in two steps; the plan takes it in one and
+    # lands on gold. Different shape, right answer.
+    df = pd.DataFrame(
+        [
+            _row(
+                gold_program="add(5909, 1898), divide(1898, #0)",
+                gold_answer="24%",
+                pred_program="divide(A, B)",
+                pred_answer="24%",
+                gold_turn_type="Program",
+                retriever_io=json.dumps(
+                    {
+                        "output": {
+                            "answers": [
+                                {"question": "capital leases", "answer": "1898"},
+                                {"question": "the sum", "answer": "7807"},
+                            ]
+                        }
+                    }
+                ),
+            )
+        ]
+    )
+    stage_scores.score_rows(df)
+    assert df["preprocess_skeleton_ok"].iloc[0] is False  # shape disagrees
+    assert df["preprocess_plan_ok"].iloc[0] is True  # execution agrees
+
+    panel = stage_scores.run_metrics(df)
+    assert panel["acc_preprocess_plan"] == 1.0
+    # the old metric stays in the panel for continuity, but decides nothing
+    assert panel["acc_preprocess_skeleton"] == 0.0
+
+
+def test_metrics_rescore_a_frame_missing_only_a_newer_column() -> None:
+    """One sentinel column is not enough to decide a frame is already scored.
+
+    Every committed CSV predates `preprocess_plan_ok` while carrying the older
+    columns, so guarding on `triage_turn_type_ok` alone skipped scoring and the
+    panel raised KeyError on exactly the runs it needed to read.
+    """
+    from convfinqa.evalloop import stage_scores
+
+    df = pd.DataFrame([_row(gold_turn_type="Program")])
+    stage_scores.score_rows(df)
+    df = df.drop(columns=["preprocess_plan_ok"])  # an older CSV, as committed
+
+    panel = stage_scores.run_metrics(df)
+    assert "acc_preprocess_plan" in panel
+    assert "preprocess_plan_ok" in df.columns
