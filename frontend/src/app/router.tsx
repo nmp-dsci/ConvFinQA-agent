@@ -17,6 +17,7 @@ const AdminOverview = lazy(() => import('../features/admin/AdminOverview'));
 const Evaluations = lazy(() => import('../features/admin/Evaluations'));
 const Experiments = lazy(() => import('../features/admin/Experiments'));
 const Campaigns = lazy(() => import('../features/admin/Campaigns'));
+const Runtimes = lazy(() => import('../features/admin/Runtimes'));
 const Traces = lazy(() => import('../features/admin/Traces'));
 const TraceDetail = lazy(() => import('../features/admin/TraceDetail'));
 const Research = lazy(() => import('../features/admin/Research'));
@@ -95,6 +96,7 @@ export const router = createBrowserRouter([
           { path: 'dataset', element: <DatasetReview /> },
           { path: 'experiments', element: <Experiments /> },
           { path: 'campaigns', element: <Campaigns /> },
+          { path: 'runtimes', element: <Runtimes /> },
           { path: 'traces', element: <Traces /> },
           { path: 'traces/:traceId', element: <TraceDetail /> },
           { path: 'research', element: <Research /> },
