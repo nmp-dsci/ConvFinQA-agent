@@ -109,6 +109,15 @@ def _pp(value: Any) -> str:
     return f"{float(value) * 100:+.2f}pp"
 
 
+#: Published human-expert figures from Chen et al. 2022 (EMNLP), Table 5 —
+#: not a measurement of this system. Kept as a named constant so it is never
+#: retyped inline, and so the caveat that cites it can be tested without
+#: hardcoding the value a second time.
+PAPER_HUMAN_EXE = 0.8944
+PAPER_HUMAN_PROG = 0.8634
+PAPER_HUMAN_CITATION = "Chen et al. 2022 (EMNLP), Table 5"
+
+
 def harness_svg() -> str:
     """The loop, as one figure: what runs, on which split, and what decides."""
     # Sub-labels are kept short enough to sit inside a 128px box at 9.5px mono
@@ -674,6 +683,31 @@ def render_sdk_page(data: dict[str, Any]) -> str:
     )
     sdk_champion = data.get("sdk_champion")
 
+    sdk_program_acc = sdk.get("program_accuracy")
+    program_acc_clause = (
+        f" The program accuracy on the same run is {_pct(sdk_program_acc)}, against "
+        f"the paper's {_pct(PAPER_HUMAN_PROG)} for a human: it is reaching the right "
+        "numbers without reproducing the gold programs, so this is not a claim of "
+        "human-level reasoning."
+        if sdk_program_acc is not None
+        else ""
+    )
+    contamination_note = f"""<div class="note"><strong>Contamination cannot be excluded.</strong>
+<p>The single-session arm scores {_pct(sdk.get("accuracy"))} execution accuracy,
+above the {_pct(PAPER_HUMAN_EXE)} human-expert figure {PAPER_HUMAN_CITATION}
+reports — on a dataset that has been public since 2022. A model that has seen
+this corpus in training would look exactly like this. These figures are also
+measured on a {split.get("gate_questions", "—")}-question split drawn from the
+train pool, not the paper's held-out test set, so the human figure is
+orientation rather than a like-for-like baseline.{program_acc_clause}</p></div>
+<div class="note"><strong>Model and architecture moved together.</strong>
+<p>The pipeline arm runs deepseek-v4-flash; the SDK arm runs claude-sonnet-5.
+Both variables changed in the same step and the confound was never isolated —
+isolating it would need a pipeline pass on the SDK arm's model, which needs an
+API endpoint this project deliberately does not use (subscription-only). The
+measured delta is real; "one session beats four agents" is not established —
+what is demonstrated is a win at equal optimisation effort.</p></div>"""
+
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -733,6 +767,7 @@ the same split the pipeline campaigns gate on</div></div>
 {_turn_type_verdict(gate)}
 
 <h2>What is different, and what is not</h2>
+{contamination_note}
 <div class="note"><strong>Same loop, same rule.</strong>
 <p>Draw, run, diagnose, rewrite, gate, decide — in that order, on the same
 splits, with the same one-sided cluster-corrected McNemar at α = 0.05

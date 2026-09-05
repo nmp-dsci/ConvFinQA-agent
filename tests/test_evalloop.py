@@ -2237,3 +2237,11 @@ def test_refusal_classifier_is_shared_by_both_sdk_call_sites() -> None:
     assert sdk_mod.rate_limit_refusal("Credit balance is too low") is not None
     # An answer that merely says "limit" is an answer.
     assert sdk_mod.rate_limit_refusal("the limit of the series is 3") is None
+    # An answer that merely mentions "quota" without exhausting one is an answer.
+    assert (
+        sdk_mod.rate_limit_refusal(
+            "the sampling quota for this survey is 500 respondents"
+        )
+        is None
+    )
+    assert sdk_mod.rate_limit_refusal("Monthly quota exceeded, try again later") is not None

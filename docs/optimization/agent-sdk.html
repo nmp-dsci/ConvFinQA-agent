@@ -140,6 +140,21 @@ because an average over the two describes neither.</p>
 <tbody><tr><td>program</td><td class="num">238</td><td class="num">75.2%</td><td class="num">88.2%</td><td class="num good">+13.03pp</td><td class="num">35&thinsp;/&thinsp;4</td><td class="num">4.7e-05</td><td><span class="pill ok">significant</span></td></tr><tr><td>number</td><td class="num">111</td><td class="num">95.5%</td><td class="num">95.5%</td><td class="num ">+0.00pp</td><td class="num">3&thinsp;/&thinsp;3</td><td class="num">0.5</td><td><span class="pill no">no effect</span></td></tr></tbody></table></div>
 
 <h2>What is different, and what is not</h2>
+<div class="note"><strong>Contamination cannot be excluded.</strong>
+<p>The single-session arm scores 90.5% execution accuracy,
+above the 89.4% human-expert figure Chen et al. 2022 (EMNLP), Table 5
+reports — on a dataset that has been public since 2022. A model that has seen
+this corpus in training would look exactly like this. These figures are also
+measured on a 349-question split drawn from the
+train pool, not the paper's held-out test set, so the human figure is
+orientation rather than a like-for-like baseline.</p></div>
+<div class="note"><strong>Model and architecture moved together.</strong>
+<p>The pipeline arm runs deepseek-v4-flash; the SDK arm runs claude-sonnet-5.
+Both variables changed in the same step and the confound was never isolated —
+isolating it would need a pipeline pass on the SDK arm's model, which needs an
+API endpoint this project deliberately does not use (subscription-only). The
+measured delta is real; "one session beats four agents" is not established —
+what is demonstrated is a win at equal optimisation effort.</p></div>
 <div class="note"><strong>Same loop, same rule.</strong>
 <p>Draw, run, diagnose, rewrite, gate, decide — in that order, on the same
 splits, with the same one-sided cluster-corrected McNemar at α = 0.05

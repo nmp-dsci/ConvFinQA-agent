@@ -67,7 +67,8 @@ RATE_LIMIT_MARKERS: tuple[tuple[str, ...], ...] = (
     ("rate limit",),
     ("usage limit",),
     ("credit balance is too low",),
-    ("quota",),
+    ("quota", "exceeded"),
+    ("out of", "quota"),
 )
 
 # Every row or message a refusal produces carries this prefix, so "never

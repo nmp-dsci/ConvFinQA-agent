@@ -76,6 +76,23 @@ def problems() -> list[str]:
                 f"from story.json ({n_sdk}) — rebuild with `convfinqa-evalloop story`"
             )
 
+        # The page must disclose, not just report, the SDK headline: it beats a
+        # published human baseline on a public dataset (contamination), and the
+        # model changed alongside the architecture (confound). Both caveats are
+        # required content, not incidental prose, so losing either is a
+        # regression this check exists to catch.
+        lowered = sdk_text.lower()
+        if "human-expert" not in lowered or "contamination" not in lowered:
+            out.append(
+                f"{sdk_page.name} is missing the contamination-vs-published-human-"
+                "baseline caveat — rebuild with `convfinqa-evalloop story`"
+            )
+        if "confound" not in lowered:
+            out.append(
+                f"{sdk_page.name} is missing the model/architecture-confound "
+                "caveat — rebuild with `convfinqa-evalloop story`"
+            )
+
     published = DOCS_DIR / "story.json"
     if published.exists() and published.read_text() != STORY_PATH.read_text():
         out.append(
