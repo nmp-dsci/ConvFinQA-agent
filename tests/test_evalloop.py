@@ -2244,4 +2244,7 @@ def test_refusal_classifier_is_shared_by_both_sdk_call_sites() -> None:
         )
         is None
     )
-    assert sdk_mod.rate_limit_refusal("Monthly quota exceeded, try again later") is not None
+    assert (
+        sdk_mod.rate_limit_refusal("Monthly quota exceeded, try again later")
+        is not None
+    )

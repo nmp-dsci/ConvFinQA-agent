@@ -302,8 +302,12 @@ uv run convfinqa-evalloop story   # also renders docs/optimization/agent-sdk.htm
 The write-up lives at [`docs/optimization/agent-sdk.html`](docs/optimization/agent-sdk.html),
 beside the campaign page and built from the same `story.json`: the two runtimes
 side by side on the gate split, the verdict between them, and every SDK
-experiment including the rejected ones. No results are recorded yet — the page
-says so rather than showing zeros.
+experiment including the rejected ones. `sdk_v1` was gated against pipeline
+champion `v8` on 349 paired questions and promoted to `sdk_champion`: 90.54%
+vs 81.66% (+8.88pp, p=0.0003), the gain concentrated on program turns
+(+13.03pp) with number turns unchanged. The page documents two caveats
+alongside that figure — a public-dataset contamination risk and a
+model/architecture confound — rather than hiding them.
 
 ## Demo mode
 
