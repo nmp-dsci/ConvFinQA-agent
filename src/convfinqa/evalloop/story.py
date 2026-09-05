@@ -574,6 +574,55 @@ def build(
     }
 
 
+def with_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Add each arm's program accuracy, read from its committed predictions CSV.
+
+    Execution accuracy alone overstates what either arm is doing: both answer
+    far more turns correctly than they reproduce gold programs for, and the SDK
+    arm's headline sits above the paper's human-expert figure, which is exactly
+    the claim a reader should be able to check against the program number. The
+    figure is not in `story.json` (older stories predate it), so it is derived
+    here from the same committed CSV the run is named after — no tracking
+    server, no API calls, reproducible on any clone. Shared by the serving
+    route and the published page so the two cannot disagree.
+
+    Absent or unreadable CSV leaves the key `None`, never 0.0: "we did not
+    measure it" and "it scored nothing" are different claims.
+    """
+    if not comparison:
+        return comparison
+    import pandas as pd
+
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+    from convfinqa.tracking.comparator import program_accuracy
+
+    out = dict(comparison)
+    for arm in ("pipeline", "agent_sdk"):
+        row = out.get(arm)
+        if not isinstance(row, dict):
+            continue
+        row = dict(row)
+        out[arm] = row
+        if row.get("program_accuracy") is not None:
+            continue
+        row["program_accuracy"] = None
+        name = row.get("run_name")
+        if not name:
+            continue
+        path = PREDICTIONS_DIR / f"{name}.csv"
+        if not path.exists():
+            continue
+        try:
+            row["program_accuracy"] = program_accuracy(pd.read_csv(path))[
+                "program_accuracy"
+            ]
+        except Exception:  # noqa: BLE001 - a bad CSV must not break rendering
+            continue
+    return out
+
+
 def render(data: dict[str, Any]) -> str:
     """The published page. Import kept local so `collect` never needs it."""
     from convfinqa.evalloop.story_page import render_page
@@ -585,4 +634,9 @@ def render_sdk(data: dict[str, Any]) -> str:
     """The Agent SDK experiment page, beside the campaign write-up."""
     from convfinqa.evalloop.story_page import render_sdk_page
 
+    if data.get("runtime_comparison"):
+        data = {
+            **data,
+            "runtime_comparison": with_program_accuracy(data["runtime_comparison"]),
+        }
     return render_sdk_page(data)

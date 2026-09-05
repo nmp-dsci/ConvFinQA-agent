@@ -622,6 +622,51 @@ def test_story_check_covers_the_sdk_page(
     assert any("sdk_champion" in p for p in found)
 
 
+def test_story_check_catches_a_stripped_caveat(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The contamination/confound caveats are required content, not prose that
+    may drift away silently — a page missing either must fail the check."""
+    from convfinqa.evalloop import story, story_check
+    from convfinqa.evalloop.story_page import render_page, render_sdk_page
+    from convfinqa.tracking import registry
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    story_path = tmp_path / "story.json"
+    monkeypatch.setattr(story_check, "STORY_PATH", story_path)
+    monkeypatch.setattr(story_check, "DOCS_DIR", docs)
+    monkeypatch.setattr(story, "STORY_PATH", story_path)
+    monkeypatch.setattr(registry, "champion", lambda path=None: "v8")
+    monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+
+    data = _story(sdk_champion="sdk_v1")
+    text = json.dumps(data, indent=1) + "\n"
+    story_path.write_text(text)
+    (docs / "story.json").write_text(text)
+    (docs / "index.html").write_text(render_page(data))
+
+    rendered = render_sdk_page(data)
+    assert "contamination" in rendered.lower()
+    assert "confound" in rendered.lower()
+    (docs / "agent-sdk.html").write_text(rendered)
+    assert story_check.problems() == []
+
+    stripped_contamination = rendered.replace(
+        "Contamination cannot be excluded", "A note about the numbers"
+    ).replace("contamination", "the numbers")
+    (docs / "agent-sdk.html").write_text(stripped_contamination)
+    found = story_check.problems()
+    assert any("contamination" in p for p in found)
+
+    stripped_confound = rendered.replace(
+        "Model and architecture moved together", "Two things changed"
+    ).replace("confound", "difference")
+    (docs / "agent-sdk.html").write_text(stripped_confound)
+    found = story_check.problems()
+    assert any("confound" in p for p in found)
+
+
 # ── run_cycle(runtime="agent_sdk") end to end ───────────────────────────
 
 

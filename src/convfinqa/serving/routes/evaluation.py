@@ -338,45 +338,16 @@ def _with_program_accuracy(
 ) -> dict[str, Any] | None:
     """Add each arm's program accuracy, read from its committed predictions CSV.
 
-    Execution accuracy alone overstates what either arm is doing: both answer
-    far more turns correctly than they reproduce gold programs for, and the SDK
-    arm's headline sits above the paper's human-expert figure, which is exactly
-    the claim a reader should be able to check against the program number. The
-    figure is not in `story.json` (older stories predate it), so it is derived
-    here from the same committed CSV the run is named after — no tracking
-    server, no API calls, reproducible on any clone.
-
-    Absent or unreadable CSV leaves the key `None`, never 0.0: "we did not
-    measure it" and "it scored nothing" are different claims.
+    Delegates to `evalloop.story.with_program_accuracy` so the route and the
+    published page derive this figure through one implementation and cannot
+    drift from each other.
     """
-    if not comparison:
-        return comparison
-    from convfinqa.evalloop.runner import PREDICTIONS_DIR
-    from convfinqa.tracking.comparator import program_accuracy
+    from convfinqa.evalloop.story import with_program_accuracy
 
-    out = dict(comparison)
-    for arm in ("pipeline", "agent_sdk"):
-        row = out.get(arm)
-        if not isinstance(row, dict):
-            continue
-        row = dict(row)
-        out[arm] = row
-        if row.get("program_accuracy") is not None:
-            continue
-        row["program_accuracy"] = None
-        name = row.get("run_name")
-        if not name:
-            continue
-        path = PREDICTIONS_DIR / f"{name}.csv"
-        if not path.exists():
-            continue
-        try:
-            row["program_accuracy"] = program_accuracy(pd.read_csv(path))[
-                "program_accuracy"
-            ]
-        except Exception:  # noqa: BLE001 - a bad CSV must not 500 a read route
-            continue
-    return out
+    try:
+        return with_program_accuracy(comparison)
+    except Exception:  # noqa: BLE001 - a bad CSV must not 500 a read route
+        return comparison
 
 
 @router.get("/campaigns")
