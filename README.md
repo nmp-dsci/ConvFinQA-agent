@@ -279,6 +279,32 @@ p < 0.05 (`tracking/comparator.py::promotable_significant`) — campaign `c01`
 promoted `v8` at p=0.040; `c02` and `c03` each ran two experiments that were
 both rejected, so the champion held at `v8`.
 
+### The Agent SDK experiment (s10)
+
+A second runtime, `--runtime agent_sdk`, answers each conversation with **one
+Claude Agent SDK session** holding the six calculator functions as its only
+tools and one system prompt (`prompts/sdk_vN.py`, distilled from the pipeline
+champion's four). It runs through the same loop — train draw, a diagnosis
+agent that files each first-wrong case under a failure class, a teacher that
+edits the one prompt in tagged areas, the same one-sided cluster-corrected
+McNemar gate on the same fixed split — and promotes to its own alias,
+`sdk_champion`, never `champion`. Every diagnosis, edit and verdict from
+both arms lands in three append-only ledgers under
+`evaluation/diagnostics/evalloop/`, joined by id.
+
+```bash
+uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
+uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>   # case -> edits -> verdicts
+uv run convfinqa-evalloop story   # also renders docs/optimization/agent-sdk.html
+```
+
+The write-up lives at [`docs/optimization/agent-sdk.html`](docs/optimization/agent-sdk.html),
+beside the campaign page and built from the same `story.json`: the two runtimes
+side by side on the gate split, the verdict between them, and every SDK
+experiment including the rejected ones. No results are recorded yet — the page
+says so rather than showing zeros.
+
 ## Demo mode
 
 ```bash

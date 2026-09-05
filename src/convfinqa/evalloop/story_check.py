@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import sys
 
-from convfinqa.evalloop.story import DOCS_DIR, STORY_PATH
+from convfinqa.evalloop.story import DOCS_DIR, SDK_PAGE, STORY_PATH
 
 
 def problems() -> list[str]:
@@ -45,6 +45,35 @@ def problems() -> list[str]:
             out.append(
                 f"{page.name} does not carry the current champion {champion!r} in "
                 "its embedded record — it was built from an older story.json"
+            )
+
+    # The Agent SDK page is built from the same story.json by the same command,
+    # so it goes stale in exactly the same ways — a missing page, or one whose
+    # embedded record names a different sdk_champion from the registry.
+    sdk_champion = registry.sdk_champion()
+    if story.get("sdk_champion", None) != sdk_champion:
+        out.append(
+            f"story.json names sdk_champion {story.get('sdk_champion')!r} but the "
+            f"registry says {sdk_champion!r} — rebuild with `convfinqa-evalloop story`"
+        )
+    sdk_page = DOCS_DIR / SDK_PAGE
+    if not sdk_page.exists():
+        out.append(f"{sdk_page} is missing — the Agent SDK page was never built")
+    else:
+        sdk_text = sdk_page.read_text()
+        if sdk_champion and f'"sdk_champion": "{sdk_champion}"' not in sdk_text:
+            out.append(
+                f"{sdk_page.name} does not carry the current sdk_champion "
+                f"{sdk_champion!r} in its embedded record — it was built from an "
+                "older story.json"
+            )
+        n_sdk = sum(
+            len(c.get("experiments", [])) for c in story.get("sdk_campaigns", [])
+        )
+        if f'"n_sdk_experiments": {n_sdk}' not in sdk_text:
+            out.append(
+                f"{sdk_page.name} records a different number of SDK experiments "
+                f"from story.json ({n_sdk}) — rebuild with `convfinqa-evalloop story`"
             )
 
     published = DOCS_DIR / "story.json"

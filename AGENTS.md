@@ -44,7 +44,12 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `src/convfinqa/reporting/` | Shared HTML-report mechanics (`html_report.py`): theme CSS, sticky inspector panel + viewer JS, `render_cell`, `render_page`. Used by `evaluation/reporting.py` and `diagnosis/results_html.py`. |
 | `src/convfinqa/llm.py` | **The single LLM choke point.** `guard_llm_call()` (demo gate), `_RetryTransport` (retry/timeout policy), `get_provider()`/`get_model()`, `lm_mini()`/`lm_max()` factories, `dspy_lm_kwargs()`. Nothing else may construct a model. |
 | `src/convfinqa/tracking/` | `bundle.py` (fingerprint: prompts + GEPA overlay + model ids + dataset hash + code SHA), `mlflow_log.py`, `tracing.py` (MLflow trace spans: run → report → question → agent stage → `Agent.run`; `enable()`/`span()`), `span_trim.py` (`span_processors` hook that strips duplicated tool/message payload from autologged pipeline spans, ~74% smaller), `traces.py` (per-stage IO trace store), `comparator.py` (promotion contract: net-positive + one-sided cluster-corrected McNemar `promotable_significant`, cluster bootstrap CI), `registry.py` (champion/challenger aliases, per-agent prompt lineage in `agent_prompts`, append-only history), `prompt_ledger.py` (per-agent prompt versioning: content-hash identity, `t3.p3.r4.c3` compositions), `backfill.py`, `snapshot.py` (demo image export), `gate.py` (CI eval-regression gate), `cost.py` (token/cost accounting), `cli.py` (`convfinqa-mlflow`). |
-| `src/convfinqa/evalloop/` | `runner.py` (traced eval runs over a split), `teacher.py` (first-wrong-per-report diagnosis + one-subagent challenger proposal on the Claude Agent SDK, `TEACHER_PROMPT` taxonomy, `resolve_ambiguous` adjudication), `sdk.py` (the one chokepoint every Agent SDK call passes through — traces each attempt, requires a prompt ref), `prompt_refs.py` (ref kinds for traced prompts: `teacher_prompt`/`agent_prompt`/`run_artifact`/`diagnose_case`/`adjudicate_case`, each carrying a sha256 `resolve()` checks), `tools.py` (read-only MLflow tools exposed to the teacher as an in-process MCP server), `ledger.py` (pooled per-agent fault history via `fault_history()`, `flips.json`), `gate.py` (M1 net-positive gate + M2 `gate-targeted`, both requiring `promotable_significant`), `stage_scores.py` (per-agent gold-derived metric panel; `first_fault()` attribution via `evaluation/program_exec.py`), `campaign.py` (bounded campaign: 5 experiments, Wilson-bound `pick_target`, rotate target after 2 consecutive rejections), `cycle.py` (one campaign experiment end to end), `story.py`/`story_page.py`/`story_check.py` (`evaluation/story.json` + `docs/optimization/index.html`, CI staleness check), `kappa.py` (teacher-vs-human agreement), `release.py` (M3 sealed holdout gate), `splits.py` (train/test/holdout manifest, `draw_train`), `cli.py` (`convfinqa-evalloop`). |
+| `src/convfinqa/evalloop/` | `runner.py` (traced eval runs over a split), `teacher.py` (first-wrong-per-report diagnosis + one-subagent challenger proposal on the Claude Agent SDK, `TEACHER_PROMPT` taxonomy, `resolve_ambiguous` adjudication), `sdk.py` (the one chokepoint every Agent SDK call passes through — traces each attempt, requires a prompt ref), `prompt_refs.py` (ref kinds for traced prompts: `teacher_prompt`/`agent_prompt`/`run_artifact`/`diagnose_case`/`adjudicate_case`, each carrying a sha256 `resolve()` checks), `tools.py` (read-only MLflow tools exposed to the teacher as an in-process MCP server), `ledger.py` (pooled per-agent fault history via `fault_history()`, `flips.json`), `gate.py` (M1 net-positive gate + M2 `gate-targeted`, both requiring `promotable_significant`), `stage_scores.py` (per-agent gold-derived metric panel; `first_fault()` attribution via `evaluation/program_exec.py`), `campaign.py` (bounded campaign: 5 experiments, Wilson-bound `pick_target`, rotate target after 2 consecutive rejections; for the SDK arm `pick_target_class` over failure classes and `single_area_mode` instead of a block; `history` reads the gates ledger first), `cycle.py` (one campaign experiment end to end; `run_cycle(runtime="agent_sdk")` → `run_sdk_cycle`), `sdk_gate.py` / `sdk_teacher.py` / `ledgers.py` (the s10 Agent SDK arm — see the rows above), `story.py`/`story_page.py`/`story_check.py` (`evaluation/story.json` + `docs/optimization/index.html`, CI staleness check), `kappa.py` (teacher-vs-human agreement), `release.py` (M3 sealed holdout gate), `splits.py` (train/test/holdout manifest, `draw_train`), `cli.py` (`convfinqa-evalloop`). |
+| `src/convfinqa/backends/agent_sdk.py` | The s10 single-session runtime (`runtime="agent_sdk"`): one Claude Agent SDK session per conversation with the six calculator functions as its only tools, reporting its triage/preprocess/retriever/calculator trail so the same panel and attribution apply. Same `run_conversation` signature as `ConversationRunner`. Lazy SDK import; nothing built at import. One of exactly two modules allowed to construct `ClaudeSDKClient` (with `evalloop/sdk.py`). |
+| `src/convfinqa/prompts/sdk_v*.py` | The single-session prompt lineage (`SDK_PROMPT`): `sdk_v1` distilled from a bundle by `convfinqa-evalloop sdk-distil`, later versions generated by the SDK teacher. Never hand-edited. `prompts.load_sdk` / `sdk_versions` / `latest_sdk` / `is_sdk_version`. Registered under `registry.json → sdk_prompts` (`s1, s2, …`, hash = truth) by `tracking/prompt_ledger.py::ensure_sdk`. |
+| `src/convfinqa/evalloop/ledgers.py` | The three append-only ledgers under `evaluation/diagnostics/evalloop/` — `diagnoses.jsonl`, `rewrites.jsonl`, `gates.jsonl` — with a frozen `COLUMNS` tuple each, `append` (open-append-fsync, never rewrite), `load(name, runtime=, version=, campaign=)`, `trace(question_id=|edit_id=)` joins, row builders, `log_rows_to_run` (mirrors each appended batch onto its MLflow run as `ledger_rows.jsonl`), and `backfill_ledgers`. Both arms write through it; `ledger.py`'s MLflow searches are the fallback when the files are silent. |
+| `src/convfinqa/evalloop/sdk_teacher.py` | The SDK arm's loop agents on Opus via `sdk.py::run_structured`: `diagnose_run` (stage-by-stage diagnosis of each first-wrong case, filed under a failure class, one diagnoses-ledger row each), `rank_classes` (Wilson-bound ranking pooled over SDK draws of the same prompt hash — never a pipeline draw), `propose_version` (one prompt, one tagged edit per class addressed, `max_areas` cap; one rewrites-ledger row per edit), `distil_prompt` (writes `sdk_v1` from a bundle's four prompts). |
+| `src/convfinqa/evalloop/sdk_gate.py` | The SDK arm's gate: `gate_overall` (paired one-sided cluster-corrected McNemar on overall accuracy — there is no single target agent — with the per-stage panel beside it) and `log_gate_verdict` (MLflow gate run + gates-ledger row stamped `runtime=agent_sdk`; separate from `teacher.log_gate_verdict`, whose ledger row is hard-wired to `multi_agent`). |
 | `src/convfinqa/serving/app.py` | Package FastAPI entry point (`create_app`, `app`); mounts `serving/routes/`. |
 | `src/convfinqa/serving/routes/` | `chat.py` (turns, SSE streaming), `evaluation.py` (splits, eval runs, `/eval/*` incl. `/eval/dataset`), `traces.py` (`/traces/*`), `admin.py` (owner-token-gated promotion/research writes), `metrics.py` (`/metrics/production` — turn-level counts, latency/cost/accuracy, hourly series, per `serving`/`demo`/`eval` source group). |
 | `src/convfinqa/error_codes.py` | Closed `ErrorCode` vocabulary (`llm_unavailable`, `not_available_demo`, `no_recording`, `rate_limited`, `timeout`, `unknown`) a failed turn is classified into, alongside its free-text message. |
@@ -72,7 +77,7 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), the local `demo`/`dev` toggle, and an always-on `mlflow` tracking-server service (`docker compose up -d mlflow`). |
 | `.github/workflows/ci.yml`, `.github/workflows/deploy-aws.yml` | CI (lint, mypy, pytest, frontend checks, eval-regression gate, Docker build, `terraform fmt`/`validate`) and the keyless AWS deploy chained on CI passing. |
 | `frontend/` | Vite + React + Zustand + Tailwind operator console ("The Console"): landing status board at `/`, chat at `/chat`, admin section at `/admin` (Overview, Evaluations, Dataset, Experiments, Traces, Research, System, Campaigns), IBM Plex type, terminal-amber accent, dark-first with a light variant. |
-| `docs/optimization/` | The published campaign write-up (`index.html` + `story.json`), built by `convfinqa-evalloop story` from the tracking store and `evaluation/registry.json`; `evalloop/story_check.py` fails CI when it has gone stale. |
+| `docs/optimization/` | The published campaign write-up (`index.html` + `story.json`) and the Agent SDK experiment page (`agent-sdk.html`, linked from the index), both built by `convfinqa-evalloop story` from the tracking store, the ledgers and `evaluation/registry.json`; `evalloop/story_check.py` fails CI when either has gone stale. |
 | `tests/` | pytest suite (221 tests), including `test_demo_mode.py` (pins the no-model-at-import-time invariant), `test_tracking.py`, `test_evalloop.py`, `test_llm.py`, `test_limits.py`. |
 
 ## Four-Stage Pipeline
@@ -187,6 +192,78 @@ Frontend:
 cd frontend
 npm run dev
 ```
+
+### Agent SDK experiment (s10)
+
+The single-session arm runs the same loop behind `--runtime agent_sdk` with
+`sdk_vN` versions; a version from the other arm is refused at parse time.
+
+```bash
+# Once: distil the first single-session prompt from the pipeline champion's four
+uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
+
+# Eval one sdk prompt on a split (run name sdk-evalloop-<split><N>-sdk_vN-<stamp>)
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk --concurrency 4
+
+# Finish a pass the CLI refused part way through (see "Refusals" below)
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+  --resume-from evaluation/predictions/evalloop/<partial>.csv
+
+# One SDK experiment: draw -> diagnose -> rank classes -> rewrite -> gate -> decide
+EVAL_MANIFEST=eval_loop_v2 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
+  uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk --baseline-gate-csv <sdk_test.csv>
+uv run convfinqa-evalloop campaign-status --campaign s01        # runtime, targets (failure classes), single_area_mode
+
+# The underlying commands
+uv run convfinqa-evalloop diagnose --csv <sdk_run.csv> --version sdk_v1 --runtime agent_sdk
+uv run convfinqa-evalloop propose --diagnoses <d.jsonl> --base-version sdk_v1 --new-version sdk_v2 \
+  --runtime agent_sdk [--max-areas 1]
+uv run convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> \
+  --baseline-csv A.csv --candidate-csv B.csv --baseline-version sdk_v1 --candidate-version sdk_v2 --promote
+  # judges overall accuracy; --promote moves sdk_champion, refused on train evidence
+
+# The ledgers
+uv run convfinqa-evalloop backfill-ledgers [--no-mlflow]      # seed the three files from per-run diagnoses + MLflow
+uv run convfinqa-evalloop ledger-trace --question-id <id>     # diagnoses -> rewrites -> gates for one case
+uv run convfinqa-evalloop ledger-trace --edit-id <id>         # one edit, the cases behind it, its verdicts
+uv run convfinqa-evalloop story                               # also renders docs/optimization/agent-sdk.html
+```
+
+`story.json` gains `sdk_champion`, `sdk_campaigns` (targets are failure
+classes) and `runtime_comparison` (`pipeline` / `agent_sdk` arms on the gate
+split + the cross-runtime `gate` row, every field `None` until an SDK run
+exists); `GET /eval/campaigns` serves them as additive keys.
+
+**Refusals: a rate-limited turn is unscored, never wrong** (2026-09-05). The
+`claude` CLI answers a spent account with prose (`You've hit your session limit
+· resets 5:40pm`, `Credit balance is too low`), which is *no* answer — a live
+349-question pass scored 176 of them as wrong and reported 44.4%.
+`backends/agent_sdk.py::RATE_LIMIT_MARKERS` matches those texts on any reply
+that did not arrive as a structured object and raises `SdkRateLimitError`,
+which is **never retried** (the correction buys the same refusal) and **aborts
+the conversation** (the session is spent). Three consequences, all pinned by
+`tests/test_sdk_resume.py`:
+
+- **Unscored, not wrong.** Those rows carry `unscored=True` (trailing column),
+  empty `pred_answer` and `error` prefixed `rate_limited: `; accuracy,
+  `n_wrong`, `program_accuracy`, the per-agent panel and the `accuracy_by_*`
+  slices are all computed over the scored subset, so an unattempted turn is
+  absent from the numerator *and* the denominator.
+- **Incomplete passes cannot be gated.** Metrics `n_scored` / `n_unscored` /
+  `n_rate_limited` / `complete`, MLflow tag `incomplete=true` and param
+  `unscored_rows`, `complete` + `n_unscored` in the summary, and a loud closing
+  line. `gate.load_run_csv` — the one door `gate.py` and `sdk_gate.py` both
+  come through — raises `IncompleteRunError` naming the file and the count.
+  There is no override. A CSV predating the column loads unchanged.
+- **A conversation is reused whole or re-run whole.** `run --resume-from <csv>`
+  copies every conversation the prior CSV answered completely through verbatim
+  (original `run_id`/`trace_id`, plus `resumed_from_run_id`) and re-runs the
+  rest from turn 0 — a session's later turns depend on its earlier ones, so a
+  half-finished conversation is never stitched. Split, version, runtime and the
+  report set are checked first; params `resumed_from` /
+  `n_reused_conversations` and metric `n_reused_questions` are logged, and the
+  panel is re-scored over the whole frame.
 
 ## Validation Baseline
 

@@ -141,8 +141,16 @@ def _composition_fields(version: str) -> dict[str, str]:
     Degrades to nothing for a version whose module cannot be loaded.
     """
     try:
+        import convfinqa.prompts as prompts_pkg
         from convfinqa.tracking import prompt_ledger
 
+        if prompts_pkg.is_sdk_version(version):
+            # A single-session prompt has one lineage, not four: `s2@abcd1234`.
+            entry = prompt_ledger.resolve_sdk(version)
+            return {
+                "composition": prompt_ledger.sdk_composition_string(entry),
+                "v_sdk": f"{entry['seq']}@{entry['hash']}",
+            }
         comp = prompt_ledger.resolve(version)
     except Exception:  # noqa: BLE001 — identity extras must never break a fingerprint
         return {}

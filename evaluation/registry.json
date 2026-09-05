@@ -389,10 +389,59 @@
       ],
       "composition": "t2.p9.r5.c2",
       "campaign": "c03"
+    },
+    {
+      "version": "sdk_v1",
+      "registered_at": "2026-09-05T03:21:07.518128+00:00",
+      "source": "evalloop",
+      "bundle_id": "9ab19d721bfe",
+      "bundle": {
+        "prompts_version": "sdk_v1",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "4ced811",
+        "composition": "s1",
+        "v_sdk": "s1@5e96f2bf"
+      },
+      "runs": [
+        "abb9420e7af743e2a896ea87ffc9b5ea",
+        "83094143a8ed4bb69402aecef0205a57",
+        "bb4a41b2e4164fc9a4cefdc6843cd4d1",
+        "4d56d6f5c8e04d439079cd853558b539",
+        "5344cc1fc70f4237ab13691b7feffb7a",
+        "07970a312c7d4ee2b4566e4429eb5055",
+        "862eb34c8bdc402b85751d432b453f2f"
+      ],
+      "metrics": {},
+      "notes": ""
+    },
+    {
+      "version": "sdk_v2",
+      "registered_at": "2026-09-05T08:41:12.249264+00:00",
+      "source": "evalloop",
+      "bundle_id": "a68db95ae540",
+      "bundle": {
+        "prompts_version": "sdk_v2",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "4ced811",
+        "composition": "s2",
+        "v_sdk": "s2@75589c9a"
+      },
+      "runs": [
+        "e55d8cdc3d5245bba04a94459e0d140e"
+      ],
+      "metrics": {},
+      "notes": ""
     }
   ],
   "aliases": {
-    "champion": "v8"
+    "champion": "v8",
+    "sdk_champion": "sdk_v1"
   },
   "history": [
     {
@@ -1277,6 +1326,415 @@
         },
         "notes": []
       }
+    },
+    {
+      "at": "2026-09-05T08:01:16.760415+00:00",
+      "event": "promote_sdk",
+      "alias": "sdk_champion",
+      "version": "sdk_v1",
+      "previous_champion": null,
+      "actor": "evalloop-cycle-sdk",
+      "forced": false,
+      "reason": "P3 diagnostic baseline: first sdk version becomes sdk_champion so campaign s01 has a baseline arm. Unoptimised SDK 90.54% vs optimised pipeline v8 81.66% on test100 (+8.88pp, 38 fixed vs 7 broken, clustered one-sided McNemar p=0.0003, 95% CI [+4.20pp, +13.71pp]).",
+      "evidence_split": "test",
+      "comparison": {
+        "baseline_version": "v8",
+        "candidate_version": "sdk_v1",
+        "baseline_accuracy": 0.816619,
+        "candidate_accuracy": 0.905444,
+        "baseline_accuracy_all": 0.816619,
+        "candidate_accuracy_all": 0.905444,
+        "accuracy_delta": 0.088825,
+        "n_compared": 349,
+        "accuracy_ok": true,
+        "no_regressions": false,
+        "pass_to_fail": 7,
+        "fail_to_pass": 38,
+        "mcnemar_p": 3e-06,
+        "mcnemar_p_one_sided": 2e-06,
+        "cluster_z": 3.4444,
+        "cluster_p_one_sided": 0.000286,
+        "n_clusters": 30,
+        "significant": true,
+        "promotable": true,
+        "promotable_significant": true,
+        "reason": "net positive: 81.7% \u2192 90.5% (+8.88%) on the shared set, 38 fixed vs 7 broken; McNemar p=0.000 (significant at \u03b1=0.05)",
+        "regressions": [
+          {
+            "report_id": "Double_CB/2010/page_113.pdf",
+            "q_order": 0,
+            "question": "what is the cash used from investing activities in 2010?",
+            "gold_answer": "4.2",
+            "baseline_answer": "4.2",
+            "candidate_answer": "4.2 billion"
+          },
+          {
+            "report_id": "Double_CB/2010/page_113.pdf",
+            "q_order": 1,
+            "question": "what about in 2009?",
+            "gold_answer": "3.2",
+            "baseline_answer": "3.2",
+            "candidate_answer": "3.2 billion"
+          },
+          {
+            "report_id": "Single_JPM/2014/page_65.pdf-1",
+            "q_order": 2,
+            "question": "what is that change over 100?",
+            "gold_answer": "67.48%",
+            "baseline_answer": "0.6747999999999998",
+            "candidate_answer": "67.5%"
+          },
+          {
+            "report_id": "Single_UNP/2006/page_62.pdf-3",
+            "q_order": 3,
+            "question": "what is the value for capital leases?",
+            "gold_answer": "1916",
+            "baseline_answer": "1916.0",
+            "candidate_answer": "1236.0"
+          },
+          {
+            "report_id": "Single_UNP/2006/page_62.pdf-3",
+            "q_order": 4,
+            "question": "what is that over the sum?",
+            "gold_answer": "26%",
+            "baseline_answer": "0.2598670825986708",
+            "candidate_answer": "0.17"
+          },
+          {
+            "report_id": "Single_ZBH/2013/page_68.pdf-3",
+            "q_order": 3,
+            "question": "and as a decimal?",
+            "gold_answer": ".01297",
+            "baseline_answer": "0.012971698",
+            "candidate_answer": "1.0129716981132078"
+          },
+          {
+            "report_id": "Single_IPG/2009/page_67.pdf-4",
+            "q_order": 3,
+            "question": "what is the percent change times 100?",
+            "gold_answer": "1.47",
+            "baseline_answer": "1.0%",
+            "candidate_answer": "-147.1"
+          }
+        ],
+        "improvements": [
+          {
+            "report_id": "Double_STZ/2005/page_57.pdf",
+            "q_order": 1,
+            "question": "what portion of the net asset acquired is from goodwill?",
+            "gold_answer": "56.7%",
+            "baseline_answer": "no",
+            "candidate_answer": "56.7%"
+          },
+          {
+            "report_id": "Double_BLK/2016/page_35.pdf",
+            "q_order": 2,
+            "question": "what is the asset allocation and balanced as a percentage of the total component changes in multi-asset aum in 2015?",
+            "gold_answer": "49.4%",
+            "baseline_answer": "no",
+            "candidate_answer": "49.4%"
+          },
+          {
+            "report_id": "Double_VRTX/2005/page_112.pdf",
+            "q_order": 1,
+            "question": "what was the percentage of total common stock under the vertex 401(k) plan?",
+            "gold_answer": "1.4%",
+            "baseline_answer": "270.0",
+            "candidate_answer": "1.4%"
+          },
+          {
+            "report_id": "Double_SLG/2012/page_87.pdf",
+            "q_order": 1,
+            "question": "what was the company's share of the value of the 521 fifth avenue acquisition, based on the transaction cost?",
+            "gold_answer": "122.6043",
+            "baseline_answer": "0.2722220709877383",
+            "candidate_answer": "123.0957"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 1,
+            "question": "what about the effect of others?",
+            "gold_answer": "-6",
+            "baseline_answer": "6.0",
+            "candidate_answer": "-6"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 2,
+            "question": "what is the total change in the balance of allowance for doubtful accounts during 2015?",
+            "gold_answer": "-2",
+            "baseline_answer": "10",
+            "candidate_answer": "-2"
+          },
+          {
+            "report_id": "Single_GPN/2015/page_82.pdf-4",
+            "q_order": 0,
+            "question": "what is the total income tax benefit in 2015 and 2014?",
+            "gold_answer": "14",
+            "baseline_answer": "6.9 and 7.1",
+            "candidate_answer": "14.0"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 4,
+            "question": "how much, then, does that change represent in relation to this 2011 return, in percentage?",
+            "gold_answer": "78%",
+            "baseline_answer": "104.0%",
+            "candidate_answer": "78.0%"
+          },
+          {
+            "report_id": "Single_ETR/2008/page_314.pdf-3",
+            "q_order": 4,
+            "question": "what proportion of total revenue does this represent?",
+            "gold_answer": "76.5%",
+            "baseline_answer": "3.8%",
+            "candidate_answer": "76.5%"
+          },
+          {
+            "report_id": "Single_MO/2014/page_76.pdf-2",
+            "q_order": 0,
+            "question": "what is the sum of the number of individual smoking and health cases and smoking and health class actions and aggregated claims litigation in 2013?",
+            "gold_answer": "73",
+            "baseline_answer": "79",
+            "candidate_answer": "73"
+          },
+          {
+            "report_id": "Single_MO/2014/page_76.pdf-2",
+            "q_order": 2,
+            "question": "what is the sum?",
+            "gold_answer": "74",
+            "baseline_answer": "80",
+            "candidate_answer": "74"
+          },
+          {
+            "report_id": "Single_MO/2014/page_76.pdf-2",
+            "q_order": 3,
+            "question": "what is the total sum including 201clights/ultra lights 201d class actions?",
+            "gold_answer": "89",
+            "baseline_answer": "110",
+            "candidate_answer": "89"
+          },
+          {
+            "report_id": "Single_BDX/2016/page_21.pdf-1",
+            "q_order": 1,
+            "question": "what is the number of square feet leased?",
+            "gold_answer": "2223245",
+            "baseline_answer": "5146502",
+            "candidate_answer": "2223245"
+          },
+          {
+            "report_id": "Single_BDX/2016/page_21.pdf-1",
+            "q_order": 2,
+            "question": "what is the sum?",
+            "gold_answer": "9412897",
+            "baseline_answer": "12336154",
+            "candidate_answer": "9412897"
+          },
+          {
+            "report_id": "Single_CAT/2017/page_136.pdf-1",
+            "q_order": 2,
+            "question": "what is the net change?",
+            "gold_answer": "-1782",
+            "baseline_answer": "1782",
+            "candidate_answer": "-1782"
+          },
+          {
+            "report_id": "Single_CAT/2017/page_136.pdf-1",
+            "q_order": 3,
+            "question": "what is the net change over the 2016 value?",
+            "gold_answer": "-14%",
+            "baseline_answer": "14.0%",
+            "candidate_answer": "-13.9%"
+          },
+          {
+            "report_id": "Single_C/2016/page_120.pdf-1",
+            "q_order": 1,
+            "question": "so what was the percentage increase of this value?",
+            "gold_answer": "7.1%",
+            "baseline_answer": "no",
+            "candidate_answer": "7.1%"
+          },
+          {
+            "report_id": "Single_PNC/2012/page_96.pdf-4",
+            "q_order": 3,
+            "question": "what fraction change does this represent?",
+            "gold_answer": "0.1797",
+            "baseline_answer": "-18.0%",
+            "candidate_answer": "-0.18"
+          },
+          {
+            "report_id": "Single_UNP/2008/page_83.pdf-3",
+            "q_order": 3,
+            "question": "what is the ratio of capital leases to the sum?",
+            "gold_answer": "24%",
+            "baseline_answer": "0.24311515306775972",
+            "candidate_answer": "0.24"
+          },
+          {
+            "report_id": "Double_APTV/2015/page_47.pdf",
+            "q_order": 0,
+            "question": "what portion of the total facilities are in europe middle east& africa?",
+            "gold_answer": "39%",
+            "baseline_answer": "0.3888888888888889",
+            "candidate_answer": "38.9%"
+          },
+          {
+            "report_id": "Double_APTV/2015/page_47.pdf",
+            "q_order": 1,
+            "question": "what about in asia pacific?",
+            "gold_answer": "26%",
+            "baseline_answer": "0.2619047619047619",
+            "candidate_answer": "26.2%"
+          },
+          {
+            "report_id": "Single_LMT/2014/page_49.pdf-1",
+            "q_order": 0,
+            "question": "what was the change in net sales for mst from 2013 to 2014?",
+            "gold_answer": "-6",
+            "baseline_answer": "6",
+            "candidate_answer": "-6"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 2,
+            "question": "what about in 2008?",
+            "gold_answer": "2196",
+            "baseline_answer": "2.825591985428051",
+            "candidate_answer": "2196"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 3,
+            "question": "what is the net change?",
+            "gold_answer": "276",
+            "baseline_answer": "0.9361394061577095",
+            "candidate_answer": "276"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 4,
+            "question": "what growth rate does this represent?",
+            "gold_answer": "12.6%",
+            "baseline_answer": "33.1%",
+            "candidate_answer": "12.6%"
+          },
+          {
+            "report_id": "Single_IP/2007/page_30.pdf-1",
+            "q_order": 0,
+            "question": "what is 2017 north american printing paper sales by 1000?",
+            "gold_answer": "3500",
+            "baseline_answer": "0.0035",
+            "candidate_answer": "3500"
+          },
+          {
+            "report_id": "Single_IP/2007/page_30.pdf-1",
+            "q_order": 1,
+            "question": "what is that divided by 2007 sales?",
+            "gold_answer": "54%",
+            "baseline_answer": "0.0000005359877488514548",
+            "candidate_answer": "0.54"
+          },
+          {
+            "report_id": "Single_UA/2011/page_54.pdf-1",
+            "q_order": 2,
+            "question": "what was, then, in thousands, the change in unrealized foreign currency exchange rate gains ( losses ) from 2010 to 2011?",
+            "gold_answer": "-2747",
+            "baseline_answer": "2747.0",
+            "candidate_answer": "-2747"
+          },
+          {
+            "report_id": "Single_UA/2011/page_54.pdf-1",
+            "q_order": 4,
+            "question": "how much, then, does that change represent in relation to this 2010 total, in percentage?",
+            "gold_answer": "215%",
+            "baseline_answer": "-214.6%",
+            "candidate_answer": "214.6%"
+          },
+          {
+            "report_id": "Double_ECL/2017/page_96.pdf",
+            "q_order": 2,
+            "question": "and over the next year, from 2017 to 2018, what was the change in the total rental expense under the company 2019s operating leases?",
+            "gold_answer": "-108",
+            "baseline_answer": "no",
+            "candidate_answer": "-108"
+          },
+          {
+            "report_id": "Single_IP/2012/page_58.pdf-1",
+            "q_order": 2,
+            "question": "how much does this total represent, in percentage, in relation to the total of distribution sales?",
+            "gold_answer": "58%",
+            "baseline_answer": "0.1%",
+            "candidate_answer": "57.9%"
+          },
+          {
+            "report_id": "Double_AES/2010/page_133.pdf",
+            "q_order": 0,
+            "question": "what portion of total mw from acquired or commenced commercial operations in 2010 are related to ballylumford in the united kingdom?",
+            "gold_answer": "52%",
+            "baseline_answer": "0.5183028286189684",
+            "candidate_answer": "51.8%"
+          },
+          {
+            "report_id": "Double_AES/2010/page_133.pdf",
+            "q_order": 1,
+            "question": "what about related to nueva ventana?",
+            "gold_answer": "11%",
+            "baseline_answer": "0.11314475873544093",
+            "candidate_answer": "11.3%"
+          },
+          {
+            "report_id": "Double_L/2007/page_213.pdf",
+            "q_order": 1,
+            "question": "and during that same year, considering the total income tax expense and the percentage of the income before tax it represents, what was the total amount of this income before tax?",
+            "gold_answer": "4574.3",
+            "baseline_answer": "no",
+            "candidate_answer": "4574.3"
+          },
+          {
+            "report_id": "Single_ETR/2017/page_35.pdf-1",
+            "q_order": 0,
+            "question": "what was the net change in the debt-to-capital ratio from 2016 to 2017?",
+            "gold_answer": "2.3",
+            "baseline_answer": "-2.299999999999997",
+            "candidate_answer": "2.3"
+          },
+          {
+            "report_id": "Double_CAT/2017/page_113.pdf",
+            "q_order": 0,
+            "question": "what is the expected change in the amortization expense related to intangible assets from 2017 to 2018?",
+            "gold_answer": "-1",
+            "baseline_answer": "nan",
+            "candidate_answer": "-1"
+          },
+          {
+            "report_id": "Double_CAT/2017/page_113.pdf",
+            "q_order": 1,
+            "question": "and what is this change as a portion of that expense in 2017?",
+            "gold_answer": "-.03%",
+            "baseline_answer": "nan",
+            "candidate_answer": "-0.3%"
+          },
+          {
+            "report_id": "Double_CAT/2017/page_113.pdf",
+            "q_order": 2,
+            "question": "and in the previous year, what was the total of pre impairment goodwill in millions for surface mining & technology?",
+            "gold_answer": "1224",
+            "baseline_answer": "nan",
+            "candidate_answer": "1224"
+          }
+        ],
+        "slice_deltas": {
+          "gold_turn_type": {
+            "Number": 0.0,
+            "Program": 0.130252
+          },
+          "gold_conv_type": {
+            "Type I": 0.063333,
+            "Type II": 0.244898
+          }
+        },
+        "notes": []
+      }
     }
   ],
   "agent_prompts": {
@@ -1477,5 +1935,25 @@
         "run_id": ""
       }
     ]
-  }
+  },
+  "sdk_prompts": [
+    {
+      "seq": "s1",
+      "hash": "5e96f2bf",
+      "first_seen_in": "sdk_v1",
+      "parent": null,
+      "source": "distil",
+      "registered_at": "2026-09-05T03:20:09.633660+00:00",
+      "run_id": "bc1145b9ccd742809898b207b37afd19"
+    },
+    {
+      "seq": "s2",
+      "hash": "75589c9a",
+      "first_seen_in": "sdk_v2",
+      "parent": "s1",
+      "source": "sdk_teacher",
+      "registered_at": "2026-09-05T08:28:11.865511+00:00",
+      "run_id": "5970fd3c29804bc99d9829c21c0a7fe0"
+    }
+  ]
 }

@@ -188,6 +188,35 @@ class _Recorder:
         for key, value in values.items():
             self.metric(key, value)
 
+    def tag(self, key: str, value: str) -> None:
+        """Set one tag on the open run.
+
+        For facts a run only learns about itself while it is running — that it
+        came out incomplete, say — which cannot be passed to `run()` up front
+        and must not be left off the record for that reason.
+        """
+        try:
+            self._mlflow.set_tag(key, value)
+        except Exception:
+            log.warning(
+                "mlflow: failed to set tag %r for run %s",
+                key,
+                self.run_id,
+                exc_info=True,
+            )
+
+    def param(self, key: str, value: Any) -> None:
+        """Log one param on the open run, for the same reason as `tag`."""
+        try:
+            self._mlflow.log_param(key, str(value))
+        except Exception:
+            log.warning(
+                "mlflow: failed to log param %r for run %s",
+                key,
+                self.run_id,
+                exc_info=True,
+            )
+
     def artifact(self, path: Path | str) -> None:
         """Attach a file to the run, if it exists."""
         candidate = Path(path)
@@ -243,6 +272,12 @@ class _NullRecorder:
 
     def metrics(self, values: dict[str, float]) -> None:
         """Discard the metrics."""
+
+    def tag(self, key: str, value: str) -> None:
+        """Discard the tag."""
+
+    def param(self, key: str, value: Any) -> None:
+        """Discard the param."""
 
     def artifact(self, path: Path | str) -> None:
         """Discard the artifact."""

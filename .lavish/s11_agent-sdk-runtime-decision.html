@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>s11 · Agent SDK eval loop — the runtime decision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ground:#191b1f;--panel:#212429;--panel-2:#2a2e34;--line:#32363d;--line-2:#434850;--text:#e8e9ea;--muted:#b6bbc2;--faint:#9ba1ab;--amber:#f0a93f;--good:#4ecb9d;--bad:#ef8282;--info:#74adf2;--violet:#ab92f2;--ui:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--maxw:1100px}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--ground);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.55}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:40px 24px 96px}
+h1{font-size:30px;line-height:1.2;margin:8px 0 12px;letter-spacing:-.01em}
+h2{font-size:21px;margin:56px 0 14px;padding-top:18px;border-top:1px solid var(--line);letter-spacing:-.005em}
+h3{font-size:16px;margin:26px 0 8px}
+h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+p{margin:8px 0}
+a{color:var(--info)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.lede{font-size:17px;color:var(--muted);max-width:820px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.metrics{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));margin:14px 0}
+.metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.metric .v{font-family:var(--mono);font-size:22px;font-weight:600}
+.metric .k{font-size:12px;color:var(--faint);margin-top:2px}
+.metric .s{font-size:12px;color:var(--muted);margin-top:4px}
+.scroll-x{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+tr.hi td{background:rgba(78,203,157,.07)}
+td code,p code,li code{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;white-space:nowrap}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:#15171a;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;max-width:100%;margin:10px 0;white-space:pre}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;margin-right:4px}
+.chip.good{color:var(--good);border-color:rgba(78,203,157,.45)}
+.chip.bad{color:var(--bad);border-color:rgba(239,130,130,.45)}
+.chip.info{color:var(--info);border-color:rgba(116,173,242,.45)}
+.chip.amber{color:var(--amber);border-color:rgba(240,169,63,.5)}
+.chip.violet{color:var(--violet);border-color:rgba(171,146,242,.5)}
+.callout{border-left:3px solid var(--amber);background:rgba(240,169,63,.06);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.bad{border-color:var(--bad);background:rgba(239,130,130,.06)}
+.callout.good{border-color:var(--good);background:rgba(78,203,157,.06)}
+.callout.info{border-color:var(--info);background:rgba(116,173,242,.06)}
+.toc{display:grid;gap:4px 18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));font-size:14px;margin:18px 0 0}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover{color:var(--text)}
+.toc .n{font-family:var(--mono);color:var(--amber);margin-right:8px}
+ul,ol{padding-left:22px;margin:8px 0}
+li{margin:4px 0}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.verdict{background:linear-gradient(180deg,rgba(78,203,157,.10),rgba(78,203,157,.03));border:1px solid rgba(78,203,157,.4);border-radius:12px;padding:22px 24px;margin:18px 0}
+.verdict .h{font-size:23px;font-weight:600;letter-spacing:-.005em;margin:0 0 6px}
+figure{margin:14px 0}
+figure svg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+figcaption{font-size:13px;color:var(--faint);margin-top:8px;max-width:820px}
+.two{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.arm{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.arm.win{border-color:rgba(78,203,157,.45)}
+.arm .big{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.footer{margin-top:64px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="eyebrow">s11 · results &amp; runtime decision · branch agent-sdk-experiment · 2026-09-06</div>
+<h1>One Claude session beat four tuned DeepSeek agents — and its first prompt was its best</h1>
+<p class="lede">The Agent SDK arm answers the same 349 gate questions as the pipeline, through the same evaluator, the same paired significance rule and the same append-only record. It scores <strong>90.54%</strong> against the optimised pipeline's <strong>81.66%</strong>. The whole gain sits on the turns that require arithmetic. The prompt that achieved it was written once, by distilling the pipeline's four tuned prompts into one, and the optimisation loop that produced the pipeline's own champion could not improve on it.</p>
+
+<div class="toc">
+  <div><span class="n">01</span><a href="#decision">The decision</a></div>
+  <div><span class="n">02</span><a href="#progression">The progression</a></div>
+  <div><span class="n">03</span><a href="#where">Where the difference is</a></div>
+  <div><span class="n">04</span><a href="#arch">The two architectures</a></div>
+  <div><span class="n">05</span><a href="#peak">Distillation was the peak</a></div>
+  <div><span class="n">06</span><a href="#system">What made this measurable</a></div>
+  <div><span class="n">07</span><a href="#caveats">Caveats</a></div>
+  <div><span class="n">08</span><a href="#next">What ships next</a></div>
+</div>
+
+<h2 id="decision">01 · The decision</h2>
+
+<div class="verdict">
+  <p class="h">Move the runtime to <code>agent_sdk</code>.</p>
+  <p class="muted" style="margin:0">The paired comparison clears the promotion rule on the split that has judged every campaign in this project, and it clears it by a margin no pipeline experiment has come close to. The alias <code>sdk_champion</code> holds <code>sdk_v1</code>; the pipeline's <code>champion</code> is still <code>v8</code> and nothing about serving has changed yet.</p>
+  <div class="metrics" style="margin-top:16px">
+    <div class="metric"><div class="v good">+8.88pp</div><div class="k">paired delta</div><div class="s">81.66% → 90.54%</div></div>
+    <div class="metric"><div class="v">0.0003</div><div class="k">one-sided clustered p</div><div class="s">α = 0.05 · z = 3.44</div></div>
+    <div class="metric"><div class="v">38 / 7</div><div class="k">fixed / broken</div><div class="s">over 30 conversations</div></div>
+    <div class="metric"><div class="v">349</div><div class="k">paired questions</div><div class="s">100 reports · zero errors</div></div>
+    <div class="metric"><div class="v">[+4.2, +13.7]</div><div class="k">95% CI on Δ</div><div class="s">entirely above zero</div></div>
+  </div>
+</div>
+
+<p>The rule is the project's existing one and was not relaxed for this: net positive <em>and</em> one-sided cluster-corrected McNemar below 0.05, clustered by conversation because turns in a report share a history and usually share an error. Three pipeline versions were rolled back in this project for passing a weaker rule; this result passes the strict one with p three orders of magnitude below the threshold.</p>
+
+<h2 id="progression">02 · The progression</h2>
+
+<p>Five points, in the order they happened. Everything from <code>v2</code> rightwards is measured on this project's own 349-question gate split; the two published figures on the left come from the paper and are shown for orientation, not as like-for-like.</p>
+
+<figure>
+<svg viewBox="0 0 1000 430" role="img" aria-labelledby="prog-t prog-d">
+  <title id="prog-t">Execution accuracy across five stages, from the paper's baselines to the Agent SDK runtime</title>
+  <desc id="prog-d">Bars: paper's best model derived 66.3 percent, multi-agent raw v2 77.08 percent, multi-agent optimised v8 81.66 percent, SDK distilled sdk_v1 90.54 percent, and the rejected SDK optimisation attempt sdk_v2 87.68 percent. A dashed line marks the paper's human expert execution accuracy of 89.44 percent, which only the SDK distilled bar exceeds.</desc>
+
+  <!-- y grid + labels: 40% .. 100% mapped to y 360 .. 40 -->
+  <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#9ba1ab">
+    <line x1="118" y1="360" x2="960" y2="360" stroke="#434850"/>
+    <text x="106" y="364" text-anchor="end">40%</text>
+    <line x1="118" y1="253.3" x2="960" y2="253.3" stroke="#32363d" stroke-dasharray="2 4"/>
+    <text x="106" y="257.3" text-anchor="end">60%</text>
+    <line x1="118" y1="146.7" x2="960" y2="146.7" stroke="#32363d" stroke-dasharray="2 4"/>
+    <text x="106" y="150.7" text-anchor="end">80%</text>
+    <line x1="118" y1="40" x2="960" y2="40" stroke="#32363d" stroke-dasharray="2 4"/>
+    <text x="106" y="44" text-anchor="end">100%</text>
+  </g>
+
+  <!-- human reference line: 89.44% -> y = 360 - (89.44-40)*5.3333 = 96.3 -->
+  <g id="human-line">
+    <title>Human expert execution accuracy, 89.44% (Chen et al. 2022) — a published figure on the paper's own test set</title>
+    <line x1="118" y1="96.3" x2="960" y2="96.3" stroke="#f0a93f" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <text x="956" y="88" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#f0a93f">human expert 89.44% · Chen et al. 2022</text>
+  </g>
+
+  <!-- bars -->
+  <!-- x centres: 190, 340, 490, 660, 830 ; width 96 -->
+  <g id="bar-paper">
+    <title>Paper's best model: 66.3% overall, derived from the published 72.37% simple / 52.38% hybrid figures weighted by the dataset's conversation mix — not a published overall number</title>
+    <rect x="142" y="219.6" width="96" height="140.4" rx="3" fill="#434850"/>
+    <text x="190" y="209.6" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#b6bbc2">66.3%*</text>
+  </g>
+  <g id="bar-v2">
+    <title>Multi-agent raw: v2, 77.08% — the champion the campaigns started from</title>
+    <rect x="292" y="162.2" width="96" height="197.8" rx="3" fill="#74adf2" opacity="0.55"/>
+    <text x="340" y="152" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#dbe3ee">77.08%</text>
+  </g>
+  <g id="bar-v8">
+    <title>Multi-agent optimised: v8, 81.66% — three campaigns, seven experiments, one promotion</title>
+    <rect x="442" y="137.8" width="96" height="222.2" rx="3" fill="#74adf2"/>
+    <text x="490" y="127.8" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#dbe3ee">81.66%</text>
+  </g>
+  <g id="bar-sdk1">
+    <title>SDK distilled: sdk_v1, 90.54% — one prompt distilled from the pipeline's four, never optimised</title>
+    <rect x="612" y="90.5" width="96" height="269.5" rx="3" fill="#4ecb9d"/>
+    <text x="660" y="80.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600" fill="#4ecb9d">90.54%</text>
+  </g>
+  <g id="bar-sdk2">
+    <title>SDK optimisation attempt: sdk_v2, 87.68% — three tagged edits, rejected by the gate at −2.87pp</title>
+    <rect x="782" y="105.7" width="96" height="254.3" rx="3" fill="#4ecb9d" opacity="0.30" stroke="#ef8282" stroke-dasharray="4 3"/>
+    <text x="830" y="95.7" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="#ef8282">87.68%</text>
+  </g>
+
+  <!-- arm brackets -->
+  <g stroke="#434850" fill="none">
+    <path d="M292 378 L292 386 L538 386 L538 378"/>
+    <path d="M612 378 L612 386 L878 386 L878 378"/>
+  </g>
+  <g font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#9ba1ab" text-anchor="middle">
+    <text x="415" y="402">multi-agent · 4 DeepSeek agents</text>
+    <text x="745" y="402">agent_sdk · 1 Claude session</text>
+  </g>
+
+  <!-- x labels -->
+  <g font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="#b6bbc2" text-anchor="middle">
+    <text x="190" y="378">paper best*</text>
+    <text x="340" y="378">raw · v2</text>
+    <text x="490" y="378">optimised · v8</text>
+    <text x="660" y="378">distilled · sdk_v1</text>
+    <text x="830" y="378">optimised? · sdk_v2</text>
+  </g>
+
+  <text x="18" y="200" transform="rotate(-90 18 200)" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="#9ba1ab" text-anchor="middle">execution accuracy</text>
+</svg>
+<figcaption><strong>*</strong> The paper reports 72.37% on simple and 52.38% on hybrid conversations for its best model but no combined figure; 66.3% is those two weighted by the dataset's 2715/1177 conversation mix, and is shown only for orientation. The paper's and human figures are measured on the paper's held-out test set, ours on a 349-question split drawn from the train pool, so the left two points are not a like-for-like baseline for the right three. The dashed <span class="chip amber">sdk_v2</span> outline marks a version the gate rejected: it is on the chart because it is the evidence that the loop could not improve the distilled prompt, not because it is a candidate.</figcaption>
+</figure>
+
+<div class="scroll-x">
+<table>
+<thead><tr>
+  <th>stage</th><th>version</th><th class="num">all&nbsp;349</th><th class="num">number&nbsp;111</th><th class="num">program&nbsp;238</th><th class="num">Type&nbsp;I</th><th class="num">Type&nbsp;II</th><th>status</th>
+</tr></thead>
+<tbody>
+  <tr><td>human expert <span class="faint">(published)</span></td><td class="faint">Chen et al. 2022</td><td class="num">89.44%</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td><span class="chip amber">paper</span></td></tr>
+  <tr><td>paper best model <span class="faint">(published)</span></td><td class="faint">Chen et al. 2022</td><td class="num">66.3%*</td><td class="num">—</td><td class="num">—</td><td class="num">72.37%</td><td class="num">52.38%</td><td><span class="chip amber">paper</span></td></tr>
+  <tr><td>multi-agent, raw</td><td><code>v2</code></td><td class="num">77.08%</td><td class="num">92.79%</td><td class="num">69.75%</td><td class="num">79.00%</td><td class="num">65.31%</td><td><span class="chip">start of c01</span></td></tr>
+  <tr><td>multi-agent, optimised</td><td><code>v8</code></td><td class="num">81.66%</td><td class="num">95.50%</td><td class="num">75.21%</td><td class="num">84.67%</td><td class="num">63.27%</td><td><span class="chip info">champion</span></td></tr>
+  <tr class="hi"><td>agent_sdk, distilled</td><td><code>sdk_v1</code></td><td class="num"><strong>90.54%</strong></td><td class="num">95.50%</td><td class="num"><strong>88.24%</strong></td><td class="num">91.00%</td><td class="num">87.76%</td><td><span class="chip good">sdk_champion</span></td></tr>
+  <tr><td>agent_sdk, optimisation attempt</td><td><code>sdk_v2</code></td><td class="num">87.68%</td><td class="num">94.59%</td><td class="num">84.45%</td><td class="num">89.33%</td><td class="num">77.55%</td><td><span class="chip bad">rejected −2.87pp</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout info">
+<strong>Raw accuracy is not the promotion rule, and two pipeline versions prove it.</strong>
+<p style="margin:6px 0 0"><code>v10</code> scored 82.23% and <code>v11</code> 83.09% on this same split — both above the champion's 81.66% — and neither was promoted, because neither cleared the significance test. <code>v8</code> is champion because its evidence held, not because its number was highest. The same discipline is what makes the SDK arm's +8.88pp at p=0.0003 worth acting on.</p>
+</div>
+
+<h2 id="where">03 · Where the difference is</h2>
+
+<p>The dataset splits every turn into a lookup and a computation. Reporting only the aggregate would describe neither, because the two behave nothing alike: both arms have saturated the lookup, and the entire delta is carried by the reasoning turns.</p>
+
+<div class="scroll-x">
+<table>
+<thead><tr><th>turn type</th><th class="num">n</th><th class="num">pipeline v8</th><th class="num">sdk_v1</th><th class="num">delta</th><th class="num">fixed / broken</th><th class="num">clustered p</th><th>verdict</th></tr></thead>
+<tbody>
+  <tr class="hi"><td><strong>program</strong> <span class="faint">— needs arithmetic</span></td><td class="num">238</td><td class="num">75.21%</td><td class="num">88.24%</td><td class="num good"><strong>+13.03pp</strong></td><td class="num">35 / 4</td><td class="num">0.000047</td><td><span class="chip good">significant</span></td></tr>
+  <tr><td><strong>number</strong> <span class="faint">— a lookup</span></td><td class="num">111</td><td class="num">95.50%</td><td class="num">95.50%</td><td class="num">+0.00pp</td><td class="num">3 / 3</td><td class="num">0.5</td><td><span class="chip">no effect</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The number-turn slice is not merely small, it is <em>exactly</em> zero: identical accuracy, three fixed against three broken, and a cluster statistic of 0.0000. Whatever the SDK runtime does better, it does not do it by reading values off a page — both arms already do that about as well as the gold labels permit. The 4.5% both arms miss there is the natural place to look for label noise.</p>
+
+<h3>The mechanism, visible in the panel</h3>
+
+<div class="two">
+<div class="arm">
+<h4>where sdk_v1 pulls ahead</h4>
+<table><tbody>
+<tr><td>Type II (hybrid) conversations</td><td class="num">63.27% → <strong class="good">87.76%</strong></td></tr>
+<tr><td>calculator execution</td><td class="num">0.751 → <strong class="good">0.882</strong></td></tr>
+<tr><td>turn-type triage</td><td class="num">0.923 → <strong class="good">0.974</strong></td></tr>
+<tr><td>operand recall</td><td class="num">0.768 → 0.786</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:13.5px">Hybrid conversations chain references across two interleaved problems, and they were the pipeline's worst class by a wide margin. They are where the single session's native history pays: nothing has to be re-rendered into a history block and re-read by a stateless agent.</p>
+</div>
+<div class="arm">
+<h4>what it costs</h4>
+<table><tbody>
+<tr><td>wall clock, 349 questions</td><td class="num">344s → <strong>787s</strong></td></tr>
+<tr><td>throughput</td><td class="num">61 → 27 q/min</td></tr>
+<tr><td>spend per gate pass</td><td class="num">~$1–2 → $27.62*</td></tr>
+<tr><td>process model</td><td class="num">in-process → CLI subprocess</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:13.5px">*API-equivalent as reported by the SDK; the runs were billed as subscription time, not money. Roughly 2.3× the wall clock at concurrency 4, and one <code>claude</code> process per conversation. Acceptable for an experiment, and the reason serving is deliberately out of scope until this decision is taken.</p>
+</div>
+</div>
+
+<h2 id="arch">04 · The two architectures</h2>
+
+<div class="two">
+<div class="arm">
+<h4>multi-agent · what runs today</h4>
+<p style="margin-top:0"><span class="chip info">v8</span><span class="chip">deepseek-v4-flash</span><span class="chip">pydantic-ai</span></p>
+<p>Four stateless agents in a fixed Python-controlled order: triage decides the turn type, preprocess writes sub-questions and a symbolic program, the retriever pulls each operand, the calculator executes through six tools. History is re-rendered into a text block on every turn because no agent holds any.</p>
+<p class="muted" style="font-size:13.5px">Four prompt lineages, ~22k characters total, each tuned separately across three campaigns. One experiment moves exactly one prompt, so every champion move has a named cause.</p>
+</div>
+<div class="arm win">
+<h4>agent_sdk · the challenger</h4>
+<p style="margin-top:0"><span class="chip good">sdk_v1</span><span class="chip">claude-sonnet-5</span><span class="chip">claude_agent_sdk</span></p>
+<p>One Claude session per conversation. The report arrives in the first message, each later turn is just the next question, and the session already holds its own prior tool calls and answers. The six calculator functions are its <em>only</em> tools — triage, planning and retrieval are a train of thought it follows and reports, not a pipeline it is pushed through.</p>
+<p class="muted" style="font-size:13.5px">One prompt lineage, 16.4k characters. It reports its stages in a structured result, so the same gold-derived panel and the same first-fault attribution apply with no new scoring code.</p>
+</div>
+</div>
+
+<div class="callout">
+<strong>Nothing forces the trail, and that is measured too.</strong>
+<p style="margin:6px 0 0">A program turn that reports no plan is counted as a preprocess skip; one that answers with no calculator call is a calculator skip; an answer matching no tool return is counted as inline arithmetic. Across 349 questions <code>sdk_v1</code> recorded 3 stage skips and 5 inline-arithmetic answers — small enough to report as a finding rather than a defect, and visible rather than assumed.</p>
+</div>
+
+<h2 id="peak">05 · Distillation was the peak, and the loop could not beat it</h2>
+
+<p>The first SDK prompt was not hand-written. The teacher agent read the pipeline's four tuned <code>v8</code> prompts plus the dataset notes and distilled them into one document with the train of thought as its spine — dropping the inter-agent plumbing that only exists because the pipeline's agents cannot see each other. That distillation, never optimised, is the 90.54%.</p>
+
+<p>Then the same loop that produced <code>v8</code> was pointed at it. One experiment completed:</p>
+
+<div class="scroll-x">
+<table>
+<thead><tr><th>experiment</th><th>target class</th><th>edits</th><th class="num">Δ</th><th class="num">fixed / broken</th><th class="num">p</th><th>verdict</th></tr></thead>
+<tbody>
+<tr><td><code>s01-e02</code> → <code>sdk_v2</code></td><td>calculator/wrong-format <span class="faint">(top of 3)</span></td><td>3 tagged: calculator criterion, preprocess rule, triage rule</td><td class="num bad">−2.87pp</td><td class="num">6 / 16</td><td class="num">0.917</td><td><span class="chip bad">rejected</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The per-class flip record pins the damage precisely, which is the whole reason multi-area rewrites are allowed to be tagged:</p>
+
+<div class="metrics">
+<div class="metric"><div class="v bad">2 / 9</div><div class="k">preprocess</div><div class="s">fixed / broken — the culprit</div></div>
+<div class="metric"><div class="v">2 / 4</div><div class="k">calculator</div><div class="s">the targeted class, also negative</div></div>
+<div class="metric"><div class="v">1 / 2</div><div class="k">triage</div><div class="s">no help</div></div>
+<div class="metric"><div class="v">1 / 1</div><div class="k">retriever</div><div class="s">untouched, churn only</div></div>
+</div>
+
+<p>A second experiment was attempted and died at the rewrite step on a subscription session limit, writing no version and no verdict — the append-only ledgers recorded the diagnosis work and nothing false. The campaign is capped at <strong>2 experiments</strong> for this arm, so <code>s01</code> is closed with <code>sdk_v1</code> still champion.</p>
+
+<div class="callout good">
+<strong>The interesting result is not that the loop failed — it is what the failure says.</strong>
+<p style="margin:6px 0 0">The pipeline needed three campaigns and seven experiments to climb 77.08% → 81.66%. The SDK arm reached 90.54% with a prompt written once, and the loop's best attempt made it worse. Read together: the knowledge in those four tuned prompts transferred, and what the pipeline's campaigns had been buying was largely compensation for its own architecture — the inter-agent plumbing, the re-rendered history, the stateless hand-offs. Remove the architecture and much of the tuning becomes unnecessary rather than additive. With 33 wrong turns left, some of them suspect gold labels, there is also very little headroom left for a prompt edit to find.</p>
+</div>
+
+<h2 id="system">06 · What made this measurable</h2>
+
+<p>The comparison is the deliverable here, more than either number. Two runtimes that share nothing — different provider, different process model, different control flow — were made comparable because the loop and the tracking store fix everything except the thing under test:</p>
+
+<div class="grid">
+<div class="card"><h3>One fixed split</h3><p class="muted" style="margin:0">Both arms answer the same 349 questions from the same 100 reports, drawn from a committed manifest. Paired per question, so the test is on the same items and not on two samples.</p></div>
+<div class="card"><h3>One evaluator, one panel</h3><p class="muted" style="margin:0">The SDK agent reports its stages into the same capture shape the pipeline emits, so the same gold-derived metrics and the same first-fault attribution compute for both — zero new scoring code, zero judge calls.</p></div>
+<div class="card"><h3>One significance rule</h3><p class="muted" style="margin:0">Net positive and one-sided cluster-corrected McNemar below 0.05, clustered by conversation, with a bootstrap CI on Δ. The rule that rolled back three pipeline versions is the rule this passed.</p></div>
+<div class="card"><h3>One append-only record</h3><p class="muted" style="margin:0">Three ledgers — diagnoses, rewrites, gates — joined by ids, so any edit traces to the cases that motivated it and the verdict it earned. A crashed cycle wrote no phantom row.</p></div>
+</div>
+
+<p>Concretely: <code>--runtime agent_sdk</code> is a flag on <code>run</code>, <code>diagnose</code>, <code>propose</code>, <code>cycle</code> and <code>gate-targeted</code>. Everything after the capture dict is code both arms share. That is why swapping a runtime is a measurable claim here instead of an impression, and why the same harness can judge whatever comes next.</p>
+
+<h2 id="caveats">07 · Caveats, stated plainly</h2>
+
+<div class="callout bad">
+<strong>90.54% is above the paper's human expert figure, on a public dataset.</strong>
+<p style="margin:6px 0 0">Human expert execution accuracy is 89.44%. ConvFinQA is public and any frontier model may have seen it, so contamination cannot be excluded and the absolute number is not a generalisation claim. Two things soften it without settling it: program accuracy is only 0.409, so the agent is not reproducing gold programs, and the paired comparison stays fair because both arms face the same exposure. Our figures are also on a split drawn from the train pool, not the paper's test set.</p>
+</div>
+
+<div class="callout bad">
+<strong>Model and architecture changed together, and the confound was not isolated.</strong>
+<p style="margin:6px 0 0">The pipeline runs DeepSeek v4-flash; the SDK arm runs Claude Sonnet 5. Isolating "Claude vs DeepSeek" from "one agent vs four" required a pipeline pass on the same Claude model, which needs an API endpoint — and this project runs the SDK on the subscription only, by decision. So the two factors remain confounded by construction. A win on effort is demonstrated; "one agent beats four" is not.</p>
+</div>
+
+<div class="callout">
+<strong>Two smaller ones.</strong>
+<p style="margin:6px 0 0">The gate split has now judged around a dozen comparisons, so mild selection pressure exists; the sealed holdout is the only clean confirmatory read left and was deliberately not opened for an experiment. And neither arm is deterministic — the bootstrap CI absorbs that, and every number here is read from a committed CSV rather than a re-run.</p>
+</div>
+
+<h2 id="next">08 · What ships next</h2>
+
+<div class="two">
+<div class="arm">
+<h4>done in this branch</h4>
+<ul style="margin-top:0">
+<li>The <code>agent_sdk</code> runtime, one session per conversation, calculator-only tools.</li>
+<li>Its own diagnosis and teacher agents, and its own prompt lineage <code>sdk_prompts</code>.</li>
+<li>Three append-only ledgers, backfilled over the pipeline's history.</li>
+<li>Rate-limit refusals treated as unscored rather than wrong, and <code>--resume-from</code> to finish a throttled pass.</li>
+<li>The comparison published to <code>docs/optimization/agent-sdk.html</code> and surfaced in the app.</li>
+</ul>
+</div>
+<div class="arm">
+<h4>not done, on purpose</h4>
+<ul style="margin-top:0">
+<li><strong>Serving is untouched.</strong> Wiring the SDK into the streamed event contract, the demo pack and container billing is a separate plan.</li>
+<li>The sealed holdout stays sealed until a release decision.</li>
+<li>The model confound stays unisolated while the subscription-only rule holds.</li>
+<li>A second SDK campaign (<code>s02</code>) could reuse the 56 banked diagnoses — but the evidence says prompt edits are not where the remaining headroom is.</li>
+</ul>
+</div>
+</div>
+
+<div class="callout info">
+<strong>The recommendation, once more, with its boundary.</strong>
+<p style="margin:6px 0 0">Adopt <code>agent_sdk</code> as the runtime direction: the evidence is strong, paired, and passes the strict rule on the split this project has always used. Do it knowing the throughput cost is ~2.3× wall clock and one subprocess per conversation, and that the next honest step before anyone calls it a production decision is a confirmatory read on unseen conversations.</p>
+</div>
+
+<div class="footer">
+Design: the project's own design system — the dark IBM Plex tokens shared by artifacts s04–s10 in this repository. Every measured figure is read from a committed prediction CSV or the tracking store; the human and paper figures are published values from Chen et al. 2022, "ConvFinQA: Exploring the Chain of Numerical Reasoning in Conversational Finance Question Answering", and are labelled as such wherever they appear.
+</div>
+
+</div>
+</body>
+</html>

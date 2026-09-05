@@ -86,6 +86,10 @@ footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);
 font-size:12.5px;color:var(--faint)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font:11px/1 var(--mono);color:var(--muted);margin-top:10px}
 .legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+a{color:var(--info);text-decoration:none}a:hover{text-decoration:underline}
+.arms{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.arm h3{margin:0 0 6px}
+.pill.cls{color:var(--violet);border-color:#43386b;background:#191627;text-transform:none}
 """
 
 
@@ -390,7 +394,7 @@ ConvFinQA pipeline: gold-derived attribution, one subagent per experiment, and a
 significance gate that rejects most of what it is offered.">
 <style>{CSS}</style></head><body><div class="wrap">
 <header>
-<p class="eyebrow">ConvFinQA · agent optimisation</p>
+<p class="eyebrow">ConvFinQA · agent optimisation · <a href="agent-sdk.html">the Agent SDK experiment →</a></p>
 <h1>Optimising a multi-agent system,<br>one subagent at a time</h1>
 <p class="lede">A four-stage financial question-answering pipeline that improves
 itself: a teacher reads its failures, rewrites exactly one subagent's prompt, and
@@ -461,6 +465,309 @@ rebuild with <code>convfinqa-evalloop story</code>
             {
                 "champion": data.get("champion"),
                 "n_experiments": len(experiments),
+                "generated_at": data.get("generated_at"),
+            }
+        )
+    }</script>
+</footer>
+</div></body></html>"""
+
+
+# ── The Agent SDK experiment page ─────────────────────────────────────────
+
+
+def _arm_card(title: str, arm: dict[str, Any] | None, blurb: str) -> str:
+    arm = arm or {}
+    version = arm.get("version")
+    if not version:
+        return f"""<div class="card arm"><div class="k">{_e(title)}</div>
+<div class="stat">—</div><div class="sub">not yet run</div><p class="sub">{_e(blurb)}</p></div>"""
+    panel = arm.get("panel") or {}
+    rows = "".join(
+        f'<tr><td>{_e(a)}</td><td class="num">{_pct(panel.get(a))}</td></tr>'
+        for a in AGENTS
+    )
+    cost = arm.get("cost")
+    wall = arm.get("wall")
+    cost_text = "—" if cost is None else f"${float(cost):.2f}"
+    wall_text = "—" if wall is None else f"{float(wall) / 60:.0f} min"
+    by_type = arm.get("by_turn_type") or {}
+    type_rows = "".join(
+        f'<tr><td>{_e(label)}</td><td class="num">{_pct(by_type.get(key))}</td></tr>'
+        for key, label in (("number", "number turns"), ("program", "program turns"))
+    )
+    return f"""<div class="card arm"><div class="k">{_e(title)}</div>
+<div class="stat">{_pct(arm.get("accuracy"))}</div>
+<div class="sub"><span class="mono">{_e(version)}</span> · {_e(arm.get("run_name") or "")}</div>
+<p class="sub">{_e(blurb)}</p>
+<table><tbody>{type_rows}{rows}
+<tr><td>cost</td><td class="num">{cost_text}</td></tr>
+<tr><td>wall</td><td class="num">{wall_text}</td></tr></tbody></table></div>"""
+
+
+def _turn_type_verdict(gate: dict[str, Any]) -> str:
+    """The paired verdict split by turn type — where the difference actually is.
+
+    Rendered as its own block rather than folded into the headline: the aggregate
+    delta is an average over two populations that behave nothing alike, and a
+    reader who sees only the average will attribute the gain to both.
+    """
+    by_type = gate.get("by_turn_type") or {}
+    if not by_type:
+        return ""
+    order = [("program", "program"), ("number", "number")]
+    rows = []
+    for key, label in order:
+        row = by_type.get(key)
+        if not row:
+            continue
+        delta = float(row.get("delta_pp") or 0.0)
+        p = row.get("cluster_p_one_sided")
+        p_text = "—" if p is None else f"{float(p):.4g}"
+        verdict = (
+            '<span class="pill ok">significant</span>'
+            if p is not None and float(p) < 0.05
+            else '<span class="pill no">no effect</span>'
+        )
+        rows.append(
+            f"<tr><td>{_e(label)}</td>"
+            f'<td class="num">{row.get("n")}</td>'
+            f'<td class="num">{_pct(row.get("baseline_accuracy"))}</td>'
+            f'<td class="num">{_pct(row.get("candidate_accuracy"))}</td>'
+            f'<td class="num {"good" if delta > 0 else ("bad" if delta < 0 else "")}">'
+            f"{delta:+.2f}pp</td>"
+            f'<td class="num">{row.get("fixed")}&thinsp;/&thinsp;{row.get("broken")}</td>'
+            f'<td class="num">{p_text}</td>'
+            f"<td>{verdict}</td></tr>"
+        )
+    if not rows:
+        return ""
+    return f"""<h2>Where the difference is: number turns vs program turns</h2>
+<p class="sub">The dataset splits turns into a lookup (<em>number</em>) and a
+computation (<em>program</em>). Both arms have saturated the lookup, so the
+aggregate delta is carried entirely by the reasoning turns — reported separately
+because an average over the two describes neither.</p>
+<div class="scroll"><table>
+<thead><tr><th>turn type</th><th class="num">n</th><th class="num">pipeline</th>
+<th class="num">sdk</th><th class="num">delta</th><th class="num">fixed / broken</th>
+<th class="num">one-sided clustered p</th><th>verdict</th></tr></thead>
+<tbody>{"".join(rows)}</tbody></table></div>"""
+
+
+def _sdk_experiment(exp: dict[str, Any]) -> str:
+    """One SDK experiment: like `_experiment`, with the class and its edits."""
+    promoted = exp.get("promoted")
+    pill = (
+        '<span class="pill ok">promoted</span>'
+        if promoted
+        else '<span class="pill no">rejected</span>'
+    )
+    p = exp.get("cluster_p_one_sided")
+    ci = exp.get("delta_ci") or [None, None]
+    rows = "".join(
+        f"<tr><td>{_e(a)}</td>"
+        f'<td class="num">{_pct((exp.get("panel_baseline") or {}).get(a))}</td>'
+        f'<td class="num">{_pct((exp.get("panel_candidate") or {}).get(a))}</td></tr>'
+        for a in AGENTS
+    )
+    edits = exp.get("edits") or []
+    edit_rows = "".join(
+        f'<tr><td class="mono">{_e(ed.get("failure_class") or ed.get("target"))}</td>'
+        f"<td>{_e(ed.get('change_kind'))}</td>"
+        f'<td class="num">{_e(ed.get("n_diagnoses") if ed.get("n_diagnoses") is not None else "—")}</td>'
+        f"<td>{_e(str(ed.get('rationale') or '')[:220])}</td></tr>"
+        for ed in edits
+    )
+    edits_html = (
+        '<h3>Edits in this rewrite</h3><div class="scroll"><table><thead><tr>'
+        '<th>failure class</th><th>kind</th><th class="num">cases</th><th>why</th>'
+        f"</tr></thead><tbody>{edit_rows}</tbody></table></div>"
+        if edit_rows
+        else ""
+    )
+    diff_text = str(exp.get("diff") or "")
+    diff_html = (
+        f"<h3>The prompt change</h3>{_diff_html(diff_text)}" if diff_text else ""
+    )
+    delta = exp.get("accuracy_delta") or 0
+    delta_tone = "good" if delta > 0 else "bad"
+    p_tone = "good" if p is not None and float(p) < 0.05 else "amber"
+    p_text = "—" if p is None else f"{float(p):.3f}"
+    heading = _e(exp.get("label") or exp.get("candidate_version"))
+    target_class = _e(exp.get("target_class") or exp.get("target_agent") or "—")
+    baseline = _e(exp.get("baseline_version"))
+    candidate = _e(exp.get("candidate_version"))
+    summary = _e(exp.get("summary_of_changes") or "no summary recorded")
+    n_fixed = int(exp.get("fixed") or 0)
+    n_broken = int(exp.get("broken") or 0)
+    n_compared = int(exp.get("n_compared") or 0)
+    return f"""<details class="exp">
+<summary><span class="label">{heading}</span>
+{pill}<span class="pill cls">{target_class}</span>
+<span class="head-delta">{_pp(delta)}&nbsp;·&nbsp;p={p_text}</span></summary>
+<div class="body">
+<p><strong>{baseline} → {candidate}</strong> — {summary}</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat {delta_tone}">{_pp(delta)}</div>
+<div class="sub">95% CI [{_pp(ci[0])}, {_pp(ci[1])}]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat {p_tone}">{p_text}</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">{n_fixed}&thinsp;/&thinsp;{n_broken}</div>
+<div class="sub">fixed / broken of {n_compared}</div></div>
+</div>
+{edits_html}
+<h3>Per-stage panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody>{rows}</tbody></table></div>
+{diff_html}
+</div></details>"""
+
+
+def render_sdk_page(data: dict[str, Any]) -> str:
+    """The Agent SDK experiment: one prompt, one session, the same gate.
+
+    Renders from the same `story.json` as the campaign page. Everything that
+    has not happened yet renders as "not yet run" — never as a zero, because a
+    zero on this page would be read as a result.
+    """
+    comparison = data.get("runtime_comparison") or {}
+    pipeline = comparison.get("pipeline") or {}
+    sdk = comparison.get("agent_sdk") or {}
+    gate = comparison.get("gate") or {}
+    sdk_campaigns = data.get("sdk_campaigns") or []
+    experiments = [e for c in sdk_campaigns for e in c.get("experiments", [])]
+    promoted = [e for e in experiments if e.get("promoted")]
+    split = data.get("split") or {}
+
+    if gate.get("delta_pp") is not None:
+        d = float(gate["delta_pp"])
+        p = gate.get("p_value")
+        ci = gate.get("ci") or [None, None]
+        verdict_html = f"""<div class="grid g3">
+<div class="card"><div class="k">paired delta (sdk − pipeline)</div>
+<div class="stat {"good" if d > 0 else "bad"}">{d:+.2f}pp</div>
+<div class="sub">95% CI [{_pp(ci[0])}, {_pp(ci[1])}]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat {"good" if p is not None and float(p) < 0.05 else "amber"}">{"—" if p is None else f"{float(p):.3f}"}</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">{gate.get("fixed") if gate.get("fixed") is not None else "—"}&thinsp;/&thinsp;{gate.get("broken") if gate.get("broken") is not None else "—"}</div>
+<div class="sub">fixed / broken · {_e(gate.get("candidate_version") or "")} vs {_e(pipeline.get("version") or data.get("champion") or "—")}</div></div>
+</div>"""
+    else:
+        verdict_html = (
+            '<div class="note"><strong>No cross-runtime gate yet.</strong>'
+            "<p>The comparison appears here once an <code>sdk_vN</code> run on "
+            "the gate split has been gated against the pipeline champion — a "
+            "paired, one-sided, cluster-corrected McNemar test, the same rule "
+            "the campaigns use.</p></div>"
+        )
+
+    campaign_sections = "".join(
+        f"<h3>{_e(c['name'])} — {len(c.get('experiments', []))} experiments, "
+        f"{sum(1 for e in c.get('experiments', []) if e.get('promoted'))} promoted</h3>"
+        + "".join(_sdk_experiment(e) for e in c.get("experiments", []))
+        for c in sdk_campaigns
+    )
+    sdk_champion = data.get("sdk_champion")
+
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Agent SDK experiment — one session against four agents</title>
+<meta name="description" content="A single Claude Agent SDK session with calculator
+tools, run through the same eval loop and the same significance gate as the
+four-agent ConvFinQA pipeline.">
+<style>{CSS}</style></head><body><div class="wrap">
+<header>
+<p class="eyebrow"><a href="index.html">← the campaign write-up</a> · ConvFinQA · Agent SDK experiment</p>
+<h1>One session, one prompt,<br>the same gate</h1>
+<p class="lede">The pipeline answers a conversation with four prompted agents in
+sequence. This experiment gives one Claude Agent SDK session the calculator
+tools and one system prompt, distilled from the pipeline's four, and runs it
+through the same loop: a fresh train draw, a diagnosis agent that files each
+first-wrong case under a failure class, a teacher that edits the one prompt —
+several tagged areas at once, until two rejections in a row drop it to one — and
+the same paired significance test on the same fixed gate split. Every number is
+read out of the record; nothing here is typed by hand.</p>
+</header>
+
+<div class="grid g3">
+<div class="card"><div class="k">sdk champion</div>
+<div class="stat">{_e(sdk_champion or "—")}</div>
+<div class="sub">alias <code>sdk_champion</code> — never <code>champion</code></div></div>
+<div class="card"><div class="k">sdk experiments</div>
+<div class="stat">{len(experiments)}</div>
+<div class="sub">{len(promoted)} promoted · {
+        len(experiments) - len(promoted)
+    } rejected</div></div>
+<div class="card"><div class="k">gate split</div>
+<div class="stat">{split.get("gate_questions", "—")}</div>
+<div class="sub">questions across {split.get("gate_reports", "—")} conversations —
+the same split the pipeline campaigns gate on</div></div>
+</div>
+
+<h2>The two arms on the gate split</h2>
+<div class="arms">
+{
+        _arm_card(
+            "pipeline · four agents",
+            pipeline,
+            "triage → preprocess → retriever → calculator, four prompts, DeepSeek.",
+        )
+    }
+{
+        _arm_card(
+            "agent_sdk · one session",
+            sdk,
+            "one Claude session per conversation, calculator tools only, one prompt; stages reported by the agent so the same panel applies.",
+        )
+    }
+</div>
+<h3>The verdict between them</h3>
+{verdict_html}
+
+{_turn_type_verdict(gate)}
+
+<h2>What is different, and what is not</h2>
+<div class="note"><strong>Same loop, same rule.</strong>
+<p>Draw, run, diagnose, rewrite, gate, decide — in that order, on the same
+splits, with the same one-sided cluster-corrected McNemar at α = 0.05
+(<code>{_e(data.get("rule"))}</code>). Promotion evidence comes only from the
+gate split, and it moves <code>sdk_champion</code> — the pipeline's
+<code>champion</code> is never touched by this arm.</p></div>
+<div class="note"><strong>The unit of change is the prompt, with tagged edits inside it.</strong>
+<p>The pipeline rewrites exactly one subagent per experiment so a champion move
+has a named cause. There is one prompt here, so the teacher may edit several
+areas per cycle — one edit per failure class it addresses, each tagged with the
+class and the case ids behind it. The cost is attribution: after a gate, each
+edit is read against the flips in its own class. Two rejections in a row switch
+the lineage to one area per cycle for the rest of the campaign.</p></div>
+<div class="note"><strong>Skipped stages are failures of that stage.</strong>
+<p>A program turn the session answered without a plan attributes to preprocess;
+one it answered without a calculator call attributes to calculator. Arithmetic
+happens only inside the tools, so the calculator column means the same thing in
+both arms.</p></div>
+
+<h2>Every SDK experiment, including the ones that failed</h2>
+{
+        campaign_sections
+        or "<p>No SDK campaign recorded yet. The first cycle is <code>convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk</code>.</p>"
+    }
+
+<footer>Generated {_e(data.get("generated_at"))} from
+<code>evaluation/registry.json</code>, the three ledgers under
+<code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
+rebuild with <code>convfinqa-evalloop story</code>
+<script type="application/json" id="story-data">{
+        json.dumps(
+            {
+                "champion": data.get("champion"),
+                "sdk_champion": sdk_champion,
+                "n_sdk_experiments": len(experiments),
                 "generated_at": data.get("generated_at"),
             }
         )

@@ -946,7 +946,7 @@ def test_campaign_refuses_a_sixth_experiment() -> None:
     five = [{"target_agent": "triage", "promoted": False}] * 5
     with pytest.raises(SystemExit) as exc:
         campaign.check_capacity("c01", five)
-    assert "cap is 5" in str(exc.value)
+    assert "cap for the 'pipeline' runtime is 5" in str(exc.value)
     campaign.check_capacity("c01", five[:4])  # four is fine
 
 
@@ -1756,6 +1756,21 @@ async def test_agent_sdk_is_reached_through_exactly_one_chokepoint(
     # path that happens to also work.
     assert sdk.run_structured.__module__ == "convfinqa.evalloop.sdk"
 
+    # Exactly two modules may construct the client: this chokepoint, and the
+    # single-session runtime (`backends.agent_sdk`), which opens the same span
+    # by hand. Anywhere else would be an untraced call.
+    from pathlib import Path as _Path
+
+    import convfinqa
+
+    root = _Path(convfinqa.__file__).parent
+    constructing = sorted(
+        str(path.relative_to(root))
+        for path in root.rglob("*.py")
+        if "ClaudeSDKClient(" in path.read_text()
+    )
+    assert constructing == ["backends/agent_sdk.py", "evalloop/sdk.py"]
+
 
 def test_targeting_penalises_a_thinly_evidenced_agent() -> None:
     """Pooling on the raw rate re-creates the problem pooling exists to solve.
@@ -2179,3 +2194,46 @@ def test_metrics_rescore_a_frame_missing_only_a_newer_column() -> None:
     panel = stage_scores.run_metrics(df)
     assert "acc_preprocess_plan" in panel
     assert "preprocess_plan_ok" in df.columns
+
+
+async def test_teacher_refusal_is_not_retried(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A rate-limit refusal fails the teacher call at once, spending no retry.
+
+    Pinned because the opposite behaviour cost a campaign cycle: the writer's
+    call was refused with "You've hit your session limit", the loop retried it,
+    got the same refusal, and the train draw and diagnosis already paid for were
+    discarded at the rewrite step.
+    """
+    from convfinqa.evalloop import sdk as sdk_mod
+
+    refusal = "You've hit your session limit · resets 10:40pm (Australia/Sydney)"
+    calls: list[int] = []
+
+    async def once(prompt: str, **kw: object) -> tuple[object, dict[str, object]]:
+        calls.append(1)
+        raise sdk_mod.TeacherRateLimitError(refusal)
+
+    monkeypatch.setattr(sdk_mod, "_run_structured_once", once)
+
+    class Out(BaseModel):
+        x: int
+
+    with pytest.raises(sdk_mod.TeacherRateLimitError) as exc:
+        await sdk_mod.run_structured(
+            "p", schema=Out, system_prompt="s", attempts=3, refs=None
+        )
+    assert len(calls) == 1, "a refusal must not be retried"
+    assert exc.value.refusal == refusal
+    assert str(exc.value).startswith(sdk_mod.RATE_LIMIT_ERROR_PREFIX)
+
+
+def test_refusal_classifier_is_shared_by_both_sdk_call_sites() -> None:
+    """One vocabulary, so a marker cannot be present in one door and absent in the other."""
+    from convfinqa.backends import agent_sdk
+    from convfinqa.evalloop import sdk as sdk_mod
+
+    assert agent_sdk.RATE_LIMIT_MARKERS is sdk_mod.RATE_LIMIT_MARKERS
+    assert agent_sdk.rate_limit_refusal is sdk_mod.rate_limit_refusal
+    assert sdk_mod.rate_limit_refusal("Credit balance is too low") is not None
+    # An answer that merely says "limit" is an answer.
+    assert sdk_mod.rate_limit_refusal("the limit of the series is 3") is None

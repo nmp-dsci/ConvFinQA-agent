@@ -41,7 +41,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from convfinqa.config import EVAL_ROOT, REPO_ROOT
-from convfinqa.evalloop import prompt_refs
+from convfinqa.evalloop import ledgers, prompt_refs
 from convfinqa.tracking import tracing
 
 DIAGNOSTICS_DIR = EVAL_ROOT / "diagnostics" / "evalloop"
@@ -678,19 +678,25 @@ async def diagnose_run(
         # another's result — so running them serially bought nothing and cost
         # the whole pass: fifty calls at ~27s each is over twenty minutes of
         # wall clock, which was the single largest term in a cycle.
+        case_rows = list(cases.iterrows())
         settled = await asyncio.gather(
-            *(one(i, row) for i, (_, row) in enumerate(cases.iterrows()))
+            *(one(i, row) for i, (_, row) in enumerate(case_rows))
         )
         # Reassembled in case order, so the JSONL artifact and the printed log
         # do not depend on which call happened to return first.
-        for _, d, failure, usage in sorted(settled, key=lambda r: r[0]):
+        ledger_inputs: list[tuple[dict[str, Any], pd.Series, dict[str, Any]]] = []
+        for order, d, failure, usage in sorted(settled, key=lambda r: r[0]):
             if failure is not None:
                 failures.append(failure)
                 print(f"  [skip] {failure['report_id']}: {failure['error']}")  # noqa: T201
                 continue
             assert d is not None
             _accumulate_usage(usage_total, usage)
+            # The id the diagnoses ledger files this case under, carried on the
+            # per-run record too so a rewrite can name the cases it read.
+            d["diagnosis_id"] = ledgers.new_id("d")
             diagnoses.append(d)
+            ledger_inputs.append((d, case_rows[order][1], usage))
             mark = " DISPUTED" if d["attribution_disputed"] else ""
             print(  # noqa: T201
                 f"  [{d['report_id']} q{d['turn_index']}] gold->{d['derived_agent']}"
@@ -726,6 +732,21 @@ async def diagnose_run(
         # Also under the canonical artifact name prior_diagnoses() reads back.
         rec.dict_artifact("summary.json", {"counts": counts, "target": target})
         _log_jsonl_artifact(rec, diagnoses)
+        # The ledger is the primary record; the per-run file above stays as
+        # the artifact the MLflow memory reads back. `diagnosed_at` is the run
+        # stamp, so a backfill that later reads the per-run file recognises
+        # these rows as already written rather than appending them twice.
+        ledger_rows = _diagnosis_ledger_rows(
+            ledger_inputs,
+            version=version,
+            diagnosis_run_id=str(rec.run_id),
+            diagnosed_at=datetime.strptime(stamp, "%Y%m%d_%H%M%S").isoformat(
+                timespec="seconds"
+            ),
+        )
+        ledgers.log_rows_to_run(
+            rec, ledgers.append("diagnoses", ledger_rows), "diagnoses"
+        )
         rec.metrics(
             {
                 "n_diagnosed": float(len(diagnoses)),
@@ -792,6 +813,48 @@ def _accumulate_usage(total: dict[str, float], usage: dict[str, Any]) -> None:
     total["cost_usd"] += float(usage.get("total_cost_usd") or 0.0)
 
 
+def _diagnosis_ledger_rows(
+    inputs: list[tuple[dict[str, Any], pd.Series, dict[str, Any]]],
+    *,
+    version: str,
+    diagnosis_run_id: str,
+    diagnosed_at: str,
+) -> list[dict[str, Any]]:
+    """One diagnoses-ledger row per diagnosed case of a pass.
+
+    `prompt_hash` is the hash of the *attributed* agent's prompt in `version`,
+    so `ledger.diagnoses_for_agent` can gather every failure filed against one
+    exact prompt text. The eval run id and split come off the CSV row; the
+    draw seed is read from that eval run's params when the store is reachable.
+    """
+    if not inputs:
+        return []
+    hashes = {a: ledgers.agent_prompt_hash(version, a) for a in AGENTS}
+    first_case = inputs[0][1]
+    eval_run_id = str(ledgers._get(first_case, "run_id", "") or "")
+    seed = ledgers.eval_run_param(eval_run_id, "train_draw_seed")
+    model = ""
+    try:
+        model = teacher_model()
+    except Exception:  # noqa: BLE001 — no model configured is an empty cell
+        model = ""
+    return [
+        ledgers.diagnosis_row(
+            d,
+            case,
+            version=version,
+            prompt_hash=hashes.get(str(d.get("derived_agent")), ""),
+            eval_run_id=str(ledgers._get(case, "run_id", "") or eval_run_id),
+            diagnosis_run_id=diagnosis_run_id,
+            draw_seed=int(seed) if seed and seed.lstrip("-").isdigit() else None,
+            diagnoser_model=model,
+            usage=usage,
+            diagnosed_at=diagnosed_at,
+        )
+        for d, case, usage in inputs
+    ]
+
+
 def _log_jsonl_artifact(rec: Any, diagnoses: list[dict[str, Any]]) -> None:
     """Store diagnoses.jsonl on the run under the exact name the memory reads."""
     import tempfile
@@ -811,8 +874,13 @@ async def propose_version(
     experiment: str = OPTIMIZATION_EXPERIMENT,
     campaign: str | None = None,
     label: str | None = None,
+    pooled: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Write a generated prompts module changing ONE agent, and register it.
+
+    `pooled` is the targeting evidence (`ledger.fault_history` merged with this
+    draw) when the caller has it; it only decorates the rewrites-ledger row with
+    the target's Wilson bound and rank, so the record says why this agent.
 
     The writer gets three things the M2 version did not: the whole current
     prompt to replace rather than append to, the ledger of every previous
@@ -844,7 +912,8 @@ async def propose_version(
 
     base_prompts = prompts_pkg.load(base_version)
     history = ledger.ledger_text(target)
-    n_prior = len(ledger.attempts(target_agent=target, limit=50))
+    prior_attempts = ledger.attempts(target_agent=target, limit=50)
+    n_prior = len(prior_attempts)
     # Every failure ever recorded against the exact prompt text being replaced,
     # not just the ones this cycle's run happened to sample. Cases already in
     # `targeted` are dropped so the writer does not read one turn twice and
@@ -949,6 +1018,30 @@ async def propose_version(
             )
 
         problems = validate_prompt(target, base_prompts[target], output.prompt)
+        diff = prompt_diff(base_prompts[target], output.prompt, target=target)
+        # One rewrites-ledger row per edit; a whole-prompt replacement is one
+        # edit. A rewrite that fails its contract is still recorded — with
+        # `validate_ok` false — because an attempt that was never written to
+        # disk is still an attempt the next writer should know about.
+        ledger_row = _rewrite_ledger_row(
+            targeted,
+            target=target,
+            base_version=base_version,
+            new_version=new_version,
+            prompt_before=base_prompts[target],
+            output=output,
+            diff=diff,
+            prior_attempts=prior_attempts,
+            pooled=pooled,
+            validate_ok=not problems,
+            campaign=campaign,
+            label=label,
+            teacher_run_id=str(rec.run_id),
+            usage=usage,
+        )
+        ledgers.log_rows_to_run(
+            rec, ledgers.append("rewrites", [ledger_row]), "rewrites"
+        )
         if problems:
             raise SystemExit(
                 "the rewrite failed its output contract and was not written:\n  - "
@@ -958,7 +1051,6 @@ async def propose_version(
         module_path = _write_version_module(
             new_version, base_version=base_version, target=target, prompt=output.prompt
         )
-        diff = prompt_diff(base_prompts[target], output.prompt, target=target)
         rec.dict_artifact(
             "proposal.json",
             {
@@ -1019,7 +1111,76 @@ async def propose_version(
         },
         "module": str(module_path),
         "propose_run_id": rec.run_id,
+        "rewrite_id": ledger_row["rewrite_id"],
+        "edit_id": ledger_row["edit_id"],
     }
+
+
+def _rewrite_ledger_row(
+    targeted: list[dict[str, Any]],
+    *,
+    target: str,
+    base_version: str,
+    new_version: str,
+    prompt_before: str,
+    output: PromptRewrite,
+    diff: str,
+    prior_attempts: list[dict[str, Any]],
+    pooled: dict[str, dict[str, Any]] | None,
+    validate_ok: bool,
+    campaign: str | None,
+    label: str | None,
+    teacher_run_id: str,
+    usage: dict[str, Any],
+) -> dict[str, Any]:
+    """The rewrites-ledger row for one `propose_version` call.
+
+    `failure_class` is the failure mode most often diagnosed among the cases
+    the writer was shown; `evidence_summary` carries the whole distribution.
+    """
+    modes: dict[str, int] = {}
+    for d in targeted:
+        mode = str(d.get("failure_mode") or "")
+        modes[mode] = modes.get(mode, 0) + 1
+    failure_class = max(modes, key=lambda m: (modes[m], m)) if modes else ""
+    wilson: float | None = None
+    rank: int | None = None
+    if pooled:
+        ranked = sorted(pooled, key=lambda a: (-float(pooled[a].get("score", 0.0)), a))
+        if target in ranked:
+            rank = ranked.index(target) + 1
+            wilson = float(pooled[target].get("score", 0.0))
+    return ledgers.rewrite_row(
+        target=target,
+        base_version=base_version,
+        new_version=new_version,
+        prompt_before=prompt_before,
+        prompt_after=output.prompt,
+        diff=diff,
+        rationale=output.rationale,
+        edit_text=output.summary_of_changes,
+        failure_class=failure_class,
+        diagnosis_ids=[
+            str(d["diagnosis_id"]) for d in targeted if d.get("diagnosis_id")
+        ],
+        n_diagnoses=len(targeted),
+        evidence_summary={
+            "failure_modes": modes,
+            "n_prior_attempts": len(prior_attempts),
+        },
+        prior_attempts=[
+            {"version": a.get("version"), "outcome": a.get("outcome")}
+            for a in prior_attempts
+        ],
+        wilson_lower=wilson,
+        rank=rank,
+        validate_ok=validate_ok,
+        campaign=campaign,
+        label=label,
+        teacher_run_id=teacher_run_id,
+        teacher_model=teacher_model(),
+        usage=usage,
+    )
 
 
 # The tokens each agent's output contract depends on. A rewrite is free to say
@@ -1209,6 +1370,10 @@ def gate_targeted(
         "agent_panel_candidate": cand_panel,
         "comparison": stats,
         "reason": f"{gate_reason(stats)} — target: {target_evidence}",
+        # The arms themselves, so the gates ledger can classify each flip by
+        # the first-fault stage of the arm it failed on.
+        "baseline_csv": str(baseline_csv),
+        "candidate_csv": str(candidate_csv),
     }
     return verdict, result
 
@@ -1220,8 +1385,16 @@ def log_gate_verdict(
     campaign: str | None = None,
     label: str | None = None,
     experiment: str = OPTIMIZATION_EXPERIMENT,
+    rewrite_id: str | None = None,
+    consecutive_rejections: int | None = None,
+    champion_after: str | None = None,
 ) -> str:
     """Record one gate decision as an MLflow run, so the ledger can read it back.
+
+    Also appends the gates-ledger row. `rewrite_id` ties the verdict to the
+    rewrite it judged; `champion_after` is what the champion will be once the
+    caller has acted on the verdict (it defaults to the registry's current
+    champion, which is right only when the row is written after promotion).
 
     Without this the loop had no memory of outcomes at all — proposals were
     logged and verdicts were printed to a terminal. A rejected idea could
@@ -1307,4 +1480,75 @@ def log_gate_verdict(
                 ),
             }
         )
+        flips = (
+            {
+                "broken": [f.as_dict() for f in comparison.regressions],
+                "fixed": [f.as_dict() for f in comparison.improvements],
+            }
+            if comparison is not None
+            else None
+        )
+        row = _gate_ledger_row(
+            verdict,
+            flips=flips,
+            gate_run_id=str(rec.run_id),
+            rewrite_id=rewrite_id,
+            campaign=campaign,
+            label=label,
+            consecutive_rejections=consecutive_rejections,
+            champion_after=champion_after,
+        )
+        ledgers.log_rows_to_run(rec, ledgers.append("gates", [row]), "gates")
         return str(rec.run_id)
+
+
+def _gate_ledger_row(
+    verdict: dict[str, Any],
+    *,
+    flips: dict[str, Any] | None,
+    gate_run_id: str,
+    rewrite_id: str | None,
+    campaign: str | None,
+    label: str | None,
+    consecutive_rejections: int | None,
+    champion_after: str | None,
+) -> dict[str, Any]:
+    """The gates-ledger row for one verdict (see `gate_targeted` for its shape).
+
+    Flips are classified by first-fault attribution on the arm each question
+    failed on, which needs the arms' CSVs — `gate_targeted` puts their paths on
+    the verdict. Without them (an older caller) the classes are simply empty.
+    """
+    from convfinqa.evalloop.gate import load_run_csv
+
+    base_csv = verdict.get("baseline_csv")
+    cand_csv = verdict.get("candidate_csv")
+    attribution: ledgers.AttributionOf | None = None
+    if flips is not None and base_csv and cand_csv:
+        try:
+            attribution = ledgers.attribution_from_frames(
+                load_run_csv(base_csv), load_run_csv(cand_csv)
+            )
+        except Exception:  # noqa: BLE001 — bookkeeping must not sink a gate
+            attribution = None
+    return ledgers.gate_row(
+        verdict["comparison"],
+        baseline_version=verdict["baseline_version"],
+        candidate_version=verdict["candidate_version"],
+        promoted=bool(verdict["promotable"]),
+        reason=str(verdict["reason"]),
+        flips=flips if attribution is not None else None,
+        attribution_of_row=attribution,
+        panel_baseline=verdict.get("agent_panel_baseline") or {},
+        panel_candidate=verdict.get("agent_panel_candidate") or {},
+        baseline_hash=ledgers.bundle_hash(verdict["baseline_version"]),
+        candidate_hash=ledgers.bundle_hash(verdict["candidate_version"]),
+        baseline_eval_run_id=ledgers.eval_run_ids(base_csv),
+        candidate_eval_run_id=ledgers.eval_run_ids(cand_csv),
+        gate_run_id=gate_run_id,
+        rewrite_id=rewrite_id,
+        campaign=campaign,
+        label=label,
+        consecutive_rejections=consecutive_rejections,
+        champion_after=champion_after,
+    )

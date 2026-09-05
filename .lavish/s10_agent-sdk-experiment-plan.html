@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s10 · Agent SDK experiment plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root{--ground:#191b1f;--panel:#212429;--panel-2:#2a2e34;--line:#32363d;--line-2:#434850;--text:#e8e9ea;--muted:#b6bbc2;--faint:#9ba1ab;--amber:#f0a93f;--good:#4ecb9d;--bad:#ef8282;--info:#74adf2;--violet:#ab92f2;--ui:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--maxw:1100px}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--ground);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.55}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:40px 24px 96px}
+h1{font-size:30px;line-height:1.2;margin:8px 0 12px;letter-spacing:-.01em}
+h2{font-size:21px;margin:56px 0 14px;padding-top:18px;border-top:1px solid var(--line);letter-spacing:-.005em}
+h3{font-size:16px;margin:26px 0 8px}
+p{margin:8px 0}
+a{color:var(--info)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.lede{font-size:17px;color:var(--muted);max-width:820px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.metrics{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));margin:14px 0}
+.metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.metric .v{font-family:var(--mono);font-size:22px;font-weight:600}
+.metric .k{font-size:12px;color:var(--faint);margin-top:2px}
+.metric .s{font-size:12px;color:var(--muted);margin-top:4px}
+.scroll-x{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+td code,p code,li code{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;white-space:nowrap}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:#15171a;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;max-width:100%;margin:10px 0;white-space:pre}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;margin-right:4px}
+.chip.good{color:var(--good);border-color:rgba(78,203,157,.45)}
+.chip.bad{color:var(--bad);border-color:rgba(239,130,130,.45)}
+.chip.info{color:var(--info);border-color:rgba(116,173,242,.45)}
+.chip.amber{color:var(--amber);border-color:rgba(240,169,63,.5)}
+.chip.violet{color:var(--violet);border-color:rgba(171,146,242,.5)}
+.callout{border-left:3px solid var(--amber);background:rgba(240,169,63,.06);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.bad{border-color:var(--bad);background:rgba(239,130,130,.06)}
+.callout.good{border-color:var(--good);background:rgba(78,203,157,.06)}
+.callout.info{border-color:var(--info);background:rgba(116,173,242,.06)}
+.toc{display:grid;gap:4px 18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));font-size:14px;margin:18px 0 0}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover{color:var(--text)}
+.toc .n{font-family:var(--mono);color:var(--amber);margin-right:8px}
+ul,ol{padding-left:22px;margin:8px 0}
+li{margin:4px 0}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.mermaid{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin:14px 0;overflow-x:auto}
+.mermaid svg{max-width:100%;height:auto}
+.phase{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.phase:last-child{border-bottom:0}
+.phase .num{font-family:var(--mono);font-size:13px;color:var(--amber);padding-top:2px}
+.phase .meta{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:6px}
+.two{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.col h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.step{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line)}
+.step:last-child{border-bottom:0}
+.step .who{font-family:var(--mono);font-size:11px;flex:0 0 96px;color:var(--violet);padding-top:3px}
+.step .what{flex:1 1 auto;font-size:14px}
+/* decision forms */
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:16px 0}
+form.q .qh{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+form.q .qid{font-family:var(--mono);font-size:12px;color:var(--amber)}
+form.q h3{margin:4px 0 10px}
+form.q label.opt{display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;cursor:pointer;align-items:start}
+form.q label.opt:hover{border-color:var(--line-2);background:var(--panel-2)}
+form.q label.opt input{margin-top:3px}
+form.q .ol{font-weight:600}
+form.q .od{font-size:13px;color:var(--muted)}
+form.q textarea{width:100%;min-height:56px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--ui);font-size:14px;margin-top:8px;resize:vertical}
+form.q .row{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+form.q button{background:var(--amber);color:#1a1200;border:0;border-radius:8px;padding:8px 14px;font-weight:600;font-family:var(--ui);cursor:pointer}
+form.q .status{font-family:var(--mono);font-size:12px;color:var(--faint)}
+form.q .status.ok{color:var(--good)}
+.rec{font-family:var(--mono);font-size:10.5px;color:var(--good);border:1px solid rgba(78,203,157,.45);border-radius:999px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="eyebrow">s10 · plan for review · branch <span style="color:var(--text)">agent-sdk-experiment</span> · 2026-09-05</div>
+<h1>One Claude Agent SDK agent, its own teacher loop, and a fair fight with the pipeline</h1>
+<p class="lede">Build three agents: a <strong>qa_agent</strong> on the Claude Agent SDK (built the way <code>data-qa-agent/sdk_agent.py</code> is built) that does the whole triage → preprocess → retrieve → calculate job in one session with a calculator tool; a <strong>diagnosis agent</strong> that reads its wrong answers; and a <strong>teacher agent</strong> that rewrites its prompt. Run the optimisation loop on it, then make the comparison that is actually fair — the <em>optimised</em> DeepSeek pipeline (v8) against the <em>optimised</em> SDK agent — on the same gate split, the same evaluator, the same one-sided McNemar rule, published in MLflow.</p>
+
+<div class="callout"><strong>The verdict that counts is optimised vs optimised.</strong> The first SDK-vs-v8 pass (P3) is diagnostic — it seeds the teacher loop, it does not decide anything. The headline comparison is P6: best SDK prompt after its campaign against v8, which already had its campaign. This plan does not touch serving, the demo, or the pipeline's <code>champion</code> alias; the SDK agent gets <code>sdk_champion</code>. If it wins, replacing the runtime is a follow-up with its own plan.</div>
+
+<nav class="toc">
+<a href="#s1"><span class="n">01</span>Goal &amp; baseline</a>
+<a href="#s2"><span class="n">02</span>Architecture, side by side</a>
+<a href="#s3"><span class="n">03</span>The SDK agent contract</a>
+<a href="#s4"><span class="n">04</span>Eval &amp; MLflow comparison</a>
+<a href="#s5"><span class="n">05</span>The eval loop &amp; the three agents</a>
+<a href="#s6"><span class="n">06</span>Files &amp; invariants</a>
+<a href="#s7"><span class="n">07</span>Phases, effort, cost</a>
+<a href="#s8"><span class="n">08</span>Risks &amp; confounds</a>
+<a href="#s9"><span class="n">09</span>Decisions D1–D8</a>
+</nav>
+
+<h2 id="s1">01 · Goal and the baseline it has to beat</h2>
+<p>The question is narrow: <em>holding the evaluator, the split, the calculator tools and the prompt content fixed, does one Claude agent that plans its own path through the task match or beat four small DeepSeek agents wired in a fixed order?</em> Everything below is arranged so that the answer is a paired comparison on the same 349 questions, not an impression.</p>
+
+<h3>The fixed baseline — champion <code>v8</code> on the gate split</h3>
+<p class="faint">Run <code>evalloop-test100-v8·t2p2r5c2-20260904_052739</code>, read from the live tracking server; 100 reports, 349 questions, concurrency 8.</p>
+<div class="metrics">
+<div class="metric"><div class="v">81.66%</div><div class="k">accuracy · 349 q</div><div class="s">the number to beat</div></div>
+<div class="metric"><div class="v">95.5%</div><div class="k">number questions · 111</div><div class="s">retrieval-only turns</div></div>
+<div class="metric"><div class="v">75.2%</div><div class="k">program questions · 238</div><div class="s">where the gap lives</div></div>
+<div class="metric"><div class="v">84.7 / 63.3</div><div class="k">Type I / Type II</div><div class="s">hybrid conversations lag</div></div>
+<div class="metric"><div class="v">344 s</div><div class="k">wall · 61 q/min</div><div class="s">DeepSeek v4-flash</div></div>
+<div class="metric"><div class="v">≈ $1–2</div><div class="k">per test pass</div><div class="s">API, DeepSeek pricing</div></div>
+</div>
+<div class="scroll-x"><table>
+<tr><th>Per-agent panel (gold-derived, no judge)</th><th>v8</th><th>What it measures</th></tr>
+<tr><td><code>acc_triage_turn_type</code></td><td>0.923</td><td>number vs program call agrees with gold</td></tr>
+<tr><td><code>program_accuracy</code></td><td>0.392</td><td>preprocess writes <code>pred_program</code>; this is whether it is equivalent to <code>gold_program</code> (the paper's Prog Acc)</td></tr>
+<tr><td><code>acc_preprocess_skeleton</code></td><td>0.460</td><td>looser: <code>pred_program</code>'s operator shape equals <code>gold_program</code>'s (program turns only — kept for continuity, decides nothing)</td></tr>
+<tr><td><code>acc_preprocess_plan</code></td><td>—</td><td><code>pred_program</code> bound to the retrieved operands executes to the gold answer (added after this run; scored on every new pass)</td></tr>
+<tr><td><code>retriever_operand_recall</code></td><td>0.768</td><td>share of the numbers in <code>gold_program</code> the agent surfaced — works for both turn types: a number turn's gold program is the one value, so recall is 1 or 0; a program turn's is its document operands (constants and prior-answer references excluded)</td></tr>
+<tr><td><code>acc_calculator_exec</code></td><td>0.751</td><td>executed program matches gold answer</td></tr>
+</table></div>
+<p>The SDK agent must produce the <strong>same capture</strong> so this panel — and the first-fault attribution that drives targeting — is computed for it by the code that already exists, with no new scoring logic.</p>
+
+<h2 id="s2">02 · Architecture, side by side</h2>
+<p>Left is what runs today. Right is the challenger: one session per conversation, the report in the first message, prior turns native to the session, <strong>the six calculator functions as its only tools</strong>, and the pipeline's four stages given to it as a train of thought to follow and report — not as tools it is forced through.</p>
+<pre class="mermaid">
+flowchart LR
+  subgraph P["Pipeline · pydantic-ai · deepseek-v4-flash"]
+    direction TB
+    q1["question + history_text"] --> T["triage<br/>TriageOut"]
+    T -- number --> R1["retriever<br/>RetrievedValues"] --> A1["answer"]
+    T -- program --> PP["preprocess<br/>PreprocessOut<br/>sub_questions + program"] --> R2["retriever"] --> C["calculator<br/>tools: add sub mul div exp gt"] --> A2["answer"]
+  end
+  subgraph S["SDK agent · claude_agent_sdk · claude-sonnet-5"]
+    direction TB
+    q2["turn 1: report + Q0<br/>turn n: Qn (history is the session)"] --> M["one Claude session<br/>distilled system prompt sdk_vN"]
+    M --> COT["train of thought, in-model<br/>number: triage → retrieve<br/>program: triage → preprocess → retrieve → calculate"]
+    COT --> t4["tools: mcp__cfq__add … greater<br/>(program turns only)"]
+    COT --> OUT["structured result<br/>{turn_type, conv_type, sub_questions,<br/>program, retrieved[], answer}"]
+    t4 -. "trajectory" .-> CAP["capture dict<br/>identical keys to turn_events"]
+    OUT -. "stages" .-> CAP
+  end
+  CAP --> CSV["evalloop CSV · same COLUMNS"]
+  A1 & A2 --> CSV
+  CSV --> SS["stage_scores · first_fault · gate"]
+</pre>
+<div class="two">
+<div class="col card"><h4>Kept identical on purpose</h4>
+<ul>
+<li>Split manifest <code>eval_loop_v2</code>, gate = test100, train resampled per cycle.</li>
+<li><code>COLUMNS</code> in <code>evalloop/runner.py</code>, <code>stage_scores.score_rows</code>, <code>first_fault</code>, <code>flips.json</code>, the McNemar gate in <code>tracking/comparator.py</code>.</li>
+<li>The six calculator tools in <code>pipeline/tools.py</code> — same functions, registered on an MCP server instead of <code>calc.tool_plain</code>. Arithmetic happens in the tool, never in the model.</li>
+<li>The knowledge in the four prompt texts — distilled into one SDK prompt, not copied (§03). The rules survive; the inter-agent plumbing does not.</li>
+</ul></div>
+<div class="col card"><h4>What actually changes</h4>
+<ul>
+<li>Control flow moves from Python (<code>turn_events</code>) into the model: it decides when it has enough and in what order to call tools.</li>
+<li>History is the session, not a rendered <code>history_text</code> block — the model sees its own prior tool calls and answers.</li>
+<li>Model: Claude Sonnet 5 via the <code>claude</code> CLI subprocess, not DeepSeek in-process — a confound the plan addresses in <a href="#s8">§08</a>.</li>
+<li>Stage outputs are <em>reported</em> by the model in its structured result instead of being typed agent outputs; nothing forces the order. A program turn that reports no plan, or answers with no calculator call, is a recorded fact and a metric.</li>
+</ul></div>
+</div>
+
+<h2 id="s3">03 · The SDK agent contract</h2>
+<p>Mirrors <code>data-qa-agent/sdk_agent.py</code>: a lazy SDK import, an in-process MCP server built with <code>sdk.tool(name, desc, schema)(handler)</code> and <code>create_sdk_mcp_server</code>, <code>ClaudeAgentOptions</code> assembled in one place, and a stream driver under <code>contextlib.aclosing</code> with a token-budget abort. The differences are a much smaller tool set and the fact that we drive a multi-turn session rather than one question per run.</p>
+
+<h3>Tools on the <code>cfq</code> MCP server — the calculator, nothing else</h3>
+<div class="scroll-x"><table>
+<tr><th>Tool</th><th>Arguments</th><th>Handler does</th><th>Feeds</th></tr>
+<tr><td><code>add · subtract · multiply · divide · exp · greater</code></td><td><code>a: float, b: float</code></td><td>exactly <code>pipeline/tools.py</code>; each call appended to <code>capture["calculator"]["trajectory"]</code> and opened as a <code>TOOL</code> span</td><td><code>calculator_io</code>, <code>acc_calculator_exec</code>, <code>sdk_tool_calls_mean</code></td></tr>
+</table></div>
+<p><code>ALLOWED_TOOLS</code> is exactly these six and nothing built-in — no <code>Read</code>, <code>Bash</code>, <code>WebSearch</code>. Triage, planning and retrieval are things the model does itself against the report in its context and the turns already in the session; they are not tools. The document is in the prompt (mean 4.3k chars, p90 6.3k, max 8.1k across the gate split), so the workspace-and-<code>Grep</code> pattern the sibling uses for large data has nothing to search here.</p>
+
+<h3>The train of thought, and how it is captured</h3>
+<div class="two">
+<div class="col card"><h4>What the prompt asks for</h4>
+<div class="step"><span class="who">number</span><span class="what"><strong>triage</strong> → <strong>retrieve</strong>: decide it is a lookup, find the value in the report (or a prior turn), answer</span></div>
+<div class="step"><span class="who">program</span><span class="what"><strong>triage</strong> → <strong>preprocess</strong> → <strong>retrieve</strong> → <strong>calculate</strong>: decide it needs computation, write the sub-questions and the program, pull each operand from the report or prior answers, then run the program through the calculator tools — never in-model arithmetic</span></div>
+<div class="step"><span class="who">always</span><span class="what">report the trail in the structured result, then the answer</span></div>
+</div>
+<div class="col card"><h4>Structured result = the stage record</h4>
+<pre style="margin:0">output_format json_schema:
+  turn_type:     "number" | "program"
+  conv_type:     "simple" | "hybrid"
+  sub_questions: [str]           # [] on number turns
+  program:       str             # "" on number turns
+  retrieved:     [{question, answer, source}]
+  answer:        number | str</pre>
+<p style="margin-top:8px">Written by <code>backends/agent_sdk.py</code> into the same capture keys <code>turn_events</code> uses (<code>triage</code>, <code>preprocess</code>, <code>retriever</code>, <code>calculator</code>), so <code>_capture_to_row_fields</code>, the panel and first-fault attribution run unchanged. The model reports its stages; nothing enforces them, and a program turn with an empty <code>program</code> or no calculator call is counted (<code>sdk_stage_skips</code>) and attributed to the stage it skipped.</p>
+</div>
+</div>
+
+<h3>System prompt: distilled from the four, then owned by the loop</h3>
+<p>The four v8 prompts total ~22k characters and were written for four stateless agents passing <code>[[ ## name ## ]]</code> blocks to each other. Copying them into one prompt would carry that plumbing into an agent that has none of it. Instead the first SDK prompt is a <strong>distillation</strong>: the domain rules, the turn-type criteria, the reference-resolution rules for prior turns, the retrieval conventions (units, signs, table-vs-text) and the calculator discipline, rewritten as one document with the train of thought as its spine.</p>
+<pre>prompts/sdk_v1.py            # SDK_PROMPT: str — the distilled prompt, versioned as ONE lineage
+  1. Role and the two turn types
+  2. Train of thought: number → triage, retrieve · program → triage, preprocess, retrieve, calculate
+  3. Distilled rules per stage (from TRIAGE / PREPROCESS / RETRIEVER / CALCULATOR of v8)
+  4. Calculator tools: always, never in-model arithmetic; program notation matches gold DSL
+  5. Output contract (the structured result above)</pre>
+<p>Who writes it is Decision D8: the teacher agent produces the first draft from the four v8 prompts plus the dataset notes in <code>CLAUDE.md</code>, and I review and trim it before it becomes <code>sdk_v1</code>; or I write it by hand. Either way it is committed once, hashed, and from then on <strong>only the teacher agent changes it</strong> — the SDK prompt gets its own lineage in <code>registry.json → sdk_prompts</code> (<code>sdk_v1</code>, <code>sdk_v2</code>, …; hash is truth, seq is the handle), separate from the pipeline's per-agent compositions. Run names carry it: <code>sdk-evalloop-test100-sdk_v3-&lt;stamp&gt;</code>.</p>
+
+<h3>Session shape and the final answer</h3>
+<div class="two">
+<div class="col card"><h4>One session per conversation</h4>
+<div class="step"><span class="who">turn 0</span><span class="what">user message = report text + table (rendered as today's <code>_DOCS[report_id]</code>) + Q0</span></div>
+<div class="step"><span class="who">turn n</span><span class="what">user message = Qn only; the session already holds the document, prior tool calls, prior answers</span></div>
+<div class="step"><span class="who">result</span><span class="what"><code>output_format = json_schema</code> above; <code>ResultMessage.structured_result</code> is the prediction plus the stage record, <code>total_cost_usd</code> and token counts go on the span</span></div>
+<div class="step"><span class="who">budget</span><span class="what"><code>max_turns</code> ≈ 8 per question — a 3-step program is ≤ 3 tool calls plus the answer (sibling uses 22 for a much larger task); abort the conversation on a token ceiling, mark remaining turns as error rows like the pipeline does on <code>call_with_budget</code> exhaustion</span></div>
+</div>
+<div class="col card"><h4>Why not one session per question</h4>
+<p>The pipeline re-renders <code>history_text</code> every turn because its agents are stateless. The point of the experiment is to let the agent use the context it already has — cross-turn reference resolution is the paper's hardest failure class and the pipeline's weakest (Type II 63.3%). Per-question sessions would re-create the pipeline's constraint and measure nothing new.</p>
+<p>The cost is that a bad early turn contaminates later ones inside the session the same way it does in gold — which is the actual task.</p>
+</div>
+</div>
+
+<h2 id="s4">04 · Eval and the MLflow comparison</h2>
+<p>The SDK runtime plugs into <code>convfinqa-evalloop run</code> behind one flag. Everything after the capture dict is shared code.</p>
+<pre>uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk --concurrency 4
+# run name: sdk-evalloop-test100-sdk_v1-&lt;stamp&gt;
+# params:   runtime=agent_sdk  sdk_model=claude-sonnet-5  billing=subscription|api  max_turns=12
+# tags:     runtime=agent_sdk  loop=evalloop  split=test
+# metrics:  accuracy, program_accuracy, accuracy_by_*, the per-agent panel,
+#           + sdk_turns_mean, sdk_tool_calls_mean, sdk_stage_skips, sdk_inline_arithmetic, sdk_cost_usd, sdk_cache_read_share</pre>
+<div class="scroll-x"><table>
+<tr><th>Piece</th><th>Pipeline today</th><th>SDK runtime</th></tr>
+<tr><td>Run wrapper</td><td><code>mlflow_log.run(kind="evalloop")</code> inside <code>run_split</code></td><td>same call, <code>runtime</code> param added; a forgotten flag cannot produce an unrecorded run</td></tr>
+<tr><td>Tracing</td><td><code>mlflow.pydantic_ai.autolog()</code> + hand spans run → report → question → stage</td><td>autolog sees nothing (CLI subprocess). Hand-open the same hierarchy: question span, one <code>LLM</code> span per SDK turn via the <code>run_structured</code> pattern, one <code>TOOL</code> span per calculator call. Prompts by reference only.</td></tr>
+<tr><td>Prediction CSV</td><td><code>evaluation/predictions/evalloop/…</code>, committed</td><td>same directory, <code>sdk-</code> prefix, committed — the comparison must reproduce with <code>REUSE_CACHE=1</code></td></tr>
+<tr><td>Verdict</td><td><code>convfinqa-evalloop gate --baseline-csv v8.csv --candidate-csv sdk.csv</code></td><td>unchanged: paired per question, one-sided cluster-corrected McNemar, bootstrap CI on Δ, <code>flips.json</code></td></tr>
+<tr><td>Registry</td><td><code>registry.register(version, source="evalloop")</code>, alias <code>champion</code></td><td>register in the <code>sdk_prompts</code> lineage with <code>runtime=agent_sdk</code>; alias <code>sdk_champion</code>, never <code>champion</code></td></tr>
+<tr><td>Write-up</td><td><code>story</code> → <code>evaluation/story.json</code> + <code>docs/optimization/index.html</code></td><td>extend <code>story.py</code> with a <em>runtime comparison</em> block; publish <code>docs/optimization/agent-sdk.html</code>; <code>story_check</code> keeps it honest</td></tr>
+</table></div>
+<div class="callout info"><strong>Baseline arm.</strong> The v8 test100 CSV from 2026-09-04 is committed and was produced by the exact code the comparison uses, so it is reused (Decision D7) — the same way <code>cycle --baseline-gate-csv</code> reuses a baseline arm. A fresh v8 pass costs ~$2 and 6 minutes if you would rather have the two arms run the same day.</div>
+
+<h2 id="s5">05 · The eval loop: question → agent → diagnosis → teacher → experiment</h2>
+<p>Both arms run the same loop. The pipeline already has it (<code>teacher.py</code>: diagnose → propose → targeted gate, Opus 5 on the Agent SDK); the SDK arm gets its own pair of loop agents because what they read and what they write differ: the diagnosis agent reads one agent's reported trail and tool trajectory, and the teacher rewrites one prompt instead of one of four. The loop ends in the same place for both — an optimised champion — and those two champions are what the final full eval compares.</p>
+<pre class="mermaid">
+flowchart LR
+  Q["question + history<br/>+ report (train draw)"] --> ARM{"arm"}
+  ARM -- "multi_agent · v8" --> MA["triage → preprocess →<br/>retriever → calculator<br/>4 prompts · DeepSeek"]
+  ARM -- "agent_sdk · sdk_vN" --> SA["one session, train of thought<br/>calculator tools only<br/>1 prompt · Claude"]
+  MA --> ROW["CSV row · pred_answer, pred_program,<br/>turn_type, sub_questions, retrieved[], calc trajectory"]
+  SA --> ROW
+  ROW --> GOLD["gold comparison · deterministic<br/>stage_scores: answer, program,<br/>operands, turn_type → first-fault stage"]
+  GOLD -- "wrong rows + flags" --> DX["diagnosis agent · Opus<br/>reads report + history + trail<br/>→ stage, label, evidence, why"]
+  DX --> TX["teacher agent · Opus<br/>all diagnoses of the run<br/>→ which prompt / which areas to change"]
+  TX -- "multi_agent: ONE agent's prompt" --> V1["v(N+1) · one lineage moves"]
+  TX -- "agent_sdk: one prompt,<br/>several areas at once" --> V2["sdk_v(N+1) · tagged edits"]
+  V1 & V2 --> EXP["experiment · gate on test100<br/>paired McNemar vs current champion<br/>promote or reject, flips recorded"]
+  EXP -- "next cycle" --> Q
+  EXP -- "campaign done" --> FIN["final full eval<br/>v8-optimised vs sdk-optimised<br/>test100 (+ holdout, D6)"]
+</pre>
+<div class="scroll-x"><table>
+<tr><th></th><th>qa_agent</th><th>diagnosis agent</th><th>teacher agent</th></tr>
+<tr><td><strong>Job</strong></td><td>answer the conversation: triage → (preprocess) → retrieve → (calculate), report the trail</td><td>for every wrong question in a run, say <em>which stage of the trail went wrong first, why, and what evidence says so</em></td><td>given <em>all</em> the run's diagnoses, decide what in the system prompt to change so those cases pass — and say which cases motivated each edit</td></tr>
+<tr><td><strong>Model · runtime</strong></td><td>Claude Sonnet 5 (D2) · Agent SDK, one session per conversation</td><td>Claude Opus 5 · Agent SDK via <code>evalloop/sdk.py::run_structured</code></td><td>Claude Opus 5 · Agent SDK via <code>run_structured</code></td></tr>
+<tr><td><strong>Inputs</strong></td><td>system prompt <code>sdk_vN</code>, report, questions turn by turn</td><td>the wrong row: question, history, report, structured trail, calculator trajectory, gold answer + gold program, the gold-derived panel flags; prior diagnoses from MLflow as memory</td><td>current <code>SDK_PROMPT</code>, every diagnosis of the run grouped by label, the pooled Wilson ranking of classes (as <code>campaign.pick_target</code> does today), the evidence and fix hints behind each</td></tr>
+<tr><td><strong>Output</strong></td><td>structured result → capture → CSV row</td><td>rows appended to the ledger <code>evaluation/diagnostics/evalloop/diagnoses.jsonl</code> (inputs + outputs, flat, one line per case — below); labels from the frozen taxonomy in <code>TEACHER_PROMPT</code>, <code>new:&lt;label&gt;</code> for gaps</td><td><code>prompts/sdk_v(N+1).py</code> generated (never hand-edited), a unified diff, and one line per edit appended to <code>rewrites.jsonl</code> (target area, failure class, <code>diagnosis_ids</code>, edit text, hunk, rationale — below); <code>validate_prompt</code> checks</td></tr>
+<tr><td><strong>Tools</strong></td><td>the six calculator tools</td><td>none — read-only over a prepared payload; adjudicator sub-call for ambiguous cases, as today</td><td>none — it writes a prompt, the gate judges it</td></tr>
+<tr><td><strong>Module</strong></td><td><code>backends/agent_sdk.py</code></td><td><code>evalloop/sdk_teacher.py::diagnose_run</code> (SDK payload + prompt; reuses taxonomy, memory, MLflow logging from <code>teacher.py</code>)</td><td><code>evalloop/sdk_teacher.py::propose_version</code> (reuses <code>validate_prompt</code>, <code>prompt_diff</code>, the module writer)</td></tr>
+<tr><td><strong>Trust</strong></td><td>the gate</td><td>κ against the gold-derived attribution on the same rows, and the existing labelled sheet — the bar stays κ ≥ 0.7</td><td>net-positive paired comparison on test100, McNemar one-sided</td></tr>
+</table></div>
+
+<h3>What the diagnosis agent checks, stage by stage</h3>
+<p>Step 1 is deterministic and runs before any LLM: <code>stage_scores</code> compares the row to gold and produces the flags below plus a first-fault stage. Step 2 is the agent: with those flags in hand it reads the report (table + text), the message history, the question and the qa_agent's own trail and calculator trajectory, and writes the <em>why</em> — which cell or sentence should have been used and which was, which prior turn a reference pointed at, whether the plan's operator or operand order was wrong, whether the answer was right but failed numeric match. It cannot contradict a flag without saying so (<code>gold_suspect</code>).</p>
+<div class="scroll-x"><table>
+<tr><th>Stage of the trail</th><th>What the agent had to do</th><th>Compared to gold (deterministic, step 1)</th><th>What the agent explains (step 2)</th></tr>
+<tr><td><strong>triage</strong></td><td>decide number vs program from the question + history</td><td><code>turn_type</code> vs gold's (<code>gold_program</code> empty ⇒ number) → <code>triage_turn_type_ok</code></td><td>what in the wording or the prior turn made it pick the wrong type</td></tr>
+<tr><td><strong>preprocess</strong></td><td>set the program that answers the question and name <em>every</em> value it needs from the history or the document</td><td><code>pred_program</code> vs <code>gold_program</code>: skeleton (operators, arity, <code>#n</code> refs) → <code>preprocess_skeleton_ok</code>; bound &amp; executed against gold operands → <code>preprocess_plan_ok</code>; <code>sub_questions</code> vs the operand slots</td><td>which operand was missing or extra, which reference ("that", "this change") was resolved to the wrong prior answer, whether the operator or order was wrong</td></tr>
+<tr><td><strong>retriever</strong></td><td>pull each named value out of the report (or a prior answer)</td><td><code>retrieved[]</code> numbers vs the numbers in <code>gold_program</code> (multiset match) → <code>retriever_operand_recall</code>; works for number turns too (the gold answer is the one operand)</td><td>the cell/sentence that should have been used, the one that was, the unit/scale/sign confusion that explains the gap</td></tr>
+<tr><td><strong>calculator</strong></td><td>execute the program through the tools and return the result</td><td>tool trajectory vs the program (every step called, in order, with the retrieved operands) and executed value vs <code>gold_answer</code> → <code>calc_ok</code>; no call at all on a program turn = fail</td><td>inline arithmetic, a step skipped, rounding/percent formatting, the tool result not carried into the answer</td></tr>
+</table></div>
+<p>Per case the agent emits <code>stage</code> (the first one that broke), <code>label</code> (taxonomy), <code>evidence</code> (quoted from the document or history) and <code>fix_hint</code> — one summary of why, anchored on where.</p>
+
+<h3>Three append-only ledgers: diagnoses → rewrites → gates</h3>
+<p>Today each diagnose pass writes its own <code>diagnoses_&lt;version&gt;_&lt;stamp&gt;.jsonl</code> holding only the model's output, the teacher's output is a prompt module plus a diff on an MLflow run, and the campaign memory (<code>evalloop/ledger.py</code>) is reconstructed by searching MLflow runs. Replaced by <strong>three flat JSONL ledgers under <code>evaluation/diagnostics/evalloop/</code> that both arms append to</strong> — <code>diagnoses.jsonl</code> (one line per diagnosed case), <code>rewrites.jsonl</code> (one line per edit the teacher made), <code>gates.jsonl</code> (one line per gate verdict) — joined by ids so one query traces a case from the failure that was seen, to the edit it motivated, to what the gate said about it. Every line in a file has the same columns; nested values are JSON strings so a row stays one row; <code>pd.read_json(path, lines=True)</code> is the table. Nothing ever rewrites or reorders a line.</p>
+<h4>diagnoses.jsonl — one line per diagnosed case</h4>
+<div class="scroll-x"><table>
+<tr><th>Group</th><th>Columns</th><th>Notes</th></tr>
+<tr><td><strong>identity</strong></td><td><code>diagnosis_id, diagnosed_at, runtime, version, prompt_hash, eval_run_id, diagnosis_run_id, split, draw_seed, report_id, question_id, turn_index, diagnoser_model</code></td><td><code>runtime</code> ∈ {multi_agent, agent_sdk} is what lets one query compare the two arms' failure mix; <code>prompt_hash</code> is the truth for "which prompt was this", <code>version</code> the human handle; the two MLflow run ids join back to the eval run that produced the row and the diagnose run that explained it</td></tr>
+<tr><td><strong>inputs · the case</strong></td><td><code>question, history_text, gold_turn_type, gold_answer, gold_program, pred_turn_type, pred_answer, pred_program, sub_questions, retrieved, calc_trajectory</code></td><td>exactly what the agent was shown, minus the report text (join on <code>report_id</code>; inlining 349 reports per run is what makes a ledger unreadable)</td></tr>
+<tr><td><strong>inputs · gold flags</strong></td><td><code>triage_turn_type_ok, preprocess_skeleton_ok, preprocess_plan_ok, retriever_operand_recall, calc_ok, derived_agent, missing_gold_operands</code></td><td>the deterministic step 1, recorded so a row can be re-judged without re-running <code>stage_scores</code></td></tr>
+<tr><td><strong>outputs · the diagnosis</strong></td><td><code>stage, label, what_went_wrong, evidence, attribution_reason, fix_hint, confidence, gold_suspect, attribution_disputed, adjudicated, adjudication_reason</code></td><td>the same fields <code>teacher.py::Diagnosis</code> emits today (<code>failed_agent</code>→<code>stage</code>, <code>failure_mode</code>→<code>label</code>, <code>proposed_rule</code>→<code>fix_hint</code>), so pipeline rows and SDK rows are the same shape</td></tr>
+<tr><td><strong>cost</strong></td><td><code>input_tokens, output_tokens, cost_usd, latency_s</code></td><td>per call, so the ledger also answers "what does a diagnosis cost on each arm"</td></tr>
+</table></div>
+<h4>rewrites.jsonl — one line per edit the teacher made</h4>
+<div class="scroll-x"><table>
+<tr><th>Group</th><th>Columns</th><th>Notes</th></tr>
+<tr><td><strong>identity</strong></td><td><code>edit_id, rewrite_id, proposed_at, runtime, campaign, experiment_n, base_version, new_version, prompt_hash_before, prompt_hash_after, teacher_run_id, teacher_model</code></td><td>a rewrite is one teacher run producing one new version; the SDK arm's multi-area rewrite is several lines sharing a <code>rewrite_id</code>, the pipeline arm's single-agent rewrite is usually one — same shape either way</td></tr>
+<tr><td><strong>inputs · what motivated it</strong></td><td><code>target</code> (subagent name, or the SDK prompt section), <code>failure_class, n_diagnoses, diagnosis_ids, wilson_lower, rank, evidence_summary, prior_attempts</code></td><td><code>diagnosis_ids</code> is the join to the diagnoses ledger; <code>prior_attempts</code> is the count of earlier edits on the same class in this lineage (the memory the writer was given)</td></tr>
+<tr><td><strong>outputs · the edit</strong></td><td><code>change_kind</code> (rule · example · criterion · removal · reorder), <code>edit_text, diff, rationale, prompt_chars_before, prompt_chars_after, validate_ok</code></td><td><code>diff</code> is the unified-diff hunk for this edit alone; the whole-prompt diff stays on the run artifact</td></tr>
+<tr><td><strong>cost</strong></td><td><code>input_tokens, output_tokens, cost_usd, latency_s</code></td><td>per teacher run, repeated on each of its lines</td></tr>
+</table></div>
+<h4>gates.jsonl — one line per gate verdict</h4>
+<div class="scroll-x"><table>
+<tr><th>Group</th><th>Columns</th><th>Notes</th></tr>
+<tr><td><strong>identity</strong></td><td><code>gate_id, gated_at, runtime, campaign, experiment_n, rewrite_id, baseline_version, candidate_version, baseline_hash, candidate_hash, split, gate_run_id, baseline_eval_run_id, candidate_eval_run_id</code></td><td><code>rewrite_id</code> is the join back to the edits this verdict judged</td></tr>
+<tr><td><strong>evidence</strong></td><td><code>n_paired, baseline_acc, candidate_acc, delta_pp, fixed, broken, p_value, ci_low, ci_high, flips_by_class, panel_baseline, panel_candidate</code></td><td><code>flips_by_class</code> is a JSON dict {class: {fixed, broken}} — with the edits' <code>failure_class</code>, this is what says which edit paid and which one broke something</td></tr>
+<tr><td><strong>verdict</strong></td><td><code>promoted, reason, consecutive_rejections, champion_after</code></td><td>the promotion record, as a row; <code>registry.json</code> stays the truth for aliases, this is its history</td></tr>
+</table></div>
+<div class="callout"><strong>Tracing over time = the join.</strong> <code>diagnoses ⋈ rewrites</code> on <code>diagnosis_ids</code>, <code>rewrites ⋈ gates</code> on <code>rewrite_id</code>: for any edit, the cases that motivated it and the verdict it got; for any case, every diagnosis it ever received, every edit it motivated and whether that edit stuck. <code>evalloop/ledgers.py::trace(question_id)</code> and <code>trace(edit_id)</code> return those joins; the story and the Campaigns page render the timeline from the files, not from MLflow searches.</div>
+<h4>MLflow: the same rows, on the run that produced them</h4>
+<p>Every diagnose, propose and gate run logs the exact lines it appended as a <code>ledger_rows.jsonl</code> artifact (same columns as the file), tags <code>kind</code>, <code>runtime</code>, <code>campaign</code>, <code>rewrite_id</code> / <code>gate_id</code>, and mirrors the scalar columns as params (<code>base_version</code>, <code>new_version</code>, hashes, <code>failure_classes</code>) and metrics (<code>n_edits</code>, <code>n_diagnoses</code>, <code>delta_pp</code>, <code>p_value</code>, <code>fixed</code>, <code>broken</code>, <code>cost_usd</code>) so the MLflow UI can chart them over run time and a run can be found from a ledger id. The file ledgers are the source; <code>evalloop/ledger.py</code>'s MLflow-search memory becomes the fallback when the files are absent, not the primary. Traces stay as they are (run → report → question → stage → LLM call) and carry the same ids as tags, so a span, a run and a ledger row point at each other.</p>
+<div class="two">
+<div class="col card"><h4>Rules</h4>
+<ul>
+<li><strong>Append-only, all three.</strong> <code>evalloop/ledgers.py::append(name, rows)</code> opens with <code>"a"</code>, writes, fsyncs. No function in the codebase rewrites a ledger; a test asserts line counts only grow across a diagnose, a propose and a gate call.</li>
+<li><strong>Schemas frozen, extension by adding columns at the end.</strong> One <code>COLUMNS</code> tuple per ledger in the module; new columns get a default so old lines still load into the same frame ("stackable" means every past row is still a row of today's table). Pinned by <code>tests/test_ledgers.py</code>.</li>
+<li><strong>Committed</strong>, like every other <code>evaluation/diagnostics/</code> artefact — the ledgers are the history the story reads. Each run also logs the lines it appended as its own MLflow artifact, so the run view shows just that pass.</li>
+<li><strong>Outcomes are new rows, never updates.</strong> The teacher references <code>diagnosis_id</code>s, the gate references a <code>rewrite_id</code>; "what happened to this case after the rewrite" is a join, not a column that gets updated in place.</li>
+</ul></div>
+<div class="col card"><h4>What it replaces, what it feeds</h4>
+<ul>
+<li>The per-run <code>diagnoses_*.jsonl</code> files stop being written; <code>teacher.py::diagnose_run</code> / <code>propose_version</code> and <code>gate.py</code> (pipeline arm) append to the same ledgers — small additive changes, in scope for P4 so both arms' history sits in the same tables from campaign <code>s01</code> onward. Backfilled once from what exists: the three diagnosis files, the propose runs' diffs and the gate runs' <code>flips.json</code> in MLflow, tagged <code>runtime=multi_agent</code>.</li>
+<li><code>prior_diagnoses</code> and <code>ledger.diagnoses_for_agent</code> / attempt history (the teacher's memory) read the files filtered by <code>runtime</code> and prompt hash instead of searching MLflow.</li>
+<li>κ scoring reads the ledger; the labelling sheet is a filtered export of it.</li>
+<li>The Dataset page gets a "diagnoses" tab: the ledger filtered by <code>report_id</code>, so a suspect gold label shows every diagnosis that ever touched it.</li>
+</ul></div>
+</div>
+
+<h3>What the teacher agent does with the whole run</h3>
+<div class="two">
+<div class="col card"><h4>multi_agent · four prompts, one moves per cycle</h4>
+<p>The teacher receives all diagnoses, ranks failure classes (Wilson bound over pooled draws), and rewrites <strong>one subagent's prompt</strong> for the top class. That rule exists because four prompts are four lineages: <code>gate-targeted</code> judges the change on that agent's own panel metric, and the promotion record says exactly which lineage moved. Unchanged in this plan.</p>
+</div>
+<div class="col card"><h4>agent_sdk · one prompt, several areas per cycle</h4>
+<p>The teacher receives the same diagnoses, but there is one prompt, so it may edit <strong>several areas at once</strong> — the triage criterion <em>and</em> the reference-resolution rule <em>and</em> a calculator example — one edit per failure class it decides to address. This is the one-prompt advantage: a cycle can act on everything the run showed, not just the top class. Each edit is tagged with its class and the case ids behind it, and the change list is attached to the run beside the diff.</p>
+</div>
+</div>
+<div class="callout"><strong>Review of the multi-area approach — agree, with two guardrails.</strong> The cost of editing several areas per cycle is attribution: when the gate says +3pp you don't know which edit paid, and when it rejects you don't know which edit broke it. The gate still measures the whole prompt, so promotion stays sound; what changes is how a rejection is read. Guardrail 1: the teacher's change list is per-class, and <code>flips.json</code> already records every pass→fail and fail→pass by first-fault stage — so after each gate the story reports, per edit, the flips in its own class. An edit whose class got worse is reverted by the next teacher pass (it is told). Guardrail 2: the two-consecutive-rejections rule applies to the <em>lineage</em>, not to a class; if two multi-area rewrites in a row fail the gate, the campaign drops to one area per cycle for the rest of it. The per-agent panel keeps working because the qa_agent reports its stages, so "which area regressed" is readable even without isolating edits.</div>
+
+<h3>One cycle, <code>cycle --runtime agent_sdk</code></h3>
+<div class="two">
+<div class="col card"><h4>Shape, unchanged from the pipeline campaign</h4>
+<div class="step"><span class="who">draw</span><span class="what">train resampled from <code>pool − gate</code>, seed logged, <code>--stop-at-first-wrong</code></span></div>
+<div class="step"><span class="who">run</span><span class="what">qa_agent on the draw → CSV, panel, first-fault attribution</span></div>
+<div class="step"><span class="who">diagnose</span><span class="what">diagnosis agent over the wrong rows → rows appended to the diagnoses ledger, logged to <code>convfinqa-optimization</code> with traces</span></div>
+<div class="step"><span class="who">rank</span><span class="what">failure classes by Wilson bound over pooled SDK draws (pooled by prompt hash; SDK draws never pool with pipeline draws)</span></div>
+<div class="step"><span class="who">rewrite</span><span class="what">teacher agent → <code>sdk_v(N+1)</code>: one edit per class it addresses, one <code>rewrites.jsonl</code> line each, diff attached to the run</span></div>
+<div class="step"><span class="who">gate</span><span class="what">qa_agent with <code>sdk_v(N+1)</code> on test100 vs the SDK champion CSV; promote to <code>sdk_champion</code> on test evidence only; one <code>gates.jsonl</code> line with <code>flips_by_class</code></span></div>
+</div>
+<div class="col card"><h4>What is different, and why</h4>
+<p><strong>The unit of change is the prompt, with per-class edits inside it.</strong> The pipeline's "one subagent per experiment" rule is replaced by "one tagged edit per failure class, all in one lineage" — see the review above for what that costs and how it is kept honest.</p>
+<p><strong>Skipped stages are failures of that stage.</strong> A program turn with an empty <code>program</code> attributes to preprocess; one with no calculator call attributes to calculator. Pinned by a test before the first cycle.</p>
+<p><strong>Same caps.</strong> <code>MAX_EXPERIMENTS = 5</code>, <code>MAX_CONSECUTIVE_REJECTIONS = 2</code> (on the lineage); campaign <code>s01</code> in the ledger, its own row on the Campaigns page.</p>
+<p><strong>The comparison at the end is full and symmetric.</strong> Both arms get a full test100 pass with their optimised champion — v8 as committed (D7) or re-run, <code>sdk_champion</code> fresh — and the paired McNemar comparison plus the per-stage panel side by side is the write-up's headline (P6).</p>
+</div>
+</div>
+<div class="callout"><strong>Budget.</strong> The pipeline campaign spends ~$4 per experiment on DeepSeek. An SDK cycle is one train draw (~370 q early-stopped, so ~150) plus one test pass (349 q) for the qa_agent, plus the diagnosis and teacher calls on Opus (~$3–5, as today): roughly $15–20 per experiment on the API at Sonnet pricing with caching; on the subscription it is rate-limit time instead of money (you hit the limit twice on 2026-09-04 running the teacher alone). Five experiments is the campaign cap either way.</div>
+
+<h2 id="s6">06 · Files and the invariants they must respect</h2>
+<div class="scroll-x"><table>
+<tr><th>File</th><th>Change</th><th>Invariant it answers to</th></tr>
+<tr><td><code>src/convfinqa/llm.py</code></td><td>add <code>pipeline_sdk_options(*, system_prompt, mcp_server, allowed_tools, output_schema, max_turns)</code>, sibling of <code>teacher_options</code>; <code>LM_SDK_MODEL = "claude-sonnet-5"</code>; reuse <code>subscription_env()</code> (blanks the key, strips <code>CLAUDE_CODE_*</code>) or an <code>api_env()</code> variant per D3</td><td>only place a model/options is constructed; the demo gate lives here</td></tr>
+<tr><td><code>src/convfinqa/backends/agent_sdk.py</code> <span class="chip violet">new</span></td><td>calculator tool server writing the trajectory, structured-result → capture mapping, <code>run_conversation(report_id, questions, *, version_prompts, captures, stop_after) → (preds, programs)</code> — the same signature as <code>ConversationRunner.run_conversation</code></td><td>lazy SDK import; nothing built at import; <code>test_every_module_imports_without_a_key</code></td></tr>
+<tr><td><code>src/convfinqa/prompts/sdk_v1.py</code> <span class="chip violet">new</span></td><td><code>SDK_PROMPT</code>, the distilled prompt; <code>prompts.load_sdk(version)</code>; later versions generated by the teacher agent, never hand-edited</td><td>prompt refs with sha256; one lineage in <code>registry.json → sdk_prompts</code></td></tr>
+<tr><td><code>src/convfinqa/evalloop/ledgers.py</code> <span class="chip violet">new</span> · <code>evaluation/diagnostics/evalloop/{diagnoses,rewrites,gates}.jsonl</code></td><td>the three append-only ledgers: frozen <code>COLUMNS</code> per ledger, <code>append(name, rows)</code>, <code>load(name, runtime=, version=)</code> → DataFrame, <code>trace(question_id | edit_id)</code> joins, one-off backfill from the existing diagnosis files and MLflow propose/gate runs; <code>teacher.py</code>, <code>sdk_teacher.py</code> and <code>gate.py</code> all write through it, and each run logs its appended lines as <code>ledger_rows.jsonl</code> with mirrored params/metrics</td><td>append-only (test asserts line counts only grow); committed like every diagnostics artefact; schema extension by trailing columns with defaults; <code>ledger.py</code> MLflow search becomes the fallback</td></tr>
+<tr><td><code>src/convfinqa/evalloop/sdk_teacher.py</code> <span class="chip violet">new</span></td><td>diagnosis agent (<code>diagnose_run</code>) and teacher agent (<code>propose_version</code>) for the SDK arm: SDK case payload, SDK diagnosis prompt (stage-by-stage checks of §05), SDK writer prompt (multi-area edits with a per-class change list); taxonomy, memory, adjudicator, <code>validate_prompt</code>, <code>prompt_diff</code>, module writer imported from <code>teacher.py</code></td><td>teacher runs log to <code>convfinqa-optimization</code> with traces; frozen taxonomy; <code>refs</code> on every <code>run_structured</code></td></tr>
+<tr><td><code>src/convfinqa/evalloop/sdk.py</code></td><td>widen: <code>ClaudeSDKClient</code> may be constructed here <em>and</em> in <code>backends/agent_sdk.py</code>; both open the per-attempt <code>LLM</code> span</td><td>Agent SDK must be traced by hand; <code>refs</code> required</td></tr>
+<tr><td><code>src/convfinqa/evalloop/runner.py</code></td><td><code>run_split(..., runtime="pipeline"|"agent_sdk")</code>; run-name prefix; <code>runtime</code> param/tag; SDK metrics; <code>_capture_to_row_fields</code> shared</td><td>MLflow logging lives inside the runner</td></tr>
+<tr><td><code>src/convfinqa/evalloop/cli.py</code></td><td><code>--runtime</code> on <code>run</code>, <code>diagnose</code>, <code>propose</code>, <code>cycle</code>, <code>gate</code>; <code>--version sdk_vN</code> resolves through <code>load_sdk</code></td><td>both gate CLIs refuse <code>--promote</code> on train evidence — unchanged</td></tr>
+<tr><td><code>src/convfinqa/evalloop/{campaign,ledger,story}.py</code></td><td>runtime in the fault-history key; target = failure class for SDK campaigns; <code>sdk_champion</code> alias; runtime-comparison block in the story</td><td>attribution is gold-derived; story and Campaigns page read one JSON</td></tr>
+<tr><td><code>tests/</code></td><td><code>test_ledgers.py</code>: append never rewrites, columns frozen per ledger, old lines load under a widened schema, <code>trace()</code> joins a case to its edits and verdicts. <code>test_agent_sdk_backend.py</code>: fake SDK client drives a two-turn conversation, asserts capture keys equal <code>turn_events</code>' keys, arithmetic only via tool returns, a program turn with an empty program attributes to preprocess, a program turn with no tool call attributes to calculator, generated prompt module round-trips through <code>load_sdk</code>. Update the chokepoint pin to exactly two sanctioned modules. <code>test_sdk_teacher.py</code>: payload shape, diff is minimal and targeted, generated module round-trips through <code>load_sdk</code>.</td><td>the chokepoint pin; demo-mode import test</td></tr>
+<tr><td><code>pyproject.toml</code></td><td><code>claude-agent-sdk>=0.2.152</code> — already present on the campaign branch, absent on <code>main</code> (see D1)</td><td></td></tr>
+</table></div>
+<div class="callout bad"><strong>Branch base.</strong> <code>agent-sdk-experiment</code> was cut from <code>main</code>, which is 28 commits behind <code>feat/optimization-campaigns</code> (PR #8, checks passed, unmerged). Main has no <code>evalloop/sdk.py</code>, no <code>campaign.py</code>, no <code>ledger.py</code>, no prompt refs, no <code>program_exec</code>, no v6–v12 prompts and no Agent SDK dependency. Nearly every row above depends on that code. Decision D1 is first for a reason.</div>
+
+<h2 id="s7">07 · Phases, effort, cost</h2>
+<div class="card">
+<div class="phase"><div class="num">P0</div><div><strong>Rebase and dependency.</strong> Resolve D1; <code>uv sync</code>; confirm <code>claude --version</code> and that the chosen billing path (D3) reaches the CLI. <div class="meta">½ h · $0</div></div></div>
+<div class="phase"><div class="num">P1</div><div><strong>qa_agent.</strong> <code>backends/agent_sdk.py</code>, <code>llm.pipeline_sdk_options</code>, calculator MCP server, structured result → capture, <code>--runtime agent_sdk</code> through runner and CLI; fake-client tests green; chokepoint pin widened. No live calls. <div class="meta">3–4 h · $0</div></div></div>
+<div class="phase"><div class="num">P2</div><div><strong>Distil <code>sdk_v1</code>.</strong> Per D8: teacher-drafted from the four v8 prompts + dataset notes, reviewed by me; or hand-written. Committed, hashed, registered as the root of the <code>sdk_prompts</code> lineage. <div class="meta">1–2 h · &lt;$1</div></div></div>
+<div class="phase"><div class="num">P3</div><div><strong>Smoke, then the diagnostic pass.</strong> 3 train reports first (traces, CSV columns, panel by hand; the only place the prompt is hand-adjusted). Then <code>sdk_v1</code> on test100, gate against the committed v8 CSV, CSV + <code>flips.json</code> committed. This number seeds the loop; it is reported as "unoptimised SDK vs optimised pipeline" and nothing more. <div class="meta">2 h + ~30 min run · ~$15 API-equiv</div></div></div>
+<div class="phase"><div class="num">P4</div><div><strong>Ledgers, diagnosis agent and teacher agent.</strong> <code>evalloop/ledgers.py</code> first (backfill, switch <code>teacher.py</code> and <code>gate.py</code> to append and to log <code>ledger_rows.jsonl</code>), then <code>evalloop/sdk_teacher.py</code>; run diagnose on the P3 wrong rows, score κ against gold-derived attribution; run propose once by hand and read the diff before letting <code>cycle</code> drive it. <div class="meta">4–5 h · ~$5</div></div></div>
+<div class="phase"><div class="num">P5</div><div><strong>Campaign <code>s01</code>.</strong> Up to 5 <code>cycle --runtime agent_sdk</code> experiments; promotion to <code>sdk_champion</code> on test evidence only; multi-area rewrites with per-class change lists, dropping to one area per cycle after two consecutive rejections. <div class="meta">~1 h wall per cycle · $15–20 each</div></div></div>
+<div class="phase"><div class="num">P6</div><div><strong>The fair comparison and the write-up.</strong> Full test100 pass of both optimised champions — <code>sdk_champion</code> and <code>v8</code> — compared via <code>gate</code> (paired McNemar) with the per-stage panel side by side; optional sealed-holdout confirmatory read for both arms (D6); optional pipeline-on-Claude pass to isolate the model confound (D2). <code>story</code> regenerated with the runtime-comparison block, <code>docs/optimization/agent-sdk.html</code>, README section; this artifact's decisions recorded in the story. <div class="meta">2 h + runs · $0–25</div></div></div>
+</div>
+<p class="faint">Total: roughly three working days of build plus a day of campaign wall-clock; $90–140 API-equivalent, or subscription time if D3 chooses subscription.</p>
+
+<h2 id="s8">08 · Risks and confounds</h2>
+<div class="grid">
+<div class="card"><h3><span class="chip bad">confound</span> Model and architecture change together</h3><p>v8 runs DeepSeek v4-flash; the SDK agent runs Claude. Optimised-vs-optimised makes the comparison fair on <em>effort</em>, not on model. A win says nothing about "one agent vs four" unless the pipeline also runs on the same Claude model once (D2). Recommend it — it is the difference between a result and an anecdote.</p></div>
+<div class="card"><h3><span class="chip bad">throughput</span> CLI subprocess per conversation</h3><p>Each session is a <code>claude</code> process. At concurrency 4 a test pass is an estimated 25–35 min versus 344 s. Fine for an experiment; it is the main reason serving is out of scope here.</p></div>
+<div class="card"><h3><span class="chip amber">billing</span> Subscription limits and terms</h3><p>The subscription path (like the sibling) hit rate limits twice yesterday on teacher traffic alone; a 349-question pass is ~10× that. The API path costs money but is predictable and is what a replacement runtime would ship on. Also verify the subscription terms permit automated eval load before leaning on it.</p></div>
+<div class="card"><h3><span class="chip amber">stats</span> Gate split has been used ~10 times</h3><p>test100 has judged every campaign gate since 2026-09-03. Selection bias is mild for a paired test between two arms that both see it once, but the holdout (D6) is the only clean confirmatory read left.</p></div>
+<div class="card"><h3><span class="chip amber">validity</span> ConvFinQA is public</h3><p>Any frontier model may have seen the dataset. Report it, don't pretend otherwise; the paired comparison is still fair because both arms face the same exposure risk — but the absolute number is not a generalisation claim.</p></div>
+<div class="card"><h3><span class="chip info">behaviour</span> The model may skip stages or do arithmetic in its head</h3><p>Nothing forces the trail. <code>sdk_stage_skips</code> counts program turns with no reported plan or no calculator call; <code>sdk_inline_arithmetic</code> counts answers that don't match any tool return. High counts are a finding about the prompt, not a bug to hide — and the preamble is the only text hand-tuned to bring them down.</p></div>
+<div class="card"><h3><span class="chip info">repro</span> Non-determinism</h3><p>Neither arm is deterministic. The gate's bootstrap CI absorbs it; the commit-the-CSV rule means the number in the write-up is the number in the store.</p></div>
+<div class="card"><h3><span class="chip info">scope</span> Serving is untouched</h3><p>If the SDK wins, wiring it into <code>turn_events</code> events, DEMO_MODE (no key, recorded pack) and API-key billing in the container is a separate plan. Nothing here changes what ships.</p></div>
+</div>
+
+<h2 id="s9">09 · Decisions</h2>
+<p class="muted">Pick an option per question and queue it; each queued answer reaches me as a prompt. Recommended options are marked. Anything else — annotate the page.</p>
+
+<form class="q" data-lavish-question="D1" onsubmit="return queueAnswer(event,'D1','Base branch')">
+<div class="qh"><span class="qid">D1 · base branch</span></div>
+<h3>Where should <code>agent-sdk-experiment</code> be based?</h3>
+<label class="opt"><input type="radio" name="D1" value="merge-pr8-then-rebase" checked><span><span class="ol">Merge PR #8, then rebase onto <code>origin/main</code></span><span class="rec">recommended</span><div class="od">Checks passed; the experiment gets the campaign code from main and its own PR stays reviewable against main.</div></span></label>
+<label class="opt"><input type="radio" name="D1" value="rebase-onto-campaign"><span><span class="ol">Rebase onto <code>feat/optimization-campaigns</code> now</span><div class="od">Start immediately; the experiment PR will carry the 28 campaign commits until #8 merges.</div></span></label>
+<label class="opt"><input type="radio" name="D1" value="stay-on-main"><span><span class="ol">Stay on <code>main</code></span><div class="od">Not workable — no <code>evalloop/sdk.py</code>, no campaign, no Agent SDK dependency. Listed so the choice is explicit.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<form class="q" data-lavish-question="D2" onsubmit="return queueAnswer(event,'D2','Model and confound')">
+<div class="qh"><span class="qid">D2 · model</span></div>
+<h3>Which Claude model runs the SDK agent, and do we isolate the model confound?</h3>
+<label class="opt"><input type="radio" name="D2" value="sonnet5-plus-p4" checked><span><span class="ol">Claude Sonnet 5, and run P4 (pipeline on Sonnet 5)</span><span class="rec">recommended</span><div class="od">Comparable cost tier to a production choice; P4 separates "Claude vs DeepSeek" from "one vs four" for ~$8.</div></span></label>
+<label class="opt"><input type="radio" name="D2" value="sonnet5-only"><span><span class="ol">Claude Sonnet 5, skip P4</span><div class="od">Cheaper and faster; the write-up must say the two factors are confounded.</div></span></label>
+<label class="opt"><input type="radio" name="D2" value="opus5"><span><span class="ol">Claude Opus 5</span><div class="od">Best-case ceiling; ~5× the cost per pass and heavier on subscription limits.</div></span></label>
+<label class="opt"><input type="radio" name="D2" value="haiku45"><span><span class="ol">Claude Haiku 4.5</span><div class="od">Closest in price/speed to DeepSeek v4-flash; likeliest to lose, but the fairest cost-matched comparison.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<form class="q" data-lavish-question="D3" onsubmit="return queueAnswer(event,'D3','Billing path')">
+<div class="qh"><span class="qid">D3 · billing</span></div>
+<h3>Subscription (like the sibling and the teacher) or API key?</h3>
+<label class="opt"><input type="radio" name="D3" value="api-key" checked><span><span class="ol">API key via <code>ANTHROPIC_API_KEY</code></span><span class="rec">recommended</span><div class="od">Predictable, no rate-limit stalls mid-pass, and it is how a replacement runtime would run. ≈$15 per test pass on Sonnet.</div></span></label>
+<label class="opt"><input type="radio" name="D3" value="subscription"><span><span class="ol">Subscription via <code>subscription_env()</code></span><div class="od">No marginal cost; rate limits likely at 349 q per pass — build in resume-from-CSV so a stalled pass is not lost.</div></span></label>
+<label class="opt"><input type="radio" name="D3" value="both-switchable"><span><span class="ol">Both, selected by env; default API</span><div class="od">Smoke and train draws on subscription, gate passes on API. Slightly more plumbing in <code>llm.py</code>.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<div class="card" style="border-color:rgba(78,203,157,.45)">
+<div class="qh"><span class="qid">D4 · stage tools</span> <span class="chip good">decided in review</span></div>
+<h3>Calculator tool only; the rest is a train of thought the agent follows itself</h3>
+<p class="muted">Your call on the first pass: no <code>triage / plan / retrieve</code> tools and no order hook. The agent works from the report and the session history, following <em>number: triage → retrieve</em> and <em>program: triage → preprocess → retrieve → calculate</em>, reporting each stage in its structured result so the panel and attribution still compute. The plan above reflects this.</p>
+</div>
+
+<form class="q" data-lavish-question="D5" onsubmit="return queueAnswer(event,'D5','Document delivery')">
+<div class="qh"><span class="qid">D5 · document</span></div>
+<h3>Report in the prompt, or a workspace the agent reads with tools?</h3>
+<label class="opt"><input type="radio" name="D5" value="in-prompt" checked><span><span class="ol">In the first user message</span><span class="rec">recommended</span><div class="od">Docs are 4–8k chars; a workspace adds Read/Grep turns and a per-run directory for nothing. Matches how the pipeline sees the document.</div></span></label>
+<label class="opt"><input type="radio" name="D5" value="workspace"><span><span class="ol">Per-run workspace + built-in Read/Grep, like the sibling</span><div class="od">Closer to the sibling's shape; more turns, more variance, and the retriever prompt was written for an in-context table.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<form class="q" data-lavish-question="D6" onsubmit="return queueAnswer(event,'D6','Holdout')">
+<div class="qh"><span class="qid">D6 · holdout</span></div>
+<h3>Open the sealed holdout for the final SDK-vs-v8 verdict?</h3>
+<label class="opt"><input type="radio" name="D6" value="test-only" checked><span><span class="ol">No — test100 only</span><span class="rec">recommended</span><div class="od">This is an experiment; keep the holdout for a release decision. The write-up states test100's reuse count.</div></span></label>
+<label class="opt"><input type="radio" name="D6" value="open-if-sdk-wins"><span><span class="ol">Open it only if the SDK agent wins on test100</span><div class="od">A confirmatory read on unseen conversations before anyone talks about replacing the runtime. Recorded as an opening.</div></span></label>
+<label class="opt"><input type="radio" name="D6" value="open-both"><span><span class="ol">Open it for both arms regardless</span><div class="od">Cleanest numbers; burns the holdout for a non-release decision.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<form class="q" data-lavish-question="D7" onsubmit="return queueAnswer(event,'D7','Baseline arm')">
+<div class="qh"><span class="qid">D7 · baseline arm</span></div>
+<h3>Reuse the committed v8 test100 CSV, or re-run v8 alongside?</h3>
+<label class="opt"><input type="radio" name="D7" value="reuse" checked><span><span class="ol">Reuse the committed 2026-09-04 CSV</span><span class="rec">recommended</span><div class="od">Same code, same split, already in git; this is what <code>--baseline-gate-csv</code> exists for.</div></span></label>
+<label class="opt"><input type="radio" name="D7" value="rerun"><span><span class="ol">Re-run v8 on the same day</span><div class="od">~6 minutes and ~$2; removes any "different day" objection and gives a second v8 sample for the write-up.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<form class="q" data-lavish-question="D8" onsubmit="return queueAnswer(event,'D8','First SDK prompt')">
+<div class="qh"><span class="qid">D8 · sdk_v1</span></div>
+<h3>Who distils the four v8 prompts into the first SDK prompt?</h3>
+<label class="opt"><input type="radio" name="D8" value="teacher-draft-human-review" checked><span><span class="ol">Teacher agent drafts it from the four prompts + dataset notes; I review and trim before it becomes <code>sdk_v1</code></span><span class="rec">recommended</span><div class="od">Exercises the teacher agent on day one and keeps the lineage honest: every version of the SDK prompt, including the first, was written by the loop's writer.</div></span></label>
+<label class="opt"><input type="radio" name="D8" value="hand-written"><span><span class="ol">I write it by hand</span><div class="od">Faster to a first smoke; the root of the lineage is hand-authored, later versions are not.</div></span></label>
+<label class="opt"><input type="radio" name="D8" value="both-as-arms"><span><span class="ol">Both, run as two <code>sdk_v1</code> candidates in P3, keep the better</span><div class="od">One extra test pass (~$15) tells you whether the teacher's distillation is already competitive with a human's.</div></span></label>
+<textarea name="note" placeholder="Optional note"></textarea>
+<div class="row"><button type="submit">Queue answer</button><span class="status">not queued</span></div>
+</form>
+
+<p class="faint" style="margin-top:40px">Design: project design system (source 2) — the s04/s05 dark IBM Plex tokens this repo's Lavish artifacts already use. Baseline figures read from the live MLflow store on 2026-09-05; the sibling pattern is <code>data-qa-agent/services/data-agent/agent/sdk_agent.py</code>.</p>
+</div>
+
+<script>
+mermaid.initialize({startOnLoad:true,theme:'dark',securityLevel:'loose',themeVariables:{fontFamily:'IBM Plex Sans',fontSize:'13px',primaryColor:'#2a2e34',primaryTextColor:'#e8e9ea',primaryBorderColor:'#434850',lineColor:'#9ba1ab',secondaryColor:'#212429',tertiaryColor:'#191b1f',clusterBkg:'#1d2024',clusterBorder:'#32363d',edgeLabelBackground:'#212429'},flowchart:{htmlLabels:true,curve:'basis',nodeSpacing:24,rankSpacing:36}});
+function queueAnswer(ev,id,label){
+  ev.preventDefault();
+  var form=ev.target;
+  var picked=form.querySelector('input[name="'+id+'"]:checked');
+  var note=(form.querySelector('textarea[name=note]')||{}).value||'';
+  var status=form.querySelector('.status');
+  if(!picked){status.textContent='pick an option first';return false;}
+  var answerLabel=picked.parentElement.querySelector('.ol').textContent.trim();
+  var text=id+' · '+label+': '+answerLabel+(note?' — '+note:'');
+  var prompt='Decision '+id+' ('+label+'): '+answerLabel+' [value='+picked.value+']'+(note?'\nNote: '+note:'');
+  if(window.lavish&&window.lavish.queuePrompt){
+    window.lavish.queuePrompt(prompt,{tag:'decision',text:text,element:form,queueKey:id,data:{question:id,answer:picked.value,note:note}});
+    status.textContent='queued · '+answerLabel;status.classList.add('ok');
+  }else{
+    status.textContent='lavish not connected — open this page via lavish-axi';
+  }
+  return false;
+}
+</script>
+</body>
+</html>

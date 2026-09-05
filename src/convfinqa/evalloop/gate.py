@@ -15,6 +15,14 @@ matter and neither is decorative:
 Every verdict also carries the cluster bootstrap CI on Δ, which is what to read
 when a p sits near the line. Promotion goes through ``tracking.registry.promote``,
 which records the whole comparison on the history.
+
+`load_run_csv` is the shared door every arm's evidence comes through, and it
+**refuses a CSV with unscored rows** (`IncompleteRunError`). A paired
+comparison over a set half of whose turns were never attempted is not a
+comparison: the two arms have to face the same questions, which is the entire
+reason the gate is paired. The fix is never a flag — it is to finish the pass
+with ``convfinqa-evalloop run … --resume-from <csv>``. CSVs written before the
+`unscored` column exist are read as all-scored, which is what they are.
 """
 
 from __future__ import annotations
@@ -33,11 +41,43 @@ from convfinqa.tracking.comparator import (
 )
 
 
-def load_run_csv(path: Path | str) -> pd.DataFrame:
-    """Load an eval-loop predictions CSV into the comparison shape."""
+class IncompleteRunError(ValueError):
+    """A predictions CSV carrying turns the runtime never answered."""
+
+
+def _bool_column(df: pd.DataFrame, column: str) -> pd.Series:
+    """One column as booleans; a column that is not there is all-False.
+
+    Trailing columns are added over time, and a CSV committed before one
+    existed must keep loading — for `unscored`, "absent" and "no unscored
+    rows" are the same claim.
+    """
+    if column not in df.columns:
+        return pd.Series(False, index=df.index, dtype=bool)
+    return df[column].astype(str).str.lower().isin({"true", "1"})
+
+
+def load_run_csv(path: Path | str, *, allow_unscored: bool = False) -> pd.DataFrame:
+    """Load an eval-loop predictions CSV into the comparison shape.
+
+    Refuses a frame with unscored rows — turns that were never answered, so
+    neither arm has a counterpart for them. `allow_unscored` exists for
+    bookkeeping that reads a CSV to *describe* a pass rather than to judge it;
+    no gate may pass it.
+    """
     df = pd.read_csv(path)
-    df["correct"] = df["correct"].astype(str).str.lower().isin({"true", "1"})
+    df["correct"] = _bool_column(df, "correct")
+    df["unscored"] = _bool_column(df, "unscored")
     df["turn_index"] = df["turn_index"].astype(int)
+    n_unscored = int(df["unscored"].sum())
+    if n_unscored and not allow_unscored:
+        raise IncompleteRunError(
+            f"{Path(path).name}: {n_unscored} of {len(df)} rows are unscored — "
+            "turns the runtime never answered (the CLI refused them). A paired "
+            "comparison needs both arms to face the same questions, so this run "
+            "cannot be gated. Finish the pass first:\n"
+            f"  convfinqa-evalloop run --split … --version … --resume-from {path}"
+        )
     return df
 
 

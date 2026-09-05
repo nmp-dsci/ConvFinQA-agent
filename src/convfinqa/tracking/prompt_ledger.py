@@ -175,3 +175,66 @@ def mirror_to_mlflow(version: str) -> dict[str, str]:
         except Exception:  # noqa: BLE001
             log.warning("prompt mirror failed for %s", name, exc_info=True)
     return out
+
+
+# ── The single-session (Agent SDK) lineage ─────────────────────────────────
+#
+# The qa_agent runtime carries one prompt for the whole job, so it has one
+# lineage rather than four: ``registry.json → sdk_prompts``, entries of the same
+# shape as an agent's, seq ``s1, s2, …``. It is kept out of `agent_prompts` so
+# nothing that walks the four agents ever meets a fifth.
+
+SDK_INITIAL = "s"
+
+
+def _sdk_lineage(doc: Any) -> list[dict[str, Any]]:
+    if doc.sdk_prompts is None:
+        doc.sdk_prompts = []
+    lineage: list[dict[str, Any]] = doc.sdk_prompts
+    return lineage
+
+
+def resolve_sdk(version: str) -> dict[str, str]:
+    """Read-only identity of an `sdk_vN` prompt: ``{seq, hash}``, ``s?`` if unseen."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import registry
+
+    h = prompt_hash(prompts_pkg.load_sdk(version))
+    doc = registry.load()
+    entry = next((e for e in (doc.sdk_prompts or []) if e["hash"] == h), None)
+    return {"seq": entry["seq"] if entry else f"{SDK_INITIAL}?", "hash": h}
+
+
+def ensure_sdk(
+    version: str, *, source: str = "manual", run_id: str = ""
+) -> dict[str, str]:
+    """Register the prompt hash of `version` if unseen; return ``{seq, hash}``.
+
+    Same contract as `ensure`: idempotent, next seq in the lineage, previous
+    latest entry as parent.
+    """
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import registry
+
+    h = prompt_hash(prompts_pkg.load_sdk(version))
+    doc = registry.load()
+    lineage = _sdk_lineage(doc)
+    entry = next((e for e in lineage if e["hash"] == h), None)
+    if entry is None:
+        entry = {
+            "seq": f"{SDK_INITIAL}{len(lineage) + 1}",
+            "hash": h,
+            "first_seen_in": version,
+            "parent": lineage[-1]["seq"] if lineage else None,
+            "source": source,
+            "registered_at": _now(),
+            "run_id": run_id,
+        }
+        lineage.append(entry)
+        registry.save(doc)
+    return {"seq": entry["seq"], "hash": h}
+
+
+def sdk_composition_string(entry: dict[str, str]) -> str:
+    """`s1` — the single-session counterpart of `t1.p1.r2.c1`."""
+    return entry["seq"]

@@ -442,6 +442,7 @@ def test_every_module_imports_without_a_key(demo_mode: None) -> None:
     for name in (
         "convfinqa.backends.dspy",
         "convfinqa.backends.pydantic",
+        "convfinqa.backends.agent_sdk",
         "convfinqa.diagnosis.agents",
         "convfinqa.optimization.gepa",
         "convfinqa.serving.evaldata",

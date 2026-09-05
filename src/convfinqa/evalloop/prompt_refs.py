@@ -21,6 +21,9 @@ So a span stores a **reference** and the store holds one copy:
 - ``diagnose_case`` — a row of a committed predictions CSV, identified by
   report id and turn index; the payload is rebuilt by the same function that
   built it originally.
+- ``sdk_prompt`` — the qa_agent runtime's single-session system prompt, a
+  module constant in its own ``sdk_vN`` lineage. Resolved from the code, like
+  ``agent_prompt``, and checked the same way.
 
 Every ref carries the sha256 of the text it stands for, so a resolution can be
 *checked* rather than assumed. That matters because two of these resolve against
@@ -63,6 +66,21 @@ def agent_prompt_ref(agent: str, version: str, text: str) -> dict[str, Any]:
     }
 
 
+def sdk_prompt_ref(version: str, text: str) -> dict[str, Any]:
+    """A reference to the single-session prompt of an `sdk_vN` version.
+
+    Carries the ledger's seq when the hash is registered, so a trace reads
+    ``s2`` beside the version the way an agent ref reads ``p2``.
+    """
+    from convfinqa.tracking import prompt_ledger
+
+    try:
+        seq = prompt_ledger.resolve_sdk(version)["seq"]
+    except Exception:  # noqa: BLE001 — a ref is never load-bearing
+        seq = ""
+    return {"kind": "sdk_prompt", "version": version, "seq": seq, "sha": sha(text)}
+
+
 def run_artifact_ref(name: str, text: str, *, run_id: str = "") -> dict[str, Any]:
     """A reference to text logged once on the run rather than on every span."""
     return {"kind": "run_artifact", "name": name, "run_id": run_id, "sha": sha(text)}
@@ -75,6 +93,7 @@ def diagnose_case_ref(
     *,
     memory: str = "",
     text: str = "",
+    runtime: str = "multi_agent",
 ) -> dict[str, Any]:
     """A reference to one diagnosed case: a CSV row plus the pass's memory block.
 
@@ -82,6 +101,11 @@ def diagnose_case_ref(
     nothing for `resolve` to check against, so a rebuild that has silently
     drifted — a changed `case_payload`, an edited CSV — comes back looking like
     the text that ran.
+
+    `runtime` says which payload builder produced the prompt: the pipeline
+    teacher's `case_payload` or, for ``agent_sdk``, `sdk_teacher.sdk_case_payload`.
+    The two read the same row and build different prompts, so a ref that did
+    not carry it would rebuild the wrong one and fail the sha check.
     """
     ref: dict[str, Any] = {
         "kind": "diagnose_case",
@@ -90,6 +114,8 @@ def diagnose_case_ref(
         "turn_index": int(turn_index),
         "memory_artifact": memory,
     }
+    if runtime != "multi_agent":
+        ref["runtime"] = runtime
     if text:
         ref["sha"] = sha(text)
     return ref
@@ -131,9 +157,13 @@ def resolve(ref: dict[str, Any], *, run_id: str = "") -> str:
     """
     kind = ref.get("kind")
     if kind == "teacher_prompt":
-        from convfinqa.evalloop import teacher
+        # The pipeline teacher's constants and the SDK arm's (`sdk_teacher`)
+        # share one ref kind; names are distinct across the two modules.
+        from convfinqa.evalloop import sdk_teacher, teacher
 
         text = getattr(teacher, str(ref.get("name")), None)
+        if not isinstance(text, str):
+            text = getattr(sdk_teacher, str(ref.get("name")), None)
         if not isinstance(text, str):
             raise UnresolvedRefError(
                 f"no teacher prompt named {ref.get('name')!r} in this code"
@@ -143,6 +173,15 @@ def resolve(ref: dict[str, Any], *, run_id: str = "") -> str:
 
         try:
             text = prompts_pkg.load(str(ref["version"]))[str(ref["agent"])]
+        except Exception as exc:  # noqa: BLE001
+            raise UnresolvedRefError(
+                f"cannot load {ref.get('version')}: {exc}"
+            ) from exc
+    elif kind == "sdk_prompt":
+        import convfinqa.prompts as prompts_pkg
+
+        try:
+            text = prompts_pkg.load_sdk(str(ref["version"]))
         except Exception as exc:  # noqa: BLE001
             raise UnresolvedRefError(
                 f"cannot load {ref.get('version')}: {exc}"
@@ -159,7 +198,8 @@ def resolve(ref: dict[str, Any], *, run_id: str = "") -> str:
     want = ref.get("sha")
     if want and sha(text) != want:
         raise UnresolvedRefError(
-            f"{kind} {ref.get('name') or ref.get('agent') or ''} has changed since "
+            f"{kind} {ref.get('name') or ref.get('agent') or ref.get('version') or ''} "
+            "has changed since "
             f"the run: recorded {want}, current {sha(text)}. Check out the run's "
             "code_sha to read the text that actually ran."
         )
@@ -223,6 +263,12 @@ def _rebuild_case(ref: dict[str, Any], *, run_id: str) -> str:
     memory = ""
     if ref.get("memory_artifact"):
         memory = _download_text(str(ref["memory_artifact"]), run_id)
+    if ref.get("runtime") == "agent_sdk":
+        from convfinqa.evalloop import sdk_teacher
+
+        return sdk_teacher.diagnose_prompt_text(
+            sdk_teacher.sdk_case_payload(_case_row(ref)), memory
+        )
     return teacher.diagnose_prompt_text(teacher.case_payload(_case_row(ref)), memory)
 
 

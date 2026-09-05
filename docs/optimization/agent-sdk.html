@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Agent SDK experiment — one session against four agents</title>
+<meta name="description" content="A single Claude Agent SDK session with calculator
+tools, run through the same eval loop and the same significance gate as the
+four-agent ConvFinQA pipeline.">
+<style>
+:root{--bg:#0e1116;--panel:#151a21;--panel-2:#1b212a;--line:#262d38;--text:#dbe3ee;
+--muted:#93a1b5;--faint:#6b7a90;--good:#73daca;--bad:#f7768e;--amber:#e0af68;--info:#7aa2f7;
+--violet:#bb9af7;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px 96px}
+header{padding:72px 0 40px;border-bottom:1px solid var(--line);margin-bottom:44px}
+h1{font-size:38px;line-height:1.15;margin:0 0 14px;letter-spacing:-.02em}
+h2{font-size:23px;margin:56px 0 14px;letter-spacing:-.01em}
+h3{font-size:16px;margin:30px 0 10px}
+p{margin:0 0 14px;color:var(--muted)}
+.lede{font-size:17px;color:var(--text);max-width:66ch}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+color:var(--faint);margin:0 0 10px}
+code,.mono{font-family:var(--mono);font-size:.9em}
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:16px;min-width:0}
+.stat{font:600 30px/1 var(--mono);letter-spacing:-.02em}
+.stat.good{color:var(--good)}.stat.bad{color:var(--bad)}.stat.amber{color:var(--amber)}
+.k{font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+margin-bottom:8px}
+.sub{font-size:12.5px;color:var(--faint);margin-top:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font:600 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+color:var(--faint);padding:0 10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel);
+margin:0 0 18px}
+.scroll table{min-width:640px}
+.pill{display:inline-block;font:600 10px/1.7 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+padding:0 8px;border-radius:99px;border:1px solid}
+.pill.ok{color:var(--good);border-color:#2c5f57;background:#132420}
+.pill.no{color:var(--faint);border-color:var(--line);background:var(--panel-2)}
+.pill.agent{color:var(--info);border-color:#2b3d5e;background:#141b28;text-transform:none}
+figure{margin:22px 0 26px}
+svg{display:block;width:100%;height:auto}
+figcaption{font-size:12.5px;color:var(--faint);margin-top:10px}
+.exp{border:1px solid var(--line);border-radius:9px;background:var(--panel);margin:0 0 12px;
+overflow:hidden}
+.exp>summary{cursor:pointer;padding:13px 16px;display:flex;gap:12px;align-items:center;
+flex-wrap:wrap;list-style:none}
+.exp>summary::-webkit-details-marker{display:none}
+.exp[open]>summary{border-bottom:1px solid var(--line);background:var(--panel-2)}
+.exp .body{padding:16px}
+.exp .label{font:600 12px/1 var(--mono);color:var(--text)}
+.exp .head-delta{margin-left:auto;font-family:var(--mono);font-size:12.5px}
+pre{background:#0b0e13;border:1px solid var(--line);border-radius:7px;padding:13px;
+overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.5;margin:10px 0 0;color:var(--muted)}
+pre .add{color:var(--good)}pre .del{color:var(--bad)}pre .hunk{color:var(--violet)}
+.note{border-left:2px solid var(--amber);background:var(--panel);padding:12px 16px;
+border-radius:0 7px 7px 0;margin:0 0 16px}
+.note strong{color:var(--text)}
+footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);
+font-size:12.5px;color:var(--faint)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font:11px/1 var(--mono);color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+a{color:var(--info);text-decoration:none}a:hover{text-decoration:underline}
+.arms{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.arm h3{margin:0 0 6px}
+.pill.cls{color:var(--violet);border-color:#43386b;background:#191627;text-transform:none}
+</style></head><body><div class="wrap">
+<header>
+<p class="eyebrow"><a href="index.html">← the campaign write-up</a> · ConvFinQA · Agent SDK experiment</p>
+<h1>One session, one prompt,<br>the same gate</h1>
+<p class="lede">The pipeline answers a conversation with four prompted agents in
+sequence. This experiment gives one Claude Agent SDK session the calculator
+tools and one system prompt, distilled from the pipeline's four, and runs it
+through the same loop: a fresh train draw, a diagnosis agent that files each
+first-wrong case under a failure class, a teacher that edits the one prompt —
+several tagged areas at once, until two rejections in a row drop it to one — and
+the same paired significance test on the same fixed gate split. Every number is
+read out of the record; nothing here is typed by hand.</p>
+</header>
+
+<div class="grid g3">
+<div class="card"><div class="k">sdk champion</div>
+<div class="stat">sdk_v1</div>
+<div class="sub">alias <code>sdk_champion</code> — never <code>champion</code></div></div>
+<div class="card"><div class="k">sdk experiments</div>
+<div class="stat">2</div>
+<div class="sub">1 promoted · 1 rejected</div></div>
+<div class="card"><div class="k">gate split</div>
+<div class="stat">349</div>
+<div class="sub">questions across 100 conversations —
+the same split the pipeline campaigns gate on</div></div>
+</div>
+
+<h2>The two arms on the gate split</h2>
+<div class="arms">
+<div class="card arm"><div class="k">pipeline · four agents</div>
+<div class="stat">81.7%</div>
+<div class="sub"><span class="mono">v8</span> · evalloop-test100-v8·t2p2r5c2-20260904_052739</div>
+<p class="sub">triage → preprocess → retriever → calculator, four prompts, DeepSeek.</p>
+<table><tbody><tr><td>number turns</td><td class="num">95.5%</td></tr><tr><td>program turns</td><td class="num">75.2%</td></tr><tr><td>triage</td><td class="num">92.3%</td></tr><tr><td>preprocess</td><td class="num">—</td></tr><tr><td>retriever</td><td class="num">76.8%</td></tr><tr><td>calculator</td><td class="num">75.1%</td></tr>
+<tr><td>cost</td><td class="num">—</td></tr>
+<tr><td>wall</td><td class="num">6 min</td></tr></tbody></table></div>
+<div class="card arm"><div class="k">agent_sdk · one session</div>
+<div class="stat">90.5%</div>
+<div class="sub"><span class="mono">sdk_v1</span> · sdk-evalloop-test100-sdk_v1·s1-20260905_174627</div>
+<p class="sub">one Claude session per conversation, calculator tools only, one prompt; stages reported by the agent so the same panel applies.</p>
+<table><tbody><tr><td>number turns</td><td class="num">95.5%</td></tr><tr><td>program turns</td><td class="num">88.2%</td></tr><tr><td>triage</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">87.6%</td></tr><tr><td>retriever</td><td class="num">78.6%</td></tr><tr><td>calculator</td><td class="num">88.2%</td></tr>
+<tr><td>cost</td><td class="num">$27.62</td></tr>
+<tr><td>wall</td><td class="num">13 min</td></tr></tbody></table></div>
+</div>
+<h3>The verdict between them</h3>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta (sdk − pipeline)</div>
+<div class="stat good">+8.88pp</div>
+<div class="sub">95% CI [+4.20pp, +13.71pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat good">0.000</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">38&thinsp;/&thinsp;7</div>
+<div class="sub">fixed / broken · sdk_v1 vs v8</div></div>
+</div>
+
+<h2>Where the difference is: number turns vs program turns</h2>
+<p class="sub">The dataset splits turns into a lookup (<em>number</em>) and a
+computation (<em>program</em>). Both arms have saturated the lookup, so the
+aggregate delta is carried entirely by the reasoning turns — reported separately
+because an average over the two describes neither.</p>
+<div class="scroll"><table>
+<thead><tr><th>turn type</th><th class="num">n</th><th class="num">pipeline</th>
+<th class="num">sdk</th><th class="num">delta</th><th class="num">fixed / broken</th>
+<th class="num">one-sided clustered p</th><th>verdict</th></tr></thead>
+<tbody><tr><td>program</td><td class="num">238</td><td class="num">75.2%</td><td class="num">88.2%</td><td class="num good">+13.03pp</td><td class="num">35&thinsp;/&thinsp;4</td><td class="num">4.7e-05</td><td><span class="pill ok">significant</span></td></tr><tr><td>number</td><td class="num">111</td><td class="num">95.5%</td><td class="num">95.5%</td><td class="num ">+0.00pp</td><td class="num">3&thinsp;/&thinsp;3</td><td class="num">0.5</td><td><span class="pill no">no effect</span></td></tr></tbody></table></div>
+
+<h2>What is different, and what is not</h2>
+<div class="note"><strong>Same loop, same rule.</strong>
+<p>Draw, run, diagnose, rewrite, gate, decide — in that order, on the same
+splits, with the same one-sided cluster-corrected McNemar at α = 0.05
+(<code>net positive on the shared gate questions AND one-sided cluster-corrected McNemar p &lt; 0.05</code>). Promotion evidence comes only from the
+gate split, and it moves <code>sdk_champion</code> — the pipeline's
+<code>champion</code> is never touched by this arm.</p></div>
+<div class="note"><strong>The unit of change is the prompt, with tagged edits inside it.</strong>
+<p>The pipeline rewrites exactly one subagent per experiment so a champion move
+has a named cause. There is one prompt here, so the teacher may edit several
+areas per cycle — one edit per failure class it addresses, each tagged with the
+class and the case ids behind it. The cost is attribution: after a gate, each
+edit is read against the flips in its own class. Two rejections in a row switch
+the lineage to one area per cycle for the rest of the campaign.</p></div>
+<div class="note"><strong>Skipped stages are failures of that stage.</strong>
+<p>A program turn the session answered without a plan attributes to preprocess;
+one it answered without a calculator call attributes to calculator. Arithmetic
+happens only inside the tools, so the calculator column means the same thing in
+both arms.</p></div>
+
+<h2>Every SDK experiment, including the ones that failed</h2>
+<h3>s01 — 2 experiments, 1 promoted</h3><details class="exp">
+<summary><span class="label">P3 diagnostic: unoptimised SDK vs optimised pipeline</span>
+<span class="pill ok">promoted</span><span class="pill cls">baseline</span>
+<span class="head-delta">+8.88pp&nbsp;·&nbsp;p=0.000</span></summary>
+<div class="body">
+<p><strong>v8 → sdk_v1</strong> — no summary recorded</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat good">+8.88pp</div>
+<div class="sub">95% CI [+4.20pp, +13.71pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat good">0.000</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">38&thinsp;/&thinsp;7</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+
+<h3>Per-stage panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">92.3%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">—</td><td class="num">87.6%</td></tr><tr><td>retriever</td><td class="num">76.8%</td><td class="num">78.6%</td></tr><tr><td>calculator</td><td class="num">75.1%</td><td class="num">88.2%</td></tr></tbody></table></div>
+
+</div></details><details class="exp">
+<summary><span class="label">s01-e02</span>
+<span class="pill no">rejected</span><span class="pill cls">calculator/wrong-format</span>
+<span class="head-delta">-2.87pp&nbsp;·&nbsp;p=0.917</span></summary>
+<div class="body">
+<p><strong>sdk_v1 → sdk_v2</strong> — no summary recorded</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat bad">-2.87pp</div>
+<div class="sub">95% CI [-7.32pp, +0.85pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.917</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">6&thinsp;/&thinsp;16</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+
+<h3>Per-stage panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">97.4%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">87.6%</td><td class="num">84.6%</td></tr><tr><td>retriever</td><td class="num">78.6%</td><td class="num">77.7%</td></tr><tr><td>calculator</td><td class="num">88.2%</td><td class="num">84.4%</td></tr></tbody></table></div>
+
+</div></details>
+
+<footer>Generated 2026-09-05T15:55:04+00:00 from
+<code>evaluation/registry.json</code>, the three ledgers under
+<code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
+rebuild with <code>convfinqa-evalloop story</code>
+<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-05T15:55:04+00:00"}</script>
+</footer>
+</div></body></html>

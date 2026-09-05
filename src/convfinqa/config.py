@@ -18,6 +18,7 @@ as truthy, with the inverse parsed as falsy by pydantic-settings.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import Field, SecretStr
@@ -84,6 +85,25 @@ class Settings(BaseSettings):
     # which is exactly how the first live teacher call failed.
     teacher_oauth_token: SecretStr | None = None
     logfire_token: SecretStr | None = None
+
+    # ---- Agent SDK runtime (the qa_agent experiment) ----------------------
+    # The single-session challenger: one Claude session does triage, planning,
+    # retrieval and calculation for a whole conversation, with the calculator
+    # functions as its only tools. Env names follow the field names: SDK_MODEL,
+    # SDK_BILLING, SDK_MAX_TURNS, SDK_TOTAL_TOKENS_LIMIT.
+    sdk_model: str = "claude-sonnet-5"
+    # "api" bills ANTHROPIC_API_KEY per token — measurable per question, which
+    # is what an eval needs. "subscription" reuses the CLI's login the way the
+    # teacher does; the child environment for each is built in `llm.py` only.
+    # Subscription only (owner's instruction, 2026-09-05). `llm.sdk_child_env`
+    # refuses the api path outright unless SDK_ALLOW_API_BILLING=1; this default
+    # means nothing has to remember to pass the flag.
+    sdk_billing: Literal["api", "subscription"] = "subscription"
+    # Agentic turns per *question* (tool calls count), not per conversation.
+    sdk_max_turns: int = 8
+    # Tokens per *conversation*, summed over every question's usage. Past it
+    # the remaining turns are recorded as errors rather than attempted.
+    sdk_total_tokens_limit: int = 60_000
 
     # ---- Prompts ----------------------------------------------------------
     # None → auto-detect highest version in prompts/. Otherwise pin (e.g. "v2").

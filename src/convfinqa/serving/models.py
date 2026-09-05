@@ -250,6 +250,14 @@ class CampaignExperiment(BaseModel):
     summary_of_changes: str = ""
     rationale: str = ""
     diff: str = ""
+    # Additive, for the Agent SDK arm (s10). A pipeline experiment targets a
+    # subagent and `target_agent` says which; an SDK experiment targets a
+    # *failure class* inside the one prompt, so it carries `target_class` and a
+    # list of tagged `edits`. Both default empty, so a pipeline row is unchanged
+    # and an older story with neither key still parses.
+    target_class: str = ""
+    runtime: str = "pipeline"
+    edits: list[dict[str, Any]] = []
 
 
 class CampaignSummary(BaseModel):
@@ -261,6 +269,15 @@ class CampaignSummary(BaseModel):
     n_remaining: int
     blocked_agents: list[str] = []
     complete: bool = False
+    # The experiment cap this campaign is judged against. It is per runtime —
+    # 5 for the pipeline, 2 for the SDK arm — so `n_remaining` and `complete`
+    # cannot be read without it, and a page that assumed 5 would report an SDK
+    # campaign as having three experiments left when it has none.
+    cap: int = 5
+    # "pipeline" (four subagents; targets are agents) or "agent_sdk" (one
+    # session prompt; targets are failure classes). Additive — an older story
+    # has no runtime key and every campaign in it is a pipeline campaign.
+    runtime: str = "pipeline"
 
 
 class ChampionPoint(BaseModel):
@@ -293,3 +310,14 @@ class CampaignsResponse(BaseModel):
     campaigns: list[CampaignSummary] = []
     experiments: list[CampaignExperiment] = []
     champion_track: list[ChampionPoint] = []
+    # The Agent SDK experiment (s10), additive so the existing views need no
+    # change: the two runtimes side by side on the gate split, and the SDK
+    # campaigns whose targets are failure classes rather than subagents.
+    sdk_champion: str | None = None
+    runtime_comparison: dict[str, Any] | None = None
+    sdk_campaigns: list[CampaignSummary] = []
+    # The SDK campaigns' experiments, kept in their own list rather than folded
+    # into `experiments`: the two arms' rows are not comparable (one names a
+    # subagent, the other a failure class) and every existing view reads
+    # `experiments` as pipeline-only.
+    sdk_experiments: list[CampaignExperiment] = []
