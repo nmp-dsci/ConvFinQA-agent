@@ -201,7 +201,7 @@ train/test/holdout) rather than the full 770-question corpus:
   the committed prompt modules and `mirror-prompts` mirrors each agent into
   MLflow's Prompts tab. Every eval run also logs a per-agent, gold-derived
   metric panel with zero extra API calls (`acc_triage_turn_type`,
-  `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`,
+  `acc_preprocess_plan`, `retriever_operand_recall`, `acc_calculator_exec`,
   `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`), and
   `gate-targeted` judges the target agent on its own metric, falling back to
   attribution counts when there isn't one.
