@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attribution rewrite — teaching the diagnostic agent to blame the right subagent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Design source (2): the project's own system — frontend/src/tokens.css, the same
+   palette s02 and s03 used. Dark-first, light variant, monotonic elevation. */
+:root{
+  --ground:#191b1f; --panel:#212429; --panel-2:#2a2e34;
+  --line:#32363d; --line-2:#434850;
+  --text:#e8e9ea; --muted:#b6bbc2; --faint:#9ba1ab;
+  --amber:#f0a93f; --amber-ink:#1d1405; --amber-soft:rgba(240,169,63,.13);
+  --amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d; --bad:#ef8282; --info:#74adf2; --violet:#ab92f2;
+  --good-line:rgba(78,203,157,.4); --info-line:rgba(116,173,242,.4); --bad-line:rgba(239,130,130,.45);
+  --ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --maxw:1100px;
+}
+:root[data-theme="light"]{
+  --ground:#eeecea; --panel:#faf9f8; --panel-2:#e6e3e0;
+  --line:#dedad6; --line-2:#c6c1bb;
+  --text:#22252a; --muted:#55595f; --faint:#5f636a;
+  --amber:#8f5309; --amber-ink:#fdf6ec; --amber-soft:rgba(143,83,9,.11);
+  --amber-line:rgba(143,83,9,.4);
+  --good:#177049; --bad:#a83229; --info:#1d54ab; --violet:#5a37a8;
+  --good-line:rgba(23,112,73,.38); --info-line:rgba(29,84,171,.35); --bad-line:rgba(168,50,41,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;min-width:0}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:none}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.026em;margin:0 0 18px;text-wrap:balance;font-weight:600}
+h2{font-size:clamp(22px,3vw,29px);line-height:1.18;letter-spacing:-.018em;margin:0 0 14px;text-wrap:balance;font-weight:600}
+h3{font-size:17px;margin:30px 0 10px;letter-spacing:-.004em;font-weight:600}
+h4{font-family:var(--mono);font-size:10.5px;margin:22px 0 8px;color:var(--faint);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
+p{margin:0 0 14px;max-width:74ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:74ch}
+li{margin:0 0 7px}
+a{color:var(--amber)}
+strong{font-weight:600}
+em{color:var(--muted)}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);padding:1.5px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 16px}
+pre code{background:none;padding:0;font-size:inherit}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:0 0 12px;font-weight:600}
+.lede{font-size:18px;color:var(--muted);max-width:68ch}
+.muted{color:var(--muted)} .small{font-size:13.5px} .mono{font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;min-width:0}
+@media(min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.metrics{display:flex;flex-wrap:wrap;gap:14px;margin:26px 0 10px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;min-width:0;flex:1 1 150px;max-width:340px}
+.metric .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.metric .l{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.scroll-x{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:8px;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);font-weight:600;white-space:nowrap;background:var(--panel)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(odd){background:var(--panel)}
+td code{white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.chip.good{color:var(--good);border-color:var(--good-line)}
+.chip.warn{color:var(--amber);border-color:var(--amber-line);border-style:dashed}
+.chip.bad{color:var(--bad);border-color:var(--bad-line)}
+.chip.info{color:var(--info);border-color:var(--info-line)}
+.callout{border-left:2px solid var(--amber);background:var(--panel);padding:15px 19px;border-radius:0 8px 8px 0;margin:0 0 18px;min-width:0}
+.callout.bad{border-left-color:var(--bad)}
+.callout.good{border-left-color:var(--good)}
+.callout.info{border-left-color:var(--info)}
+.callout strong:first-child{display:block;margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+figure{margin:0 0 22px;min-width:0}
+figure svg{width:100%;height:auto;display:block;color:var(--text)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px;max-width:76ch}
+.toc{display:grid;gap:8px;margin:26px 0 0}
+@media(min-width:720px){.toc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toc a{display:flex;gap:11px;align-items:baseline;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:14px;min-width:0}
+.toc a:hover{border-color:var(--amber-line)}
+.toc a .n{font-family:var(--mono);font-size:10.5px;color:var(--amber);flex:0 0 auto}
+.phase{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 22px;margin:0 0 16px;min-width:0}
+.phase .hd{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:6px}
+.phase .hd .n{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.1em;font-weight:600}
+.phase .hd h3{margin:0;font-size:17px}
+.phase .hd .eff{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:auto;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;font-size:13.5px;margin:10px 0 0}
+.kv dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding-top:4px;white-space:nowrap}
+.kv dd{margin:0;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.opt{display:grid;gap:12px;margin:0 0 18px}
+@media(min-width:760px){.opt.o2{grid-template-columns:repeat(2,minmax(0,1fr))}.opt.o3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.opt .card.rec{border-color:var(--amber-line);box-shadow:0 0 0 1px var(--amber-soft) inset}
+.opt .card .tag{margin-bottom:8px}
+.cite{font-size:12.5px;color:var(--faint);font-family:var(--mono);overflow-wrap:anywhere}
+/* decision forms — native controls, local state, one queued prompt per question */
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 14px;min-width:0}
+form.q legend,form.q .qt{font-weight:600;margin:0 0 8px;padding:0}
+form.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 9px;border-radius:7px;border:1px solid transparent;cursor:pointer;font-size:14px;min-width:0}
+form.q label:hover{background:var(--panel-2)}
+form.q label:has(input:checked){border-color:var(--amber-line);background:var(--amber-soft)}
+form.q input[type=radio]{margin-top:5px;accent-color:var(--amber);flex:0 0 auto}
+form.q textarea{width:100%;min-height:54px;background:var(--panel-2);color:var(--text);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;font-family:var(--ui);font-size:13.5px;margin-top:8px;resize:vertical}
+form.q .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+form.q button{background:var(--amber);color:var(--amber-ink);border:none;border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+form.q button:hover{filter:brightness(1.06)}
+form.q .status{font-family:var(--mono);font-size:11px;color:var(--faint)}
+form.q .status.queued{color:var(--good)}
+.foot{color:var(--faint);font-size:13px;margin-top:26px}
+.paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;overflow-x:auto;min-width:0;width:min(1500px,calc(100vw - 56px));margin-left:calc(50% - min(750px,50vw - 28px))}
+.paper img{display:block;min-width:980px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);margin:8px 0 0}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line-2)}
+.legend .b::before{background:#a5d8ff}.legend .v::before{background:#d0bfff}.legend .g::before{background:#b2f2bb}.legend .r::before{background:#ffc9c9;border-style:dashed}.legend .n::before{background:#e9ecef;border-style:dashed}
+td.st{white-space:nowrap}
+table.wrap{min-width:720px;table-layout:fixed}table.wrap td code{white-space:normal;overflow-wrap:anywhere}table.wrap td{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* s07 additions */
+.shot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;overflow:hidden;margin:0 0 8px}
+.shot img{display:block;width:100%;height:auto;border-radius:6px}
+.term{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-family:var(--mono);
+font-size:12.5px;line-height:1.6;overflow-x:auto;margin:0 0 16px;color:var(--muted);white-space:pre}
+.term b{color:var(--text);font-weight:600}
+.term .ok{color:var(--good)}.term .no{color:var(--bad)}.term .hi{color:var(--amber)}.term .dim{color:var(--faint)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 20px}
+.steps li{counter-increment:s;position:relative;padding:0 0 14px 40px;margin:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:99px;
+border:1px solid var(--amber-line);color:var(--amber);font-family:var(--mono);font-size:12px;font-weight:600;
+display:grid;place-items:center;background:var(--panel)}
+.steps li strong{display:block}
+.ship{display:grid;gap:10px;margin:0 0 20px}
+@media(min-width:760px){.ship{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ship .item{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 16px;min-width:0}
+.ship .item h4{margin:0 0 6px;color:var(--amber)}
+.ship .item p{margin:0;font-size:13.5px;color:var(--muted)}
+.diffbox{background:#0d0f12;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:var(--mono);
+font-size:12px;line-height:1.55;overflow-x:auto;margin:0 0 16px;white-space:pre}
+.diffbox .a{color:var(--good)}.diffbox .d{color:var(--bad)}.diffbox .h{color:var(--violet)}
+</style>
+<style>
+.trace{display:grid;gap:0;margin:0 0 6px}
+.trace .stg{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 16px;min-width:0}
+.trace .stg.ok{border-left:3px solid var(--good)}
+.trace .stg.warn{border-left:3px solid var(--amber)}
+.trace .stg.bad{border-left:3px solid var(--bad)}
+.trace .stg h4{margin:0 0 6px;color:var(--faint)}
+.trace .stg .io{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere;line-height:1.5}
+.trace .stg .io b{color:var(--text);font-weight:600}
+.trace .arw{justify-self:center;color:var(--faint);font-family:var(--mono);font-size:15px;line-height:1;padding:5px 0}
+.verdictbar{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 18px}
+.verdictbar div{flex:1 1 90px;padding:9px 12px;font-family:var(--mono);font-size:11.5px;border-right:1px solid var(--line);min-width:0}
+.verdictbar div:last-child{border-right:none}
+.verdictbar .k{color:var(--faint);display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+</style>
+<style>
+.rulegrid{display:grid;gap:12px;margin:0 0 20px}
+@media(min-width:820px){.rulegrid{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}}
+.rulegrid .side{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.rulegrid .side.now{border-left:3px solid var(--bad)}
+.rulegrid .side.next{border-left:3px solid var(--good)}
+.rulegrid .side h4{margin-top:0}
+.bars{display:grid;gap:9px;margin:6px 0 18px}
+.bars .row{display:grid;grid-template-columns:96px minmax(0,1fr) 74px;gap:10px;align-items:center;font-size:13px}
+.bars .lbl{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.bars .track{position:relative;height:22px;background:var(--panel-2);border-radius:4px;overflow:hidden;min-width:0}
+.bars .b1,.bars .b2{position:absolute;top:0;height:11px;border-radius:2px}
+.bars .b1{background:var(--line-2);top:0}
+.bars .b2{background:var(--amber);top:11px}
+.bars .d{font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bars .d.up{color:var(--good)}.bars .d.dn{color:var(--bad)}.bars .d.new{color:var(--info)}
+.mermaid{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;margin:0 0 10px;min-width:0}
+.mermaid svg{max-width:100%;height:auto}
+.flags{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="top">
+  <p class="eyebrow">s09 · plan · convfinqa optimisation loop</p>
+  <h1>Attribution rewrite: teaching the diagnostic agent to blame the right subagent</h1>
+  <p class="lede">The gold-derived attribution that picks each experiment's target disagrees with your
+  diagnostic rules on <strong>37.4% of failures</strong>. It over-blames the retriever by 2.6&times; and
+  manufactures preprocess faults from a check that was never valid for a symbolic program. This is the
+  proposed replacement, measured against every run we have.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="v">554</div><div class="l">first-wrong cases re-scored, across 12 committed runs</div></div>
+    <div class="metric"><div class="v">37.4%</div><div class="l">change attributed agent under the new rule</div></div>
+    <div class="metric"><div class="v" style="color:var(--bad)">&minus;62%</div><div class="l">retriever faults (152 &rarr; 58)</div></div>
+    <div class="metric"><div class="v" style="color:var(--good)">+33%</div><div class="l">preprocess faults (229 &rarr; 305)</div></div>
+  </div>
+
+  <div class="toc">
+    <a href="#why"><span class="n">01</span><span>Why this is on the table</span></a>
+    <a href="#today"><span class="n">02</span><span>What the rule does today, and its three defects</span></a>
+    <a href="#rules"><span class="n">03</span><span>Your rules, formalised</span></a>
+    <a href="#algo"><span class="n">04</span><span>The proposed algorithm</span></a>
+    <a href="#code"><span class="n">05</span><span>The change, in code</span></a>
+    <a href="#measured"><span class="n">06</span><span>Old vs new, measured on 554 cases</span></a>
+    <a href="#seven"><span class="n">07</span><span>The seven &ldquo;no&rdquo; turns as a check</span></a>
+    <a href="#downstream"><span class="n">08</span><span>What this breaks downstream</span></a>
+    <a href="#risks"><span class="n">09</span><span>Risks and open questions</span></a>
+    <a href="#decide"><span class="n">10</span><span>Decisions</span></a>
+  </div>
+</section>
+
+<section id="why">
+  <h2>01 &mdash; Why this is on the table</h2>
+  <p>In <span class="mono">s08</span> I traced seven turns where the pipeline answered the literal string
+  <code>"no"</code> to a numeric question, and argued the calculator was at fault. You pushed back: the
+  <code>"no"</code> is a <em>symptom</em>, and the real question is whether the retriever failed to find a
+  value that was there, or preprocess asked for the wrong value in the first place.</p>
+
+  <p>Checking that settled it. <strong>Every gold operand in all seven cases is present in the source
+  document</strong> &mdash; there is no case where the data was genuinely missing, so no refusal was ever
+  justified. And when I attributed the seven by hand, I disagreed with the shipped attribution on five.</p>
+
+  <div class="callout bad">
+    <strong>The failure is not in the calculator prompt, it is in the diagnosis.</strong>
+    <p>Attribution is what <code>pick_target</code> ranks on, so a systematically wrong attribution sends
+    every experiment in a campaign at the wrong agent. Five experiments have now run against it. Fixing the
+    calculator prompt would have been a sixth wasted one.</p>
+  </div>
+</section>
+
+<section id="today">
+  <h2>02 &mdash; What the rule does today, and its three defects</h2>
+  <p><code>evalloop/stage_scores.py::first_fault</code> walks four gold-derived checks in pipeline order and
+  returns the first that fails. The order is the pipeline's, which is right. The checks are not.</p>
+
+  <div class="grid g3">
+    <div class="card">
+      <span class="chip bad">defect 1</span>
+      <h3>Plan shape is judged before operand coverage</h3>
+      <p class="small muted">A skeleton mismatch short-circuits before the retriever check ever runs, so any
+      turn with an unusual plan is filed as preprocess regardless of what was actually retrieved. Preprocess
+      wins ties it should lose.</p>
+    </div>
+    <div class="card">
+      <span class="chip bad">defect 2</span>
+      <h3>Skeleton equality is invalid for a symbolic plan</h3>
+      <p class="small muted"><code>pred_program</code> is symbolic &mdash; <code>divide(A, B)</code>, with
+      placeholders bound to sub-questions. Comparing its op list to gold's punishes every correct plan that
+      is shaped differently, and passes wrong plans that happen to share a shape.</p>
+    </div>
+    <div class="card">
+      <span class="chip bad">defect 3</span>
+      <h3>Every case must name an agent</h3>
+      <p class="small muted"><code>attribute()</code> falls back to <code>"calculator"</code> when nothing
+      fails. There is no way to say <em>the gold label is wrong</em> or <em>this is not decidable from the
+      record</em>, so both are silently charged to an innocent agent.</p>
+    </div>
+  </div>
+
+  <h3>Defect 2, concretely</h3>
+  <p>Four real rows, all filed as <strong>preprocess</strong> today on a skeleton mismatch:</p>
+  <div class="scroll-x">
+  <table class="wrap">
+    <thead><tr><th>case</th><th>gold_program</th><th>pred_program</th><th>what actually happened</th></tr></thead>
+    <tbody>
+      <tr><td><code>Single_UNP/2013 q1</code></td><td><code>subtract(631,637), divide(#0,637)</code></td><td><code>divide(A,B)</code></td><td>Plan is <em>correct</em> &mdash; A is the change already in history. Different shape, same answer.</td></tr>
+      <tr><td><code>Single_IP/2009 q1</code></td><td><code>multiply(2.5,const_1000), divide(#0,3195)</code></td><td><code>divide(A,B)</code></td><td>Plan dropped the &times;1000; the calculator silently compensated and returned the right value in the wrong format.</td></tr>
+      <tr><td><code>Single_MO/2014 q0</code></td><td><code>add(67,6)</code></td><td><code>add(add(A,B),C)</code></td><td>Genuine preprocess fault &mdash; three operands planned where gold uses two.</td></tr>
+      <tr><td><code>Double_STZ/2005 q1</code></td><td><code>divide(590459,1041861)</code></td><td><code>divide(add(B,D),add(A,C))</code></td><td>Genuine preprocess fault &mdash; summed two acquisitions, one of which is not in the document.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small muted">The check returns the same verdict for all four. Two are right for the wrong reason
+  and two are simply wrong. A test that cannot separate these cannot rank agents.</p>
+</section>
+
+<section id="rules">
+  <h2>03 &mdash; Your rules, formalised</h2>
+  <p>Restating what you gave me as four checks, each with the deterministic test it becomes and what changes
+  against today's implementation.</p>
+
+  <div class="scroll-x">
+  <table class="wrap">
+    <thead><tr><th style="width:14%">stage</th><th style="width:36%">your rule</th><th style="width:32%">the test it becomes</th><th style="width:18%">change</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Triage</strong></td>
+        <td>Number if <code>gold_program</code> is just a number, else Program.</td>
+        <td>Derive the expected turn type from <code>gold_program</code>&rsquo;s shape rather than reading the <code>gold_turn_type</code> column.</td>
+        <td><span class="chip good">no drift</span><br><span class="small muted">The two agree on all 554 cases; deriving removes the dependency on a column.</span></td>
+      </tr>
+      <tr>
+        <td><strong>Preprocess</strong></td>
+        <td>Generates the program to run and the questions to answer, from history or from the report.</td>
+        <td>Bind the symbolic plan&rsquo;s placeholders to the retriever&rsquo;s answers in order, execute it, and compare to the gold answer. Preprocess is at fault only when the bound plan <em>cannot reach gold</em>.</td>
+        <td><span class="chip warn">replaces skeleton equality</span></td>
+      </tr>
+      <tr>
+        <td><strong>Retriever</strong></td>
+        <td>Takes preprocess&rsquo;s questions and pulls values. A missing operand is either a retriever miss or a bad question &mdash; <em>usually preprocess</em>.</td>
+        <td>Missing operand &rarr; check the document. Absent entirely &rarr; <code>gold_suspect</code>. Present, and the retriever answered every sub-question &rarr; <strong>preprocess</strong> asked for the wrong thing. Present, and the retriever declined &rarr; <strong>ambiguous</strong>, adjudicated.</td>
+        <td><span class="chip warn">splits one verdict into four</span></td>
+      </tr>
+      <tr>
+        <td><strong>Calculator</strong></td>
+        <td>Tool-calls the program over the retrieved numbers. Little can break here.</td>
+        <td>Reached only when triage is right, every operand is present, and the bound plan does reach gold. Then a wrong answer really is execution or formatting.</td>
+        <td><span class="chip good">no longer the dumping ground</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout info">
+    <strong>The one judgement that cannot be made deterministically.</strong>
+    <p>When an operand is missing and the retriever explicitly declined a sub-question, the record cannot tell
+    us whether the question was answerable. <code>Double_BLK</code> (values sat in the table, the retriever
+    talked itself out of them) and <code>Double_IPG</code> (preprocess asked for a quantity the report never
+    states) produce <em>byte-identical evidence shapes</em>. That bucket &mdash; 41 of 554, 7.4% &mdash; is
+    where the teacher earns its cost, on one binary question instead of open-ended attribution.</p>
+  </div>
+</section>
+
+<section id="algo">
+  <h2>04 &mdash; The proposed algorithm</h2>
+  <p>Same pipeline order, better checks, and three verdicts that are not agents.</p>
+
+  <div class="mermaid">
+flowchart TD
+  A["wrong turn<br/>(first wrong in its conversation)"] --> B{"pred_turn_type ==<br/>shape of gold_program?"}
+  B -- no --> T["<b>triage</b>"]
+  B -- yes --> N{"gold_program<br/>is a bare number?"}
+  N -- yes --> N2{"gold value<br/>among retrieved?"}
+  N2 -- no --> R1["<b>retriever</b>"]
+  N2 -- yes --> C1["<b>calculator</b>"]
+  N -- no --> M{"every gold operand<br/>retrieved?"}
+  M -- "no" --> D{"missing operand<br/>present in the document?"}
+  D -- no --> G["<b>gold_suspect</b>"]
+  D -- yes --> E{"did the retriever<br/>decline a sub-question?"}
+  E -- yes --> AMB["<b>ambiguous</b><br/>&rarr; teacher adjudicates"]
+  E -- no --> P1["<b>preprocess</b><br/>answered everything,<br/>asked for the wrong thing"]
+  M -- yes --> X{"bind placeholders,<br/>execute the plan"}
+  X -- "not executable" --> U["<b>unscorable</b>"]
+  X -- "misses gold" --> P2["<b>preprocess</b><br/>plan cannot reach gold"]
+  X -- "reaches gold" --> C2["<b>calculator</b><br/>execution or formatting"]
+
+  classDef ag fill:#f0a93f22,stroke:#f0a93f,color:inherit
+  classDef nb fill:#74adf222,stroke:#74adf2,color:inherit
+  class T,R1,C1,P1,P2,C2 ag
+  class G,AMB,U nb
+  </div>
+  <figcaption>Amber verdicts name a subagent; blue verdicts deliberately do not. The two structural changes
+  are that operand coverage is now evaluated <em>before</em> plan shape, and that plan shape is evaluated by
+  binding and executing rather than by comparing op lists.</figcaption>
+
+  <h3>Why operand coverage moves ahead of the plan check</h3>
+  <p>It is not merely a reordering &mdash; it follows from the pipeline. Preprocess emits <em>both</em> the
+  plan and the sub-questions, and the plan is symbolic: its placeholders only acquire values once the
+  retriever answers. So the plan literally <strong>cannot be evaluated</strong> until coverage is known. The
+  old order asked a question it did not yet have the inputs to answer, and answered it with a proxy.</p>
+</section>
+
+<section id="code">
+  <h2>05 &mdash; The change, in code</h2>
+  <p>The whole rewrite lands in one function. Helpers (<code>retrieved_pairs</code>,
+  <code>missing_operands</code>, <code>retriever_declined</code>, <code>plan_reaches_gold</code>) are new and
+  pure; <code>score_rows</code> and the per-agent metric panel are untouched, so the deterministic metrics
+  <code>gate-targeted</code> judges against do not move.</p>
+  <div id="diff"></div>
+  <script type="application/json" id="diff-data">
+{"old": {"name": "src/convfinqa/evalloop/stage_scores.py", "contents": "AGENT_ORDER = (\"triage\", \"preprocess\", \"retriever\", \"calculator\")\n\n\ndef first_fault(row: Any) -> str | None:\n    \"\"\"The first stage whose gold-derived check fails, in pipeline order.\"\"\"\n    get = row.get if hasattr(row, \"get\") else (lambda k, d=None: getattr(row, k, d))\n\n    def _bad(value: Any) -> bool:\n        return value is False or value == 0.0 or str(value).lower() == \"false\"\n\n    if _bad(get(\"triage_turn_type_ok\")):\n        return \"triage\"\n    if _bad(get(\"preprocess_skeleton_ok\")):\n        return \"preprocess\"\n    recall = get(\"retriever_operand_recall\")\n    if recall is not None and not (isinstance(recall, float) and math.isnan(recall)):\n        try:\n            if float(recall) < 1.0:\n                return \"retriever\"\n        except (TypeError, ValueError):\n            pass\n    if _bad(get(\"calculator_ok\")):\n        return \"calculator\"\n    return None\n\n\ndef attribute(row: Any) -> str:\n    \"\"\"``first_fault`` with the honest fallback: nothing gold can see, so calculator.\"\"\"\n    return first_fault(row) or \"calculator\"\n"}, "new": {"name": "src/convfinqa/evalloop/stage_scores.py", "contents": "AGENT_ORDER = (\"triage\", \"preprocess\", \"retriever\", \"calculator\")\n\n#: Verdicts that deliberately do not name a subagent. They are excluded from\n#: `pick_target`'s denominator: charging an agent for a bad gold label, or for a\n#: record we cannot read, is how a campaign spends an experiment on nothing.\nNON_AGENT = (\"gold_suspect\", \"ambiguous\", \"unscorable\")\n\n\ndef first_fault(row: Any, doc: str = \"\") -> str | None:\n    \"\"\"The first stage whose gold-derived check fails, in pipeline order.\n\n    Ordering note: operand coverage is judged *before* the plan, because\n    `pred_program` is symbolic -- its placeholders bind to the retriever's\n    answers, so the plan cannot be evaluated until coverage is known.\n    \"\"\"\n    get = row.get if hasattr(row, \"get\") else (lambda k, d=None: getattr(row, k, d))\n\n    # 1 -- triage: the expected turn type is derivable from gold_program's shape.\n    gold_ops = parse_program(get(\"gold_program\"))\n    expected = \"number\" if gold_ops is None else \"program\"\n    pred_tt = str(get(\"pred_turn_type\") or \"\").lower()\n    if pred_tt and pred_tt != expected:\n        return \"triage\"\n\n    retrieved = [a for _q, a in retrieved_pairs(row)]\n    if gold_ops is None:\n        if not any(_values_match(v, get(\"gold_answer\")) for v in retrieved):\n            return \"retriever\"\n        return None if get(\"correct\") else \"calculator\"\n\n    # 2 -- operand coverage, and who is answerable for a gap.\n    missing = missing_operands(row, retrieved)\n    if missing:\n        if any(m not in doc for m in missing):\n            return \"gold_suspect\"          # gold cites a value the report lacks\n        if retriever_declined(row):\n            return \"ambiguous\"             # unanswerable question, or a real miss?\n        return \"preprocess\"                # it answered everything -- wrong asks\n\n    # 3 -- the plan: bind the placeholders and run it.\n    reaches = plan_reaches_gold(row, retrieved)\n    if reaches is None:\n        return \"unscorable\"\n    if reaches is False:\n        return \"preprocess\"\n\n    # 4 -- everything upstream is sound, so a wrong answer is the calculator's.\n    return None if get(\"correct\") else \"calculator\"\n\n\ndef attribute(row: Any, doc: str = \"\") -> str:\n    \"\"\"``first_fault`` with the honest fallback: nothing gold can see, so calculator.\"\"\"\n    return first_fault(row, doc) or \"calculator\"\n"}}</script>
+  <p class="cite">src/convfinqa/evalloop/stage_scores.py &mdash; attribution block only</p>
+
+  <h3>The one new piece of real logic</h3>
+  <p><code>plan_reaches_gold</code> is what replaces skeleton equality. It binds
+  <code>pred_program</code>&rsquo;s placeholders to the retriever&rsquo;s answers in sub-question order,
+  executes the DSL, and compares the result to the gold answer. It returns <code>None</code> &mdash; not
+  <code>False</code> &mdash; when the plan cannot be bound, because &ldquo;I could not read this&rdquo; and
+  &ldquo;this plan is wrong&rdquo; are different claims and only one of them should cost an agent a fault.</p>
+  <div class="callout">
+    <strong>There is no DSL executor in the repo today.</strong>
+    <p><code>evaluation/metrics.py</code> parses and normalises programs but never runs one; the pipeline
+    executes through tool calls in <code>pipeline/tools.py</code>. This adds a ~25-line evaluator over the six
+    ops, which is also independently useful for the dataset page and for <code>gold_suspect</code> triage.</p>
+  </div>
+</section>
+
+<section id="measured">
+  <h2>06 &mdash; Old vs new, measured on 554 cases</h2>
+  <p>Both rules were run over the same twelve committed run CSVs &mdash; every <span class="mono">train100</span>
+  and <span class="mono">test100</span> evalloop run on disk, spanning versions v2 through v10. Cascade turns
+  are excluded, so these are first-wrong cases only: exactly the population <code>pick_target</code> ranks on.
+  Zero API calls; the whole comparison is a re-read of committed artifacts.</p>
+
+  <h4>Attributed agent, all runs pooled</h4>
+  <div class="bars">
+    <div class="row"><div class="lbl">preprocess</div>
+      <div class="track"><div class="b1" style="width:75.1%"></div><div class="b2" style="width:100.0%"></div></div>
+      <div class="d up">229 &rarr; 305</div></div>
+    <div class="row"><div class="lbl">retriever</div>
+      <div class="track"><div class="b1" style="width:49.8%"></div><div class="b2" style="width:19.0%"></div></div>
+      <div class="d dn">152 &rarr; 58</div></div>
+    <div class="row"><div class="lbl">calculator</div>
+      <div class="track"><div class="b1" style="width:30.2%"></div><div class="b2" style="width:15.7%"></div></div>
+      <div class="d dn">92 &rarr; 48</div></div>
+    <div class="row"><div class="lbl">triage</div>
+      <div class="track"><div class="b1" style="width:26.6%"></div><div class="b2" style="width:26.2%"></div></div>
+      <div class="d dn">81 &rarr; 80</div></div>
+    <div class="row"><div class="lbl">ambiguous</div>
+      <div class="track"><div class="b1" style="width:0.0%"></div><div class="b2" style="width:13.4%"></div></div>
+      <div class="d new">0 &rarr; 41</div></div>
+    <div class="row"><div class="lbl">unscorable</div>
+      <div class="track"><div class="b1" style="width:0.0%"></div><div class="b2" style="width:5.9%"></div></div>
+      <div class="d new">0 &rarr; 18</div></div>
+    <div class="row"><div class="lbl">gold_suspect</div>
+      <div class="track"><div class="b1" style="width:0.0%"></div><div class="b2" style="width:1.3%"></div></div>
+      <div class="d new">0 &rarr; 4</div></div>
+  </div>
+  <p class="legend"><span style="font-family:var(--mono)">Upper bar = current rule &nbsp;·&nbsp; lower amber bar = proposed rule</span></p>
+
+  <div class="callout good">
+    <strong>Your prior holds, and it is large.</strong>
+    <p>You said a missing operand &ldquo;usually is the Preprocess agent that fails.&rdquo; Pooled over 554
+    cases the current rule charges the retriever 152 times; the new one charges it 58. Sixty-nine of those
+    move to preprocess outright and twenty-two more to adjudication. The retriever has been carrying roughly
+    <strong>two-thirds of a fault load that is not its own</strong>.</p>
+  </div>
+
+  <h4>Where the 207 re-attributed cases go</h4>
+  <div class="scroll-x"><table>
+    <thead><tr><th>from</th><th>to</th><th class="num">n</th><th>why the old verdict was wrong</th></tr></thead>
+    <tbody>
+      <tr><td>retriever</td><td><strong>preprocess</strong></td><td class="num">69</td><td>Operand missing, but the retriever answered every sub-question it was given &mdash; none asked for the missing value.</td></tr>
+      <tr><td>calculator</td><td><strong>preprocess</strong></td><td class="num">55</td><td>All four old checks passed, so it fell through to the calculator. The bound plan does not reach gold.</td></tr>
+      <tr><td>retriever</td><td><strong>ambiguous</strong></td><td class="num">22</td><td>Retriever declined a sub-question; the record cannot say whether the question was answerable.</td></tr>
+      <tr><td>preprocess</td><td><strong>ambiguous</strong></td><td class="num">19</td><td>Filed on a skeleton mismatch that the coverage check now pre-empts.</td></tr>
+      <tr><td>preprocess</td><td><strong>calculator</strong></td><td class="num">17</td><td>Skeleton differed but the bound plan reaches gold &mdash; a real execution or formatting fault.</td></tr>
+      <tr><td>preprocess</td><td><strong>unscorable</strong></td><td class="num">12</td><td>Plan could not be bound (more sub-questions planned than answered).</td></tr>
+      <tr><td>calculator</td><td><strong>unscorable</strong></td><td class="num">6</td><td>Same, reached via the old fallback.</td></tr>
+      <tr><td>retriever</td><td><strong>gold_suspect</strong></td><td class="num">4</td><td>The gold program cites a number that does not appear anywhere in the report.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Per run &mdash; stability of the shift</h4>
+  <div class="scroll-x"><table>
+    <thead><tr><th>run</th><th class="num">cases</th><th class="num">preproc</th><th class="num">retr</th><th class="num">calc</th><th class="num">triage</th><th class="num">amb</th><th class="num">unsc</th><th class="num">gold?</th></tr></thead>
+    <tbody>
+      <tr><td><code>test100-v10·t2p7r5c2-20260904_134753</code></td><td class="num">36</td><td class="num"><span class="muted">15</span> <span style="color:var(--good)">&rarr; 20</span></td><td class="num"><span class="muted">9</span> <span style="color:var(--bad)">&rarr; 2</span></td><td class="num"><span class="muted">5</span> <span style="color:var(--bad)">&rarr; 3</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--muted)">&rarr; 7</span></td><td class="num">3</td><td class="num">1</td><td class="num">0</td></tr>
+      <tr><td><code>test100-v2·t2p2r2c2-20260904_032533</code></td><td class="num">51</td><td class="num"><span class="muted">23</span> <span style="color:var(--good)">&rarr; 30</span></td><td class="num"><span class="muted">11</span> <span style="color:var(--bad)">&rarr; 1</span></td><td class="num"><span class="muted">11</span> <span style="color:var(--bad)">&rarr; 7</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--muted)">&rarr; 6</span></td><td class="num">5</td><td class="num">2</td><td class="num">0</td></tr>
+      <tr><td><code>test100-v6·t2p5r2c2-20260904_035752</code></td><td class="num">45</td><td class="num"><span class="muted">19</span> <span style="color:var(--good)">&rarr; 33</span></td><td class="num"><span class="muted">14</span> <span style="color:var(--bad)">&rarr; 2</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--bad)">&rarr; 2</span></td><td class="num"><span class="muted">5</span> <span style="color:var(--muted)">&rarr; 5</span></td><td class="num">1</td><td class="num">2</td><td class="num">0</td></tr>
+      <tr><td><code>test100-v7·t2p6r2c2-20260904_043438</code></td><td class="num">43</td><td class="num"><span class="muted">18</span> <span style="color:var(--good)">&rarr; 25</span></td><td class="num"><span class="muted">11</span> <span style="color:var(--bad)">&rarr; 2</span></td><td class="num"><span class="muted">9</span> <span style="color:var(--bad)">&rarr; 6</span></td><td class="num"><span class="muted">5</span> <span style="color:var(--muted)">&rarr; 5</span></td><td class="num">4</td><td class="num">1</td><td class="num">0</td></tr>
+      <tr><td><code>test100-v8·t2p2r5c2-20260904_052739</code></td><td class="num">40</td><td class="num"><span class="muted">19</span> <span style="color:var(--good)">&rarr; 25</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--bad)">&rarr; 1</span></td><td class="num"><span class="muted">9</span> <span style="color:var(--bad)">&rarr; 3</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--muted)">&rarr; 6</span></td><td class="num">4</td><td class="num">1</td><td class="num">0</td></tr>
+      <tr><td><code>test100-v9·t2p2r6c2-20260904_132436</code></td><td class="num">42</td><td class="num"><span class="muted">21</span> <span style="color:var(--good)">&rarr; 29</span></td><td class="num"><span class="muted">8</span> <span style="color:var(--bad)">&rarr; 1</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--bad)">&rarr; 4</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--muted)">&rarr; 6</span></td><td class="num">2</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td><code>train100-v2·t2p2r2c2-20260904_033142</code></td><td class="num">49</td><td class="num"><span class="muted">18</span> <span style="color:var(--good)">&rarr; 23</span></td><td class="num"><span class="muted">15</span> <span style="color:var(--bad)">&rarr; 10</span></td><td class="num"><span class="muted">10</span> <span style="color:var(--bad)">&rarr; 2</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--muted)">&rarr; 6</span></td><td class="num">5</td><td class="num">3</td><td class="num">0</td></tr>
+      <tr><td><code>train100-v2·t2p2r2c2-20260904_040339</code></td><td class="num">57</td><td class="num"><span class="muted">26</span> <span style="color:var(--good)">&rarr; 35</span></td><td class="num"><span class="muted">15</span> <span style="color:var(--bad)">&rarr; 6</span></td><td class="num"><span class="muted">5</span> <span style="color:var(--bad)">&rarr; 3</span></td><td class="num"><span class="muted">11</span> <span style="color:var(--bad)">&rarr; 10</span></td><td class="num">2</td><td class="num">0</td><td class="num">1</td></tr>
+      <tr><td><code>train100-v2·t2p2r2c2-20260904_044011</code></td><td class="num">47</td><td class="num"><span class="muted">17</span> <span style="color:var(--good)">&rarr; 19</span></td><td class="num"><span class="muted">14</span> <span style="color:var(--bad)">&rarr; 9</span></td><td class="num"><span class="muted">8</span> <span style="color:var(--bad)">&rarr; 6</span></td><td class="num"><span class="muted">8</span> <span style="color:var(--muted)">&rarr; 8</span></td><td class="num">2</td><td class="num">2</td><td class="num">1</td></tr>
+      <tr><td><code>train100-v2·t2p2r2c2-20260904_050321</code></td><td class="num">45</td><td class="num"><span class="muted">14</span> <span style="color:var(--good)">&rarr; 15</span></td><td class="num"><span class="muted">16</span> <span style="color:var(--bad)">&rarr; 11</span></td><td class="num"><span class="muted">8</span> <span style="color:var(--bad)">&rarr; 5</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--muted)">&rarr; 7</span></td><td class="num">5</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr><td><code>train100-v8·t2p2r5c2-20260904_131251</code></td><td class="num">45</td><td class="num"><span class="muted">13</span> <span style="color:var(--good)">&rarr; 21</span></td><td class="num"><span class="muted">18</span> <span style="color:var(--bad)">&rarr; 7</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--bad)">&rarr; 3</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--good)">&rarr; 8</span></td><td class="num">4</td><td class="num">2</td><td class="num">0</td></tr>
+      <tr><td><code>train100-v8·t2p2r5c2-20260904_133622</code></td><td class="num">54</td><td class="num"><span class="muted">26</span> <span style="color:var(--good)">&rarr; 30</span></td><td class="num"><span class="muted">15</span> <span style="color:var(--bad)">&rarr; 6</span></td><td class="num"><span class="muted">6</span> <span style="color:var(--bad)">&rarr; 4</span></td><td class="num"><span class="muted">7</span> <span style="color:var(--bad)">&rarr; 6</span></td><td class="num">4</td><td class="num">3</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">The direction is the same in all twelve: preprocess up in ten, retriever down in
+  twelve, calculator down in nine. Triage moves by at most one case in either direction, which is the check
+  that barely changed &mdash; a useful control.</p>
+</section>
+
+<section id="seven">
+  <h2>07 &mdash; The seven &ldquo;no&rdquo; turns as a check</h2>
+  <p>These are the cases from <span class="mono">s08</span> that I attributed by hand before writing the new
+  rule, so they are a fair test of it &mdash; the hand verdicts were not fitted to the algorithm.</p>
+
+  <div class="scroll-x"><table class="wrap">
+    <thead><tr><th style="width:22%">case</th><th style="width:12%">current</th><th style="width:14%">proposed</th><th style="width:14%">my hand verdict</th><th style="width:38%">note</th></tr></thead>
+    <tbody>
+      <tr><td><code>Double_IPG/2016 q2</code></td><td>preprocess</td><td><span class="chip info">ambiguous</span></td><td>preprocess</td><td>Asked for &ldquo;debt fair market value&rdquo;; gold wants the two sensitivity figures. Routed for adjudication &mdash; correct behaviour, since the evidence alone cannot distinguish it.</td></tr>
+      <tr><td><code>Double_STZ/2005 q1</code></td><td>preprocess</td><td><span class="chip warn">unscorable</span></td><td>preprocess</td><td>Four sub-questions planned, two answered, so the plan cannot be bound. Honest, but see the open question below &mdash; this shape is itself a preprocess signal.</td></tr>
+      <tr><td><code>Double_BLK/2016 q2</code></td><td>preprocess</td><td><span class="chip info">ambiguous</span></td><td>retriever</td><td>Values are in the table; the retriever reasoned itself out of them. Adjudication should catch this; the current rule never could.</td></tr>
+      <tr><td><code>Single_C/2016 q1</code></td><td>preprocess</td><td><span class="chip good">preprocess</span></td><td>preprocess</td><td>One sub-question planned where the turn needs two operands. Agrees.</td></tr>
+      <tr><td><code>Double_ECL/2017 q2</code></td><td><span class="chip bad">retriever</span></td><td><span class="chip info">ambiguous</span></td><td>gold&nbsp;suspect</td><td>Gold&rsquo;s <code>131</code> is the <em>2018 column header</em> of the lease-payments table, a different quantity from rental expense. Present as a string, so the doc test passes and it lands in adjudication instead of <code>gold_suspect</code>.</td></tr>
+      <tr><td><code>Single_UNP/2013 q1</code></td><td>preprocess</td><td><span class="chip good">preprocess</span></td><td>calculator</td><td>The one clear disagreement. The retriever returned 637 and history held &minus;6; the plan as bound does not reach gold, so the rule blames the plan. Defensible, but not what I concluded by hand.</td></tr>
+      <tr><td><code>Double_L/2007 q1</code></td><td>preprocess</td><td><span class="chip info">ambiguous</span></td><td>retriever</td><td>1601 and 35% both present; the retriever doubted itself into &ldquo;unavailable&rdquo;. Routed for adjudication.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <strong>Read this honestly: it agrees outright on 2 of 7, and routes 4 more to a judge.</strong>
+    <p>That is the intended outcome, not a shortfall &mdash; the four routed cases are precisely the ones I
+    needed to open the source document to settle. What matters is that <em>none</em> of the seven now carries
+    a confident wrong verdict, where the current rule carries five. One disagreement survives
+    (<code>Single_UNP</code>) and one gold-label case slips into adjudication rather than
+    <code>gold_suspect</code> (<code>Double_ECL</code>), because a header string is indistinguishable from a
+    value by substring search.</p>
+  </div>
+</section>
+
+<section id="downstream">
+  <h2>08 &mdash; What this breaks downstream</h2>
+  <p>Attribution is not a leaf. Four things read it, and changing it invalidates history in one of them.</p>
+
+  <div class="ship">
+    <div class="item"><h4>pick_target &mdash; behaviour change, intended</h4>
+      <p><code>ledger.fault_history</code> and the Wilson lower bound are unchanged; they simply receive
+      different counts. Non-agent verdicts must be dropped from both numerator and denominator, or
+      <code>gold_suspect</code> silently inflates every agent&rsquo;s fault rate.</p></div>
+    <div class="item"><h4>ledger history &mdash; must be recomputed, not migrated</h4>
+      <p>Recorded fault counts were produced by the old rule. Mixing them with new counts under one Wilson
+      bound compares two different measurements. A <code>backfill-attribution</code> command should re-derive
+      every historical run from its committed CSV &mdash; the same shape as <code>backfill-flips</code>, and
+      like it, it should refuse to write when a run&rsquo;s CSV is missing.</p></div>
+    <div class="item"><h4>The teacher &mdash; smaller, sharper job</h4>
+      <p>It is currently told the attribution and may dissent, with an <code>attribution_reason</code>. Under
+      the new rule it should be asked a <em>binary</em> question on the ~7% ambiguous bucket only: does any
+      preprocess sub-question ask for this missing operand? That is a far easier judgement than open
+      attribution, where it agreed with gold on only 17 of 30.</p></div>
+    <div class="item"><h4>gate-targeted &mdash; unaffected</h4>
+      <p>It judges the target on its deterministic metric from <code>score_rows</code>, which this does not
+      touch. Attribution is only its fallback. The per-agent panel and every promotion verdict on record
+      stand.</p></div>
+  </div>
+
+  <div class="callout bad">
+    <strong>Two of five campaign experiments were probably aimed by a wrong attribution.</strong>
+    <p><span class="mono">c01-e03</span> and <span class="mono">c02-e01</span> both targeted the retriever.
+    Re-scoring their train draws moves the retriever from 18 to 7 and from 15 to 6 faults respectively, which
+    would very likely have put preprocess top on the Wilson bound in both. Both experiments were rejected at
+    the gate. That is not proof they were misaimed &mdash; but it is the cheapest available explanation, and
+    it is consistent with c02-e01 gating at exactly +0.00pp.</p>
+  </div>
+</section>
+
+<section id="risks">
+  <h2>09 &mdash; Risks and open questions</h2>
+
+  <div class="grid g2">
+    <div class="card">
+      <span class="chip bad">risk</span>
+      <h3>Preprocess becomes the target almost every cycle</h3>
+      <p class="small muted">305 of 554 &mdash; 55% &mdash; land on preprocess. The Wilson bound will pick it
+      repeatedly, and the campaign&rsquo;s rotate-after-two-failures rule becomes the only thing keeping the
+      other three agents reachable. That rule was written as a safety valve, not as the primary scheduler.
+      <strong>Mitigation:</strong> keep it, and watch whether preprocess&rsquo;s share falls as its prompt
+      improves &mdash; the denominator is first-wrong cases, so it should.</p>
+    </div>
+    <div class="card">
+      <span class="chip bad">risk</span>
+      <h3>The document test is a substring search</h3>
+      <p class="small muted"><code>Double_ECL</code> proves the weakness: gold&rsquo;s <code>131</code> is a
+      mangled column header, present as characters but not as a value, so the case escapes
+      <code>gold_suspect</code> into adjudication. Only 4 of 554 currently trip the test at all.
+      <strong>Mitigation:</strong> tokenise numerically rather than by substring, and accept that this check
+      finds clear-cut label errors only.</p>
+    </div>
+    <div class="card">
+      <span class="chip warn">no ground truth</span>
+      <h3>The new rule is validated against seven hand-labelled cases</h3>
+      <p class="small muted">That is enough to show the old rule is wrong and far too little to claim the new
+      one is right. <strong>Mitigation:</strong> the <code>kappa</code> command already exists for
+      teacher-vs-human agreement; extend its sheet to carry a human attribution label and score both rules
+      against ~30 labelled cases before this drives any targeting.</p>
+    </div>
+    <div class="card">
+      <span class="chip info">separate finding</span>
+      <h3>4% of failures are a ratio graded against a percentage</h3>
+      <p class="small muted">22 of 554 wrong turns are numerically right and formatted wrong &mdash;
+      <code>0.7824…</code> against a gold of <code>78%</code>; <code>numeric_match</code> returns
+      <code>False</code>. Arguably correct (the answer format <em>is</em> wrong) but it means a slice of
+      &ldquo;calculator&rdquo; faults are a formatting convention, not arithmetic. <strong>Not folded into
+      this plan</strong> &mdash; it changes scored accuracy and deserves its own decision.</p>
+    </div>
+  </div>
+
+  <h3>Open questions</h3>
+  <ol class="steps">
+    <li><strong>Should an unbindable plan count against preprocess?</strong>
+      18 cases are <code>unscorable</code> because more sub-questions were planned than the retriever
+      answered. That asymmetry is arguably itself a preprocess signal (<code>Double_STZ</code> is exactly
+      this: four asks, two answerable). Charging it would move ~3% from nothing to preprocess; leaving it
+      keeps the verdict honest but discards evidence.</li>
+    <li><strong>What happens to <code>ambiguous</code> when the teacher is unavailable?</strong>
+      Diagnosis runs on the Agent SDK on your subscription. If a cycle runs without it, the choices are
+      default-to-preprocess (your stated prior, and it would make the rule fully deterministic) or exclude
+      the bucket entirely (smaller denominator, no invented evidence).</li>
+    <li><strong>Do we re-score the campaign history before or after the next cycle?</strong>
+      Re-scoring first makes <span class="mono">c03</span> comparable to a corrected past; re-scoring later
+      keeps the current champion&rsquo;s provenance untouched but leaves the ledger mixing two rules.</li>
+  </ol>
+</section>
+
+<section id="decide">
+  <h2>10 &mdash; Decisions</h2>
+  <p>Three choices change what I build. Pick and queue each; anything you leave alone I will take as the
+  recommended option.</p>
+
+  <form class="q" data-lavish-question="scope" onsubmit="qz(event,'scope','Attribution rewrite scope: ')">
+    <div class="qt">1. How much of this to build?</div>
+    <label><input type="radio" name="scope" value="full rewrite + backfill + narrow teacher adjudication" checked> <span><strong>All of it</strong> (recommended) &mdash; new <code>first_fault</code>, the DSL evaluator, <code>backfill-attribution</code> over committed CSVs, and the binary teacher adjudication for the ambiguous bucket.</span></label>
+    <label><input type="radio" name="scope" value="deterministic rewrite only, ambiguous defaults to preprocess"> <span><strong>Deterministic only</strong> &mdash; ship the new rule with <code>ambiguous</code> defaulting to preprocess. No teacher call, fully reproducible, ~7% of cases get your prior instead of a judgement.</span></label>
+    <label><input type="radio" name="scope" value="validate against a labelled kappa sheet first, build nothing yet"> <span><strong>Validate first</strong> &mdash; extend the kappa sheet with human attribution labels, score both rules against ~30 cases, then decide. Costs a cycle; buys the ground truth section 09 says we lack.</span></label>
+    <textarea name="note" placeholder="Anything to add…"></textarea>
+    <div class="row"><button type="submit">Queue this answer</button><span class="status">not queued</span></div>
+  </form>
+
+  <form class="q" data-lavish-question="unscorable" onsubmit="qz(event,'unscorable','Unbindable plans: ')">
+    <div class="qt">2. Should an unbindable plan (more sub-questions asked than answered) count against preprocess?</div>
+    <label><input type="radio" name="unscorable" value="yes, charge it to preprocess" checked> <span><strong>Yes</strong> (recommended) &mdash; asking for more than the retriever can answer is a planning fault. Moves ~3% of cases from <code>unscorable</code> to preprocess.</span></label>
+    <label><input type="radio" name="unscorable" value="no, keep it unscorable"> <span><strong>No</strong> &mdash; keep <code>unscorable</code> meaning &ldquo;the record cannot decide&rdquo;, and accept the smaller denominator.</span></label>
+    <textarea name="note" placeholder="Anything to add…"></textarea>
+    <div class="row"><button type="submit">Queue this answer</button><span class="status">not queued</span></div>
+  </form>
+
+  <form class="q" data-lavish-question="percent" onsubmit="qz(event,'percent','Ratio-vs-percent grading: ')">
+    <div class="qt">3. The 22 ratio-vs-percent near misses (section 09) &mdash; what do you want done?</div>
+    <label><input type="radio" name="percent" value="leave grading alone, treat as a real calculator formatting fault" checked> <span><strong>Leave it</strong> (recommended) &mdash; the format is part of the answer; fix it in the calculator prompt, not the scorer.</span></label>
+    <label><input type="radio" name="percent" value="investigate separately as a possible scorer bug"> <span><strong>Investigate separately</strong> &mdash; write it up on its own before touching either the scorer or a prompt.</span></label>
+    <label><input type="radio" name="percent" value="relax numeric_match to accept a ratio against a percentage gold"> <span><strong>Relax <code>numeric_match</code></strong> &mdash; changes every accuracy number on record, including the champion&rsquo;s.</span></label>
+    <textarea name="note" placeholder="Anything to add…"></textarea>
+    <div class="row"><button type="submit">Queue this answer</button><span class="status">not queued</span></div>
+  </form>
+
+  <p class="foot">Nothing here is implemented yet &mdash; the comparison in section 06 was produced by a
+  prototype in the scratchpad reading committed CSVs, with no writes to the repo, the ledger or MLflow.</p>
+</section>
+
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  const dark = !document.documentElement.getAttribute("data-theme")
+    || document.documentElement.getAttribute("data-theme") === "dark";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      background: "transparent",
+      primaryColor: dark ? "#2a2e34" : "#e6e3e0",
+      primaryTextColor: dark ? "#e8e9ea" : "#22252a",
+      primaryBorderColor: dark ? "#434850" : "#c6c1bb",
+      lineColor: dark ? "#9ba1ab" : "#5f636a",
+      fontFamily: "'IBM Plex Sans',system-ui,sans-serif",
+      fontSize: "13px",
+    },
+  });
+</script>
+
+<script type="module">
+  import { FileDiff } from "https://esm.sh/@pierre/diffs@1.2.10?bundle";
+  const data = JSON.parse(document.getElementById("diff-data").textContent);
+  const dark = !document.documentElement.getAttribute("data-theme")
+    || document.documentElement.getAttribute("data-theme") === "dark";
+  new FileDiff({
+    theme: { light: "github-light", dark: "github-dark" },
+    themeType: dark ? "dark" : "light",
+    overflow: "wrap",
+    diffStyle: window.innerWidth > 1000 ? "split" : "unified",
+  }).render({
+    containerWrapper: document.querySelector("#diff"),
+    oldFile: data.old,
+    newFile: data.new,
+  });
+</script>
+
+<script>
+  function qz(ev, key, prefix) {
+    ev.preventDefault();
+    const form = ev.currentTarget;
+    const fd = new FormData(form);
+    const answer = fd.get(key);
+    if (!answer) return;
+    const note = (fd.get("note") || "").toString().trim();
+    const text = prefix + answer + (note ? " — " + note : "");
+    if (window.lavish && window.lavish.queuePrompt) {
+      window.lavish.queuePrompt(text, {
+        tag: "decision",
+        text: text,
+        element: form,
+        queueKey: key,
+        data: { question: key, answer: answer, note: note },
+      });
+    }
+    const status = form.querySelector(".status");
+    status.textContent = "queued ✓";
+    status.classList.add("queued");
+  }
+</script>
+</body></html>

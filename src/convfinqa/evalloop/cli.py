@@ -31,6 +31,24 @@ def main() -> None:
     )
     mk.add_argument("--target-questions", type=int, default=200)
     mk.add_argument("--seed", type=int, default=2026)
+    mk.add_argument("--name", default=None, help="Manifest name, e.g. eval_loop_v2.")
+    mk.add_argument(
+        "--extend",
+        default=None,
+        help="Parent manifest to extend; the new splits are supersets of its.",
+    )
+    mk.add_argument(
+        "--train-reports",
+        type=int,
+        default=None,
+        help="Allocate train by report count (report-count mode).",
+    )
+    mk.add_argument(
+        "--test-reports",
+        type=int,
+        default=None,
+        help="Allocate the gate split by report count (report-count mode).",
+    )
 
     rn = sub.add_parser("run", help="Run one split × version pass (an MLflow run).")
     rn.add_argument("--split", default="train", choices=("train", "test", "holdout"))
@@ -49,6 +67,19 @@ def main() -> None:
         ),
     )
     rn.add_argument("--concurrency", type=int, default=8)
+    rn.add_argument(
+        "--train-seed",
+        type=int,
+        default=None,
+        help="Draw a fresh train split from pool-minus-gate with this seed.",
+    )
+    rn.add_argument(
+        "--stop-at-first-wrong",
+        action="store_true",
+        help="End each conversation at its first wrong answer (train only).",
+    )
+    rn.add_argument("--campaign", default=None)
+    rn.add_argument("--label", default=None, help="Experiment label, e.g. c01-e02.")
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
     gt.add_argument("--baseline-csv", required=True)
@@ -67,6 +98,7 @@ def main() -> None:
     dg.add_argument("--csv", required=True, help="Eval-loop predictions CSV.")
     dg.add_argument("--version", required=True, help="The version that produced it.")
     dg.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    dg.add_argument("--concurrency", type=int, default=8)
 
     pr = sub.add_parser(
         "propose", help="Write a challenger changing ONE subagent's prompt."
@@ -128,6 +160,75 @@ def main() -> None:
         help="Seed per-agent prompt lineages from the committed bundle modules.",
     )
 
+    sp = sub.add_parser(
+        "show-prompt",
+        help="Reconstruct the prompts of a traced Agent SDK call from its refs.",
+    )
+    sp.add_argument("--trace", required=True, help="MLflow trace id (tr-…).")
+    sp.add_argument(
+        "--span",
+        default=None,
+        help="Only this span name; default is every agent_sdk span in the trace.",
+    )
+
+    bf = sub.add_parser(
+        "backfill-flips",
+        help="Attach flips.json to gate runs recorded before the gate wrote one.",
+    )
+    bf.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    bf.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Recompute and check against each verdict, but write nothing.",
+    )
+
+    ba = sub.add_parser(
+        "backfill-attribution",
+        help="Recompute past diagnose runs' fault counts under the current rule.",
+    )
+    ba.add_argument("--experiment", default=None, help="MLflow experiment override.")
+    ba.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would change without writing any metric.",
+    )
+    ba.add_argument(
+        "--force",
+        action="store_true",
+        help="Recompute even runs already scored by the current rule.",
+    )
+
+    cy = sub.add_parser(
+        "cycle",
+        help="One full experiment: train -> diagnose -> rewrite -> gate -> decide.",
+    )
+    cy.add_argument("--campaign", required=True, help="Campaign name, e.g. c01.")
+    cy.add_argument("--baseline-version", default=None, help="Default: the champion.")
+    cy.add_argument("--new-version", default=None, help="Default: the next free vN.")
+    cy.add_argument(
+        "--target", default=None, help="Force a subagent (rotation still applies)."
+    )
+    cy.add_argument("--train-reports", type=int, default=100)
+    cy.add_argument("--train-seed", type=int, default=None)
+    cy.add_argument("--concurrency", type=int, default=8)
+    cy.add_argument(
+        "--baseline-gate-csv",
+        default=None,
+        help="Reuse a baseline gate run instead of re-running it.",
+    )
+    cy.add_argument(
+        "--no-promote",
+        action="store_true",
+        help="Run the gate and record the verdict without moving the champion.",
+    )
+
+    cs = sub.add_parser("campaign-status", help="Experiments used, promoted, blocked.")
+    cs.add_argument("--campaign", required=True)
+
+    st = sub.add_parser("story", help="Build the campaign story JSON and HTML page.")
+    st.add_argument("--campaign", nargs="+", default=None, help="Campaigns to include.")
+    st.add_argument("--out", default=None, help="Output directory for the page.")
+
     mp = sub.add_parser(
         "mirror-prompts",
         help="Mirror a bundle's four prompts into MLflow's prompt registry.",
@@ -137,12 +238,26 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.cmd == "make-splits":
-        from convfinqa.evalloop.splits import build_manifest, write_manifest
+        from convfinqa.evalloop import splits as splits_mod
 
-        manifest = build_manifest(
-            target_questions=args.target_questions, seed=args.seed
-        )
-        path = write_manifest(manifest, force=args.force)
+        if args.train_reports or args.test_reports:
+            if not (args.train_reports and args.test_reports and args.name):
+                ap.error(
+                    "report-count mode needs --name, --train-reports and --test-reports"
+                )
+            manifest = splits_mod.build_report_manifest(
+                name=args.name,
+                train_reports=args.train_reports,
+                test_reports=args.test_reports,
+                extend=args.extend,
+                seed=args.seed,
+            )
+        else:
+            manifest = splits_mod.build_manifest(
+                target_questions=args.target_questions, seed=args.seed
+            )
+        out_path = splits_mod.manifest_path(args.name) if args.name else None
+        path = splits_mod.write_manifest(manifest, out_path, force=args.force)
         print(f"wrote {path}")  # noqa: T201
         print(json.dumps(manifest["stats"], indent=2))  # noqa: T201
 
@@ -160,6 +275,10 @@ def main() -> None:
             run_split(
                 args.split,
                 args.version,
+                train_seed=args.train_seed,
+                stop_at_first_wrong=args.stop_at_first_wrong,
+                campaign=args.campaign,
+                label=args.label,
                 n_reports=args.n_reports,
                 n_questions=args.n_questions,
                 concurrency=args.concurrency,
@@ -176,8 +295,10 @@ def main() -> None:
             baseline_version=args.baseline_version,
             candidate_version=args.candidate_version,
         )
+        from convfinqa.evalloop.gate import gate_reason
+
         print(json.dumps(stats, indent=2))  # noqa: T201
-        print(result.reason())  # noqa: T201
+        print(gate_reason(stats))  # noqa: T201
         for flip in result.regressions:
             print(f"  regression: {flip.report_id} q{flip.q_order}")  # noqa: T201
         if args.promote:
@@ -194,7 +315,11 @@ def main() -> None:
         from convfinqa.evalloop import teacher
 
         kwargs = {"experiment": args.experiment} if args.experiment else {}
-        summary = asyncio.run(teacher.diagnose_run(args.csv, args.version, **kwargs))
+        summary = asyncio.run(
+            teacher.diagnose_run(
+                args.csv, args.version, concurrency=args.concurrency, **kwargs
+            )
+        )
         print(json.dumps(summary, indent=2))  # noqa: T201
 
     elif args.cmd == "propose":
@@ -222,6 +347,9 @@ def main() -> None:
             baseline_diagnoses=args.baseline_diagnoses,
             candidate_diagnoses=args.candidate_diagnoses,
         )
+        verdict["gate_run_id"] = teacher.log_gate_verdict(
+            verdict, comparison=comparison
+        )
         print(json.dumps(verdict, indent=2))  # noqa: T201
         if args.promote and verdict["evidence_split"] != "test":
             ap.error(
@@ -229,7 +357,7 @@ def main() -> None:
                 f"this comparison ran on {verdict['evidence_split']!r}. "
                 "Train runs optimise; test runs promote."
             )
-        if args.promote and verdict["promotable_targeted"]:
+        if args.promote and verdict["promotable"]:
             from convfinqa.tracking import registry
 
             outcome = registry.promote(
@@ -247,7 +375,7 @@ def main() -> None:
                 )
             )
         elif args.promote:
-            print("targeted rule failed — challenger NOT promoted")  # noqa: T201
+            print("gate rule failed — challenger NOT promoted")  # noqa: T201
 
     elif args.cmd == "kappa":
         from convfinqa.evalloop import kappa
@@ -281,6 +409,91 @@ def main() -> None:
             )
         )
         print(json.dumps(verdict, indent=2))  # noqa: T201
+
+    elif args.cmd == "cycle":
+        from convfinqa.evalloop.cycle import run_cycle
+
+        steps = asyncio.run(
+            run_cycle(
+                campaign=args.campaign,
+                baseline_version=args.baseline_version,
+                new_version=args.new_version,
+                target=args.target,
+                train_reports=args.train_reports,
+                train_seed=args.train_seed,
+                concurrency=args.concurrency,
+                promote=not args.no_promote,
+                baseline_gate_csv=args.baseline_gate_csv,
+            )
+        )
+        print(json.dumps(steps, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "campaign-status":
+        from convfinqa.evalloop import campaign as camp
+
+        print(json.dumps(camp.summarise(args.campaign), indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "story":
+        from convfinqa.evalloop import story
+
+        out = story.build(campaigns=args.campaign, out_dir=args.out)
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "show-prompt":
+        import mlflow
+
+        from convfinqa.evalloop import prompt_refs
+        from convfinqa.tracking import mlflow_log
+
+        mlflow_log._mlflow()
+        trace = mlflow.get_trace(args.trace)
+        if trace is None:
+            ap.error(f"no trace {args.trace!r} in {mlflow_log.tracking_uri()}")
+        run_id = (trace.info.tags or {}).get("mlflow.sourceRun", "")
+        shown = 0
+        for span in trace.data.spans:
+            if args.span and span.name != args.span:
+                continue
+            refs = (span.inputs or {}).get("refs") or {}
+            if not refs:
+                continue
+            shown += 1
+            print(f"\n{'=' * 70}\n{span.name}\n{'=' * 70}")  # noqa: T201
+            for slot in ("system_prompt", "target_prompt", "user_prompt"):
+                ref = refs.get(slot)
+                if not ref:
+                    continue
+                print(f"\n--- {slot} ({ref.get('kind')}) ---")  # noqa: T201
+                try:
+                    print(prompt_refs.resolve(ref, run_id=run_id))  # noqa: T201
+                except prompt_refs.UnresolvedRefError as exc:
+                    print(f"[unresolved] {exc}")  # noqa: T201
+        if not shown:
+            print(  # noqa: T201
+                "no spans in this trace carry prompt refs — it predates them, or "
+                "the call was not made through evalloop.sdk.run_structured"
+            )
+
+    elif args.cmd == "backfill-flips":
+        from convfinqa.evalloop import ledger
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        print(  # noqa: T201
+            json.dumps(ledger.backfill_flips(dry_run=args.dry_run, **kwargs), indent=2)
+        )
+
+    elif args.cmd == "backfill-attribution":
+        from convfinqa.evalloop import ledger
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        print(  # noqa: T201
+            json.dumps(
+                ledger.backfill_attribution(
+                    dry_run=args.dry_run, force=args.force, **kwargs
+                ),
+                indent=2,
+            )
+        )
 
     elif args.cmd == "backfill-prompts":
         from convfinqa.tracking import prompt_ledger

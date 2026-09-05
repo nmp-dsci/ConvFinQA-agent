@@ -115,8 +115,9 @@ instrument-style admin section at `/admin`, all reading the same backend:
 | **`/admin/traces`** (+ `/admin/traces/:traceId`) | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
 | **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
 | **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
+| **`/admin/campaigns`** | Every campaign's experiments — target agent, promoted/rejected, p-value — same `evaluation/story.json` the published write-up reads. |
 
-All seven admin pages are visible **read-only** in the public demo — that is
+All eight admin pages are visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
@@ -200,7 +201,7 @@ train/test/holdout) rather than the full 770-question corpus:
   the committed prompt modules and `mirror-prompts` mirrors each agent into
   MLflow's Prompts tab. Every eval run also logs a per-agent, gold-derived
   metric panel with zero extra API calls (`acc_triage_turn_type`,
-  `acc_preprocess_skeleton`, `retriever_operand_recall`, `acc_calculator_exec`,
+  `acc_preprocess_plan`, `retriever_operand_recall`, `acc_calculator_exec`,
   `calculator_acc_given_full_recall` — `evalloop/stage_scores.py`), and
   `gate-targeted` judges the target agent on its own metric, falling back to
   attribution counts when there isn't one.
@@ -246,13 +247,37 @@ per-agent panel doing its job), then for real on 50 reports: the teacher found
 30 first-faults (14 preprocess / 10 retriever / 3 calculator / 3 triage, plus 4
 `gold_suspect` rows), a preprocess-only challenger `v5` was proposed, and it
 promoted on the sealed-from-optimisation test split (77.5% → 79.7%, +2.14pp,
-12 fixed vs. 8 broken, McNemar p=0.503) — the first fully-protocol promotion,
-now champion.
+12 fixed vs. 8 broken, McNemar p=0.503) — the first fully-protocol promotion.
+Later campaigns (below) moved the champion again; **`v8` is current**
+(`evaluation/registry.json → aliases.champion`).
 
 The **Dataset page** (`/admin/dataset`, backed by `GET /eval/dataset?split=`)
 lists every split's `report_id` / question / gold answer / gold program /
 `turn_type` side by side, so a human can settle the `gold_suspect` rows the
 teacher flags.
+
+### Campaigns
+
+A **campaign** is the unit of optimisation work: up to five experiments
+against one fixed gate split, reviewed as a whole, with a target agent
+rotating off after two consecutive rejections (`evalloop/campaign.py`). Each
+experiment runs the M2/M2.5 loop above end to end — train draw, diagnose,
+propose, targeted gate, promote-or-reject — for exactly one subagent's prompt.
+
+```bash
+EVAL_MANIFEST=eval_loop_v2 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
+  uv run convfinqa-evalloop cycle --campaign c01
+uv run convfinqa-evalloop campaign-status --campaign c01   # used / promoted / blocked
+uv run convfinqa-evalloop story                            # evaluation/story.json + docs/optimization/index.html
+```
+
+The **Campaigns page** (`/admin/campaigns`, backed by `GET /eval/campaigns`)
+and the published `docs/optimization/index.html` write-up both read
+`evaluation/story.json`, so rebuild both with `story` after a cycle.
+Promotion requires net-positive **and** one-sided cluster-corrected McNemar
+p < 0.05 (`tracking/comparator.py::promotable_significant`) — campaign `c01`
+promoted `v8` at p=0.040; `c02` and `c03` each ran two experiments that were
+both rejected, so the champion held at `v8`.
 
 ## Demo mode
 
@@ -306,7 +331,7 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `src/convfinqa/diagnosis/` | s7 diagnose → route+fix → verify harness (per-case prompt improvement). CLI implementation lives in `diagnosis/cli.py`. |
 | `src/convfinqa/llm.py` | **The single LLM choke point.** Every model is built here; retry/timeout policy and the demo gate live here and nowhere else. |
 | `src/convfinqa/tracking/` | Bundle fingerprint, trace store, MLflow logging + tracing (`tracing.py`), comparator, registry, per-agent prompt lineage (`prompt_ledger.py`), backfill, snapshot, CI gate. |
-| `src/convfinqa/evalloop/` | Self-improving eval loop (M1/M2/M2.5): splits, runner, teacher diagnosis, targeted-challenger proposal, net-positive and targeted gates, kappa tooling, sealed M3 release. `convfinqa-evalloop` CLI. See §Eval loop (M1) & teacher (M2/M2.5). |
+| `src/convfinqa/evalloop/` | Self-improving eval loop (M1/M2/M2.5): splits, runner, teacher diagnosis, targeted-challenger proposal, net-positive and significance-gated targeted gates, kappa tooling, sealed M3 release, and campaigns (`campaign.py`, `cycle.py`) that bundle a train-diagnose-propose-gate cycle into one call. `convfinqa-evalloop` CLI. See §Eval loop (M1) & teacher (M2/M2.5) and §Campaigns. |
 | `src/convfinqa/serving/` | FastAPI app, routers (`chat`, `evaluation` incl. `/eval/dataset`, `traces`, `admin`, `metrics`), session store, limits, research runner. |
 | `src/convfinqa/error_codes.py` | Closed `ErrorCode` vocabulary a failed turn is classified into, alongside its free-text message. |
 | `src/convfinqa/serving/demo_pack/` | Recorded conversations + replay, so the keyless demo streams like the live app. |

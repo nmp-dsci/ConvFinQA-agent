@@ -1,0 +1,39 @@
+name: Pages
+
+# The optimisation write-up is generated from the tracking store and committed,
+# so publishing is a copy rather than a build: whatever is in `docs/` is what
+# goes live. CI's staleness check (`convfinqa.evalloop.story_check`) is what
+# guarantees the committed page still matches the registry — this workflow
+# deliberately does not regenerate it, because regenerating here would need a
+# tracking store that only exists on the machine the campaign ran on.
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Publish docs/ to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4

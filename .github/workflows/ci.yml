@@ -63,6 +63,11 @@ jobs:
       - run: uv sync --python 3.12
       - name: Re-score committed predictions against the champion floor
         run: uv run python -m convfinqa.tracking.gate
+      # The published write-up is committed, so it can go stale: promote a
+      # version, forget to rebuild, and a public page quietly describes a
+      # champion that no longer exists. This compares it against the registry.
+      - name: Published optimisation page is not stale
+        run: uv run python -m convfinqa.evalloop.story_check
 
   frontend:
     name: Frontend — type, test, build

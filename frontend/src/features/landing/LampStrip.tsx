@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { formatPercent } from './format';
 import type { BoardData } from './useBoardData';
 
 type LampTone = 'good' | 'amber' | 'bad' | 'info' | 'idle';
@@ -86,36 +85,56 @@ function Lamp({ label, value, tone, dashed = false, tooltip, to }: LampProps) {
  * sits above the tiles rather than beside them.
  */
 export function LampStrip({ board }: { board: BoardData }) {
-  const { health, isDemo, champion, championVersion, gate, gateCandidate } = board;
+  const { health, isDemo, champion, campaigns } = board;
 
+  /**
+   * The gate lamp reports the campaign's most recent verdict.
+   *
+   * It used to run the legacy comparator over the 770-question corpus and
+   * report *that* rule's answer, which since the campaign protocol is the wrong
+   * question asked of the wrong population: it applied a net-positive rule the
+   * loop retired, to a corpus the loop does not gate on, about versions the
+   * loop rolled back. A lamp that reads "pass" under a rule nothing promotes on
+   * is worse than no lamp.
+   */
   const gateLamp = (() => {
-    if (!gateCandidate || !gate) {
+    const experiments = campaigns?.experiments ?? [];
+    const latest = experiments[experiments.length - 1];
+    if (!latest) {
       return {
-        value: gateCandidate ? 'checking…' : 'no challenger',
+        value: 'no challenger',
         tone: 'idle' as LampTone,
         dashed: true,
         tooltip:
-          'The promotion gate compares the newest version against the champion and refuses anything that loses accuracy or flips a passing question to failing. Nothing is waiting on it right now.',
+          'No experiment has been gated yet. The gate promotes a challenger only when it is net positive on the shared gate questions AND clears one-sided cluster-corrected McNemar at α = 0.05.',
       };
     }
-    if (gate.promotable) {
+    const p = latest.cluster_p_one_sided;
+    const pText = p == null ? '—' : p.toFixed(3);
+    const delta =
+      latest.accuracy_delta == null
+        ? '—'
+        : `${latest.accuracy_delta >= 0 ? '+' : ''}${(latest.accuracy_delta * 100).toFixed(2)}pp`;
+    if (latest.promoted) {
       return {
-        value: `${gateCandidate} pass`,
+        value: `${latest.label} promoted`,
         tone: 'good' as LampTone,
         dashed: false,
-        tooltip: `${gateCandidate} clears the promotion contract against ${gate.baseline_version}: accuracy ${formatPercent(gate.baseline_accuracy)} → ${formatPercent(gate.candidate_accuracy)} with no pass→fail flips.`,
+        tooltip: `${latest.baseline_version} → ${latest.candidate_version} by rewriting ${latest.target_agent} alone: ${delta} on the gate split, one-sided clustered McNemar p = ${pText}.`,
       };
     }
     return {
-      value: `${gateCandidate} refused`,
+      value: `${latest.label} refused`,
       tone: 'bad' as LampTone,
       dashed: false,
       tooltip: (
         <>
           <div className="mb-1 font-medium">The gate is working, not broken.</div>
-          {gate.reason} · {gate.regressions.length} pass→fail flips against{' '}
-          {gate.baseline_version}. Promotion needs accuracy ≥ champion <em>and</em> no flips;
-          beating the average alone would let "fixed numbers, broke programs" through.
+          {latest.candidate_version} rewrote {latest.target_agent} and moved the gate split by{' '}
+          {delta} — {latest.fixed ?? 0} questions fixed against {latest.broken ?? 0} broken — but at
+          p = {pText} that is not distinguishable from noise at α = 0.05. Promotion needs net
+          positive <em>and</em> significance; net positive alone promoted three versions whose
+          confidence intervals contained zero.
         </>
       ),
     };
@@ -137,7 +156,7 @@ export function LampStrip({ board }: { board: BoardData }) {
       />
       <Lamp
         label="champion"
-        value={champion ?? championVersion?.version ?? 'unset'}
+        value={champion ?? campaigns?.champion ?? 'unset'}
         tone="info"
         to="/admin/experiments"
         tooltip={
@@ -151,7 +170,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         value={gateLamp.value}
         tone={gateLamp.tone}
         dashed={gateLamp.dashed}
-        to="/admin/experiments"
+        to="/admin/campaigns"
         tooltip={gateLamp.tooltip}
       />
     </div>

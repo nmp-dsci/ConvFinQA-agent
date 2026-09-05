@@ -76,6 +76,13 @@ class Settings(BaseSettings):
     # `require_deepseek_api_key()` is the single place that demands it, and it
     # raises only when an LLM call is actually about to happen.
     deepseek_api_key: SecretStr | None = None
+
+    # An explicit override for the teacher's Agent SDK login, under its own
+    # name rather than `CLAUDE_CODE_OAUTH_TOKEN`. That distinction is load-
+    # bearing: a general-purpose token in a shared dotfile would otherwise be
+    # picked up here and silently replace the CLI's working subscription login,
+    # which is exactly how the first live teacher call failed.
+    teacher_oauth_token: SecretStr | None = None
     logfire_token: SecretStr | None = None
 
     # ---- Prompts ----------------------------------------------------------

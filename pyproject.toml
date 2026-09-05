@@ -22,6 +22,7 @@ dependencies = [
   "dspy>=2.5",
   "mlflow>=3.11.1",
   "uvicorn>=0.41,<0.42",
+  "claude-agent-sdk>=0.2.152",
 ]
 
 

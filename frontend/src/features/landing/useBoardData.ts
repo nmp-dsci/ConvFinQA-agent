@@ -9,6 +9,8 @@ import {
   listReports,
   listVersions,
 } from '../../lib/api';
+import { getCampaigns } from '../admin/api';
+import type { CampaignsResponse } from '../admin/api';
 import type { MetricsSource, SourceMetrics, VersionAccuracyRow } from '../../lib/api';
 import { qk } from '../../lib/queryClient';
 import { useMode } from '../../modeStore';
@@ -108,6 +110,17 @@ export interface BoardData {
   isDemo: boolean;
   champion: string | null;
 
+  /**
+   * `/eval/campaigns` — the optimisation loop's own evidence.
+   *
+   * This is what the board leads with. The champion's accuracy on the fixed
+   * gate split is the figure the campaign optimises and gates against; the
+   * legacy 770-question corpus below is a different population scored under a
+   * retired protocol, and its newest committed version is one the campaign
+   * rolled back. Reading the two as the same number is the specific mistake
+   * this board exists to avoid.
+   */
+  campaigns: CampaignsResponse | undefined;
   /** `/admin/versions` — execution and program accuracy per version. */
   versions: VersionAccuracyRow[] | undefined;
   /** The champion's row, or the last version if there is no champion alias. */
@@ -192,6 +205,12 @@ export function useBoardData(recordedLimit = 3): BoardData {
     enabled: Boolean(championName && gateCandidate),
   });
 
+  const campaignsQuery = useQuery({
+    queryKey: ['eval-campaigns', 'board'],
+    queryFn: () => getCampaigns(),
+    staleTime: 60_000,
+  });
+
   const metricsSource: MetricsSource = isDemo ? 'demo' : 'serving';
   const metrics = metricsQuery.data?.sources?.[metricsSource] ?? null;
 
@@ -206,6 +225,7 @@ export function useBoardData(recordedLimit = 3): BoardData {
     health,
     isDemo,
     champion,
+    campaigns: campaignsQuery.data,
     versions,
     championVersion,
     championHoldout,
@@ -221,7 +241,7 @@ export function useBoardData(recordedLimit = 3): BoardData {
     gateCandidate,
     recorded: recordedQuery.data,
     recordedLoading: recordedQuery.isLoading,
-    loading: versionsQuery.isLoading || experimentsQuery.isLoading,
+    loading: versionsQuery.isLoading || experimentsQuery.isLoading || campaignsQuery.isLoading,
     error: firstError ? String((firstError as Error).message ?? firstError) : null,
   };
 }

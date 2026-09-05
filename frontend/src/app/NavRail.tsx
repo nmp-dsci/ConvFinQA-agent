@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Server,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -53,6 +54,12 @@ const ITEMS: RailItem[] = [
     label: 'Dataset',
     hint: 'The evaluation set: every question, gold answer, gold program',
     icon: BookOpenCheck,
+  },
+  {
+    to: '/admin/campaigns',
+    label: 'Campaigns',
+    hint: 'The optimisation loop: one subagent per experiment, and what moved',
+    icon: TrendingUp,
   },
   {
     to: '/admin/experiments',

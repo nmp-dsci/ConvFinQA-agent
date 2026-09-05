@@ -28,19 +28,31 @@
       "version": "v2",
       "registered_at": "2026-08-28T00:15:18.986156+00:00",
       "source": "evalloop",
-      "bundle_id": "65c8a3edd210",
+      "bundle_id": "de5b0c67d425",
       "bundle": {
         "prompts_version": "v2",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "bec0e68"
+        "code_sha": "fa4dd4f",
+        "composition": "t2.p2.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
       },
       "runs": [
         "8292242f6dcf48b5a440c9c346fc1305",
         "4f91d36929c14a8cb28b376dd9d9b93e",
-        "9c4c88bc649c4f80a68cd4c0a34c2b52"
+        "9c4c88bc649c4f80a68cd4c0a34c2b52",
+        "de9af919f1144d368aef991710ab8ef5",
+        "e57b6cbfb10a47b7b11cfbbe5605f62c",
+        "7e2c876dea6449dc8fc15ce195c278df",
+        "473509ad4f4743558d040444c67b1bb5",
+        "5590bd089ff04da0be45beffe5bf5645",
+        "9974d0d584f9483fa8408decdbdbbf56",
+        "c03a41bdfc6944bba0132d75a19e3ae5"
       ],
       "metrics": {
         "accuracy": 0.771429,
@@ -142,10 +154,245 @@
         "preprocess"
       ],
       "composition": "t3.p4.r3.c3"
+    },
+    {
+      "version": "v6",
+      "registered_at": "2026-09-03T17:57:51.368783+00:00",
+      "source": "evalloop",
+      "bundle_id": "356669d8d617",
+      "bundle": {
+        "prompts_version": "v6",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "1d10c35",
+        "composition": "t2.p5.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p5@4bc21f75",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "2586861e5b10403db7aea7c70705461c",
+        "eebbb681691d4c0dbc12635a1a6a4152"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v2). Rewrote the prompt from a rule-and-example list into an explicit five-step decomposition procedure (name quantities \u2192 resolve references against history \u2192 classify operands as cached/lookup/literal \u2192 pick the operation from the question's verb \u2192 order operands and self-check), adding coverage for verdict questions via `greater`, level-vs-change ratios, combined \"X and Y\" line items, enumerated-component totals, conventional constants, scale-conversion direction, impossible/typo periods, already-percent referents, and operand ordering; the three output fields, letter mapping, numeric-only program, and the existing ratio/percentage conventions are retained unchanged.",
+      "parent": "v2",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is organized as a list of output-format rules plus a gallery of percentage patterns; it teaches the agent how to *format* a program but never how to *decide* one, so every failure class here is a decision the prompt simply does not cover \u2014 which referent \"that value\" points at, whether an operand is a lookup or a document convention constant, whether a relation question wants a difference or a bare quotient, which operand becomes the minuend, and whether the turn is a comparison at all. Because the prompt also declares that only add/subtract/multiply/divide exist, the agent explicitly reasoned itself into emitting a subtraction on a verdict question; the calculator already exposes a `greater` tool, so admitting `greater` into the program vocabulary costs nothing downstream and removes an impossible constraint. I therefore restructured the prompt around a five-step decision procedure \u2014 name the quantities, resolve references against history, classify each operand as cached/lookup/literal, choose the operation from the question's verb, then order operands and self-check \u2014 and folded the original percentage/ratio conventions in as the final wrapper step so the output contract, the four arithmetic functions, the letter-to-sub-question mapping, the numeric-only program, and all three output fields are preserved verbatim in requirement. The generic worked shapes replace the old year-specific examples so the guidance generalizes rather than pattern-matching a handful of remembered questions.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p5.r2.c2",
+      "campaign": "c01"
+    },
+    {
+      "version": "v7",
+      "registered_at": "2026-09-03T18:34:37.742466+00:00",
+      "source": "evalloop",
+      "bundle_id": "db86a7ad45d0",
+      "bundle": {
+        "prompts_version": "v7",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "fa4dd4f",
+        "composition": "t2.p6.r2.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p6@cd7c92fc",
+        "v_retriever": "r2@bf70ef7c",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "58a9056af3cf4d3590eaee4ebea7f0dc",
+        "c9efb25955eb4300b227d5b0cd791d0e"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v2). Restructured the prompt around a five-step decomposition procedure (single-cell level lookups \u2192 reference resolution with a vacuity check \u2192 operand classification as cached level/delta/lookup/literal \u2192 operation choice from the question's verb \u2192 operand ordering and read-back), while preserving the three output fields, letter mapping, the four-function numeric-only DSL, all five original Program Design Rules, and the original worked examples verbatim. Compared with the rejected v6 it omits the `greater` operator and the speculative conjoined-metric, adjustment-qualifier, corrupted-period and percent-form rules, and restores the concrete examples v6 deleted.",
+      "parent": "v2",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a gallery of percentage patterns: it tells the agent how to *write* a program but never how to *decide* one, so the recurring faults \u2014 re-differencing an operand that is already a delta, dividing a rate-valued metric by its own base instead of taking percentage points, phrasing a sub-question as \"change in X\" when the program needs X's level, phrasing one sub-question as an aggregate over two periods, collapsing a genuinely computational turn to a one-operand `A`, binding \"this change\" to the wrong turn, and inverting numerator/denominator \u2014 are all decisions the prompt is silent on. The previous restructure (v6) moved in the right direction (+2.29pp, P(\u0394>0)=0.79) but was rejected at p=0.19 with 23 questions broken against 31 fixed, so the fix is not \"more procedure\" but *less collateral damage*: this rewrite keeps the procedural spine that trended positive while deliberately dropping v6's speculative and contract-touching additions \u2014 the `greater` operator (an output-contract change), the \"metrics joined by and\" heuristic, adjustment-qualifier decomposition, corrupted-period repair, and the percent-form re-derivation rule \u2014 and it restores v6's deleted concrete examples and the original percentage/ratio conventions verbatim, since those encode baseline-calibrated dataset behaviour. Every rule I do add is backed by at least one, mostly two, independently diagnosed failures in this batch, and I deliberately left the \u00d7100-vs-bare-quotient policy untouched because the evidence points in both directions on identical phrasings, making any change there a coin flip that would reintroduce exactly the kind of breakage that sank v6.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p6.r2.c2",
+      "campaign": "c01"
+    },
+    {
+      "version": "v8",
+      "registered_at": "2026-09-03T19:27:38.641143+00:00",
+      "source": "evalloop",
+      "bundle_id": "b17653d07c41",
+      "bundle": {
+        "prompts_version": "v8",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6b54a86",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "46937b2af8ed47f7822227ba9acb4574",
+        "9d317903854b422d988232bc9f54181b",
+        "e50739dd2e354b25b908e9d6750a4920",
+        "f8dea4c22fcd4f209cdfe6d51eec6b62",
+        "909f5fbca69e4fa396de039d8c000ed5",
+        "1dc64eaa249c4d9d8085a60a09696047"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only retriever rewritten (parent v2). Restructured the prompt around lookup rather than arithmetic: added a hoisted output contract, an explicit four-step retrieval procedure, a row-disambiguation section (history qualifier inheritance, stock vs flow, total vs component), a period-alignment section with mandatory rollforward/schedule reconciliation and anti-duplication checks, a single unified sign policy defaulting to unsigned magnitudes, and a precondition list that must be satisfied before answering \"not found\"/\"N/A\"; all arithmetic, precision, formatting and field-guidance rules were preserved and moved below.",
+      "parent": "v2",
+      "target_agent": "retriever",
+      "rationale": "The failing turns are not arithmetic or formatting failures \u2014 the current prompt spends most of its length on percentage rounding and decimal places, while giving lookup itself four bullets (\"match entity and year\", \"don't confuse similar labels\"). Every diagnosed fault is a lookup fault of one of four kinds: an invented or transcribed minus sign on a quantity that is positive by construction (contra accounts, rollforward balances, outflow lines, valuation assumptions); a column/period slip (one column of a multi-period row read twice, a header-slot figure dismissed, prose amount-period lists collapsed, a cached prior-year answer re-emitted, an off-by-one shifted year set); a premature \"not found\"/\"N/A\" when the value is present in prose or under a paraphrase or abbreviation; and a wrong row among competing labels (component instead of stated total, basic instead of the diluted variant the history had fixed, flow row instead of balance row). So I restructured rather than appended: the output contract is hoisted to the top and preserved verbatim in substance (QAPair per question, verbatim question echo, plain-string answers, program=raw/number=final, `%` only when asked, order preserved, no reasoning in the string), and the body is reorganised into an explicit retrieval procedure with the four failure classes as first-class sections \u2014 row choice, period alignment with mandatory reconciliation identities, a single unified sign policy with an explicit default and a short list of genuine exceptions, and a hard precondition list before any non-numeric answer. The arithmetic and formatting rules are retained intact but demoted below the retrieval sections so they no longer dominate the prompt's attention. No prior rewrite of this agent has been gated, so nothing here re-proposes a rejected change.",
+      "changed_agents": [
+        "retriever"
+      ],
+      "composition": "t2.p2.r5.c2",
+      "campaign": "c01"
+    },
+    {
+      "version": "v9",
+      "registered_at": "2026-09-04T03:24:35.569101+00:00",
+      "source": "evalloop",
+      "bundle_id": "789e42506bc9",
+      "bundle": {
+        "prompts_version": "v9",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "b549e49",
+        "composition": "t2.p2.r6.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r6@3d22dee3",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "20617cdf8dab449c846b41c00e8a6016",
+        "0ab67b770baf4842b2d10536d5ef340f"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only retriever rewritten (parent v8). Re-scoped the sign policy from a blanket strip-by-default into keep-tests-first by cell type (activity/movement rows, change-or-effect questions, and same-row sibling operands keep the printed sign; balance, contra, deduction and expense-under-subtotal lines still strip), and turned \u00a76b from a search checklist into four preconditioned tolerances (single-series scope, qualified variant, forward-looking schedule, level-plus-change reconstruction) plus an all-N/A self-check. Rebuilt \u00a73 as a label-priority ladder (head-noun subject, letter-for-letter abbreviations, bare class noun = balance line, inherited row for metric-less questions), added an annual-summary-vs-quarterly rule and a bidirectional uniform-shift rule to \u00a74, and a never-expand-magnitude-words rule to \u00a76.",
+      "parent": "v8",
+      "target_agent": "retriever",
+      "rationale": "Two failure clusters dominate this prompt's record and they pull in opposite directions, so adding rules would not have worked \u2014 the existing sections had to be re-scoped. First, sign: v8's blanket \"strip the minus\" default is what fixed contra-balance cases at promotion, but it is also what broke the questions v8 lost (a rollforward \"effect of others\", a \"net change\", its percentage), and this run shows both a case needing a strip (a tax charge printed under the subtotal it reduces) and a case needing preservation (two cells of one row feeding a subtraction). I therefore reordered \u00a75 into keep-tests-first, scoped by *cell type* rather than table type: activity/movement rows of a rollforward, change/effect questions, and same-row sibling operands keep their printed sign, while balance rows, contra accounts, deduction lines and expense/provision/tax lines under a subtotal still strip exactly as before \u2014 this preserves every strip case v8 won and un-breaks the movement-row cases it lost, and it deliberately does *not* adopt the diagnosed suggestion of \"normalize only on single-lookup turns\", which would have re-broken those same lost questions. Second, refusals: five of this run's faults are the retriever finding the figure and then rejecting it on a self-imposed scope, qualifier, forward-looking or period-label objection, which downstream degenerates to a non-numeric answer, so \u00a76b now ends in four explicitly preconditioned tolerances plus an all-N/A self-check, each firing only when no competing candidate exists. The remaining faults were all \"right concept, wrong line\", so \u00a73 was rebuilt as a label-priority ladder (head-noun subject vs trailing modifier or restrictive relative clause, letter-for-letter abbreviation expansion, bare class noun = level not adjustment, no-metric questions bind the inherited row while \"end of <year>\" names the column) with an annual-summary-vs-quarter rule added to \u00a74 and a no-rescaling rule to \u00a76. The output contract, history rules, arithmetic, precision, formatting and field guidance are carried over unchanged.",
+      "changed_agents": [
+        "retriever"
+      ],
+      "composition": "t2.p2.r6.c2",
+      "campaign": "c02"
+    },
+    {
+      "version": "v10",
+      "registered_at": "2026-09-04T03:47:52.421901+00:00",
+      "source": "evalloop",
+      "bundle_id": "6a5318b880d7",
+      "bundle": {
+        "prompts_version": "v10",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "2ff5237",
+        "composition": "t2.p7.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p7@b6657750",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "8ffe387f60a64114913ccf9ad087e584",
+        "948682ba1e754c79ac4cd477b5e63eb7"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept v8's output contract, conversation-type guidance, all five Program Design Rules and the examples intact (only replacing the unevaluable `cached_ratio` token in one example with an inlined numeral), and inserted four precondition-gated sections: division of labour with the retriever (no derived-quantity sub-questions, but no collapsing a derivation into a single lookup either), reference resolution defaulting to the most recent turn with an entity-switch clause and a vacuity check, operand classification (delta vs rate vs level), and a narrow operand-order rule for two periods of one metric. Added a four-item pre-return validity checklist requiring every operand to be evaluable, forbidding empty programs/sub-question lists, and requiring the program to be read back against the reasoning; deliberately omitted the scale-direction and conversation-order rules that caused regressions in the rejected v6/v7.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a percentage-pattern gallery: it says how to write a program but never how to decide operands, references, or the split of work with the retriever \u2014 which is where nearly every recurring fault lives (anaphor bound past the latest turn, derived-quantity sub-questions the retriever is forbidden to compute, single-lookup collapses of questions needing a derivation, already-a-delta operands re-differenced, and invented operand tokens that make the whole turn unevaluable). Two prior rewrites (v6, v7) replaced the whole prompt with a general five-step procedure and were rejected: their collateral damage was concentrated in turns that went from a correct number to the degenerate non-answer \"no\" and in over-firing scale/ordering rules. So this rewrite deliberately does something different: it preserves v8's spine, its five Program Design Rules and its examples verbatim (including the \u00d7100/no-\u00d7100 conventions, which I leave completely untouched since both prior rewrites lost percent-change questions there), and adds only precondition-gated sections plus an explicit output-validity checklist. That checklist \u2014 every operand must be a letter backed by a real sub-question or a bare numeral, and neither the program nor (absent all-literal operands) the sub-question list may be empty \u2014 is new relative to both rejected attempts and targets exactly the failure signature that sank them, so it should suppress regressions rather than add them. I dropped the two rules with demonstrated collateral damage: no scale-direction rule (v7's version turned a correct \"times 1000\" answer into an off-by-1000 one) and no conversation-order minuend rule (v6's version flipped a correct negative change to positive); operand ordering is now stated only for the narrow, unambiguous case of two periods of the same metric, or a base the question names in words.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p7.r5.c2",
+      "campaign": "c02"
+    },
+    {
+      "version": "v11",
+      "registered_at": "2026-09-04T12:45:28.108409+00:00",
+      "source": "evalloop",
+      "bundle_id": "f33f771126da",
+      "bundle": {
+        "prompts_version": "v11",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6b54a86",
+        "composition": "t2.p8.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p8@9d8f38ba",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "cf8af04a89354cdeba833a34a96cd6a3",
+        "709d69ef223741138655673051bab8ad"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept the output contract, conversation-type guidance, all five Program Design Rules and the examples, and added four gated sections \u2014 operand evaluability (no invented tokens, no empty or pre-evaluated programs, one figure per sub-question), history reuse with level-vs-movement classification, reference resolution restricted to description-free demonstratives, and positional placeholder binding with an explicit later-minus-earlier / named-base ordering read-back \u2014 plus a narrow percentage-point rule for metrics that are themselves rates. Deliberately excluded the percentage-must-be-two-lookups and scale-direction rules that caused the regressions in the rejected v6/v7/v10.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a gallery of percentage patterns: it says how to write a program but never how to bind operands, so the faults that recur across both the v2 and v8 records are decision faults it simply does not address \u2014 placeholders emitted in the reverse of their positional binding (four separate cases this run alone), a cached change re-differenced against its own base, unevaluable or pre-evaluated programs, and demonstratives bound past the most recent turn. I therefore kept the champion's structure, output contract, conversation-type guidance, all five Program Design Rules (including the \u00d7100 conventions in rules 2\u20134, where the failure record is self-contradictory and past edits regressed working questions) and the worked examples, and added four tightly gated sections plus one narrow rate-metric rule. I deliberately omitted the two changes that visibly caused the previous rejections' collateral damage: the \"a percentage/share question always needs two lookups and a divide\" mandate, which turned directly-printed percentage lookups into non-answers in v10, and any scale-direction rule, which inverted a correct \u00d71000 conversion in v7. The recency rule is likewise gated to demonstratives carrying no metric or period description, so follow-ups like \"the change in that total ... in the preceding year\" \u2014 one of the questions v10 broke \u2014 still resolve by description rather than by recency, and the ordering rule explicitly forbids swapping operands to avoid a negative, protecting the signed-change questions v6 flipped.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p8.r5.c2",
+      "campaign": "c03"
+    },
+    {
+      "version": "v12",
+      "registered_at": "2026-09-04T13:04:19.970587+00:00",
+      "source": "evalloop",
+      "bundle_id": "d14550b46981",
+      "bundle": {
+        "prompts_version": "v12",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6b54a86",
+        "composition": "t2.p9.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p9@189ac122",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497"
+      },
+      "runs": [
+        "33ba1c4943b94019a4facbb5c90d200c",
+        "e5fd7554a6564dd7abfc23ca307bb43e"
+      ],
+      "metrics": {},
+      "notes": "targeted challenger: only preprocess rewritten (parent v8). Kept the output contract, Type I/II guidance, Program Design Rules 1\u20135 (including the Rule 4 dataset convention), the examples and the field guidance intact, and added two gated sections \u2014 program validity (evaluable operands, positional binding read-back against your own reasoning, never an empty or pre-evaluated program, one printed figure per sub-question, no single-placeholder collapse except for percentage/share questions, averages take the count the question names) and narrow reference resolution (metric-free demonstratives bind to the latest turn, subject switches propagate, vacuity check with a restatement carve-out, no sub-questions for unreachable periods). Deliberately added no operand-direction default, no percent-form rule and no scale-direction rule, since those are what broke previously-correct turns in v6/v7/v10/v11.",
+      "parent": "v8",
+      "target_agent": "preprocess",
+      "rationale": "The current prompt is a formatting contract plus a percentage-pattern gallery: it says how to write a program but nothing about whether the program it writes is executable, so a large and recurring share of its faults are turns where the emitted plan is structurally impossible to evaluate \u2014 an empty program, a pre-evaluated numeral, an invented operand symbol, a lookup for a period the filing cannot contain, an aggregate phrase stuffed into one placeholder, or a single-placeholder collapse of a relation the question spells out. Those turns currently degenerate to non-answers, so a rule that only fires on them can gain without risking turns that already work. Every prior rejection (v6, v7, v10, v11) died the same way: it bundled these structural fixes with broad semantic rules about percent form, change-vs-ratio, scale direction, or a later-minus-earlier operand default, and those rules re-decided turns that were already right (178% became 78.4%, a correct \u22122.7 became +2.7, a printed percentage lookup became \"no\"). This rewrite therefore keeps Program Design Rules 1\u20135, the conversation-type guidance, the examples and the field guidance untouched, adds no directional or percent-form convention at all, and replaces the ordering fix with a purely internal-consistency check (expand placeholders positionally and confirm the expansion matches the formula the reasoning already states), which repairs the many documented cases where the prose and the emitted skeleton contradict each other without imposing a new convention. The one previously-rejected idea it revives \u2014 do not collapse a stated relation into a single lookup \u2014 is explicitly carved out for percentage/share/portion/rate questions, which is precisely where that rule caused regressions before. The reference-resolution section is limited to metric-free demonstratives, subject switches, and a vacuity check with an explicit exemption for pure restatement/conversion turns.",
+      "changed_agents": [
+        "preprocess"
+      ],
+      "composition": "t2.p9.r5.c2",
+      "campaign": "c03"
     }
   ],
   "aliases": {
-    "champion": "v5"
+    "champion": "v8"
   },
   "history": [
     {
@@ -557,6 +804,479 @@
         },
         "notes": []
       }
+    },
+    {
+      "at": "2026-09-03T17:18:03.855215+00:00",
+      "event": "promote",
+      "version": "v2",
+      "previous_champion": "v5",
+      "actor": "owner",
+      "forced": true,
+      "reason": "rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule \u2014 net positive AND one-sided cluster-corrected McNemar p < 0.05 \u2014 every one is rejected (v5, the strongest, has p=0.207 and a 95%% CI of [-3.2pp, +7.6pp] that contains zero). The evidence for them was never wrong, it was never sufficient; the campaign restarts from the last champion whose promotion the new rule does not contradict.",
+      "comparison": null
+    },
+    {
+      "at": "2026-09-03T19:33:24.004469+00:00",
+      "event": "promote",
+      "version": "v8",
+      "previous_champion": "v2",
+      "actor": "evalloop-cycle",
+      "forced": true,
+      "reason": "PROMOTE: \u0394 +4.58pp on 349 shared test questions (34 fixed vs 18 broken across 36 conversations); one-sided clustered McNemar p=0.0404 (\u03b1=0.05); 95% CI [-0.28pp, +9.85pp], P(\u0394>0)=0.96 \u2014 target: retriever_operand_recall 0.740 \u2192 0.768 | Restructured the prompt around lookup rather than arithmetic: added a hoisted output contract, an explicit four-step retrieval procedure, a row-disambiguation section (history qualifier inheritance, stock vs flow, total vs component), a period-alignment section with mandatory rollforward/schedule reconciliation and anti-duplication checks, a single unified sign policy defaulting to unsigned magnitudes, and a precondition list that must be satisfied before answering \"not found\"/\"N/A\"; all arithmetic, precision, formatting and field-guidance rules were preserved and moved below.",
+      "comparison": {
+        "baseline_version": "v2",
+        "candidate_version": "v8",
+        "baseline_accuracy": 0.770774,
+        "candidate_accuracy": 0.816619,
+        "baseline_accuracy_all": 0.770774,
+        "candidate_accuracy_all": 0.816619,
+        "accuracy_delta": 0.045845,
+        "n_compared": 349,
+        "accuracy_ok": true,
+        "no_regressions": false,
+        "pass_to_fail": 18,
+        "fail_to_pass": 34,
+        "mcnemar_p": 0.036483,
+        "mcnemar_p_one_sided": 0.018242,
+        "cluster_z": 1.7457,
+        "cluster_p_one_sided": 0.040428,
+        "n_clusters": 36,
+        "significant": true,
+        "promotable": true,
+        "promotable_significant": true,
+        "reason": "net positive: 77.1% \u2192 81.7% (+4.58%) on the shared set, 34 fixed vs 18 broken; McNemar p=0.036 (significant at \u03b1=0.05)",
+        "regressions": [
+          {
+            "report_id": "Double_STZ/2005/page_57.pdf",
+            "q_order": 1,
+            "question": "what portion of the net asset acquired is from goodwill?",
+            "gold_answer": "56.7%",
+            "baseline_answer": "0.5667349099352025",
+            "candidate_answer": "no"
+          },
+          {
+            "report_id": "Double_AES/2016/page_185.pdf",
+            "q_order": 2,
+            "question": "how much, then, did those requirements represent in relation to this amount?",
+            "gold_answer": "5%",
+            "baseline_answer": "0.05",
+            "candidate_answer": "0.1"
+          },
+          {
+            "report_id": "Double_VRTX/2005/page_112.pdf",
+            "q_order": 1,
+            "question": "what was the percentage of total common stock under the vertex 401(k) plan?",
+            "gold_answer": "1.4%",
+            "baseline_answer": "1.4%",
+            "candidate_answer": "270.0"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 1,
+            "question": "what about the effect of others?",
+            "gold_answer": "-6",
+            "baseline_answer": "-6",
+            "candidate_answer": "6.0"
+          },
+          {
+            "report_id": "Single_ECL/2015/page_70.pdf-3",
+            "q_order": 2,
+            "question": "what is the total change in the balance of allowance for doubtful accounts during 2015?",
+            "gold_answer": "-2",
+            "baseline_answer": "-2.0",
+            "candidate_answer": "10"
+          },
+          {
+            "report_id": "Single_LKQ/2016/page_26.pdf-2",
+            "q_order": 4,
+            "question": "how much, then, does that change represent in relation to this 2011 return, in percentage?",
+            "gold_answer": "78%",
+            "baseline_answer": "78.0%",
+            "candidate_answer": "104.0%"
+          },
+          {
+            "report_id": "Single_CAT/2017/page_136.pdf-1",
+            "q_order": 2,
+            "question": "what is the net change?",
+            "gold_answer": "-1782",
+            "baseline_answer": "-1782",
+            "candidate_answer": "1782"
+          },
+          {
+            "report_id": "Single_CAT/2017/page_136.pdf-1",
+            "q_order": 3,
+            "question": "what is the net change over the 2016 value?",
+            "gold_answer": "-14%",
+            "baseline_answer": "-13.9%",
+            "candidate_answer": "14.0%"
+          },
+          {
+            "report_id": "Single_C/2016/page_120.pdf-1",
+            "q_order": 1,
+            "question": "so what was the percentage increase of this value?",
+            "gold_answer": "7.1%",
+            "baseline_answer": "7.1%",
+            "candidate_answer": "no"
+          },
+          {
+            "report_id": "Single_LMT/2014/page_49.pdf-1",
+            "q_order": 0,
+            "question": "what was the change in net sales for mst from 2013 to 2014?",
+            "gold_answer": "-6",
+            "baseline_answer": "-6",
+            "candidate_answer": "6"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 2,
+            "question": "what about in 2008?",
+            "gold_answer": "2196",
+            "baseline_answer": "2196",
+            "candidate_answer": "2.825591985428051"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 3,
+            "question": "what is the net change?",
+            "gold_answer": "276",
+            "baseline_answer": "276",
+            "candidate_answer": "0.9361394061577095"
+          },
+          {
+            "report_id": "Double_CB/2009/page_220.pdf",
+            "q_order": 4,
+            "question": "what growth rate does this represent?",
+            "gold_answer": "12.6%",
+            "baseline_answer": "12.6%",
+            "candidate_answer": "33.1%"
+          },
+          {
+            "report_id": "Single_UA/2011/page_54.pdf-1",
+            "q_order": 2,
+            "question": "what was, then, in thousands, the change in unrealized foreign currency exchange rate gains ( losses ) from 2010 to 2011?",
+            "gold_answer": "-2747",
+            "baseline_answer": "-2747.0",
+            "candidate_answer": "2747.0"
+          },
+          {
+            "report_id": "Single_UA/2011/page_54.pdf-1",
+            "q_order": 4,
+            "question": "how much, then, does that change represent in relation to this 2010 total, in percentage?",
+            "gold_answer": "215%",
+            "baseline_answer": "214.6%",
+            "candidate_answer": "-214.6%"
+          },
+          {
+            "report_id": "Single_UNP/2013/page_78.pdf-4",
+            "q_order": 1,
+            "question": "what is that over the 2011 value?",
+            "gold_answer": "-1%",
+            "baseline_answer": "-0.9%",
+            "candidate_answer": "no"
+          },
+          {
+            "report_id": "Double_L/2007/page_213.pdf",
+            "q_order": 1,
+            "question": "and during that same year, considering the total income tax expense and the percentage of the income before tax it represents, what was the total amount of this income before tax?",
+            "gold_answer": "4574.3",
+            "baseline_answer": "4574.285714",
+            "candidate_answer": "no"
+          },
+          {
+            "report_id": "Double_CAT/2017/page_113.pdf",
+            "q_order": 2,
+            "question": "and in the previous year, what was the total of pre impairment goodwill in millions for surface mining & technology?",
+            "gold_answer": "1224",
+            "baseline_answer": "1224.0",
+            "candidate_answer": "nan"
+          }
+        ],
+        "improvements": [
+          {
+            "report_id": "Double_INTC/2018/page_50.pdf",
+            "q_order": 1,
+            "question": "and what percentage of the total operating lease obligations were due 1 20133 years?",
+            "gold_answer": "37.6%",
+            "baseline_answer": "no",
+            "candidate_answer": "37.6%"
+          },
+          {
+            "report_id": "Double_CE/2011/page_17.pdf",
+            "q_order": 4,
+            "question": "and throughout the precedent year, what was the change in that total of cash dividends?",
+            "gold_answer": "15",
+            "baseline_answer": "7",
+            "candidate_answer": "15"
+          },
+          {
+            "report_id": "Double_CE/2011/page_17.pdf",
+            "q_order": 5,
+            "question": "what is this change as a portion of that total in 2009?",
+            "gold_answer": "26.8%",
+            "baseline_answer": "12.5%",
+            "candidate_answer": "26.8%"
+          },
+          {
+            "report_id": "Double_ETR/2008/page_355.pdf",
+            "q_order": 3,
+            "question": "and what percentage of that increase between the years was due to rider revenue?",
+            "gold_answer": "18%",
+            "baseline_answer": "100.0%",
+            "candidate_answer": "18.0%"
+          },
+          {
+            "report_id": "Double_CB/2010/page_113.pdf",
+            "q_order": 0,
+            "question": "what is the cash used from investing activities in 2010?",
+            "gold_answer": "4.2",
+            "baseline_answer": "$4.2 billion",
+            "candidate_answer": "4.2"
+          },
+          {
+            "report_id": "Double_CB/2010/page_113.pdf",
+            "q_order": 1,
+            "question": "what about in 2009?",
+            "gold_answer": "3.2",
+            "baseline_answer": "$3.2 billion",
+            "candidate_answer": "3.2"
+          },
+          {
+            "report_id": "Single_JPM/2014/page_65.pdf-1",
+            "q_order": 2,
+            "question": "what is that change over 100?",
+            "gold_answer": "67.48%",
+            "baseline_answer": "67.5%",
+            "candidate_answer": "0.6747999999999998"
+          },
+          {
+            "report_id": "Single_GPN/2015/page_82.pdf-4",
+            "q_order": 1,
+            "question": "what about the total including 2013?",
+            "gold_answer": "19.6",
+            "baseline_answer": "-19.6",
+            "candidate_answer": "19.6"
+          },
+          {
+            "report_id": "Single_DVN/2013/page_78.pdf-3",
+            "q_order": 1,
+            "question": "what is the total debt maturities?",
+            "gold_answer": "12042",
+            "baseline_answer": "3389.0",
+            "candidate_answer": "12042.0"
+          },
+          {
+            "report_id": "Single_DVN/2013/page_78.pdf-3",
+            "q_order": 2,
+            "question": "what percentage of total debt maturities does debt due in 2016 and 2017 represent?",
+            "gold_answer": "0.1038",
+            "baseline_answer": "36.9%",
+            "candidate_answer": "10.4%"
+          },
+          {
+            "report_id": "Single_DVN/2013/page_78.pdf-3",
+            "q_order": 3,
+            "question": "what is the percentage value?",
+            "gold_answer": "10.38",
+            "baseline_answer": "36.9%",
+            "candidate_answer": "10.4%"
+          },
+          {
+            "report_id": "Single_AMT/2004/page_91.pdf-4",
+            "q_order": 0,
+            "question": "what is the net change in rent expense from 2003 to 2004?",
+            "gold_answer": "4785000",
+            "baseline_answer": "4785",
+            "candidate_answer": "4785000"
+          },
+          {
+            "report_id": "Single_MS/2013/page_240.pdf-3",
+            "q_order": 2,
+            "question": "what was, then, the change in the total of future minimum rental commitments over the year?",
+            "gold_answer": "-35",
+            "baseline_answer": "no",
+            "candidate_answer": "-35"
+          },
+          {
+            "report_id": "Single_PNC/2007/page_108.pdf-2",
+            "q_order": 0,
+            "question": "what is the sum of the weighted-average exercise price for options outstanding in 2005 and 2006?",
+            "gold_answer": "114.96",
+            "baseline_answer": "no",
+            "candidate_answer": "114.96"
+          },
+          {
+            "report_id": "Single_PNC/2007/page_108.pdf-2",
+            "q_order": 1,
+            "question": "what is the average per year?",
+            "gold_answer": "57.48",
+            "baseline_answer": "no",
+            "candidate_answer": "57.48"
+          },
+          {
+            "report_id": "Single_ZBH/2013/page_68.pdf-3",
+            "q_order": 3,
+            "question": "and as a decimal?",
+            "gold_answer": ".01297",
+            "baseline_answer": "no",
+            "candidate_answer": "0.012971698"
+          },
+          {
+            "report_id": "Single_C/2016/page_120.pdf-1",
+            "q_order": 0,
+            "question": "what was the difference in lcr ratio between 12/31/15 and 12/31/16?",
+            "gold_answer": "8",
+            "baseline_answer": "-8.0",
+            "candidate_answer": "8"
+          },
+          {
+            "report_id": "Single_MAS/2018/page_73.pdf-1",
+            "q_order": 0,
+            "question": "what was the difference in percent of debt securities between 2017 and 2018?",
+            "gold_answer": "21",
+            "baseline_answer": "75.0%",
+            "candidate_answer": "21"
+          },
+          {
+            "report_id": "Single_GIS/2017/page_86.pdf-4",
+            "q_order": 0,
+            "question": "what was the net change in operating leases from 2017 to 2018?",
+            "gold_answer": "-69.3",
+            "baseline_answer": "-74.7",
+            "candidate_answer": "-69.3"
+          },
+          {
+            "report_id": "Single_RE/2010/page_138.pdf-6",
+            "q_order": 1,
+            "question": "so what was the ratio of the company accrued and recognized a net benefit to expenses?",
+            "gold_answer": "2.48",
+            "baseline_answer": "6.4654527313544525",
+            "candidate_answer": "2.4789224245447743"
+          },
+          {
+            "report_id": "Single_IPG/2009/page_67.pdf-4",
+            "q_order": 3,
+            "question": "what is the percent change times 100?",
+            "gold_answer": "1.47",
+            "baseline_answer": "-1.5%",
+            "candidate_answer": "1.0%"
+          },
+          {
+            "report_id": "Single_HII/2011/page_103.pdf-1",
+            "q_order": 2,
+            "question": "what is the average value per year?",
+            "gold_answer": "45.3",
+            "baseline_answer": "14.666666666666666",
+            "candidate_answer": "45.333333333333336"
+          },
+          {
+            "report_id": "Double_AWK/2015/page_117.pdf",
+            "q_order": 2,
+            "question": "what was, then, the change over the year?",
+            "gold_answer": "21.97",
+            "baseline_answer": "54.7%",
+            "candidate_answer": "21.97"
+          },
+          {
+            "report_id": "Single_GPN/2007/page_39.pdf-2",
+            "q_order": 1,
+            "question": "what is the percent change?",
+            "gold_answer": "37.8%",
+            "baseline_answer": "-62.2%",
+            "candidate_answer": "37.8%"
+          },
+          {
+            "report_id": "Double_DISCA/2013/page_60.pdf",
+            "q_order": 3,
+            "question": "and how much did this change represent in relation to the performance price of that stock in 2008, in percentage?",
+            "gold_answer": "502.08%",
+            "baseline_answer": "538.6%",
+            "candidate_answer": "502.1%"
+          },
+          {
+            "report_id": "Single_AES/2002/page_60.pdf-3",
+            "q_order": 0,
+            "question": "what was the total distribution of revenue to the large utilities segment in the years of 2002 and 2001?",
+            "gold_answer": "57%",
+            "baseline_answer": "-57.0",
+            "candidate_answer": "57"
+          },
+          {
+            "report_id": "Single_AES/2002/page_60.pdf-3",
+            "q_order": 1,
+            "question": "including the year of 2000, what would then be the total distribution of revenue to the large utilities segment in the three years?",
+            "gold_answer": "79%",
+            "baseline_answer": "-79",
+            "candidate_answer": "79"
+          },
+          {
+            "report_id": "Single_AES/2002/page_60.pdf-3",
+            "q_order": 2,
+            "question": "and would be the average distribution of revenue to the large utilities segment between the three years?",
+            "gold_answer": "26.3%",
+            "baseline_answer": "-26.333333333333332",
+            "candidate_answer": "26.333333333333332"
+          },
+          {
+            "report_id": "Single_DISCA/2016/page_11.pdf-1",
+            "q_order": 2,
+            "question": "what is the percent of eurosport 2 viewers to the sum?",
+            "gold_answer": "31%",
+            "baseline_answer": "32.8%",
+            "candidate_answer": "31.4%"
+          },
+          {
+            "report_id": "Double_ETR/2008/page_438.pdf",
+            "q_order": 3,
+            "question": "what is the second highest annual incentive award?",
+            "gold_answer": "632100",
+            "baseline_answer": "no",
+            "candidate_answer": "632100.0"
+          },
+          {
+            "report_id": "Double_L/2007/page_213.pdf",
+            "q_order": 0,
+            "question": "based on the reconciliation, what was the change in the balance of unrecognized tax benefits throughout 2007?",
+            "gold_answer": "-17",
+            "baseline_answer": "17",
+            "candidate_answer": "-17"
+          },
+          {
+            "report_id": "Single_SNA/2007/page_47.pdf-2",
+            "q_order": 0,
+            "question": "what was the change in value of total current liabilities from 2006 to 2007?",
+            "gold_answer": "-42.8",
+            "baseline_answer": "42.8",
+            "candidate_answer": "-42.8"
+          },
+          {
+            "report_id": "Single_SNA/2007/page_47.pdf-2",
+            "q_order": 1,
+            "question": "what was the value of total current liabilities in 2006?",
+            "gold_answer": "682.0",
+            "baseline_answer": "-682.0",
+            "candidate_answer": "682.0"
+          },
+          {
+            "report_id": "Single_SNA/2007/page_47.pdf-2",
+            "q_order": 2,
+            "question": "what was the percent change?",
+            "gold_answer": "-6.3%",
+            "baseline_answer": "93.7%",
+            "candidate_answer": "-6.3%"
+          }
+        ],
+        "slice_deltas": {
+          "gold_turn_type": {
+            "Number": 0.027027,
+            "Program": 0.054622
+          },
+          "gold_conv_type": {
+            "Type I": 0.056667,
+            "Type II": -0.020408
+          }
+        },
+        "notes": []
+      }
     }
   ],
   "agent_prompts": {
@@ -625,6 +1345,51 @@
         "source": "teacher",
         "registered_at": "2026-09-02T12:13:15.797989+00:00",
         "run_id": "8793f559a0ab4559ac6d4ebaff127dec"
+      },
+      {
+        "seq": "p5",
+        "hash": "4bc21f75",
+        "first_seen_in": "v6",
+        "parent": "p4",
+        "source": "teacher",
+        "registered_at": "2026-09-03T17:57:51.367466+00:00",
+        "run_id": "2586861e5b10403db7aea7c70705461c"
+      },
+      {
+        "seq": "p6",
+        "hash": "cd7c92fc",
+        "first_seen_in": "v7",
+        "parent": "p5",
+        "source": "teacher",
+        "registered_at": "2026-09-03T18:34:37.741102+00:00",
+        "run_id": "58a9056af3cf4d3590eaee4ebea7f0dc"
+      },
+      {
+        "seq": "p7",
+        "hash": "b6657750",
+        "first_seen_in": "v10",
+        "parent": "p6",
+        "source": "teacher",
+        "registered_at": "2026-09-04T03:47:52.419314+00:00",
+        "run_id": "8ffe387f60a64114913ccf9ad087e584"
+      },
+      {
+        "seq": "p8",
+        "hash": "9d8f38ba",
+        "first_seen_in": "v11",
+        "parent": "p7",
+        "source": "teacher",
+        "registered_at": "2026-09-04T12:45:28.106550+00:00",
+        "run_id": "cf8af04a89354cdeba833a34a96cd6a3"
+      },
+      {
+        "seq": "p9",
+        "hash": "189ac122",
+        "first_seen_in": "v12",
+        "parent": "p8",
+        "source": "teacher",
+        "registered_at": "2026-09-04T13:04:19.967490+00:00",
+        "run_id": "33ba1c4943b94019a4facbb5c90d200c"
       }
     ],
     "retriever": [
@@ -663,6 +1428,24 @@
         "source": "backfill",
         "registered_at": "2026-09-02T11:34:10.897642+00:00",
         "run_id": ""
+      },
+      {
+        "seq": "r5",
+        "hash": "1d504dc7",
+        "first_seen_in": "v8",
+        "parent": "r4",
+        "source": "teacher",
+        "registered_at": "2026-09-03T19:27:38.639602+00:00",
+        "run_id": "46937b2af8ed47f7822227ba9acb4574"
+      },
+      {
+        "seq": "r6",
+        "hash": "3d22dee3",
+        "first_seen_in": "v9",
+        "parent": "r5",
+        "source": "teacher",
+        "registered_at": "2026-09-04T03:24:35.564294+00:00",
+        "run_id": "20617cdf8dab449c846b41c00e8a6016"
       }
     ],
     "calculator": [

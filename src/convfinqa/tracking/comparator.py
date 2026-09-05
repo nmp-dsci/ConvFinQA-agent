@@ -72,6 +72,57 @@ def mcnemar_exact_p(pass_to_fail: int, fail_to_pass: int) -> float:
     return min(1.0, 2.0 * tail)
 
 
+def mcnemar_exact_p_one_sided(pass_to_fail: int, fail_to_pass: int) -> float:
+    """One-sided exact McNemar p for the hypothesis "the candidate is better".
+
+    The gate only ever promotes improvements, so spending half the rejection
+    region on the direction it will never act in buys nothing. One-sided at
+    alpha=0.05 detects exactly what two-sided at alpha=0.10 detects, without
+    doubling the false-positive rate in the direction that matters.
+    """
+    from math import comb
+
+    n = pass_to_fail + fail_to_pass
+    if n == 0:
+        return 1.0
+    # P(at least `fail_to_pass` of n discordant pairs land in the good direction)
+    return min(
+        1.0,
+        sum(comb(n, i) for i in range(fail_to_pass, n + 1)) / 2.0**n,
+    )
+
+
+def durkalski_z(per_cluster: list[tuple[int, int]]) -> float:
+    """Cluster-corrected McNemar statistic (Durkalski et al. 2003).
+
+    Flips are not independent: a conversation's questions share a report, a
+    history and usually an error, so a change that fixes one turn tends to fix
+    its siblings. Treating 363 questions as 363 independent trials overstates
+    the evidence. Durkalski's correction sums the *net* discordance per cluster
+    and normalises by the root sum of squares of those per-cluster nets:
+
+        Z = sum(d_k) / sqrt(sum(d_k^2)),  d_k = fail_to_pass_k - pass_to_fail_k
+
+    which reduces to the ordinary McNemar Z when every cluster holds one
+    question, and shrinks towards zero as flips concentrate inside a few
+    conversations. Positive Z favours the candidate.
+    """
+    from math import sqrt
+
+    nets = [good - bad for bad, good in per_cluster]
+    denom = sqrt(sum(d * d for d in nets))
+    if denom == 0:
+        return 0.0
+    return sum(nets) / denom
+
+
+def normal_sf(z: float) -> float:
+    """Upper-tail probability of the standard normal — the one-sided p for `z`."""
+    from math import erfc, sqrt
+
+    return 0.5 * erfc(z / sqrt(2.0))
+
+
 @dataclass
 class ComparisonResult:
     """The verdict, plus every fact it was based on.
@@ -134,8 +185,52 @@ class ComparisonResult:
 
     @property
     def significant(self) -> bool:
-        """True when the flip imbalance clears α = 0.05."""
+        """True when the flip imbalance clears α = 0.05 two-sided."""
         return self.mcnemar_p < ALPHA
+
+    @property
+    def mcnemar_p_one_sided(self) -> float:
+        """One-sided exact McNemar p for "the candidate is better"."""
+        return mcnemar_exact_p_one_sided(self.pass_to_fail, self.fail_to_pass)
+
+    def _per_report_discordance(self) -> list[tuple[int, int]]:
+        """(pass_to_fail, fail_to_pass) per conversation — the cluster unit."""
+        counts: dict[str, list[int]] = {}
+        for flip in self.regressions:
+            counts.setdefault(flip.report_id, [0, 0])[0] += 1
+        for flip in self.improvements:
+            counts.setdefault(flip.report_id, [0, 0])[1] += 1
+        return [(bad, good) for bad, good in counts.values()]
+
+    @property
+    def cluster_z(self) -> float:
+        """Durkalski cluster-corrected z, clustering flips by conversation."""
+        return durkalski_z(self._per_report_discordance())
+
+    @property
+    def cluster_p_one_sided(self) -> float:
+        """The gate's p: one-sided, cluster-corrected by conversation.
+
+        This is the number a promotion has to clear. It is always weaker than
+        the unclustered p when flips concentrate inside conversations, which is
+        the honest reading — a change that fixed one report's four turns is one
+        piece of evidence, not four.
+        """
+        return round(normal_sf(self.cluster_z), 6)
+
+    @property
+    def n_clusters(self) -> int:
+        """Conversations carrying at least one flip — the evidence's real n."""
+        return len(self._per_report_discordance())
+
+    @property
+    def promotable_significant(self) -> bool:
+        """The campaign's promotion rule: net positive AND one-sided p < α.
+
+        `promotable` (net positive alone) is retained for the legacy CI gate and
+        for display; nothing in the eval loop promotes on it any more.
+        """
+        return bool(self.promotable and self.cluster_p_one_sided < ALPHA)
 
     @property
     def promotable(self) -> bool:
@@ -180,8 +275,13 @@ class ComparisonResult:
             "pass_to_fail": self.pass_to_fail,
             "fail_to_pass": self.fail_to_pass,
             "mcnemar_p": round(self.mcnemar_p, 6),
+            "mcnemar_p_one_sided": round(self.mcnemar_p_one_sided, 6),
+            "cluster_z": round(self.cluster_z, 4),
+            "cluster_p_one_sided": self.cluster_p_one_sided,
+            "n_clusters": self.n_clusters,
             "significant": self.significant,
             "promotable": self.promotable,
+            "promotable_significant": self.promotable_significant,
             "reason": self.reason(),
             "regressions": [f.as_dict() for f in self.regressions],
             "improvements": [f.as_dict() for f in self.improvements],
@@ -468,3 +568,61 @@ def _version_key(version: str) -> tuple[int, int]:
         return (int(parts[0]), int(parts[1]) if len(parts) > 1 else 0)
     except (ValueError, IndexError):
         return (10_000, 0)
+
+
+def cluster_bootstrap_ci(
+    baseline: pd.DataFrame,
+    candidate: pd.DataFrame,
+    *,
+    n_boot: int = 2000,
+    seed: int = 2026,
+    alpha: float = 0.05,
+) -> dict[str, float]:
+    """Percentile CI on the paired accuracy delta, resampling *conversations*.
+
+    Resampling questions would treat a report's turns as independent draws and
+    return an interval far too narrow — the same mistake the clustered McNemar
+    corrects. So the bootstrap draws reports with replacement and recomputes the
+    delta over whichever questions come with them.
+
+    Returns the point estimate, the interval, and P(delta > 0) — that last number
+    is the one to read when an interval straddles zero, because it says how much
+    of the posterior mass actually favours the candidate.
+    """
+    import random
+
+    key = ["report_id", "turn_index"]
+    merged = baseline.merge(candidate, on=key, how="inner", suffixes=("_base", "_cand"))
+    if merged.empty:
+        return {"delta": 0.0, "lo": 0.0, "hi": 0.0, "p_positive": 0.0, "n_boot": 0}
+
+    by_report: dict[str, list[tuple[bool, bool]]] = {}
+    for row in merged.itertuples():
+        by_report.setdefault(str(row.report_id), []).append(
+            (bool(row.correct_base), bool(row.correct_cand))
+        )
+    reports = list(by_report)
+    rng = random.Random(seed)
+
+    def delta_of(sample: list[str]) -> float:
+        base = cand = total = 0
+        for rid in sample:
+            for b, c in by_report[rid]:
+                base += b
+                cand += c
+                total += 1
+        return (cand - base) / total if total else 0.0
+
+    point = delta_of(reports)
+    draws = sorted(
+        delta_of([rng.choice(reports) for _ in reports]) for _ in range(n_boot)
+    )
+    lo = draws[int((alpha / 2) * n_boot)]
+    hi = draws[min(n_boot - 1, int((1 - alpha / 2) * n_boot))]
+    return {
+        "delta": round(point, 6),
+        "lo": round(lo, 6),
+        "hi": round(hi, 6),
+        "p_positive": round(sum(1 for d in draws if d > 0) / n_boot, 4),
+        "n_boot": n_boot,
+    }
