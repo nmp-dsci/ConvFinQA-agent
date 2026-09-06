@@ -2,6 +2,7 @@ import {
   Activity,
   BarChart3,
   BookOpenCheck,
+  Cpu,
   FlaskConical,
   LayoutDashboard,
   Microscope,
@@ -60,6 +61,12 @@ const ITEMS: RailItem[] = [
     label: 'Campaigns',
     hint: 'The optimisation loop: one subagent per experiment, and what moved',
     icon: TrendingUp,
+  },
+  {
+    to: '/admin/runtimes',
+    label: 'Runtimes',
+    hint: 'One Claude Agent SDK session against four prompted agents, on one gate split',
+    icon: Cpu,
   },
   {
     to: '/admin/experiments',

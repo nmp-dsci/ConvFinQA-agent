@@ -3,11 +3,25 @@
     convfinqa-evalloop make-splits
     convfinqa-evalloop run --split train --version v2 --n-reports 10
     convfinqa-evalloop run --split train --version v2 --n-questions 50
+    convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+        --resume-from <partial.csv>          # finish a rate-limited pass
     convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
         --baseline-version v2 --candidate-version v3_1 --promote
     convfinqa-evalloop diagnose --csv <run.csv> --version v3_1
     convfinqa-evalloop propose --diagnoses <d.jsonl> --base-version v3_1 --new-version v4
     convfinqa-evalloop gate-targeted --target-agent triage ...
+
+The single-session arm (s10) runs the same commands with ``--runtime agent_sdk``
+and ``sdk_vN`` versions; ``gate-targeted`` then takes ``--target-class``:
+
+    convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
+    convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+    convfinqa-evalloop diagnose --csv <run.csv> --version sdk_v1 --runtime agent_sdk
+    convfinqa-evalloop propose --diagnoses <d.jsonl> --base-version sdk_v1 \
+        --new-version sdk_v2 --runtime agent_sdk
+    convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> ...
+    convfinqa-evalloop backfill-ledgers [--no-mlflow]
+    convfinqa-evalloop ledger-trace --question-id <id> | --edit-id <id>
 """
 
 from __future__ import annotations
@@ -15,10 +29,56 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from typing import Any
+
+RUNTIMES = ("pipeline", "agent_sdk")
+RUNTIME_HELP = (
+    "Which arm: the four-agent pipeline (vN bundles) or the single-session "
+    "Agent SDK runtime (sdk_vN prompts). A version from the other arm is refused."
+)
 
 
-def main() -> None:
-    """Entry point for ``convfinqa-evalloop``."""
+def _add_runtime(
+    parser: argparse.ArgumentParser, help_text: str = RUNTIME_HELP
+) -> None:
+    parser.add_argument(
+        "--runtime", default="pipeline", choices=RUNTIMES, help=help_text
+    )
+
+
+def check_runtime(
+    ap: argparse.ArgumentParser, runtime: str, *versions: str | None
+) -> None:
+    """Fail fast when a version name and `--runtime` disagree.
+
+    `sdk_vN` only runs under `agent_sdk`, a `vN` bundle only under `pipeline`.
+    Letting the mismatch through would either build four agents from a prompt
+    that has none, or hand a session a bundle it cannot read — both far into a
+    paid run before anything notices.
+    """
+    import convfinqa.prompts as prompts_pkg
+
+    for version in versions:
+        if not version:
+            continue
+        if prompts_pkg.is_sdk_version(version) != (runtime == "agent_sdk"):
+            wanted = "agent_sdk" if prompts_pkg.is_sdk_version(version) else "pipeline"
+            ap.error(
+                f"version {version!r} belongs to --runtime {wanted}, not "
+                f"{runtime!r}: sdk_vN prompts run under agent_sdk, vN bundles "
+                "under pipeline"
+            )
+
+
+def _sdk_teacher() -> Any:
+    """`evalloop.sdk_teacher`, imported only by the commands that need it."""
+    import importlib
+
+    return importlib.import_module("convfinqa.evalloop.sdk_teacher")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """The whole CLI surface, separable from `main` so tests can parse it."""
     ap = argparse.ArgumentParser(
         prog="convfinqa-evalloop",
         description="The eval loop: splits → run → trace → score → gate.",
@@ -80,6 +140,39 @@ def main() -> None:
     )
     rn.add_argument("--campaign", default=None)
     rn.add_argument("--label", default=None, help="Experiment label, e.g. c01-e02.")
+    rn.add_argument(
+        "--resume-from",
+        default=None,
+        metavar="CSV",
+        help=(
+            "Finish a pass that was cut short (a rate limit, say). "
+            "Conversations the prior CSV answered whole are copied through "
+            "verbatim; every other conversation of the split is run again from "
+            "turn 0. Split, version, runtime and reports must match."
+        ),
+    )
+    rn.add_argument(
+        "--runtime",
+        default="pipeline",
+        choices=("pipeline", "agent_sdk"),
+        help=(
+            "Who walks the conversations: the four-agent pipeline (a vN bundle) "
+            "or one Claude Agent SDK session per conversation. "
+            "--version sdk_vN requires --runtime agent_sdk."
+        ),
+    )
+    rn.add_argument(
+        "--sdk-model",
+        default=None,
+        metavar="MODEL",
+        help=(
+            "Model for --runtime agent_sdk, e.g. claude-haiku-4-5-20251001 "
+            "(default: SDK_MODEL, else llm.LM_SDK_MODEL). The prompt, tools and "
+            "split stay the same, so two passes differing only here compare the "
+            "models. Its slug goes into the run name; the id is the sdk_model "
+            "param and tag."
+        ),
+    )
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
     gt.add_argument("--baseline-csv", required=True)
@@ -99,6 +192,9 @@ def main() -> None:
     dg.add_argument("--version", required=True, help="The version that produced it.")
     dg.add_argument("--experiment", default=None, help="MLflow experiment override.")
     dg.add_argument("--concurrency", type=int, default=8)
+    dg.add_argument("--campaign", default=None)
+    dg.add_argument("--label", default=None, help="Experiment label, e.g. s01-e02.")
+    _add_runtime(dg)
 
     pr = sub.add_parser(
         "propose", help="Write a challenger changing ONE subagent's prompt."
@@ -109,6 +205,15 @@ def main() -> None:
     pr.add_argument("--base-version", required=True)
     pr.add_argument("--new-version", required=True)
     pr.add_argument("--target", default=None, help="Subagent; default = most faults.")
+    pr.add_argument("--campaign", default=None)
+    pr.add_argument("--label", default=None)
+    pr.add_argument(
+        "--max-areas",
+        type=int,
+        default=None,
+        help="agent_sdk only: cap the number of areas one rewrite may edit.",
+    )
+    _add_runtime(pr)
 
     gtt = sub.add_parser(
         "gate-targeted",
@@ -118,7 +223,15 @@ def main() -> None:
     gtt.add_argument("--candidate-csv", required=True)
     gtt.add_argument("--baseline-version", required=True)
     gtt.add_argument("--candidate-version", required=True)
-    gtt.add_argument("--target-agent", required=True)
+    gtt.add_argument(
+        "--target-agent", default=None, help="pipeline: the subagent rewritten."
+    )
+    gtt.add_argument(
+        "--target-class",
+        default=None,
+        help="agent_sdk: the failure class the rewrite addressed.",
+    )
+    _add_runtime(gtt)
     gtt.add_argument(
         "--baseline-diagnoses", default=None, help="Optional attribution evidence."
     )
@@ -221,6 +334,12 @@ def main() -> None:
         action="store_true",
         help="Run the gate and record the verdict without moving the champion.",
     )
+    _add_runtime(
+        cy,
+        RUNTIME_HELP
+        + " Under agent_sdk the baseline defaults to sdk_champion, --target is a"
+        " failure class, and a promotion moves sdk_champion.",
+    )
 
     cs = sub.add_parser("campaign-status", help="Experiments used, promoted, blocked.")
     cs.add_argument("--campaign", required=True)
@@ -235,6 +354,40 @@ def main() -> None:
     )
     mp.add_argument("--version", required=True)
 
+    sd = sub.add_parser(
+        "sdk-distil",
+        help="Write the first single-session prompt (sdk_v1) from a bundle's four.",
+    )
+    sd.add_argument("--source-version", default="v8", help="Bundle to distil from.")
+    sd.add_argument("--new-version", default="sdk_v1", help="sdk_vN module to write.")
+    sd.add_argument("--experiment", default=None, help="MLflow experiment override.")
+
+    bl = sub.add_parser(
+        "backfill-ledgers",
+        help="Seed diagnoses/rewrites/gates ledgers from the per-run files and MLflow.",
+    )
+    bl.add_argument(
+        "--no-mlflow",
+        action="store_true",
+        help="File-derived rows only; do not read propose/gate runs from MLflow.",
+    )
+    bl.add_argument("--diagnostics-dir", default=None)
+    bl.add_argument("--predictions-dir", default=None)
+
+    lt = sub.add_parser(
+        "ledger-trace",
+        help="Follow one question, or one edit, through the three ledgers.",
+    )
+    lt_which = lt.add_mutually_exclusive_group(required=True)
+    lt_which.add_argument("--question-id", default=None)
+    lt_which.add_argument("--edit-id", default=None)
+
+    return ap
+
+
+def main() -> None:
+    """Entry point for ``convfinqa-evalloop``."""
+    ap = build_parser()
     args = ap.parse_args()
 
     if args.cmd == "make-splits":
@@ -271,6 +424,9 @@ def main() -> None:
 
         if args.n_reports and args.n_questions:
             ap.error("pass at most one of --n-reports, --n-questions")
+        check_runtime(ap, args.runtime, args.version)
+        if args.sdk_model and args.runtime != "agent_sdk":
+            ap.error("--sdk-model applies to --runtime agent_sdk only")
         summary = asyncio.run(
             run_split(
                 args.split,
@@ -282,6 +438,9 @@ def main() -> None:
                 n_reports=args.n_reports,
                 n_questions=args.n_questions,
                 concurrency=args.concurrency,
+                runtime=args.runtime,
+                resume_from=args.resume_from,
+                sdk_model=args.sdk_model,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201
@@ -312,70 +471,153 @@ def main() -> None:
             print(json.dumps(promotion, indent=2, default=str))  # noqa: T201
 
     elif args.cmd == "diagnose":
-        from convfinqa.evalloop import teacher
-
+        check_runtime(ap, args.runtime, args.version)
         kwargs = {"experiment": args.experiment} if args.experiment else {}
-        summary = asyncio.run(
-            teacher.diagnose_run(
-                args.csv, args.version, concurrency=args.concurrency, **kwargs
-            )
-        )
-        print(json.dumps(summary, indent=2))  # noqa: T201
-
-    elif args.cmd == "propose":
-        from convfinqa.evalloop import teacher
-
-        out = asyncio.run(
-            teacher.propose_version(
-                args.diagnoses,
-                base_version=args.base_version,
-                new_version=args.new_version,
-                target=args.target,
-            )
-        )
-        print(json.dumps(out, indent=2))  # noqa: T201
-
-    elif args.cmd == "gate-targeted":
-        from convfinqa.evalloop import teacher
-
-        verdict, comparison = teacher.gate_targeted(
-            args.baseline_csv,
-            args.candidate_csv,
-            target_agent=args.target_agent,
-            baseline_version=args.baseline_version,
-            candidate_version=args.candidate_version,
-            baseline_diagnoses=args.baseline_diagnoses,
-            candidate_diagnoses=args.candidate_diagnoses,
-        )
-        verdict["gate_run_id"] = teacher.log_gate_verdict(
-            verdict, comparison=comparison
-        )
-        print(json.dumps(verdict, indent=2))  # noqa: T201
-        if args.promote and verdict["evidence_split"] != "test":
-            ap.error(
-                "promotion evidence must come from the unseen test split — "
-                f"this comparison ran on {verdict['evidence_split']!r}. "
-                "Train runs optimise; test runs promote."
-            )
-        if args.promote and verdict["promotable"]:
-            from convfinqa.tracking import registry
-
-            outcome = registry.promote(
-                args.candidate_version,
-                comparison=comparison,
-                actor="evalloop-teacher",
-                force=True,
-                reason=verdict["reason"],
-            )
-            print(  # noqa: T201
-                json.dumps(
-                    {"promoted_via": "targeted rule", **outcome.as_dict()},
-                    indent=2,
-                    default=str,
+        if args.runtime == "agent_sdk":
+            summary = asyncio.run(
+                _sdk_teacher().diagnose_run(
+                    args.csv,
+                    args.version,
+                    concurrency=args.concurrency,
+                    campaign=args.campaign,
+                    label=args.label,
+                    **kwargs,
                 )
             )
-        elif args.promote:
-            print("gate rule failed — challenger NOT promoted")  # noqa: T201
+        else:
+            from convfinqa.evalloop import teacher
+
+            summary = asyncio.run(
+                teacher.diagnose_run(
+                    args.csv, args.version, concurrency=args.concurrency, **kwargs
+                )
+            )
+        print(json.dumps(summary, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "propose":
+        check_runtime(ap, args.runtime, args.base_version, args.new_version)
+        if args.runtime == "agent_sdk":
+            sdk_teacher = _sdk_teacher()
+            out = asyncio.run(
+                sdk_teacher.propose_version(
+                    args.diagnoses,
+                    base_version=args.base_version,
+                    new_version=args.new_version,
+                    campaign=args.campaign,
+                    label=args.label,
+                    pooled=sdk_teacher.rank_classes(args.base_version),
+                    max_areas=args.max_areas,
+                )
+            )
+        else:
+            if args.max_areas is not None:
+                ap.error("--max-areas applies to --runtime agent_sdk only")
+            from convfinqa.evalloop import teacher
+
+            out = asyncio.run(
+                teacher.propose_version(
+                    args.diagnoses,
+                    base_version=args.base_version,
+                    new_version=args.new_version,
+                    target=args.target,
+                    campaign=args.campaign,
+                    label=args.label,
+                )
+            )
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "gate-targeted":
+        check_runtime(ap, args.runtime, args.baseline_version, args.candidate_version)
+        if args.runtime == "agent_sdk":
+            if not args.target_class or args.target_agent:
+                ap.error(
+                    "--runtime agent_sdk judges overall accuracy and takes "
+                    "--target-class (the failure class rewritten), not --target-agent"
+                )
+            from convfinqa.evalloop import sdk_gate
+
+            verdict, comparison = sdk_gate.gate_overall(
+                args.baseline_csv,
+                args.candidate_csv,
+                baseline_version=args.baseline_version,
+                candidate_version=args.candidate_version,
+                target_class=args.target_class,
+            )
+            verdict["gate_run_id"] = sdk_gate.log_gate_verdict(
+                verdict, comparison=comparison
+            )
+            print(json.dumps(verdict, indent=2, default=str))  # noqa: T201
+            if args.promote and verdict["evidence_split"] != "test":
+                ap.error(
+                    "promotion evidence must come from the unseen test split — "
+                    f"this comparison ran on {verdict['evidence_split']!r}. "
+                    "Train runs optimise; test runs promote."
+                )
+            if args.promote and verdict["promotable"]:
+                from convfinqa.tracking import registry
+
+                outcome = registry.promote_sdk(
+                    args.candidate_version,
+                    comparison=comparison,
+                    evidence_split=str(verdict["evidence_split"]),
+                    actor="evalloop-teacher-sdk",
+                    reason=verdict["reason"],
+                )
+                print(  # noqa: T201
+                    json.dumps(
+                        {"promoted_via": "sdk overall rule", **outcome.as_dict()},
+                        indent=2,
+                        default=str,
+                    )
+                )
+            elif args.promote:
+                print("gate rule failed — challenger NOT promoted")  # noqa: T201
+        else:
+            if not args.target_agent or args.target_class:
+                ap.error(
+                    "--runtime pipeline takes --target-agent (the subagent "
+                    "rewritten), not --target-class"
+                )
+            from convfinqa.evalloop import teacher
+
+            verdict, comparison = teacher.gate_targeted(
+                args.baseline_csv,
+                args.candidate_csv,
+                target_agent=args.target_agent,
+                baseline_version=args.baseline_version,
+                candidate_version=args.candidate_version,
+                baseline_diagnoses=args.baseline_diagnoses,
+                candidate_diagnoses=args.candidate_diagnoses,
+            )
+            verdict["gate_run_id"] = teacher.log_gate_verdict(
+                verdict, comparison=comparison
+            )
+            print(json.dumps(verdict, indent=2))  # noqa: T201
+            if args.promote and verdict["evidence_split"] != "test":
+                ap.error(
+                    "promotion evidence must come from the unseen test split — "
+                    f"this comparison ran on {verdict['evidence_split']!r}. "
+                    "Train runs optimise; test runs promote."
+                )
+            if args.promote and verdict["promotable"]:
+                from convfinqa.tracking import registry
+
+                outcome = registry.promote(
+                    args.candidate_version,
+                    comparison=comparison,
+                    actor="evalloop-teacher",
+                    force=True,
+                    reason=verdict["reason"],
+                )
+                print(  # noqa: T201
+                    json.dumps(
+                        {"promoted_via": "targeted rule", **outcome.as_dict()},
+                        indent=2,
+                        default=str,
+                    )
+                )
+            elif args.promote:
+                print("gate rule failed — challenger NOT promoted")  # noqa: T201
 
     elif args.cmd == "kappa":
         from convfinqa.evalloop import kappa
@@ -413,6 +655,7 @@ def main() -> None:
     elif args.cmd == "cycle":
         from convfinqa.evalloop.cycle import run_cycle
 
+        check_runtime(ap, args.runtime, args.baseline_version, args.new_version)
         steps = asyncio.run(
             run_cycle(
                 campaign=args.campaign,
@@ -424,6 +667,7 @@ def main() -> None:
                 concurrency=args.concurrency,
                 promote=not args.no_promote,
                 baseline_gate_csv=args.baseline_gate_csv,
+                runtime=args.runtime,
             )
         )
         print(json.dumps(steps, indent=2, default=str))  # noqa: T201
@@ -506,6 +750,49 @@ def main() -> None:
         print(  # noqa: T201
             json.dumps(prompt_ledger.mirror_to_mlflow(args.version), indent=2)
         )
+
+    elif args.cmd == "sdk-distil":
+        import convfinqa.prompts as prompts_pkg
+
+        if prompts_pkg.is_sdk_version(args.source_version):
+            ap.error("--source-version is a pipeline bundle (vN) to distil from")
+        if not prompts_pkg.is_sdk_version(args.new_version):
+            ap.error("--new-version must be an sdk_vN name")
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        out = asyncio.run(
+            _sdk_teacher().distil_prompt(
+                source_version=args.source_version,
+                new_version=args.new_version,
+                **kwargs,
+            )
+        )
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "backfill-ledgers":
+        from pathlib import Path
+
+        from convfinqa.evalloop import ledgers
+
+        counts = ledgers.backfill_ledgers(
+            diagnostics_dir=Path(args.diagnostics_dir)
+            if args.diagnostics_dir
+            else None,
+            predictions_dir=Path(args.predictions_dir)
+            if args.predictions_dir
+            else None,
+            use_mlflow=not args.no_mlflow,
+        )
+        print(json.dumps(counts, indent=2))  # noqa: T201
+
+    elif args.cmd == "ledger-trace":
+        from convfinqa.evalloop import ledgers
+
+        joined = ledgers.trace(question_id=args.question_id, edit_id=args.edit_id)
+        for name in ("diagnoses", "rewrites", "gates"):
+            frame = joined[name]
+            print(f"\n== {name} ({len(frame)} row{'s' if len(frame) != 1 else ''}) ==")  # noqa: T201
+            for record in frame.to_dict(orient="records"):
+                print(json.dumps(record, indent=2, default=str))  # noqa: T201
 
 
 if __name__ == "__main__":

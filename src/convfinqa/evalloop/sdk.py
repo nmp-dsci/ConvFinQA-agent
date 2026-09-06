@@ -52,6 +52,60 @@ class TeacherCallError(RuntimeError):
     """The SDK returned nothing that validates against the requested schema."""
 
 
+# A refusal is not a reply. The CLI answers a spent session, an exhausted rate
+# limit or an empty balance with plain prose where the JSON should be, and the
+# only way to tell that from a malformed answer is to read it. Getting this
+# wrong is expensive in two directions, and both have now happened here:
+# `backends/agent_sdk.py` scored 176 refusals as wrong answers and reported the
+# result as a 44.4% measurement, and this module spent its corrective retry on a
+# refusal that no retry could satisfy, losing a cycle's train draw and diagnosis
+# at the rewrite step. Markers live here, the lower of the two SDK call sites, and
+# `backends/agent_sdk.py` imports them, so the two chokepoints cannot drift.
+RATE_LIMIT_MARKERS: tuple[tuple[str, ...], ...] = (
+    ("hit your session limit",),
+    ("session limit", "resets"),
+    ("rate limit",),
+    ("usage limit",),
+    ("credit balance is too low",),
+    ("quota", "exceeded"),
+    ("out of", "quota"),
+)
+
+# Every row or message a refusal produces carries this prefix, so "never
+# answered" stays greppable and cannot be read as a wrong answer.
+RATE_LIMIT_ERROR_PREFIX = "rate_limited: "
+
+
+def rate_limit_refusal(*candidates: Any) -> str | None:
+    """The first candidate text that is a CLI refusal, verbatim; else None.
+
+    Only ever applied to a reply that did not arrive as a structured object: a
+    reply that validates is an answer, whatever words it happens to contain.
+    """
+    for candidate in candidates:
+        if not isinstance(candidate, str) or not candidate.strip():
+            continue
+        low = candidate.lower()
+        if any(all(m in low for m in markers) for markers in RATE_LIMIT_MARKERS):
+            return candidate.strip()
+    return None
+
+
+class TeacherRateLimitError(TeacherCallError):
+    """The CLI refused the call: session limit, rate limit, or no credit.
+
+    A subclass so existing `except TeacherCallError` handlers still catch it,
+    but a distinct type so the retry loop can decline to retry it and a caller
+    can tell "the teacher was refused" from "the teacher answered badly". The
+    fix is to wait for the window named in the refusal and resume — never to
+    switch to API billing, which this project does not use.
+    """
+
+    def __init__(self, refusal: str) -> None:
+        super().__init__(RATE_LIMIT_ERROR_PREFIX + refusal)
+        self.refusal = refusal
+
+
 def _extract_json(text: str) -> Any:
     """Pull one JSON object out of a reply that may be wrapped in prose or fences."""
     fenced = text.split("```")
@@ -146,6 +200,12 @@ async def run_structured(
                     allowed_tools=allowed_tools,
                     max_turns=max_turns,
                 )
+            except TeacherRateLimitError as exc:
+                # Not retried: the next identical call gets the same refusal, and
+                # on a metered subscription the retry is itself part of what is
+                # being refused. Fail now, naming the window to wait for.
+                span.set(error=repr(exc), rate_limited=True, refusal=exc.refusal)
+                raise
             except TeacherCallError as exc:
                 span.set(error=repr(exc))
                 last = exc
@@ -222,6 +282,14 @@ async def _run_structured_once(
                 )
 
     payload: Any = structured
+    if not isinstance(payload, dict):
+        # Before reading prose as malformed JSON, ask whether it is a refusal.
+        # Only the unstructured path: a dict that validates is an answer.
+        refusal = rate_limit_refusal(
+            payload if isinstance(payload, str) else None, *texts
+        )
+        if refusal:
+            raise TeacherRateLimitError(refusal)
     if isinstance(payload, str):
         payload = _extract_json(payload)
     if not isinstance(payload, dict):

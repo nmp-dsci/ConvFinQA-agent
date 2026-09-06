@@ -318,3 +318,197 @@ def teacher_options(
     if output_schema is not None:
         kwargs["output_format"] = {"type": "json_schema", "schema": output_schema}
     return ClaudeAgentOptions(**kwargs)
+
+
+# --- Claude Agent SDK (the single-session pipeline challenger) --------------
+
+# The qa_agent runtime: one Claude session per conversation doing the whole
+# triage → preprocess → retrieve → calculate job, with the six calculator
+# functions as its only tools. A different model from the teacher on purpose —
+# the teacher judges a few dozen cases per cycle; this runs on every turn of an
+# eval pass, so its cost has to stay measurable per question. `settings.sdk_model`
+# overrides the constant so a run can be pinned to a different model without a
+# code change, and the run records which one it used.
+LM_SDK_MODEL = "claude-sonnet-5"
+
+# The one MCP server the runtime registers, and the only tools it may call.
+# Restricting `tools`/`allowed_tools` to exactly these six is what makes
+# "arithmetic happens in tools, not in the model's head" an enforced property
+# rather than a prompt request — the trajectory the calculator stage records is
+# then a complete account of every number the session computed.
+SDK_MCP_SERVER = "cfq"
+SDK_CALCULATOR_TOOLS = ("add", "subtract", "multiply", "divide", "exp", "greater")
+SDK_ALLOWED_TOOLS = [f"mcp__{SDK_MCP_SERVER}__{name}" for name in SDK_CALCULATOR_TOOLS]
+
+
+def sdk_model_name() -> str:
+    """The model the qa_agent runtime runs on: the setting, else the constant."""
+    return settings.sdk_model or LM_SDK_MODEL
+
+
+def sdk_model_slug(model: str | None = None) -> str:
+    """A short, filename-safe name for a model, for run names and CSV names.
+
+    `claude-sonnet-5` → `sonnet-5`, `claude-haiku-4-5-20251001` → `haiku-4-5`.
+    The run name is the one place a reader meets the model before opening the
+    run, so it carries the family and version and drops the vendor prefix and
+    the date snapshot. Runs recorded before this existed have no slug in their
+    name; their model is the `sdk_model` param, which was always logged.
+    """
+    name = (model or sdk_model_name()).strip().lower()
+    for prefix in ("claude-", "anthropic/"):
+        if name.startswith(prefix):
+            name = name[len(prefix) :]
+    parts = name.split("-")
+    # Drop a trailing YYYYMMDD snapshot: it pins the weights, not the family.
+    if len(parts) > 1 and len(parts[-1]) == 8 and parts[-1].isdigit():
+        parts = parts[:-1]
+    slug = "-".join(p for p in parts if p)
+    return "".join(ch if ch.isalnum() or ch == "-" else "-" for ch in slug) or "model"
+
+
+def api_env() -> dict[str, str]:
+    """Environment for an Agent SDK child process billed to `ANTHROPIC_API_KEY`.
+
+    The mirror image of `subscription_env`, and built here for the same reason:
+    the child's environment decides who pays, nothing in the output says which
+    path was taken, and the only evidence is the bill. So the key is *required*
+    rather than hoped for — a missing key raises here, at the one place the
+    environment is built, instead of surfacing as the CLI silently falling back
+    to whatever login it finds in the keychain and billing the subscription for
+    an eval pass the operator meant to measure per token.
+
+    Everything else `subscription_env` strips is stripped here too. `CLAUDECODE`
+    and the `CLAUDE_CODE_*` session variables would make the child inherit the
+    identity of the Claude Code session the loop is driven from; blanking
+    `CLAUDE_CODE_OAUTH_TOKEN` stops a dotfile token from turning an API-billed
+    run into a subscription one halfway through.
+    """
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not key:
+        raise RuntimeError(
+            "ANTHROPIC_API_KEY is not set, and SDK_BILLING=api needs it: the "
+            "Agent SDK child would otherwise fall back to the CLI's own login "
+            "and bill the subscription for a run meant to be measured per token. "
+            "Set the key in ~/.env or the process environment, or select "
+            "SDK_BILLING=subscription deliberately."
+        )
+    drop = {"CLAUDECODE"}
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in drop and not k.startswith("CLAUDE_CODE_")
+    }
+    env["ANTHROPIC_API_KEY"] = key
+    env["CLAUDE_CODE_OAUTH_TOKEN"] = ""
+    env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
+    return env
+
+
+# The qa_agent runtime runs on the subscription, and only on the subscription
+# (owner's instruction, 2026-09-05). The API path stays implemented — it is the
+# mirror image that makes `api_env`'s guarantees testable, and a replacement
+# runtime that one day ships would need it — but it may not be *selected* for a
+# run of this loop. Two reasons, one of each kind:
+#
+#   * Money. An eval pass is 349 questions and a campaign is five of them plus
+#     diagnosis and rewrite traffic. The subscription covers that as time; the
+#     API covers it as an open-ended bill nobody approved per pass.
+#   * Evidence. The key in this environment answers `Credit balance is too low`,
+#     and the Agent SDK returns that as the *reply text* rather than an error, so
+#     the first pass on the API path scored 176 refusals as wrong answers and
+#     reported 44.4% as though it had measured something. The failure is silent
+#     at the call site; the gate has to be shut here instead.
+#
+# `SDK_ALLOW_API_BILLING=1` is the deliberate escape hatch, so the refusal is a
+# decision to reverse rather than a wall to work around.
+SDK_BILLING_SUBSCRIPTION = "subscription"
+SDK_BILLING_API = "api"
+API_BILLING_ESCAPE_HATCH = "SDK_ALLOW_API_BILLING"
+
+
+def api_billing_allowed() -> bool:
+    """True only when the operator has explicitly re-opened the API path."""
+    return os.environ.get(API_BILLING_ESCAPE_HATCH, "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def sdk_child_env(billing: str | None = None) -> dict[str, str]:
+    """The child environment for the qa_agent runtime, by billing path.
+
+    `billing` defaults to `settings.sdk_billing`, which is `subscription`. The
+    API path is refused unless `SDK_ALLOW_API_BILLING=1` — see the note above:
+    an API-billed pass is both unbudgeted and, with an exhausted key, silently
+    unmeasurable, and this is the one place the choice is made.
+    """
+    chosen = billing or settings.sdk_billing
+    if chosen == SDK_BILLING_API:
+        if not api_billing_allowed():
+            raise RuntimeError(
+                "SDK_BILLING=api is refused: the qa_agent runtime runs on the "
+                "subscription (owner's instruction, 2026-09-05). An API-billed "
+                "pass is unbudgeted, and an exhausted key returns 'Credit "
+                "balance is too low' as a reply rather than an error, which "
+                "scores as 176 wrong answers instead of a failure. Use "
+                f"SDK_BILLING=subscription, or set {API_BILLING_ESCAPE_HATCH}=1 "
+                "to re-open the path deliberately."
+            )
+        return api_env()
+    if chosen == SDK_BILLING_SUBSCRIPTION:
+        return subscription_env()
+    raise ValueError(
+        f"unknown SDK billing path {chosen!r}: use 'api' or 'subscription'"
+    )
+
+
+def pipeline_sdk_options(
+    *,
+    system_prompt: str,
+    mcp_server: Any,
+    allowed_tools: list[str],
+    output_schema: dict[str, Any],
+    max_turns: int,
+    billing: str | None = None,
+    model: str | None = None,
+) -> Any:
+    """Options for one qa_agent session. Sibling of `teacher_options`.
+
+    Same gate, same `setting_sources=[]` — the runtime must not inherit this
+    repository's CLAUDE.md or skills, because it is the thing being evaluated
+    and an inherited instruction file would silently become part of its prompt.
+
+    What differs from the teacher: `tools=[]` disables every built-in tool (no
+    Bash, no file reads — the document arrives in the first user message and
+    that is all the session may consult), `mcp_servers` carries the in-process
+    calculator server, and `allowed_tools` is exactly the six calculator names
+    so nothing needs a permission prompt and nothing else can run. The
+    structured `output_format` is what turns the session's reply into the
+    per-turn capture the shared scorer reads.
+
+    `allowed_tools` is checked against `SDK_ALLOWED_TOOLS` rather than trusted:
+    a caller that widened it would widen what the model can do without any
+    trace of it in the run's params.
+    """
+    guard_llm_call()
+    from claude_agent_sdk import ClaudeAgentOptions
+
+    if set(allowed_tools) != set(SDK_ALLOWED_TOOLS):
+        raise ValueError(
+            f"the qa_agent runtime may call exactly {SDK_ALLOWED_TOOLS}; "
+            f"got {allowed_tools}"
+        )
+    return ClaudeAgentOptions(
+        model=model or sdk_model_name(),
+        system_prompt=system_prompt,
+        env=sdk_child_env(billing),
+        max_turns=max_turns,
+        permission_mode="bypassPermissions",
+        setting_sources=[],
+        tools=[],
+        allowed_tools=list(SDK_ALLOWED_TOOLS),
+        mcp_servers={SDK_MCP_SERVER: mcp_server},
+        output_format={"type": "json_schema", "schema": output_schema},
+    )

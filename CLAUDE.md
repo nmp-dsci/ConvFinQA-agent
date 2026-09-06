@@ -112,6 +112,120 @@ and diagnosis agrees on what "the gate split" means. The **Campaigns page**
 (`/admin/campaigns`, backend `GET /eval/campaigns`) and the published page both read
 `evaluation/story.json`, so they cannot disagree; rebuild both with `story`.
 
+## Agent SDK experiment (s10)
+
+A second runtime answers the same conversations: one Claude Agent SDK session per
+conversation with the six calculator functions as its only tools
+(`backends/agent_sdk.py`, `runtime="agent_sdk"`), run through the same loop and the
+same gate as the four-agent pipeline so the two can be compared on the fixed split.
+The invariants, all pinned by tests:
+
+- **One prompt lineage, `sdk_prompts`.** The single-session prompt is `prompts/sdk_vN.py`
+  (`SDK_PROMPT`), registered by hash in `registry.json → sdk_prompts` (`s1, s2, …`).
+  `sdk_v1` is distilled from a bundle by `convfinqa-evalloop sdk-distil`; every later
+  version is written by the SDK teacher. Never hand-edit one. `next_version("sdk_v3")`
+  is `sdk_v4` — the lineage never shares a number with a pipeline `vN`.
+- **`sdk_champion`, never `champion`.** `registry.promote_sdk` moves only the
+  `sdk_champion` alias (history event `promote_sdk`, actor `evalloop-cycle-sdk`); it
+  refuses a non-sdk version, refuses train evidence, and never touches `champion`.
+  `registry.promote` still refuses sdk versions and `set_alias` refuses a cross-runtime
+  pair. Serving reads `champion` to build four agents; an sdk version there would be a
+  champion nothing can serve.
+- **Calculator tools only.** Arithmetic happens inside the tool server, never inline;
+  the trajectory is what the calculator column is scored on.
+- **Ledgers are append-only.** `evaluation/diagnostics/evalloop/{diagnoses,rewrites,gates}.jsonl`
+  are opened with `"a"`, written, fsynced; nothing rewrites or reorders a line. Frozen
+  `COLUMNS` per ledger, extension by trailing columns with defaults. Both arms append
+  through `evalloop/ledgers.py`; each run mirrors its batch as `ledger_rows.jsonl`.
+  `campaign.history` reads `gates.jsonl` first and falls back to MLflow search.
+- **Skipped stages attribute to the skipped stage.** A program turn the session answered
+  with an empty program is a preprocess fault; one with no calculator call is a calculator
+  fault.
+- **SDK draws never pool with pipeline draws.** `sdk_teacher.rank_classes` pools on the sdk
+  prompt hash and `runtime="agent_sdk"`; the pipeline's `ledger.fault_history` filters on
+  `multi_agent`. A campaign's cap is counted per runtime (`history(campaign, runtime=…)`).
+- **The SDK arm's experiment cap is 2, the pipeline's is 5**
+  (`campaign.MAX_EXPERIMENTS_BY_RUNTIME`, `max_experiments(runtime)`; owner's instruction,
+  2026-09-05). A cycle costs subscription time rather than a couple of dollars of DeepSeek, and
+  `sdk_v1` left only 33 wrong turns to search. One consequence to know: with a cap of 2 a campaign
+  ends before two consecutive rejections can accumulate, so `single_area_mode` is unreachable for an
+  SDK campaign unless the cap is raised — the machinery stays, tested against a raised cap.
+- **The target is a failure class, not a subagent.** The rewrite may edit several tagged
+  areas of the one prompt (one edit per class, one `rewrites.jsonl` row each). Two
+  consecutive rejections do not block anything — they switch the lineage to
+  `single_area_mode` (`propose_version(..., max_areas=1)`) for the rest of the campaign.
+- **The gate judges overall accuracy** (`evalloop/sdk_gate.py::gate_overall`, the same
+  one-sided cluster-corrected McNemar as `gate.py`) with the per-stage panel beside it.
+  The verdict is recorded by `sdk_gate.log_gate_verdict`, not `teacher.log_gate_verdict` —
+  the latter's ledger row is hard-wired to `runtime=multi_agent`, and a wrong runtime on
+  an append-only row pools an SDK verdict into the pipeline's history forever.
+- **`--runtime agent_sdk`** is on `run`, `diagnose`, `propose`, `cycle` and `gate-targeted`
+  (which then takes `--target-class`); `--version sdk_vN` under the wrong runtime fails at
+  parse time. New subcommands: `sdk-distil`, `backfill-ledgers [--no-mlflow]`,
+  `ledger-trace --question-id|--edit-id`.
+- **The write-up is `docs/optimization/agent-sdk.html`**, rendered by `story` from the same
+  `story.json` (`runtime_comparison`, `sdk_campaigns`, `sdk_champion`) and covered by
+  `story_check`. Every comparison field is `None` until an SDK run exists — the page says
+  "not yet run", never zero.
+- **A rate-limited turn is unscored, never wrong** (2026-09-05). The CLI answers a spent
+  account with prose — `You've hit your session limit · resets 5:40pm`, `Credit balance is
+  too low` — which is *no* answer, and a 349-question pass scored 176 of them as wrong and
+  reported 44.4% as though it had measured the agent. `agent_sdk.RATE_LIMIT_MARKERS` matches
+  those texts (only on a reply that did not arrive as a structured object, so an answer that
+  says "quota" is still an answer) and raises `SdkRateLimitError`: **not retried** — the
+  correction buys the same refusal — and it **aborts the conversation**, since the session is
+  spent. The runner writes those turns with `unscored=True`, `pred_answer` empty and `error`
+  prefixed `rate_limited: `, and every consumer of `correct` (accuracy, `n_wrong`,
+  `program_accuracy`, the panel, the `accuracy_by_*` slices) reads the scored subset — an
+  unscored turn is absent from the numerator *and* the denominator.
+- **A pass with unscored rows is incomplete and cannot be gated.** It carries metrics
+  `n_unscored` / `n_rate_limited` / `n_scored` / `complete`, the MLflow tag `incomplete=true`
+  and the param `unscored_rows`, `complete` and `n_unscored` in the returned summary, and a
+  loud closing line naming how many turns were never answered. `gate.load_run_csv` — the
+  shared door both `gate.py` and `sdk_gate.py` come through — refuses such a CSV
+  (`IncompleteRunError`) naming the file and the count: a paired comparison over a set half of
+  whose turns were never attempted is not a comparison. There is no override; the pass is
+  finished with `--resume-from`. A CSV predating the column loads unchanged (missing =
+  all-False).
+- **A conversation is reused whole or re-run whole.** `run --resume-from <csv>` copies every
+  conversation the prior CSV answered *completely* (all questions, no unscored, no
+  `rate_limited:` row) through verbatim — its own `run_id` and `trace_id` kept, with
+  `resumed_from_run_id` naming the run it came from — and re-runs every other conversation
+  from turn 0. A half-finished conversation is never stitched: the runtime's premise is that a
+  conversation is one session whose later turns depend on its earlier ones. Split, version,
+  runtime and the report set (a superset, and the same `--train-seed` draw) are checked
+  against the prior CSV before anything runs; params `resumed_from` / `n_reused_conversations`
+  and metric `n_reused_questions` are logged, and `stage_scores.score_rows` re-scores the
+  whole frame so the panel covers reused and fresh rows alike.
+
+- **The model is part of the run's name and record** (2026-09-06). `run --sdk-model <id>`
+  pins the model for one sdk pass; the run name carries its slug between the composition and
+  the stamp (`sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-<stamp>`, `llm.sdk_model_slug`), the
+  full id is the `sdk_model` param **and** tag (a search key), and `--resume-from` refuses a
+  CSV whose name carries a different slug. Runs named before the slug existed ran the default
+  model, which their `sdk_model` param records. **A model swap is a scoring pass, not an
+  experiment**: `story.sdk_model_comparison` reports every model the sdk champion has been
+  scored on and pairs each against the *reference* model (`llm.sdk_model_name()`) with the
+  gate's own test, read from the two committed CSVs; nothing promotes and nothing is written
+  to the gates ledger. `runtime_comparison` pins the sdk arm to the reference model, so a
+  Haiku pass appears as a row in the model-swap table and never becomes the arm the
+  cross-runtime gate was measured on. The page (`docs/optimization/agent-sdk.html`) and
+  `/admin/runtimes` both show the table once a second model exists; `story_check` fails a
+  page that hides it.
+
+```bash
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-4-5-20251001      # one scoring pass, model swapped, all else equal
+uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
+uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
+  --resume-from evaluation/predictions/evalloop/<partial>.csv   # finish a refused pass
+uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+uv run convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> ...
+uv run convfinqa-evalloop backfill-ledgers --no-mlflow
+uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>
+```
+
 ## Eval loop (M1) & teacher (M2) — the underlying commands
 
 ```bash

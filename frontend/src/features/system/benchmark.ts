@@ -105,6 +105,13 @@ export interface OpenItem {
  */
 export const OPEN_WORK: OpenItem[] = [
   {
+    title: 'The runtime decision is made; serving has not moved',
+    status: 'open',
+    body:
+      'A single Claude Agent SDK session with the calculator functions as its only tools, running one prompt distilled from the four tuned pipeline prompts, scores 90.5% on the 349-question gate split against the champion pipeline’s 81.7% — paired, one-sided cluster-corrected McNemar p = 0.0003 — and the same prompt on Haiku 4.5 still clears the pipeline at 87.4%. The recommendation on /admin/runtimes is to move the runtime. Nothing about serving has changed: chat, the demo pack and the streamed event contract still run the four-agent champion, and wiring the session runtime into them — including its billing, which is subscription-only by decision — is its own piece of work. The model half of the confound is measured; a four-agent run on a Claude model is not.',
+    where: '/admin/runtimes · docs/optimization/agent-sdk.html · backends/agent_sdk.py',
+  },
+  {
     title: 'DSPy / GEPA runs do not work today',
     status: 'broken',
     body:

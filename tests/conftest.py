@@ -47,6 +47,9 @@ def _isolated_settings(
     from convfinqa.tracking import traces
 
     monkeypatch.setattr(traces, "default_db_path", lambda: tmp_path / "traces.db")
+    # The three append-only ledgers (`evalloop.ledgers`) are committed project
+    # state; a test that diagnoses, proposes or gates must append elsewhere.
+    monkeypatch.setenv("CONVFINQA_LEDGER_DIR", str(tmp_path / "ledgers"))
     llm.reset_provider()
     backend.reset_default_agents()
     traces.reset_store()

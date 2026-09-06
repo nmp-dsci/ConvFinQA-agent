@@ -18,12 +18,14 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any
 
 from convfinqa.config import EVAL_ROOT, REPO_ROOT
 
 STORY_PATH = EVAL_ROOT / "story.json"
 DOCS_DIR = REPO_ROOT / "docs" / "optimization"
+SDK_PAGE = "agent-sdk.html"
 AGENTS = ("triage", "preprocess", "retriever", "calculator")
 PANEL_METRICS = {
     "triage": "acc_triage_turn_type",
@@ -82,10 +84,14 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         )
 
     grouped: dict[str, list[dict[str, Any]]] = {}
+    sdk_grouped: dict[str, list[dict[str, Any]]] = {}
     for run in gates:
         name = run.data.params.get("campaign") or run.data.tags.get("campaign") or "—"
         if campaigns and name not in campaigns:
             continue
+        is_sdk = (
+            run.data.tags.get("runtime") or run.data.params.get("runtime")
+        ) == "agent_sdk"
         candidate = run.data.params.get("candidate_version", "")
         baseline = run.data.params.get("baseline_version", "")
         proposal = by_version_proposal.get(candidate)
@@ -97,11 +103,22 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
                 _artifact(client, proposal.info.run_id, "prompt_diff.json") or {}
             ).get("diff", "")
         metrics = run.data.metrics
-        grouped.setdefault(name, []).append(
+        target_class = run.data.params.get("target_class", "")
+        (sdk_grouped if is_sdk else grouped).setdefault(name, []).append(
             {
                 "label": run.data.params.get("experiment_label", ""),
                 "at": run.info.start_time,
-                "target_agent": run.data.params.get("target_agent", ""),
+                "runtime": "agent_sdk" if is_sdk else "pipeline",
+                # For the SDK arm the target is a failure class, and it sits in
+                # `target_agent` too so every reader of an experiment row
+                # (page, app, chart) shows *something* without branching.
+                "target_agent": (
+                    target_class if is_sdk else run.data.params.get("target_agent", "")
+                ),
+                "target_class": target_class if is_sdk else "",
+                "edits": _sdk_edits(run.data.params.get("rewrite_id", ""))
+                if is_sdk
+                else [],
                 "baseline_version": baseline,
                 "candidate_version": candidate,
                 "promoted": run.data.tags.get("promoted") == "true",
@@ -173,9 +190,28 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         split_info = {}
 
     champion = doc.aliases.get("champion")
+    sdk_champion = doc.aliases.get("sdk_champion")
+    eval_records = [
+        {
+            "run_name": r.info.run_name,
+            "start_time": r.info.start_time,
+            "params": dict(r.data.params),
+            "metrics": dict(r.data.metrics),
+        }
+        for r in evals
+    ]
+    try:
+        from convfinqa.evalloop import ledgers
+
+        sdk_gate_rows = ledgers.load("gates", runtime="agent_sdk").to_dict(
+            orient="records"
+        )
+    except Exception:  # noqa: BLE001 — no ledger means no SDK gate yet
+        sdk_gate_rows = []
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "champion": champion,
+        "sdk_champion": sdk_champion,
         # The champion's own gate accuracy, so the headline has a number even
         # before any experiment has moved it — which is the state a campaign
         # spends most of its life in.
@@ -195,7 +231,428 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         ],
         "lineage": lineage,
         "champion_track": _champion_track(grouped, gate_runs_by_version),
+        "sdk_campaigns": [
+            {"name": name, "runtime": "agent_sdk", "experiments": rows}
+            for name, rows in sorted(sdk_grouped.items())
+        ],
+        "runtime_comparison": runtime_comparison(
+            eval_records,
+            sdk_gate_rows,
+            champion=champion,
+            sdk_champion=sdk_champion,
+            by_turn_type=_cross_runtime_turn_type_split(
+                eval_records, champion=champion, sdk_champion=sdk_champion
+            ),
+        ),
+        "sdk_model_comparison": sdk_model_comparison(
+            eval_records, sdk_champion=sdk_champion
+        ),
     }
+
+
+#: What a runtime's arm of the comparison carries. Every value is None until a
+#: run of that arm exists, so the page can say "not yet run" rather than 0.
+_ARM_KEYS = (
+    "version",
+    "run_name",
+    "accuracy",
+    "by_turn_type",
+    "panel",
+    "cost",
+    "wall",
+    # Execution accuracy is the headline; program accuracy is the check on it —
+    # both arms answer far more turns than they reproduce gold programs for, and
+    # a reader comparing the headline against the paper's human figure needs the
+    # second number in the same place. Stories built before this key carry it as
+    # absent, and the serving route derives it from the committed CSV.
+    "program_accuracy",
+    # The sdk arm's model, from the run's `sdk_model` param. None on the
+    # pipeline arm, whose four agents' model is fixed in llm.py and not a
+    # property of a pass.
+    "model",
+)
+
+
+def _arm(record: dict[str, Any] | None) -> dict[str, Any]:
+    if record is None:
+        return dict.fromkeys(_ARM_KEYS)
+    metrics = record.get("metrics") or {}
+    params = record.get("params") or {}
+    cost = None
+    for key in ("sdk_cost_usd", "cost_usd", "total_cost_usd"):
+        if metrics.get(key) is not None:
+            cost = metrics[key]
+            break
+    return {
+        "version": params.get("prompts_version") or params.get("version"),
+        "run_name": record.get("run_name"),
+        "accuracy": metrics.get("accuracy"),
+        "by_turn_type": {
+            # The aggregate hides where the difference lives: number turns are a
+            # lookup both arms have saturated, program turns are the reasoning.
+            "number": metrics.get("accuracy_gold_turn_type_Number"),
+            "program": metrics.get("accuracy_gold_turn_type_Program"),
+        },
+        "panel": _panel(metrics),
+        "cost": cost,
+        "wall": metrics.get("wall_seconds"),
+        "program_accuracy": metrics.get("program_accuracy"),
+        "model": params.get("sdk_model") or None,
+    }
+
+
+def _sdk_model_of(record: dict[str, Any], reference_model: str) -> str:
+    """The model an sdk run ran on. Pre-slug runs logged the param too; a run
+    with neither ran the default of its day, which is the reference."""
+    return str((record.get("params") or {}).get("sdk_model") or reference_model)
+
+
+def sdk_reference_model() -> str:
+    """The model the sdk arm is *compared* on: the runtime's default.
+
+    The cross-runtime gate was run on this model, so the arm card and the
+    verdict must keep reading its run even after other models have been scored
+    on the same prompt — a model-swap pass is an extra column beside the
+    comparison, never a silent replacement of the arm.
+    """
+    from convfinqa.llm import sdk_model_name
+
+    return sdk_model_name()
+
+
+TURN_TYPES = ("Number", "Program")
+
+
+def turn_type_gate(
+    baseline_csv: Path | str, candidate_csv: Path | str
+) -> dict[str, Any] | None:
+    """Paired per-turn-type verdict from two committed prediction CSVs.
+
+    Split out from `runtime_comparison` so that stays pure: this reads files. The
+    aggregate verdict answers "is the candidate better"; this answers "at what",
+    and the two arms differ enough per slice that reporting only the aggregate
+    would misdescribe the result — a +8.88pp headline that is +13.03pp on program
+    turns and exactly 0.00pp on number turns.
+
+    Returns None when either CSV is missing, so a story built without them keeps
+    every field absent rather than zero.
+    """
+    import pandas as pd
+
+    from convfinqa.tracking.comparator import (
+        durkalski_z,
+        mcnemar_exact_p_one_sided,
+    )
+
+    base, cand = Path(baseline_csv), Path(candidate_csv)
+    if not base.exists() or not cand.exists():
+        return None
+    key = ["report_id", "turn_index"]
+    b = pd.read_csv(base)[key + ["gold_turn_type", "correct"]]
+    c = pd.read_csv(cand)[key + ["correct"]]
+    merged = b.merge(c, on=key, suffixes=("_base", "_cand"))
+    if merged.empty:
+        return None
+    out: dict[str, Any] = {}
+    for turn_type in TURN_TYPES:
+        rows = merged[merged["gold_turn_type"] == turn_type]
+        if rows.empty:
+            continue
+        fixed = int(((~rows["correct_base"]) & rows["correct_cand"]).sum())
+        broken = int((rows["correct_base"] & (~rows["correct_cand"])).sum())
+        per_cluster: list[tuple[int, int]] = []
+        for _, group in rows.groupby("report_id"):
+            f = int(((~group["correct_base"]) & group["correct_cand"]).sum())
+            b_ = int((group["correct_base"] & (~group["correct_cand"])).sum())
+            if f or b_:
+                per_cluster.append((b_, f))
+        base_acc = float(rows["correct_base"].mean())
+        cand_acc = float(rows["correct_cand"].mean())
+        z = durkalski_z(per_cluster) if per_cluster else 0.0
+        out[turn_type.lower()] = {
+            "n": int(len(rows)),
+            "baseline_accuracy": round(base_acc, 6),
+            "candidate_accuracy": round(cand_acc, 6),
+            "delta_pp": round((cand_acc - base_acc) * 100, 4),
+            "fixed": fixed,
+            "broken": broken,
+            "n_flip_clusters": len(per_cluster),
+            "cluster_z": round(z, 4),
+            "cluster_p_one_sided": round(float(NormalDist().cdf(-z)), 6),
+            "mcnemar_p_one_sided": round(mcnemar_exact_p_one_sided(broken, fixed), 8),
+        }
+    return out or None
+
+
+def _latest(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return max(records, key=lambda r: r.get("start_time") or 0) if records else None
+
+
+def _cross_runtime_turn_type_split(
+    eval_records: list[dict[str, Any]],
+    *,
+    champion: str | None,
+    sdk_champion: str | None,
+) -> dict[str, Any] | None:
+    """The paired per-turn-type verdict, from the two arms' committed CSVs.
+
+    The CSVs are named after their runs and committed, so this reproduces on any
+    clone with no tracking server and no API calls. None when either is absent.
+    """
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+
+    comparison = runtime_comparison(
+        eval_records, [], champion=champion, sdk_champion=sdk_champion
+    )
+    names = [comparison[arm].get("run_name") for arm in ("pipeline", "agent_sdk")]
+    if not all(names):
+        return None
+    baseline, candidate = (PREDICTIONS_DIR / f"{name}.csv" for name in names)
+    return turn_type_gate(baseline, candidate)
+
+
+def runtime_comparison(
+    eval_records: list[dict[str, Any]],
+    sdk_gate_rows: list[dict[str, Any]],
+    *,
+    champion: str | None,
+    sdk_champion: str | None,
+    by_turn_type: dict[str, Any] | None = None,
+    reference_model: str | None = None,
+) -> dict[str, Any]:
+    """The two arms on the gate split, side by side, and the gate between them.
+
+    `eval_records` are ``kind=evalloop`` runs as plain dicts (``run_name``,
+    ``start_time``, ``params``, ``metrics``); `sdk_gate_rows` are gates-ledger
+    rows with ``runtime == "agent_sdk"``. The pipeline arm is the champion's
+    latest test100 run, the SDK arm the latest ``sdk-evalloop-test100-*`` run
+    (its `sdk_champion` if one exists, else whichever ran last) **on the
+    reference model** — `reference_model`, default `llm.sdk_model_name()` —
+    and the gate is the latest SDK gate row whose baseline is the pipeline
+    champion — the cross-runtime verdict. Runs of the same prompt on other
+    models are reported by `sdk_model_comparison`, not here: a model swap must
+    not move the arm the gate row was measured on. Every field is None until
+    the corresponding run exists; the page must not read absence as zero.
+    """
+    reference_model = reference_model or sdk_reference_model()
+    tests = [
+        r
+        for r in eval_records
+        if (r.get("params") or {}).get("split") == "test"
+        and "test100" in str(r.get("run_name") or "")
+    ]
+    pipeline_runs = [
+        r
+        for r in tests
+        if (r.get("params") or {}).get("runtime", "pipeline") != "agent_sdk"
+        and (r.get("params") or {}).get("prompts_version") == champion
+    ]
+    sdk_runs = [
+        r
+        for r in tests
+        if (r.get("params") or {}).get("runtime") == "agent_sdk"
+        and str(r.get("run_name") or "").startswith("sdk-evalloop-test100-")
+        and _sdk_model_of(r, reference_model) == reference_model
+    ]
+    if sdk_champion:
+        preferred = [
+            r
+            for r in sdk_runs
+            if (r.get("params") or {}).get("prompts_version") == sdk_champion
+        ]
+        sdk_runs = preferred or sdk_runs
+    gate_rows = [
+        g
+        for g in sdk_gate_rows
+        if str(g.get("baseline_version") or "") == (champion or "")
+        and str(g.get("split") or "") == "test"
+    ]
+    gate_row = max(gate_rows, key=lambda g: str(g.get("gated_at") or ""), default=None)
+    gate: dict[str, Any] = {
+        "delta_pp": None,
+        "p_value": None,
+        "ci": [None, None],
+        "fixed": None,
+        "broken": None,
+        "candidate_version": None,
+        "promoted": None,
+        "gate_id": None,
+        "by_turn_type": by_turn_type,
+    }
+    if gate_row is not None:
+        gate.update(
+            {
+                "delta_pp": _num(gate_row.get("delta_pp")),
+                "p_value": _num(gate_row.get("p_value")),
+                "ci": [_num(gate_row.get("ci_low")), _num(gate_row.get("ci_high"))],
+                "fixed": _int(gate_row.get("fixed")),
+                "broken": _int(gate_row.get("broken")),
+                "candidate_version": gate_row.get("candidate_version"),
+                "promoted": bool(gate_row.get("promoted")),
+                "gate_id": gate_row.get("gate_id"),
+            }
+        )
+    return {
+        "pipeline": _arm(_latest(pipeline_runs)),
+        "agent_sdk": _arm(_latest(sdk_runs)),
+        "gate": gate,
+    }
+
+
+def sdk_model_comparison(
+    eval_records: list[dict[str, Any]],
+    *,
+    sdk_champion: str | None,
+    reference_model: str | None = None,
+    read_csvs: bool = True,
+) -> dict[str, Any]:
+    """One prompt, several models: the sdk champion scored on each, paired.
+
+    A model-swap pass keeps the prompt, the tools, the split and the scoring and
+    changes the model, so two such passes are a paired comparison of the models
+    alone — the confound the cross-runtime comparison cannot separate. For each
+    model that has a ``sdk-evalloop-test100-`` run of `sdk_champion` the latest
+    run is one row of ``models`` (the reference model first, then by accuracy);
+    ``pairs`` holds each other model's paired verdict against the reference
+    model's run — the gate's cluster-corrected McNemar and cluster bootstrap
+    CI, computed from the two committed CSVs so it reproduces on any clone, with
+    the one-sided p taken in the direction of the observed delta (see
+    `_paired_from_csvs`: the gate's own p only looks towards improvement). Nothing here promotes and nothing is written to
+    the gates ledger: a scoring pass is a measurement, not an experiment.
+
+    ``models`` is empty until a run exists, and a pair whose CSV is missing or
+    incomplete is reported with its statistics None rather than dropped, so the
+    page can say what was not measured.
+    """
+    reference_model = reference_model or sdk_reference_model()
+    runs = [
+        r
+        for r in eval_records
+        if (r.get("params") or {}).get("split") == "test"
+        and (r.get("params") or {}).get("runtime") == "agent_sdk"
+        and str(r.get("run_name") or "").startswith("sdk-evalloop-test100-")
+        and (
+            sdk_champion is None
+            or (r.get("params") or {}).get("prompts_version") == sdk_champion
+        )
+    ]
+    by_model: dict[str, list[dict[str, Any]]] = {}
+    for r in runs:
+        by_model.setdefault(_sdk_model_of(r, reference_model), []).append(r)
+    arms: list[dict[str, Any]] = []
+    for model, group in by_model.items():
+        latest = _latest(group)
+        arm = _arm(latest)
+        arm["model"] = model
+        arm["n_scored"] = _int((latest or {}).get("metrics", {}).get("n_scored"))
+        arms.append(arm)
+    arms.sort(
+        key=lambda a: (a["model"] != reference_model, -(a.get("accuracy") or 0.0))
+    )
+    reference = next((a for a in arms if a["model"] == reference_model), None)
+    pairs: list[dict[str, Any]] = []
+    for arm in arms:
+        if reference is None or arm is reference:
+            continue
+        pair: dict[str, Any] = {
+            "baseline_model": reference_model,
+            "candidate_model": arm["model"],
+            "baseline_run": reference.get("run_name"),
+            "candidate_run": arm.get("run_name"),
+            "n_compared": None,
+            "delta_pp": None,
+            "p_value": None,
+            "ci": [None, None],
+            "fixed": None,
+            "broken": None,
+            "significant": None,
+            "by_turn_type": None,
+        }
+        if read_csvs and reference.get("run_name") and arm.get("run_name"):
+            pair.update(_paired_from_csvs(reference["run_name"], arm["run_name"]))
+        pairs.append(pair)
+    return {
+        "version": sdk_champion,
+        "reference_model": reference_model,
+        "models": arms,
+        "pairs": pairs,
+    }
+
+
+def _paired_from_csvs(baseline_run: str, candidate_run: str) -> dict[str, Any]:
+    """The gate's own statistics between two committed run CSVs, or {} when
+    either is missing or incomplete — absence stays absence."""
+    from convfinqa.evalloop.gate import gate_runs
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+
+    base = PREDICTIONS_DIR / f"{baseline_run}.csv"
+    cand = PREDICTIONS_DIR / f"{candidate_run}.csv"
+    if not base.exists() or not cand.exists():
+        return {}
+    try:
+        _, stats = gate_runs(
+            base, cand, baseline_version=baseline_run, candidate_version=candidate_run
+        )
+    except Exception:  # noqa: BLE001 — an incomplete pass is "not measured"
+        return {}
+    # The gate's p is one-sided *towards improvement*, because the gate only
+    # ever promotes. A scoring comparison has no privileged direction: a model
+    # that is worse should read as significantly worse, not as "no effect
+    # towards better". So the p reported here is one-sided in the direction of
+    # the observed delta — Φ(−z) when the candidate is ahead, Φ(z) when behind
+    # — and `significant` is that p against the same α.
+    delta = float(stats["accuracy_delta"])
+    z = float(stats.get("cluster_z") or 0.0)
+    p_towards_better = float(stats["cluster_p_one_sided"])
+    p_directed = p_towards_better if delta >= 0 else 1.0 - p_towards_better
+    return {
+        "n_compared": _int(stats.get("n_compared")),
+        "delta_pp": round(delta * 100, 4),
+        "cluster_z": round(z, 4),
+        "p_value": round(p_directed, 6),
+        "ci": [_num(stats.get("delta_ci_lo")), _num(stats.get("delta_ci_hi"))],
+        "fixed": _int(stats.get("fail_to_pass")),
+        "broken": _int(stats.get("pass_to_fail")),
+        "significant": p_directed < float(stats.get("alpha") or 0.05),
+        "by_turn_type": turn_type_gate(base, cand),
+    }
+
+
+def _num(value: Any) -> float | None:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if out != out else out  # NaN from a pandas cell reads as absent
+
+
+def _int(value: Any) -> int | None:
+    number = _num(value)
+    return None if number is None else int(number)
+
+
+def _sdk_edits(rewrite_id: str) -> list[dict[str, Any]]:
+    """The per-class edits of one SDK rewrite, off the rewrites ledger."""
+    if not rewrite_id:
+        return []
+    try:
+        from convfinqa.evalloop import ledgers
+
+        rows = ledgers.load("rewrites", runtime="agent_sdk")
+    except Exception:  # noqa: BLE001
+        return []
+    hits = rows[rows["rewrite_id"] == rewrite_id]
+    return [
+        {
+            "edit_id": str(r.edit_id),
+            "failure_class": str(r.failure_class or ""),
+            "target": str(r.target or ""),
+            "change_kind": str(r.change_kind or ""),
+            "rationale": str(r.rationale or ""),
+            "n_diagnoses": _int(r.n_diagnoses),
+        }
+        for r in hits.itertuples()
+    ]
 
 
 def _champion_track(
@@ -256,13 +713,79 @@ def build(
     target.mkdir(parents=True, exist_ok=True)
     page = target / "index.html"
     page.write_text(render(data))
+    sdk_page = target / SDK_PAGE
+    sdk_page.write_text(render_sdk(data))
     (target / "story.json").write_text(json.dumps(data, indent=1, default=str) + "\n")
     return {
         "story_json": str(STORY_PATH),
         "page": str(page),
+        "sdk_page": str(sdk_page),
         "n_campaigns": len(data["campaigns"]),
         "n_experiments": sum(len(c["experiments"]) for c in data["campaigns"]),
         "champion": data["champion"],
+    }
+
+
+def with_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Add each arm's program accuracy, read from its committed predictions CSV.
+
+    Execution accuracy alone overstates what either arm is doing: both answer
+    far more turns correctly than they reproduce gold programs for, and the SDK
+    arm's headline sits above the paper's human-expert figure, which is exactly
+    the claim a reader should be able to check against the program number. The
+    figure is not in `story.json` (older stories predate it), so it is derived
+    here from the same committed CSV the run is named after — no tracking
+    server, no API calls, reproducible on any clone. Shared by the serving
+    route and the published page so the two cannot disagree.
+
+    Absent or unreadable CSV leaves the key `None`, never 0.0: "we did not
+    measure it" and "it scored nothing" are different claims.
+    """
+    if not comparison:
+        return comparison
+    import pandas as pd
+
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+    from convfinqa.tracking.comparator import program_accuracy
+
+    out = dict(comparison)
+    for arm in [k for k in out if k != "gate"]:
+        row = out.get(arm)
+        if not isinstance(row, dict):
+            continue
+        row = dict(row)
+        out[arm] = row
+        if row.get("program_accuracy") is not None:
+            continue
+        row["program_accuracy"] = None
+        name = row.get("run_name")
+        if not name:
+            continue
+        path = PREDICTIONS_DIR / f"{name}.csv"
+        if not path.exists():
+            continue
+        try:
+            row["program_accuracy"] = program_accuracy(pd.read_csv(path))[
+                "program_accuracy"
+            ]
+        except Exception:  # noqa: BLE001 - a bad CSV must not break rendering
+            continue
+    return out
+
+
+def with_model_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """`with_program_accuracy` for the rows of `sdk_model_comparison`."""
+    if not comparison or not comparison.get("models"):
+        return comparison
+    arms = {f"m{i}": row for i, row in enumerate(comparison["models"])}
+    filled = with_program_accuracy({**arms, "gate": None}) or {}
+    return {
+        **comparison,
+        "models": [filled.get(k, row) for k, row in arms.items()],
     }
 
 
@@ -271,3 +794,22 @@ def render(data: dict[str, Any]) -> str:
     from convfinqa.evalloop.story_page import render_page
 
     return render_page(data)
+
+
+def render_sdk(data: dict[str, Any]) -> str:
+    """The Agent SDK experiment page, beside the campaign write-up."""
+    from convfinqa.evalloop.story_page import render_sdk_page
+
+    if data.get("runtime_comparison"):
+        data = {
+            **data,
+            "runtime_comparison": with_program_accuracy(data["runtime_comparison"]),
+        }
+    if data.get("sdk_model_comparison"):
+        data = {
+            **data,
+            "sdk_model_comparison": with_model_program_accuracy(
+                data["sdk_model_comparison"]
+            ),
+        }
+    return render_sdk_page(data)

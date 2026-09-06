@@ -116,8 +116,9 @@ instrument-style admin section at `/admin`, all reading the same backend:
 | **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
 | **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
 | **`/admin/campaigns`** | Every campaign's experiments — target agent, promoted/rejected, p-value — same `evaluation/story.json` the published write-up reads. |
+| **`/admin/runtimes`** | The runtime decision: pipeline vs. the single-session Agent SDK, on the reference model and on the Haiku swap — same `evaluation/story.json` as the landing HUD and the overview's "Runtime decision" strip. |
 
-All eight admin pages are visible **read-only** in the public demo — that is
+All nine admin pages are visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
@@ -278,6 +279,44 @@ Promotion requires net-positive **and** one-sided cluster-corrected McNemar
 p < 0.05 (`tracking/comparator.py::promotable_significant`) — campaign `c01`
 promoted `v8` at p=0.040; `c02` and `c03` each ran two experiments that were
 both rejected, so the champion held at `v8`.
+
+### The Agent SDK experiment (s10)
+
+A second runtime, `--runtime agent_sdk`, answers each conversation with **one
+Claude Agent SDK session** holding the six calculator functions as its only
+tools and one system prompt (`prompts/sdk_vN.py`, distilled from the pipeline
+champion's four). It runs through the same loop — train draw, a diagnosis
+agent that files each first-wrong case under a failure class, a teacher that
+edits the one prompt in tagged areas, the same one-sided cluster-corrected
+McNemar gate on the same fixed split — and promotes to its own alias,
+`sdk_champion`, never `champion`. Every diagnosis, edit and verdict from
+both arms lands in three append-only ledgers under
+`evaluation/diagnostics/evalloop/`, joined by id.
+
+```bash
+uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
+uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>   # case -> edits -> verdicts
+uv run convfinqa-evalloop story   # also renders docs/optimization/agent-sdk.html
+```
+
+The write-up lives at [`docs/optimization/agent-sdk.html`](docs/optimization/agent-sdk.html),
+beside the campaign page and built from the same `story.json`: the two runtimes
+side by side on the gate split, the verdict between them, and every SDK
+experiment including the rejected ones. `sdk_v1` was gated against pipeline
+champion `v8` on 349 paired questions and promoted to `sdk_champion`: 90.54%
+vs 81.66% (+8.88pp, p=0.0003), the gain concentrated on program turns
+(+13.03pp) with number turns unchanged. The page documents two caveats
+alongside that figure — a public-dataset contamination risk and a
+model/architecture confound — rather than hiding them.
+
+`run --sdk-model <id>` scores the same `sdk_vN` prompt on a different model as a
+plain scoring pass — no optimisation, no promotion — and `story.sdk_model_comparison`
+pairs it against the reference model on the write-up's model-swap table. Swapping
+claude-sonnet-5 for claude-haiku-4-5-20251001 measured the model's share of the
+confound above: 87.39% vs 90.54% (−3.15pp), still +5.73pp over the optimised
+pipeline — the architecture half stays open, since running the four-agent pipeline
+on a Claude model needs an API endpoint this project deliberately does not use.
 
 ## Demo mode
 

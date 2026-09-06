@@ -69,7 +69,9 @@ function LeftPane({ board }: { board: BoardData }) {
 
   return (
     <section className="min-w-0">
-      <p className="mono-caps">Multi-turn financial QA · four-agent pipeline</p>
+      <p className="mono-caps">
+        Multi-turn financial QA · four-agent pipeline · single-session challenger measured
+      </p>
 
       <h1 className="type-display mt-3">
         A system that answers <span className="text-amber">dependent</span> questions about SEC
@@ -193,6 +195,19 @@ function RightPane({ board }: { board: BoardData }) {
     };
   })();
 
+  // The runtime decision, read from the same story the Runtimes page renders:
+  // the SDK arm on the model it was gated with, and the same prompt on the
+  // second model. Absent until those runs exist — never a zero.
+  const sdkArm = campaigns?.runtime_comparison?.agent_sdk ?? null;
+  const sdkGate = campaigns?.runtime_comparison?.gate ?? null;
+  const swap = campaigns?.sdk_model_comparison ?? null;
+  const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
+  const swapPair = swap?.pairs?.[0] ?? null;
+  const shortModel = (model: string | null | undefined) =>
+    (model ?? '')
+      .replace(/^claude-/, '')
+      .replace(/-\d{8}$/, '');
+
   return (
     <section className="min-w-0">
       <p className="mono-caps break-words">
@@ -254,6 +269,65 @@ function RightPane({ board }: { board: BoardData }) {
               challenger{(campaigns?.experiments?.length ?? 0) === 1 ? '' : 's'} have now been
               measured against the gate split, so part of the figure beside this is selection
             </>
+          }
+        />
+
+        {/* --- The runtime decision ---------------------------------------- */}
+        <HudTile
+          label="single-session runtime"
+          value={formatPercent(sdkArm?.accuracy)}
+          loading={!campaigns && board.loading}
+          reason="the Claude Agent SDK arm has no run on the gate split yet"
+          tone={sdkGate?.promoted ? 'good' : 'plain'}
+          to="/admin/runtimes"
+          drill="/admin/runtimes"
+          meta={
+            sdkArm?.accuracy != null && (
+              <>
+                <span className="type-num">{sdkArm.version ?? '—'}</span> on{' '}
+                <span className="type-num">{shortModel(sdkArm.model) || 'claude'}</span> · same{' '}
+                {String(campaigns?.split?.gate_questions ?? '—')} questions
+                {sdkGate?.delta_pp != null && (
+                  <>
+                    <br />
+                    <span className={cn('type-num', sdkGate.delta_pp >= 0 ? 'text-good' : 'text-bad')}>
+                      {formatPointsDelta(sdkGate.delta_pp / 100)}
+                    </span>{' '}
+                    vs {campaigns?.champion ?? 'the champion'}, paired ·{' '}
+                    {sdkGate.promoted ? 'recommended runtime' : 'not promoted'}
+                  </>
+                )}
+              </>
+            )
+          }
+        />
+
+        <HudTile
+          label="same prompt, smaller model"
+          value={formatPercent(swapArm?.accuracy)}
+          loading={!campaigns && board.loading}
+          reason="the sdk champion has been scored on one model only"
+          tone="plain"
+          to="/admin/runtimes"
+          drill="/admin/runtimes"
+          meta={
+            swapArm?.accuracy != null && (
+              <>
+                <span className="type-num">{shortModel(swapArm.model)}</span> · scoring pass, no
+                optimisation
+                {swapPair?.delta_pp != null && (
+                  <>
+                    <br />
+                    <span className={cn('type-num', swapPair.delta_pp >= 0 ? 'text-good' : 'text-bad')}>
+                      {formatPointsDelta(swapPair.delta_pp / 100)}
+                    </span>{' '}
+                    vs {shortModel(swap?.reference_model)} · cost{' '}
+                    <span className="type-num">{formatUsd(swapArm.cost)}</span> vs{' '}
+                    <span className="type-num">{formatUsd(sdkArm?.cost)}</span> per pass
+                  </>
+                )}
+              </>
+            )
           }
         />
 

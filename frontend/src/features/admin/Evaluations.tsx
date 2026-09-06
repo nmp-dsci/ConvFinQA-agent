@@ -85,8 +85,17 @@ export default function Evaluations() {
   const splits = useSplits();
 
   const versionNames = rows.map((r) => r.version);
-  const selectedVersion = params.get('version') ?? champion ?? versionNames[0] ?? '';
-  const baseline = params.get('baseline') ?? champion ?? versionNames[0] ?? '';
+  const selectedVersion =
+    params.get('version') ??
+    (champion && versionNames.includes(champion) ? champion : versionNames.slice(-1)[0]) ??
+    '';
+  // The champion may have no legacy predictions CSV (every version from v4 on
+  // was promoted on the gate split, not here), so it is the default only when
+  // this page can actually read it; otherwise the latest legacy version is.
+  const baseline =
+    params.get('baseline') ??
+    (champion && versionNames.includes(champion) ? champion : versionNames.slice(-1)[0]) ??
+    '';
   const candidate =
     params.get('candidate') ?? versionNames.filter((v) => v !== baseline).slice(-1)[0] ?? '';
   const flipsOpen = params.get('flips') === 'open';
@@ -308,7 +317,7 @@ export default function Evaluations() {
       testId="admin-evaluations"
       eyebrow="admin · evaluations"
       title="Evaluations"
-      sub="Which questions each version was measured on, how it scored by slice, what it answered beside gold, and every result that changed between two versions."
+      sub="The legacy 770-question scoring of the early versions (v1–v3_1): which questions each was measured on, how it scored by slice, what it answered beside gold, and every result that changed between two. Versions from v4 on are gated on the 349-question split — see Campaigns for the pipeline track and Runtimes for the single-session challenger."
     >
       {error ? <ErrorNote error={error} /> : null}
 

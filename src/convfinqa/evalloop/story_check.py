@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import sys
 
-from convfinqa.evalloop.story import DOCS_DIR, STORY_PATH
+from convfinqa.evalloop.story import DOCS_DIR, SDK_PAGE, STORY_PATH
 
 
 def problems() -> list[str]:
@@ -45,6 +45,62 @@ def problems() -> list[str]:
             out.append(
                 f"{page.name} does not carry the current champion {champion!r} in "
                 "its embedded record — it was built from an older story.json"
+            )
+
+    # The Agent SDK page is built from the same story.json by the same command,
+    # so it goes stale in exactly the same ways — a missing page, or one whose
+    # embedded record names a different sdk_champion from the registry.
+    sdk_champion = registry.sdk_champion()
+    if story.get("sdk_champion", None) != sdk_champion:
+        out.append(
+            f"story.json names sdk_champion {story.get('sdk_champion')!r} but the "
+            f"registry says {sdk_champion!r} — rebuild with `convfinqa-evalloop story`"
+        )
+    sdk_page = DOCS_DIR / SDK_PAGE
+    if not sdk_page.exists():
+        out.append(f"{sdk_page} is missing — the Agent SDK page was never built")
+    else:
+        sdk_text = sdk_page.read_text()
+        if sdk_champion and f'"sdk_champion": "{sdk_champion}"' not in sdk_text:
+            out.append(
+                f"{sdk_page.name} does not carry the current sdk_champion "
+                f"{sdk_champion!r} in its embedded record — it was built from an "
+                "older story.json"
+            )
+        n_sdk = sum(
+            len(c.get("experiments", [])) for c in story.get("sdk_campaigns", [])
+        )
+        if f'"n_sdk_experiments": {n_sdk}' not in sdk_text:
+            out.append(
+                f"{sdk_page.name} records a different number of SDK experiments "
+                f"from story.json ({n_sdk}) — rebuild with `convfinqa-evalloop story`"
+            )
+
+        # The page must disclose, not just report, the SDK headline: it beats a
+        # published human baseline on a public dataset (contamination), and the
+        # model changed alongside the architecture (confound). Both caveats are
+        # required content, not incidental prose, so losing either is a
+        # regression this check exists to catch.
+        lowered = sdk_text.lower()
+        if "human-expert" not in lowered or "contamination" not in lowered:
+            out.append(
+                f"{sdk_page.name} is missing the contamination-vs-published-human-"
+                "baseline caveat — rebuild with `convfinqa-evalloop story`"
+            )
+        if "confound" not in lowered:
+            out.append(
+                f"{sdk_page.name} is missing the model/architecture-confound "
+                "caveat — rebuild with `convfinqa-evalloop story`"
+            )
+
+        # A model-swap pass is the one measurement that separates the model from
+        # the architecture, so once the record holds one the page must show it.
+        models = (story.get("sdk_model_comparison") or {}).get("models") or []
+        if len(models) > 1 and "model-swap" not in lowered:
+            out.append(
+                f"{sdk_page.name} does not show the sdk model comparison "
+                f"({len(models)} models in story.json) — rebuild with "
+                "`convfinqa-evalloop story`"
             )
 
     published = DOCS_DIR / "story.json"

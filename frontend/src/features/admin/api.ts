@@ -67,6 +67,16 @@ export interface CampaignExperiment {
   summary_of_changes: string;
   rationale: string;
   diff: string;
+  /**
+   * The Agent SDK arm's target is a *failure class* inside the single prompt,
+   * not a subagent, so `target_agent` and `target_class` carry the same string
+   * for an SDK row and only `target_agent` is set for a pipeline row. `edits`
+   * are the tagged changes made inside that one prompt; a pipeline row has
+   * none, and an SDK row recorded before edits were logged has none either.
+   */
+  target_class?: string;
+  runtime?: string;
+  edits?: Array<Record<string, unknown>>;
 }
 
 export interface CampaignSummary {
@@ -76,6 +86,111 @@ export interface CampaignSummary {
   n_remaining: number;
   blocked_agents: string[];
   complete: boolean;
+  /**
+   * The experiment cap this campaign is judged against — 5 for the pipeline, 2
+   * for the SDK arm. Optional because a server built before it served the field
+   * omits it, and a page must then say it does not know the cap rather than
+   * assume the pipeline's.
+   */
+  cap?: number;
+  runtime?: string;
+}
+
+/**
+ * One runtime's arm of the cross-runtime comparison, on the fixed gate split.
+ *
+ * Every field is nullable because the story keeps an arm's keys present and
+ * empty until a run of that arm exists — which is what lets the Runtimes page
+ * print "not yet run" instead of a zero it never measured.
+ */
+export interface RuntimeArm {
+  version: string | null;
+  run_name: string | null;
+  accuracy: number | null;
+  by_turn_type: { number: number | null; program: number | null } | null;
+  panel: Record<string, number | null> | null;
+  cost: number | null;
+  wall: number | null;
+  /**
+   * Execution accuracy's check: how often the *program* matched gold. Derived
+   * by the server from the committed predictions CSV named by `run_name`, so it
+   * is absent rather than zero when that CSV is not on disk.
+   */
+  program_accuracy?: number | null;
+  /** The sdk arm's model id (`sdk_model` param); absent on the pipeline arm. */
+  model?: string | null;
+}
+
+/** One turn-type slice of the cross-runtime gate. */
+export interface RuntimeSlice {
+  n: number | null;
+  baseline_accuracy: number | null;
+  candidate_accuracy: number | null;
+  delta_pp: number | null;
+  fixed: number | null;
+  broken: number | null;
+  n_flip_clusters?: number | null;
+  cluster_z?: number | null;
+  cluster_p_one_sided: number | null;
+  mcnemar_p_one_sided?: number | null;
+}
+
+/** The paired verdict between the two runtimes, aggregate and per slice. */
+export interface RuntimeGate {
+  delta_pp: number | null;
+  p_value: number | null;
+  ci: Array<number | null> | null;
+  fixed?: number | null;
+  broken?: number | null;
+  candidate_version?: string | null;
+  promoted?: boolean | null;
+  gate_id?: string | null;
+  by_turn_type?: Partial<Record<'number' | 'program', RuntimeSlice>> | null;
+}
+
+export interface RuntimeComparison {
+  pipeline: RuntimeArm;
+  agent_sdk: RuntimeArm;
+  gate: RuntimeGate | null;
+}
+
+/** The sdk champion scored on one model — an arm plus the model it ran on. */
+export interface SdkModelArm extends RuntimeArm {
+  model: string | null;
+  n_scored?: number | null;
+}
+
+/**
+ * One model's paired verdict against the reference model's run of the same
+ * prompt: the gate's own test, computed from the two committed CSVs. Every
+ * statistic is null when either CSV is missing or incomplete.
+ */
+export interface SdkModelPair {
+  baseline_model: string;
+  candidate_model: string;
+  baseline_run: string | null;
+  candidate_run: string | null;
+  n_compared: number | null;
+  delta_pp: number | null;
+  cluster_z?: number | null;
+  /** One-sided, in the direction of `delta_pp` — not the gate's towards-better p. */
+  p_value: number | null;
+  ci: Array<number | null> | null;
+  fixed: number | null;
+  broken: number | null;
+  significant: boolean | null;
+  by_turn_type?: Partial<Record<'number' | 'program', RuntimeSlice>> | null;
+}
+
+/**
+ * One prompt, several models: the half of the cross-runtime confound that can
+ * be measured. A scoring pass, not an experiment — nothing here promotes.
+ */
+export interface SdkModelComparison {
+  version: string | null;
+  reference_model: string;
+  models: SdkModelArm[];
+  pairs: SdkModelPair[];
 }
 
 export interface ChampionPoint {
@@ -102,6 +217,16 @@ export interface CampaignsResponse {
   campaigns: CampaignSummary[];
   experiments: CampaignExperiment[];
   champion_track: ChampionPoint[];
+  /**
+   * The Agent SDK arm (s10). Additive on the server, so these are optional
+   * here: a backend that predates the experiment serves the same route without
+   * them and every existing view keeps working.
+   */
+  sdk_champion?: string | null;
+  runtime_comparison?: RuntimeComparison | null;
+  sdk_model_comparison?: SdkModelComparison | null;
+  sdk_campaigns?: CampaignSummary[];
+  sdk_experiments?: CampaignExperiment[];
 }
 
 export function getCampaigns(campaign = ''): Promise<CampaignsResponse> {

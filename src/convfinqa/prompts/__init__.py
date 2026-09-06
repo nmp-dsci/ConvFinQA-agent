@@ -88,3 +88,57 @@ def load(version: str) -> dict[str, str]:
             )
         out[short] = getattr(module, var)
     return out
+
+
+# --- Single-session (Agent SDK) prompts ---------------------------------------
+#
+# The qa_agent runtime has one prompt, not four, so it gets its own lineage:
+# modules named `sdk_v1`, `sdk_v2`, … exporting a single `SDK_PROMPT` constant.
+# They are kept apart from the bundle versions deliberately — `load("sdk_v1")`
+# would fail on the four missing constants, and `latest_all()` must not offer a
+# single-session prompt as a pipeline bundle.
+
+_SDK_VERSION_RE = re.compile(r"^sdk_v(\d+)$")
+SDK_VAR = "SDK_PROMPT"
+
+
+def is_sdk_version(version: str) -> bool:
+    """Whether `version` names a single-session prompt rather than a bundle."""
+    return bool(_SDK_VERSION_RE.match(version))
+
+
+def sdk_versions() -> list[str]:
+    """Every `sdk_vN` module in this package, sorted ascending by N."""
+    found = [
+        m.name
+        for m in pkgutil.iter_modules([str(Path(__file__).parent)])
+        if _SDK_VERSION_RE.match(m.name)
+    ]
+    return sorted(found, key=lambda name: int(name.removeprefix("sdk_v")))
+
+
+def latest_sdk() -> str:
+    """The highest `sdk_vN` present. Raises when none has been written yet."""
+    versions = sdk_versions()
+    if not versions:
+        raise RuntimeError("No sdk_v* prompt modules found in prompts/")
+    return versions[-1]
+
+
+def load_sdk(version: str) -> str:
+    """The single-session prompt of `version` (`sdk_vN`).
+
+    Raises ValueError for a name outside the lineage — a bundle version passed
+    here by mistake must not be answered with one of its four prompts.
+    """
+    if not is_sdk_version(version):
+        raise ValueError(
+            f"{version!r} is not a single-session prompt version (expected sdk_vN)"
+        )
+    module = importlib.import_module(f"convfinqa.prompts.{version}")
+    text = getattr(module, SDK_VAR, None)
+    if not isinstance(text, str):
+        raise AttributeError(
+            f"prompts.{version} must export a string constant {SDK_VAR!r}"
+        )
+    return text

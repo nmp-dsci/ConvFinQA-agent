@@ -71,7 +71,13 @@ def attempts(
 
     `target_agent` narrows to one agent's lineage, which is what the writer
     wants: the history that bears on the prompt in front of it.
+
+    Read from the rewrites and gates ledgers first (`evalloop.ledgers`); the
+    MLflow search is the fallback for a store that predates them.
     """
+    from_ledger = _attempts_from_ledger(target_agent=target_agent, limit=limit)
+    if from_ledger is not None:
+        return from_ledger
     try:
         client = _client()
         proposals = _runs(client, experiment, "propose")
@@ -123,6 +129,82 @@ def attempts(
                 "fixed": (outcome or {}).get("fail_to_pass"),
                 "broken": (outcome or {}).get("pass_to_fail"),
                 "broken_cases": ((outcome or {}).get("flips") or {}).get("broken", []),
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _attempts_from_ledger(
+    *, target_agent: str | None, limit: int
+) -> list[dict[str, Any]] | None:
+    """`attempts` read off the flat ledgers; None when they hold no rewrites.
+
+    Same shape as the MLflow path. The gates ledger carries flip *counts* by
+    class, not the flips themselves, so the broken questions — which the
+    writer's prompt names — are still read from the gate run's ``flips.json``
+    when the store is reachable, and are empty when it is not.
+    """
+    from convfinqa.evalloop import ledgers
+
+    try:
+        rewrites = ledgers.load("rewrites", runtime="multi_agent")
+        gates = ledgers.load("gates", runtime="multi_agent")
+    except Exception:  # noqa: BLE001 — an unreadable ledger falls back to the store
+        return None
+    if rewrites.empty:
+        return None
+    by_rewrite: dict[str, Any] = {}
+    by_version: dict[str, Any] = {}
+    for g in gates.itertuples():
+        if g.rewrite_id:
+            by_rewrite[str(g.rewrite_id)] = g
+        by_version.setdefault(str(g.candidate_version), g)
+
+    client: Any = None
+    out: list[dict[str, Any]] = []
+    ordered = rewrites.sort_values("proposed_at", ascending=False)
+    for r in ordered.itertuples():
+        if target_agent and str(r.target) != target_agent:
+            continue
+        g = by_rewrite.get(str(r.rewrite_id)) or by_version.get(str(r.new_version))
+        prompt = ""
+        try:
+            import convfinqa.prompts as prompts_pkg
+
+            prompt = prompts_pkg.load(str(r.new_version))[str(r.target)]
+        except Exception:  # noqa: BLE001 — a rewrite never written has no module
+            prompt = ""
+        broken_cases: list[dict[str, Any]] = []
+        if g is not None and g.gate_run_id:
+            try:
+                client = client or _client()
+                flips = _artifact_json(client, str(g.gate_run_id), "flips.json") or {}
+                broken_cases = list(flips.get("broken", []))
+            except Exception:  # noqa: BLE001
+                broken_cases = []
+        delta = None if g is None or g.delta_pp is None else float(g.delta_pp) / 100.0
+        out.append(
+            {
+                "version": str(r.new_version),
+                "base_version": str(r.base_version),
+                "target_agent": str(r.target),
+                "at": str(r.proposed_at),
+                "rationale": str(r.rationale or ""),
+                "summary_of_changes": str(r.edit_text or ""),
+                "prompt": prompt,
+                "outcome": "promoted"
+                if g is not None and bool(g.promoted)
+                else ("rejected" if g is not None else "not yet gated"),
+                "verdict": str(g.reason) if g is not None else "",
+                "accuracy_delta": delta,
+                "cluster_p_one_sided": None
+                if g is None or g.p_value is None
+                else float(g.p_value),
+                "fixed": None if g is None else int(g.fixed),
+                "broken": None if g is None else int(g.broken),
+                "broken_cases": broken_cases,
             }
         )
         if len(out) >= limit:
@@ -216,6 +298,9 @@ def diagnoses_for_agent(
     want = _agent_prompt_hash(version, agent)
     if want is None:
         return []
+    from_ledger = _diagnoses_from_ledger(agent, want, limit=limit)
+    if from_ledger is not None:
+        return from_ledger
     try:
         client = _client()
         runs = _runs(client, experiment, "diagnose", limit=limit_runs)
@@ -258,6 +343,88 @@ def diagnoses_for_agent(
             )
             if len(out) >= limit:
                 return out
+    return out
+
+
+def _diagnoses_from_ledger(
+    agent: str, want: str, *, limit: int
+) -> list[dict[str, Any]] | None:
+    """`diagnoses_for_agent` off the diagnoses ledger; None when it is empty.
+
+    Each ledger row records the hash of the prompt its *attributed* agent was
+    running, so the filter is one equality rather than a resolve per run.
+    """
+    from convfinqa.evalloop import ledgers
+
+    try:
+        frame = ledgers.load("diagnoses", runtime="multi_agent")
+    except Exception:  # noqa: BLE001
+        return None
+    if frame.empty:
+        return None
+    hit = frame[(frame["derived_agent"] == agent) & (frame["prompt_hash"] == want)]
+    hit = hit.sort_values("diagnosed_at", ascending=False)
+    return [
+        {
+            "report_id": r.report_id,
+            "turn_index": r.turn_index,
+            "version": r.version,
+            "failure_mode": r.label,
+            "what_went_wrong": r.what_went_wrong,
+            "attribution_reason": r.attribution_reason or "",
+            "proposed_rule": r.fix_hint,
+            "gold_suspect": bool(r.gold_suspect),
+        }
+        for r in hit.head(limit).itertuples()
+    ]
+
+
+def _fault_history_from_ledger(
+    want: dict[str, str | None], *, exclude_run_id: str | None
+) -> dict[str, dict[str, Any]] | None:
+    """`fault_history` off the diagnoses ledger; None when it is empty.
+
+    One diagnose pass is one group — keyed on its run id, or on
+    (version, diagnosed_at) for backfilled rows that predate run ids — and the
+    denominator is that pass's *attributed* cases, exactly as the MLflow path
+    counts `n_attributed`.
+    """
+    from convfinqa.evalloop import ledgers
+    from convfinqa.evalloop.teacher import AGENTS
+
+    try:
+        frame = ledgers.load("diagnoses", runtime="multi_agent")
+    except Exception:  # noqa: BLE001
+        return None
+    if frame.empty:
+        return None
+    out: dict[str, dict[str, Any]] = {
+        a: {"faults": 0, "cases": 0, "n_runs": 0, "versions": []} for a in AGENTS
+    }
+    seen_hash: dict[str, dict[str, str | None]] = {}
+    key = frame["diagnosis_run_id"].where(
+        frame["diagnosis_run_id"].astype(bool),
+        frame["version"].astype(str) + "@" + frame["diagnosed_at"].astype(str),
+    )
+    for group_key, rows in frame.groupby(key, sort=True):
+        if exclude_run_id and str(group_key) == exclude_run_id:
+            continue
+        version = str(rows["version"].iloc[0])
+        attributed = rows[rows["derived_agent"].isin(AGENTS)]
+        n = len(attributed)
+        if not version or not n:
+            continue
+        if version not in seen_hash:
+            seen_hash[version] = {a: _agent_prompt_hash(version, a) for a in AGENTS}
+        for agent in AGENTS:
+            if want[agent] is None or seen_hash[version][agent] != want[agent]:
+                continue
+            out[agent]["faults"] += int((attributed["derived_agent"] == agent).sum())
+            out[agent]["cases"] += n
+            out[agent]["n_runs"] += 1
+            out[agent]["versions"].append(version)
+    for agent in AGENTS:
+        _score(out[agent])
     return out
 
 
@@ -390,6 +557,9 @@ def fault_history(
     from convfinqa.evalloop.teacher import AGENTS
 
     want = {a: _agent_prompt_hash(base_version, a) for a in AGENTS}
+    from_ledger = _fault_history_from_ledger(want, exclude_run_id=exclude_run_id)
+    if from_ledger is not None:
+        return from_ledger
     try:
         client = _client()
         runs = _runs(client, experiment, "diagnose", limit=limit_runs)

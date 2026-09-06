@@ -9,6 +9,7 @@ per-version results a visitor would otherwise have to take on trust.
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
@@ -270,6 +271,98 @@ def _dataset_rows(split: str) -> list[DatasetRow]:
     return rows
 
 
+def _experiment(
+    campaign: str, row: dict[str, Any], runtime: str = "pipeline"
+) -> CampaignExperiment:
+    """One story experiment row as the response model, either arm.
+
+    The two arms record the same verdict fields and differ only in what a target
+    is: a pipeline experiment names the one subagent it rewrote, an SDK
+    experiment names the failure class it addressed and carries the tagged edits
+    it made inside the single prompt.
+    """
+    ci = row.get("delta_ci") or [None, None]
+    return CampaignExperiment(
+        label=row.get("label") or row.get("candidate_version", ""),
+        campaign=campaign,
+        target_agent=row.get("target_agent", ""),
+        target_class=row.get("target_class", "") or "",
+        runtime=row.get("runtime", runtime) or runtime,
+        edits=list(row.get("edits") or []),
+        baseline_version=row.get("baseline_version", ""),
+        candidate_version=row.get("candidate_version", ""),
+        promoted=bool(row.get("promoted")),
+        at=row.get("at"),
+        accuracy_delta=row.get("accuracy_delta"),
+        cluster_p_one_sided=row.get("cluster_p_one_sided"),
+        delta_ci_lo=ci[0],
+        delta_ci_hi=ci[1],
+        n_compared=row.get("n_compared"),
+        fixed=row.get("fixed"),
+        broken=row.get("broken"),
+        accuracy_baseline=row.get("accuracy_baseline"),
+        accuracy_candidate=row.get("accuracy_candidate"),
+        panel_baseline=row.get("panel_baseline") or {},
+        panel_candidate=row.get("panel_candidate") or {},
+        summary_of_changes=row.get("summary_of_changes", "") or "",
+        rationale=row.get("rationale", "") or "",
+        diff=row.get("diff", "") or "",
+    )
+
+
+def _summary(
+    campaign: str, rows: list[dict[str, Any]], runtime: str
+) -> CampaignSummary:
+    """A campaign's counts, against the cap for *its own* runtime.
+
+    The cap is not 5 everywhere: the SDK arm's is 2, and computing `n_remaining`
+    off the pipeline's number reported a finished SDK campaign as having three
+    experiments to go.
+    """
+    from convfinqa.evalloop.campaign import max_experiments
+
+    cap = max_experiments(runtime)
+    return CampaignSummary(
+        name=campaign,
+        n_experiments=len(rows),
+        n_promoted=sum(1 for r in rows if r.get("promoted")),
+        n_remaining=max(0, cap - len(rows)),
+        complete=len(rows) >= cap,
+        cap=cap,
+        runtime=runtime,
+    )
+
+
+def _with_model_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Each model row of the sdk model comparison with its program accuracy,
+    derived from its committed CSV the same way the arms' are."""
+    from convfinqa.evalloop.story import with_model_program_accuracy
+
+    try:
+        return with_model_program_accuracy(comparison)
+    except Exception:  # noqa: BLE001 - the record beats a derived figure
+        return comparison
+
+
+def _with_program_accuracy(
+    comparison: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Add each arm's program accuracy, read from its committed predictions CSV.
+
+    Delegates to `evalloop.story.with_program_accuracy` so the route and the
+    published page derive this figure through one implementation and cannot
+    drift from each other.
+    """
+    from convfinqa.evalloop.story import with_program_accuracy
+
+    try:
+        return with_program_accuracy(comparison)
+    except Exception:  # noqa: BLE001 - a bad CSV must not 500 a read route
+        return comparison
+
+
 @router.get("/campaigns")
 async def get_campaigns(
     campaign: str = Query("", description="Filter to one campaign name"),
@@ -309,43 +402,17 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         if campaign and name != campaign:
             continue
         rows = entry.get("experiments", [])
-        for row in rows:
-            ci = row.get("delta_ci") or [None, None]
-            experiments.append(
-                CampaignExperiment(
-                    label=row.get("label") or row.get("candidate_version", ""),
-                    campaign=name,
-                    target_agent=row.get("target_agent", ""),
-                    baseline_version=row.get("baseline_version", ""),
-                    candidate_version=row.get("candidate_version", ""),
-                    promoted=bool(row.get("promoted")),
-                    at=row.get("at"),
-                    accuracy_delta=row.get("accuracy_delta"),
-                    cluster_p_one_sided=row.get("cluster_p_one_sided"),
-                    delta_ci_lo=ci[0],
-                    delta_ci_hi=ci[1],
-                    n_compared=row.get("n_compared"),
-                    fixed=row.get("fixed"),
-                    broken=row.get("broken"),
-                    accuracy_baseline=row.get("accuracy_baseline"),
-                    accuracy_candidate=row.get("accuracy_candidate"),
-                    panel_baseline=row.get("panel_baseline") or {},
-                    panel_candidate=row.get("panel_candidate") or {},
-                    summary_of_changes=row.get("summary_of_changes", "") or "",
-                    rationale=row.get("rationale", "") or "",
-                    diff=row.get("diff", "") or "",
-                )
-            )
-        n_promoted = sum(1 for r in rows if r.get("promoted"))
-        summaries.append(
-            CampaignSummary(
-                name=name,
-                n_experiments=len(rows),
-                n_promoted=n_promoted,
-                n_remaining=max(0, 5 - len(rows)),
-                complete=len(rows) >= 5,
-            )
-        )
+        experiments.extend(_experiment(name, row) for row in rows)
+        summaries.append(_summary(name, rows, "pipeline"))
+    sdk_experiments: list[CampaignExperiment] = []
+    sdk_summaries: list[CampaignSummary] = []
+    for entry in data.get("sdk_campaigns", []):
+        name = entry["name"]
+        if campaign and name != campaign:
+            continue
+        rows = entry.get("experiments", [])
+        sdk_experiments.extend(_experiment(name, row, "agent_sdk") for row in rows)
+        sdk_summaries.append(_summary(name, rows, "agent_sdk"))
     return CampaignsResponse(
         champion=data.get("champion"),
         champion_accuracy=data.get("champion_accuracy"),
@@ -355,6 +422,13 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         split=data.get("split") or {},
         campaigns=summaries,
         experiments=experiments,
+        sdk_champion=data.get("sdk_champion"),
+        runtime_comparison=_with_program_accuracy(data.get("runtime_comparison")),
+        sdk_model_comparison=_with_model_program_accuracy(
+            data.get("sdk_model_comparison")
+        ),
+        sdk_campaigns=sdk_summaries,
+        sdk_experiments=sdk_experiments,
         champion_track=[
             ChampionPoint(
                 **{k: v for k, v in p.items() if k in ChampionPoint.model_fields}

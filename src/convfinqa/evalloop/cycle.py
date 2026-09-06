@@ -39,6 +39,20 @@ def next_version(base: str) -> str:
     from convfinqa.config import REPO_ROOT
 
     prompts_dir = REPO_ROOT / "src" / "convfinqa" / "prompts"
+    sdk = re.match(r"sdk_v(\d+)$", base)
+    if sdk:
+        # The single-session lineage: `sdk_vN` → `sdk_v(N+1)`, skipping any
+        # module already on disk. Its own namespace, so it never collides with
+        # — and is never handed out next to — a pipeline `vN`.
+        used_sdk = {
+            int(m.group(1))
+            for path in prompts_dir.glob("sdk_v*.py")
+            if (m := re.match(r"sdk_v(\d+)$", path.stem))
+        }
+        n = int(sdk.group(1)) + 1
+        while n in used_sdk:
+            n += 1
+        return f"sdk_v{n}"
     # Compare on the numeric prefix, not the whole stem: `v3_1` exists, so `v3`
     # is taken even though no file is named that. Handing out `v3` next to
     # `v3_1` would make two different bundles read like variants of each other
@@ -66,19 +80,46 @@ async def run_cycle(
     concurrency: int = 8,
     promote: bool = True,
     baseline_gate_csv: str | None = None,
+    runtime: str = "pipeline",
 ) -> dict[str, Any]:
-    """Run one full experiment. Returns everything it did, in order."""
+    """Run one full experiment. Returns everything it did, in order.
+
+    `runtime` picks the arm: ``pipeline`` (below, unchanged) or ``agent_sdk``
+    (`run_sdk_cycle`) — the same six steps, with the differences §05 of the
+    s10 plan lists: the target is a failure class, the rewrite may touch
+    several areas of the one prompt, the gate judges overall accuracy, and
+    the promotion moves `sdk_champion`.
+    """
+    if runtime == "agent_sdk":
+        return await run_sdk_cycle(
+            campaign=campaign,
+            baseline_version=baseline_version,
+            new_version=new_version,
+            target=target,
+            train_reports=train_reports,
+            train_seed=train_seed,
+            concurrency=concurrency,
+            promote=promote,
+            baseline_gate_csv=baseline_gate_csv,
+        )
+    if runtime != "pipeline":
+        raise SystemExit(f"unknown runtime {runtime!r}; expected pipeline or agent_sdk")
     from convfinqa.evalloop import campaign as camp
     from convfinqa.evalloop import ledger, teacher
     from convfinqa.evalloop.runner import run_split
     from convfinqa.tracking import registry
 
-    past = camp.history(campaign)
+    past = camp.history(campaign, runtime="pipeline")
     camp.check_capacity(campaign, past)
     label = f"{campaign}-e{len(past) + 1:02d}"
     baseline = baseline_version or registry.champion()
     if not baseline:
         raise SystemExit("no champion registered — nothing to challenge")
+    if registry.is_sdk_version(baseline):
+        raise SystemExit(
+            f"{baseline!r} is a single-session prompt — run it with "
+            "`cycle --runtime agent_sdk`"
+        )
     seed = train_seed if train_seed is not None else 2026 + len(past)
     steps: dict[str, Any] = {"campaign": campaign, "experiment": label}
     print(f"\n=== {label}: challenging {baseline} ===")  # noqa: T201
@@ -129,6 +170,7 @@ async def run_cycle(
         target=chosen,
         campaign=campaign,
         label=label,
+        pooled=pooled,
     )
     steps["proposal"] = proposal
 
@@ -159,8 +201,25 @@ async def run_cycle(
         baseline_version=baseline,
         candidate_version=challenger,
     )
+    # The gates ledger row is written here, before the promotion below is
+    # applied, so it is told what the champion is about to be rather than
+    # reading the registry too early. A rejection extends the target's streak.
+    will_promote = bool(
+        promote and verdict["promotable"] and verdict["evidence_split"] == "test"
+    )
+    streak = 0
+    for past_exp in reversed([e for e in past if e["target_agent"] == chosen]):
+        if past_exp["promoted"]:
+            break
+        streak += 1
     verdict["gate_run_id"] = teacher.log_gate_verdict(
-        verdict, comparison=comparison, campaign=campaign, label=label
+        verdict,
+        comparison=comparison,
+        campaign=campaign,
+        label=label,
+        rewrite_id=proposal.get("rewrite_id"),
+        consecutive_rejections=0 if verdict["promotable"] else streak + 1,
+        champion_after=challenger if will_promote else baseline,
     )
     steps["verdict"] = verdict
     print(f"  {verdict['reason']}")  # noqa: T201
@@ -189,3 +248,198 @@ async def run_cycle(
     steps["record"] = str(out_dir)
     print(json.dumps(camp.summarise(campaign), indent=2, default=str))  # noqa: T201
     return steps
+
+
+def _sdk_teacher() -> Any:
+    """`evalloop.sdk_teacher`, imported when a cycle needs it and not before."""
+    import importlib
+
+    return importlib.import_module("convfinqa.evalloop.sdk_teacher")
+
+
+async def run_sdk_cycle(
+    *,
+    campaign: str,
+    baseline_version: str | None = None,
+    new_version: str | None = None,
+    target: str | None = None,
+    train_reports: int = 100,
+    train_seed: int | None = None,
+    concurrency: int = 8,
+    promote: bool = True,
+    baseline_gate_csv: str | None = None,
+) -> dict[str, Any]:
+    """One experiment on the single-session arm: draw → diagnose → rank → rewrite → gate → decide.
+
+    The order is the pipeline's; what each step reads and writes is the SDK
+    arm's. The baseline is `sdk_champion` (or the newest `sdk_vN` before any
+    is promoted); the diagnosis agent files each first-wrong case under a
+    failure class; the classes are ranked on the pooled Wilson bound over every
+    draw of this prompt (never a pipeline draw); the rewrite is one tagged edit
+    per class it addresses — or exactly one, once the lineage has been rejected
+    twice in a row; the gate is overall accuracy on the fixed split; promotion
+    moves `sdk_champion` and only ever on test evidence.
+    """
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.evalloop import campaign as camp
+    from convfinqa.evalloop import sdk_gate
+    from convfinqa.evalloop.runner import run_split
+    from convfinqa.tracking import registry
+
+    sdk_teacher = _sdk_teacher()
+    past = camp.history(campaign, runtime="agent_sdk")
+    camp.check_capacity(campaign, past, runtime="agent_sdk")
+    label = f"{campaign}-e{len(past) + 1:02d}"
+    baseline = baseline_version or registry.sdk_champion()
+    if not baseline:
+        try:
+            baseline = prompts_pkg.latest_sdk()
+        except RuntimeError:
+            raise SystemExit(
+                "no sdk_vN prompt exists yet — distil one first with "
+                "`convfinqa-evalloop sdk-distil --source-version v8 "
+                "--new-version sdk_v1`"
+            ) from None
+    if not prompts_pkg.is_sdk_version(baseline):
+        raise SystemExit(
+            f"{baseline!r} is not an sdk_vN prompt — `--runtime agent_sdk` "
+            "challenges the single-session lineage only"
+        )
+    seed = train_seed if train_seed is not None else 2026 + len(past)
+    single_area = camp.single_area_mode(past)
+    steps: dict[str, Any] = {
+        "campaign": campaign,
+        "experiment": label,
+        "runtime": "agent_sdk",
+        "single_area_mode": single_area,
+    }
+    print(f"\n=== {label} [agent_sdk]: challenging {baseline} ===")  # noqa: T201
+
+    # 1 — train pass, fresh draw, early stop
+    train = await run_split(
+        "train",
+        baseline,
+        n_reports=train_reports,
+        concurrency=concurrency,
+        train_seed=seed,
+        stop_at_first_wrong=True,
+        campaign=campaign,
+        label=label,
+        runtime="agent_sdk",
+    )
+    steps["train_run"] = train
+
+    # 2 — diagnose: one ledger row per first-wrong case, filed under a class
+    diagnosis = await sdk_teacher.diagnose_run(
+        train["csv"],
+        baseline,
+        concurrency=concurrency,
+        campaign=campaign,
+        label=label,
+    )
+    steps["diagnosis"] = diagnosis
+    if not diagnosis["n_cases"]:
+        raise SystemExit("the train pass produced no failures to learn from")
+
+    # 3 — rank the failure classes on the pooled evidence for this prompt.
+    # SDK draws pool with SDK draws of the same prompt hash and with nothing
+    # else; the ranking is the writer's evidence as well as the target's.
+    ranking = sdk_teacher.rank_classes(baseline)
+    chosen, why = camp.pick_target_class(ranking, requested=target)
+    steps["target"] = {"failure_class": chosen, "why": why, "ranking": ranking}
+    print(f"  target class: {chosen} — {why}")  # noqa: T201
+
+    # 4 — rewrite the one prompt: several tagged edits, or one after two
+    # consecutive rejections
+    challenger = new_version or next_version(baseline)
+    proposal = await sdk_teacher.propose_version(
+        diagnosis["diagnoses_path"],
+        base_version=baseline,
+        new_version=challenger,
+        campaign=campaign,
+        label=label,
+        pooled=ranking,
+        max_areas=1 if single_area else None,
+    )
+    steps["proposal"] = proposal
+
+    # 5 — gate passes: both arms on the fixed split, every question
+    if baseline_gate_csv:
+        base_csv = baseline_gate_csv
+        steps["baseline_gate_run"] = {"csv": base_csv, "reused": True}
+    else:
+        base_run = await run_split(
+            "test",
+            baseline,
+            concurrency=concurrency,
+            campaign=campaign,
+            label=label,
+            runtime="agent_sdk",
+        )
+        base_csv = base_run["csv"]
+        steps["baseline_gate_run"] = base_run
+    cand_run = await run_split(
+        "test",
+        challenger,
+        concurrency=concurrency,
+        campaign=campaign,
+        label=label,
+        runtime="agent_sdk",
+    )
+    steps["candidate_gate_run"] = cand_run
+
+    # 6 — decide on overall accuracy, record the verdict either way
+    verdict, comparison = sdk_gate.gate_overall(
+        base_csv,
+        cand_run["csv"],
+        baseline_version=baseline,
+        candidate_version=challenger,
+        target_class=chosen,
+    )
+    will_promote = bool(
+        promote and verdict["promotable"] and verdict["evidence_split"] == "test"
+    )
+    streak = camp.consecutive_rejections(past)
+    verdict["gate_run_id"] = sdk_gate.log_gate_verdict(
+        verdict,
+        comparison=comparison,
+        campaign=campaign,
+        label=label,
+        rewrite_id=proposal.get("rewrite_id"),
+        consecutive_rejections=0 if verdict["promotable"] else streak + 1,
+        champion_after=challenger if will_promote else baseline,
+    )
+    steps["verdict"] = verdict
+    print(f"  {verdict['reason']}")  # noqa: T201
+
+    if promote and verdict["promotable"]:
+        if verdict["evidence_split"] != "test":
+            raise SystemExit(
+                "promotion evidence must come from the gate split — this "
+                f"comparison ran on {verdict['evidence_split']!r}"
+            )
+        outcome = registry.promote_sdk(
+            challenger,
+            comparison=comparison,
+            evidence_split=str(verdict["evidence_split"]),
+            reason=f"{verdict['reason']} | {_edit_summary(proposal)}",
+        )
+        steps["promotion"] = outcome.as_dict()
+        print(f"  PROMOTED {challenger} to sdk_champion (was {baseline})")  # noqa: T201
+    else:
+        steps["promotion"] = {"promoted": False, "champion_retained": baseline}
+        print(f"  rejected — {baseline} retained as sdk_champion")  # noqa: T201
+
+    steps["finished_at"] = datetime.now().isoformat(timespec="seconds")
+    steps["record"] = str(train["csv"])
+    print(json.dumps(camp.summarise(campaign), indent=2, default=str))  # noqa: T201
+    return steps
+
+
+def _edit_summary(proposal: dict[str, Any]) -> str:
+    """One line naming the classes a multi-area rewrite addressed."""
+    edits = proposal.get("edits") or []
+    classes = [str(e.get("failure_class") or e.get("target") or "?") for e in edits]
+    if classes:
+        return f"{len(edits)} edit(s): {', '.join(classes)}"
+    return str(proposal.get("summary_of_changes") or "rewrite")

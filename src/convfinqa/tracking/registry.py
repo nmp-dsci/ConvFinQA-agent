@@ -40,6 +40,11 @@ REGISTRY_PATH = EVAL_ROOT / "registry.json"
 
 CHAMPION = "champion"
 CHALLENGER = "challenger"
+# The single-session runtime's own champion alias. It is a separate alias and
+# not a second value of `champion` because the two runtimes are not
+# interchangeable: serving reads `champion` to pick a four-agent bundle, and an
+# sdk_vN name there would be a version nothing can serve.
+SDK_CHAMPION = "sdk_champion"
 
 
 def _now() -> str:
@@ -56,6 +61,9 @@ class RegistryDoc:
     # Per-agent prompt lineages (M2.5): agent -> ordered entries
     # {seq, hash, first_seen_in, parent, source, registered_at, run_id}.
     agent_prompts: dict[str, list[dict[str, Any]]] | None = None
+    # The single-session prompt lineage: one ordered list of the same entry
+    # shape, seq ``s1, s2, …``, keyed on the whole prompt's hash.
+    sdk_prompts: list[dict[str, Any]] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form."""
@@ -65,6 +73,7 @@ class RegistryDoc:
             "aliases": self.aliases,
             "history": self.history,
             "agent_prompts": self.agent_prompts or {},
+            "sdk_prompts": self.sdk_prompts or [],
         }
 
 
@@ -79,6 +88,7 @@ def load(path: Path | None = None) -> RegistryDoc:
         aliases=dict(raw.get("aliases", {})),
         history=list(raw.get("history", [])),
         agent_prompts=dict(raw.get("agent_prompts", {})),
+        sdk_prompts=list(raw.get("sdk_prompts", [])),
     )
 
 
@@ -169,15 +179,33 @@ def champion(path: Path | None = None) -> str | None:
     return load(path).aliases.get(CHAMPION)
 
 
+def is_sdk_version(version: str) -> bool:
+    """Whether `version` belongs to the single-session (`sdk_vN`) lineage."""
+    import convfinqa.prompts as prompts_pkg
+
+    return prompts_pkg.is_sdk_version(version)
+
+
 def set_alias(alias: str, version: str, path: Path | None = None) -> RegistryDoc:
     """Point `alias` at `version` without recording a promotion event.
 
     Used for `challenger`, which moves freely. Champion moves go through
     `promote`, which requires a verdict.
+
+    The pipeline aliases and the single-session alias are kept apart in both
+    directions: an `sdk_vN` version can only take an `sdk_`-prefixed alias, and
+    a bundle version can never take one. Serving reads `champion` to build four
+    agents, so an sdk version there would be a champion nothing can serve — and
+    an sdk run must never be able to move the pipeline's alias by accident.
     """
     doc = load(path)
     if find_version(doc, version) is None:
         raise ValueError(f"Cannot alias unregistered version {version!r}")
+    if is_sdk_version(version) != alias.startswith("sdk_"):
+        raise ValueError(
+            f"alias {alias!r} and version {version!r} belong to different "
+            "runtimes: sdk_vN versions take sdk_-prefixed aliases only"
+        )
     doc.aliases[alias] = version
     save(doc, path)
     return doc
@@ -225,6 +253,12 @@ def promote(
     doc = load(path)
     if find_version(doc, version) is None:
         raise ValueError(f"Cannot promote unregistered version {version!r}")
+    if is_sdk_version(version):
+        raise ValueError(
+            f"{version!r} is a single-session prompt; `promote` moves the "
+            f"pipeline's champion, which cannot be an sdk version. Use "
+            f"set_alias({SDK_CHAMPION!r}, ...) for the sdk lineage."
+        )
 
     previous = doc.aliases.get(CHAMPION)
 
@@ -277,6 +311,103 @@ def promote(
         version=version,
         previous_champion=previous,
         reason=reason,
+        comparison=comparison.as_dict() if comparison else None,
+    )
+
+
+def sdk_champion(path: Path | None = None) -> str | None:
+    """The version currently aliased `sdk_champion`, if any."""
+    return load(path).aliases.get(SDK_CHAMPION)
+
+
+def promote_sdk(
+    version: str,
+    *,
+    comparison: ComparisonResult | None = None,
+    reason: str | None = None,
+    evidence_split: str = "test",
+    actor: str = "evalloop-cycle-sdk",
+    path: Path | None = None,
+) -> PromotionOutcome:
+    """Move ONLY the `sdk_champion` alias to `version`, and record why.
+
+    The single-session lineage has its own champion and its own promotion
+    path, kept apart from `promote` so that neither can move the other's
+    alias: serving reads `champion` to build four agents, and an `sdk_vN` there
+    would be a champion nothing can serve. Three refusals, all raised rather
+    than returned, because each is a caller bug and not a verdict:
+
+    - a version outside the `sdk_vN` lineage;
+    - evidence from any split but the gate split (`evidence_split != "test"`)
+      — train runs optimise, test runs promote, same as the pipeline arm;
+    - a comparison that fails the campaign rule (`promotable_significant`),
+      when one is given. The first sdk version becomes `sdk_champion` by
+      default, as the first bundle becomes `champion`.
+
+    The history event is ``promote_sdk`` with ``alias: sdk_champion`` so a
+    reader of `registry.json` can never mistake it for a pipeline promotion.
+    """
+    doc = load(path)
+    if not is_sdk_version(version):
+        raise ValueError(
+            f"{version!r} is not a single-session prompt version; promote_sdk "
+            f"moves {SDK_CHAMPION!r} only and takes sdk_vN versions only"
+        )
+    if find_version(doc, version) is None:
+        raise ValueError(f"Cannot promote unregistered version {version!r}")
+    if evidence_split != "test":
+        raise ValueError(
+            "promotion evidence must come from the unseen test split — this "
+            f"comparison ran on {evidence_split!r}. Train runs optimise; test "
+            "runs promote."
+        )
+    previous = doc.aliases.get(SDK_CHAMPION)
+    if previous == version:
+        return PromotionOutcome(
+            promoted=False,
+            version=version,
+            previous_champion=previous,
+            reason=f"{version} is already the {SDK_CHAMPION}",
+            comparison=comparison.as_dict() if comparison else None,
+        )
+    if previous is None and comparison is None:
+        reason = reason or f"first sdk version becomes {SDK_CHAMPION} by default"
+    elif comparison is not None and not comparison.promotable_significant:
+        return PromotionOutcome(
+            promoted=False,
+            version=version,
+            previous_champion=previous,
+            reason=f"campaign rule refused: {comparison.reason()}",
+            comparison=comparison.as_dict(),
+        )
+    elif comparison is None:
+        raise ValueError(
+            f"{SDK_CHAMPION} is {previous!r}; moving it needs a passing gate comparison"
+        )
+    else:
+        reason = reason or f"campaign rule passed: {comparison.reason()}"
+
+    doc.aliases[SDK_CHAMPION] = version
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "promote_sdk",
+            "alias": SDK_CHAMPION,
+            "version": version,
+            "previous_champion": previous,
+            "actor": actor,
+            "forced": False,
+            "reason": reason,
+            "evidence_split": evidence_split,
+            "comparison": comparison.as_dict() if comparison else None,
+        }
+    )
+    save(doc, path)
+    return PromotionOutcome(
+        promoted=True,
+        version=version,
+        previous_champion=previous,
+        reason=reason or "",
         comparison=comparison.as_dict() if comparison else None,
     )
 
