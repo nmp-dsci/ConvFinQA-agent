@@ -116,8 +116,9 @@ instrument-style admin section at `/admin`, all reading the same backend:
 | **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. |
 | **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
 | **`/admin/campaigns`** | Every campaign's experiments — target agent, promoted/rejected, p-value — same `evaluation/story.json` the published write-up reads. |
+| **`/admin/runtimes`** | The runtime decision: pipeline vs. the single-session Agent SDK, on the reference model and on the Haiku swap — same `evaluation/story.json` as the landing HUD and the overview's "Runtime decision" strip. |
 
-All eight admin pages are visible **read-only** in the public demo — that is
+All nine admin pages are visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
