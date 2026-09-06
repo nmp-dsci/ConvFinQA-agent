@@ -306,21 +306,61 @@ describe('the per-slice split', () => {
   });
 });
 
+const SWAP: SdkModelComparison = {
+  version: 'sdk_v1',
+  reference_model: 'claude-sonnet-5',
+  models: [
+    { ...SDK_ARM, model: 'claude-sonnet-5' },
+    {
+      ...SDK_ARM,
+      model: 'claude-haiku-4-5-20251001',
+      run_name: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
+      accuracy: 0.85,
+      by_turn_type: { number: 0.95, program: 0.8 },
+    },
+  ],
+  pairs: [
+    {
+      baseline_model: 'claude-sonnet-5',
+      candidate_model: 'claude-haiku-4-5-20251001',
+      baseline_run: SDK_ARM.run_name,
+      candidate_run: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
+      n_compared: 349,
+      delta_pp: -5.5,
+      p_value: 0.003,
+      ci: [-0.09, -0.02],
+      fixed: 5,
+      broken: 24,
+      significant: true,
+      by_turn_type: null,
+    },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // The progression
 // ---------------------------------------------------------------------------
 
 describe('the progression', () => {
   it('reads the pipeline ends off the champion track and the SDK stages off the arm', () => {
-    const stages = progression(TRACK, comparison(), [BASELINE_EXPERIMENT, experiment()]);
+    const stages = progression(TRACK, comparison(), [BASELINE_EXPERIMENT, experiment()], SWAP);
     expect(stages.map((s) => s.key)).toEqual([
       'pipeline_raw',
       'pipeline_optimised',
       'sdk_distilled',
       'sdk_optimised',
+      'sdk_model_swap',
     ]);
-    expect(stages.map((s) => s.version)).toEqual(['v2', 'v8', 'sdk_v1', 'sdk_v2']);
+    expect(stages.map((s) => s.version)).toEqual([
+      'v2',
+      'v8',
+      'sdk_v1',
+      'sdk_v2',
+      'sdk_v1 · haiku-4-5',
+    ]);
     expect(stages.every((s) => s.present)).toBe(true);
+    expect(stages[4].accuracy).toBe(0.85);
+    expect(stages[4].note).toMatch(/scoring pass/);
     // The cross-runtime read-out is not an optimisation attempt, so the last
     // stage must be the rejected rewrite rather than the distillation again.
     expect(stages[3].promoted).toBe(false);
@@ -335,17 +375,19 @@ describe('the progression', () => {
     ]);
     expect(stages[2].accuracy).toBeNull();
     expect(stages[3].note).toMatch(/no optimisation experiment/);
+    expect(stages[4].present).toBe(false);
+    expect(stages[4].note).toMatch(/one model only/);
   });
 });
 
 describe('the progression chart', () => {
   it('draws one series per present stage and no column for an absent one', () => {
-    const stages = progression(TRACK, comparison(), [BASELINE_EXPERIMENT, experiment()]);
+    const stages = progression(TRACK, comparison(), [BASELINE_EXPERIMENT, experiment()], SWAP);
     const html = renderToStaticMarkup(
       <ProgressionChart points={stages} pipelineBaseline={PIPELINE_ARM.accuracy} />,
     );
     for (const stage of stages) expect(html).toContain(`data-stage="${stage.key}"`);
-    expect(html.match(/data-present="true"/g) ?? []).toHaveLength(4);
+    expect(html.match(/data-present="true"/g) ?? []).toHaveLength(5);
     expect(html.match(/data-present="false"/g) ?? []).toHaveLength(0);
     // Both reference lines, and the published one labelled as published.
     expect(html).toContain('data-reference="human"');
@@ -362,7 +404,7 @@ describe('the progression chart', () => {
       <ProgressionChart points={stages} pipelineBaseline={PIPELINE_ARM.accuracy} />,
     );
     expect(html.match(/data-present="true"/g) ?? []).toHaveLength(2);
-    expect(html.match(/data-present="false"/g) ?? []).toHaveLength(2);
+    expect(html.match(/data-present="false"/g) ?? []).toHaveLength(3);
     expect(html).toMatch(/not yet run/);
   });
 
@@ -406,36 +448,7 @@ describe('formatters keep absence and smallness distinguishable', () => {
 // ---------------------------------------------------------------------------
 
 describe('the model swap', () => {
-  const swap: SdkModelComparison = {
-    version: 'sdk_v1',
-    reference_model: 'claude-sonnet-5',
-    models: [
-      { ...SDK_ARM, model: 'claude-sonnet-5' },
-      {
-        ...SDK_ARM,
-        model: 'claude-haiku-4-5-20251001',
-        run_name: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
-        accuracy: 0.85,
-        by_turn_type: { number: 0.95, program: 0.8 },
-      },
-    ],
-    pairs: [
-      {
-        baseline_model: 'claude-sonnet-5',
-        candidate_model: 'claude-haiku-4-5-20251001',
-        baseline_run: SDK_ARM.run_name,
-        candidate_run: 'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5',
-        n_compared: 349,
-        delta_pp: -5.5,
-        p_value: 0.003,
-        ci: [-0.09, -0.02],
-        fixed: 5,
-        broken: 24,
-        significant: true,
-        by_turn_type: null,
-      },
-    ],
-  };
+  const swap = SWAP;
 
   it('shortens a model id the way the run name does', () => {
     expect(modelShortName('claude-sonnet-5')).toBe('sonnet-5');

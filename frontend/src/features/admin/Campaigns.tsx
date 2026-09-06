@@ -231,7 +231,7 @@ export default function Campaigns() {
     <AdminPage
       eyebrow="optimisation"
       title="Campaigns"
-      sub="Each experiment rewrites exactly one subagent's prompt; a paired significance test on the fixed gate split decides whether it becomes the champion."
+      sub="Each experiment rewrites exactly one subagent's prompt; a paired significance test on the fixed gate split decides whether it becomes the champion. The single-session challenger that runs the same gate — and the recommendation to move the runtime — is on Runtimes."
       testId="campaigns"
     >
       <Panel

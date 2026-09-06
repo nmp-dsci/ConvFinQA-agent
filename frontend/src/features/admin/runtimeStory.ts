@@ -301,7 +301,8 @@ export type StageKey =
   | 'pipeline_raw'
   | 'pipeline_optimised'
   | 'sdk_distilled'
-  | 'sdk_optimised';
+  | 'sdk_optimised'
+  | 'sdk_model_swap';
 
 export interface ProgressionPoint {
   key: StageKey;
@@ -323,18 +324,22 @@ export function isBaselineExperiment(exp: CampaignExperiment): boolean {
 }
 
 /**
- * The four stages of the story, in the order it happened.
+ * The five stages of the story, in the order it happened.
  *
  * The pipeline points come from `champion_track` — first entry is the raw
- * multi-agent system, last is what the campaigns optimised it into — and the SDK
- * points from the comparison arm and the SDK campaign's own experiments. A stage
- * with nothing behind it is returned `present: false` with the reason, so the
- * chart can draw an empty slot rather than silently having three columns.
+ * multi-agent system, last is what the campaigns optimised it into — the SDK
+ * points from the comparison arm and the SDK campaign's own experiments, and
+ * the last point from the model swap: the same distilled prompt scored on a
+ * second model, which is the one measurement that separates the model from the
+ * architecture. A stage with nothing behind it is returned `present: false`
+ * with the reason, so the chart can draw an empty slot rather than silently
+ * having fewer columns.
  */
 export function progression(
   track: ChampionPoint[] | undefined,
   comparison: RuntimeComparison | null | undefined,
   sdkExperiments: CampaignExperiment[] | undefined,
+  modelComparison?: SdkModelComparison | null,
 ): ProgressionPoint[] {
   const points = (track ?? []).filter((p) => numberOrNull(p.accuracy) !== null);
   const raw = points[0] ?? null;
@@ -352,6 +357,9 @@ export function progression(
   const sdk = comparison?.agent_sdk ?? null;
   const attempts = (sdkExperiments ?? []).filter((e) => !isBaselineExperiment(e));
   const attempt = attempts.length ? attempts[attempts.length - 1] : null;
+  // The first model that is not the reference: a scoring pass of the same
+  // prompt, so its accuracy sits on the same axis as the distilled point.
+  const swap = modelRows(modelComparison).find((r) => !r.isReference) ?? null;
 
   return [
     {
@@ -392,7 +400,8 @@ export function progression(
     },
     {
       key: 'sdk_optimised',
-      stage: 'SDK, optimisation attempt',
+      // Short enough for one of five 140px chart slots at 10px mono.
+      stage: 'SDK, loop attempt',
       runtime: 'agent_sdk',
       version: attempt?.candidate_version ?? null,
       accuracy: numberOrNull(attempt?.accuracy_candidate),
@@ -403,6 +412,18 @@ export function progression(
           : 'the loop tried and was rejected by the gate — the distilled prompt stands'
         : 'no optimisation experiment has been gated on this arm',
       promoted: attempt ? attempt.promoted : null,
+    },
+    {
+      key: 'sdk_model_swap',
+      stage: swap ? `SDK on ${swap.shortName}` : 'SDK, model swap',
+      runtime: 'agent_sdk',
+      version: swap ? `${sdk?.version ?? 'sdk'} · ${swap.shortName}` : null,
+      accuracy: swap?.accuracy ?? null,
+      present: Boolean(swap && swap.accuracy !== null),
+      note: swap
+        ? `the distilled prompt scored on ${swap.model} with nothing else changed — a scoring pass, not an experiment`
+        : 'the sdk champion has been scored on one model only',
+      promoted: null,
     },
   ];
 }

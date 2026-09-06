@@ -117,6 +117,8 @@ export interface RuntimeArm {
    * is absent rather than zero when that CSV is not on disk.
    */
   program_accuracy?: number | null;
+  /** The sdk arm's model id (`sdk_model` param); absent on the pipeline arm. */
+  model?: string | null;
 }
 
 /** One turn-type slice of the cross-runtime gate. */

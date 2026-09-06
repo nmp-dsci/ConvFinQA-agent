@@ -3,8 +3,15 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import { HudTile } from '../landing/HudTile';
-import { NO_VALUE, formatFilingId, formatLatency, formatPercent, formatUsd } from '../landing/format';
-import { listTraces } from './api';
+import {
+  NO_VALUE,
+  formatFilingId,
+  formatLatency,
+  formatPercent,
+  formatPointsDelta,
+  formatUsd,
+} from '../landing/format';
+import { getCampaigns, listTraces } from './api';
 import { CHAMPION_ROW, InstrumentTable } from './InstrumentTable';
 import {
   PROG_ACC_CAVEAT,
@@ -23,6 +30,7 @@ import {
   LampRow,
   LoadingRows,
   Panel,
+  StatCells,
   TwoUp,
   Verdict,
 } from './ui';
@@ -131,6 +139,49 @@ export default function AdminOverview() {
     data: undefined,
     isLoading: false,
   };
+
+  // The same key the Campaigns and Runtimes pages use, so one fetch serves all
+  // three and the overview cannot show a different champion from them.
+  const story = useQuery({
+    queryKey: ['eval-campaigns'],
+    queryFn: () => getCampaigns(),
+    staleTime: 60_000,
+  });
+  const runtime = story.data?.runtime_comparison ?? null;
+  const runtimeGate = runtime?.gate ?? null;
+  const swap = story.data?.sdk_model_comparison ?? null;
+  const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
+  const swapPair = swap?.pairs?.[0] ?? null;
+  const track = story.data?.champion_track ?? [];
+  const trackFirst = track[0] ?? null;
+  const short = (model: string | null | undefined) =>
+    (model ?? '').replace(/^claude-/, '').replace(/-\d{8}$/, '');
+  const runtimeCells = [
+    {
+      label: `${trackFirst?.version ?? 'pipeline'} · raw pipeline`,
+      value: formatPercent(trackFirst?.accuracy),
+      reason: 'no champion track recorded',
+    },
+    {
+      label: `${story.data?.champion ?? 'champion'} · optimised pipeline`,
+      value: formatPercent(runtime?.pipeline?.accuracy ?? story.data?.champion_accuracy),
+      reason: 'the champion has no gate run',
+    },
+    {
+      label: `${runtime?.agent_sdk?.version ?? 'sdk'} · one session · ${short(runtime?.agent_sdk?.model) || 'claude'}`,
+      value: formatPercent(runtime?.agent_sdk?.accuracy),
+      reason: 'the single-session arm has not been run',
+      tone: (runtimeGate?.promoted ? 'good' : 'plain') as 'good' | 'plain',
+    },
+    {
+      label: `same prompt · ${short(swapArm?.model) || 'second model'}`,
+      value: formatPercent(swapArm?.accuracy),
+      reason: 'the sdk champion has been scored on one model only',
+      tone: (swapPair?.significant && (swapPair?.delta_pp ?? 0) < 0 ? 'bad' : 'plain') as
+        | 'bad'
+        | 'plain',
+    },
+  ];
 
   const traces = useQuery({
     queryKey: ak.traceList('', '', '', 8),
@@ -459,6 +510,27 @@ export default function AdminOverview() {
 
       <p className="type-meta text-faint">{sourceNote(source, metricsQuery.data?.generated_at)}</p>
 
+      <Panel
+        testId="overview-runtimes"
+        title="Runtime decision"
+        endpoint="/eval/campaigns"
+        to="/admin/runtimes"
+        note="the champion track, the single-session challenger and the same prompt on a second model — one gate split, one evaluator"
+      >
+        {story.isLoading ? (
+          <LoadingRows rows={1} />
+        ) : (
+          <>
+            <StatCells columns={4} cells={runtimeCells} />
+            <p className="type-meta mt-2 text-faint">
+              {runtimeGate?.promoted
+                ? `Paired on the gate split: ${formatPointsDelta((runtimeGate.delta_pp ?? 0) / 100)} for the single session over ${story.data?.champion ?? 'the champion'}, one-sided clustered p ${runtimeGate.p_value ?? '—'} — the recommendation on /admin/runtimes is to move the runtime. Serving still runs the four-agent champion.`
+                : 'No cross-runtime gate recorded yet — the single-session arm appears here once it has been run and gated on the gate split.'}
+            </p>
+          </>
+        )}
+      </Panel>
+
       {error ? <ErrorNote error={error} /> : null}
 
       <TwoUp>
@@ -486,6 +558,13 @@ export default function AdminOverview() {
                 emptyLabel="no version has a committed predictions CSV"
               />
               <Caveat>
+                These rows are the legacy 770-question scoring (v1–v3_1). Every version from v4 on
+                was promoted by the eval loop on the 349-question gate split and has no legacy CSV,
+                so the current champion is not a row here — its evidence is on{' '}
+                <Link to="/admin/campaigns" className="text-amber underline-offset-2 hover:underline">
+                  Campaigns
+                </Link>{' '}
+                and the runtime decision above.{' '}
                 <strong className="text-muted">never-seen</strong> and{' '}
                 <strong className="text-muted">overall</strong> are two populations, never averaged:
                 overall mixes the 461 questions the optimizer trained on with the 309 it never saw.{' '}

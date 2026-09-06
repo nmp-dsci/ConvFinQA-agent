@@ -455,6 +455,7 @@ const STAGE_FILL: Record<ProgressionPoint['key'], string> = {
   pipeline_optimised: 'var(--amber)',
   sdk_distilled: 'var(--info)',
   sdk_optimised: 'var(--violet)',
+  sdk_model_swap: 'var(--good)',
 };
 
 /**
@@ -545,8 +546,8 @@ export function ProgressionChart({
         aria-labelledby="progression-title progression-desc"
       >
         <title id="progression-title">
-          Accuracy across four stages: multi-agent raw, multi-agent optimised, single-session SDK
-          distilled, and the SDK optimisation attempt.
+          Accuracy across five stages: multi-agent raw, multi-agent optimised, single-session SDK
+          distilled, the SDK optimisation attempt, and the same SDK prompt on a second model.
         </title>
         <desc id="progression-desc">
           {drawable
@@ -583,35 +584,45 @@ export function ProgressionChart({
           </g>
         ))}
 
-        {references.map((r) => (
-          <g key={r.key} data-reference={r.key}>
-            <line
-              x1={left}
-              y1={yOf(r.value)}
-              x2={w - right + 6}
-              y2={yOf(r.value)}
-              stroke={r.line}
-              strokeWidth={1.4}
-              strokeDasharray="6 4"
-            />
-            <text
-              x={w - right + 12}
-              y={yOf(r.value) + 2}
-              fill={r.text}
-              className="font-mono text-[10px]"
-            >
-              {r.label}
-            </text>
-            <text
-              x={w - right + 12}
-              y={yOf(r.value) + 14}
-              fill="var(--faint)"
-              className="font-mono text-[9px]"
-            >
-              {r.sub}
-            </text>
-          </g>
-        ))}
+        {/* Two reference lines can sit within a couple of points of each other
+            (human 89% over champion 82%), which is closer than two lines of
+            label. The highest line labels itself above the line, every other
+            one below, so the captions never cross. */}
+        {references.map((r) => {
+          const highest = references.every((o) => o.value <= r.value);
+          const y = yOf(r.value);
+          const labelY = highest ? y - 14 : y + 12;
+          const subY = highest ? y - 4 : y + 23;
+          return (
+            <g key={r.key} data-reference={r.key}>
+              <line
+                x1={left}
+                y1={y}
+                x2={w - right + 6}
+                y2={y}
+                stroke={r.line}
+                strokeWidth={1.4}
+                strokeDasharray="6 4"
+              />
+              <text
+                x={w - right + 12}
+                y={labelY}
+                fill={r.text}
+                className="font-mono text-[10px]"
+              >
+                {r.label}
+              </text>
+              <text
+                x={w - right + 12}
+                y={subY}
+                fill="var(--faint)"
+                className="font-mono text-[9px]"
+              >
+                {r.sub}
+              </text>
+            </g>
+          );
+        })}
 
         {/* The stepped line over the bar tops: the progression as one movement,
             broken wherever a stage is absent rather than bridged across it. */}
@@ -724,7 +735,7 @@ export function ProgressionChart({
         {/* Which runtime each pair belongs to, bracketed under the labels. */}
         {[
           { label: ARMS.pipeline.title, from: 0, to: 1 },
-          { label: ARMS.agent_sdk.title, from: 2, to: 3 },
+          { label: ARMS.agent_sdk.title, from: 2, to: points.length - 1 },
         ].map((group) => {
           const x1 = left + slot * group.from + 6;
           const x2 = left + slot * (group.to + 1) - 6;
@@ -860,7 +871,12 @@ export default function Runtimes() {
   const rows = sliceRows(comparison?.gate);
   const swapRows = modelRows(data?.sdk_model_comparison);
   const sdkExperiments = data?.sdk_experiments ?? [];
-  const stages = progression(data?.champion_track, comparison, sdkExperiments);
+  const stages = progression(
+    data?.champion_track,
+    comparison,
+    sdkExperiments,
+    data?.sdk_model_comparison,
+  );
   const campaign = sdkCampaign(data?.sdk_campaigns);
   const sdkArm = comparison?.agent_sdk ?? null;
   const nGateReads =
@@ -955,7 +971,7 @@ export default function Runtimes() {
       <Panel
         title="the progression"
         endpoint="/eval/campaigns"
-        note="Four stages, in the order they happened. The pipeline points are the champion track's first and last; the SDK points are the distilled prompt and the loop's attempt on it."
+        note="Five stages, in the order they happened. The pipeline points are the champion track's first and last; the SDK points are the distilled prompt, the loop's attempt on it, and the same prompt scored on a second model."
       >
         <ProgressionChart points={stages} pipelineBaseline={comparison?.pipeline?.accuracy ?? null} />
       </Panel>
@@ -1021,10 +1037,12 @@ export default function Runtimes() {
               <div className="mono-caps text-amber">model and architecture moved together</div>
               <p className="type-small mt-1 text-muted">
                 The pipeline arm is {ARMS.pipeline.title}; the SDK arm is {ARMS.agent_sdk.title}. Both
-                variables changed in the same step and the confound was never isolated — no
-                single-session run on the pipeline&rsquo;s model, and no four-agent run on the
-                SDK&rsquo;s. The measured delta is real; the attribution of it to &ldquo;one session
-                is better than four&rdquo; is not established.
+                variables changed in the same step.{' '}
+                {swapRows.length > 0
+                  ? 'The model swap above measures the session-side half — the same prompt on a second model — but no four-agent run on a Claude model exists, so the other half stays open.'
+                  : 'The confound was never isolated — no single-session run on the pipeline\u2019s model, and no four-agent run on the SDK\u2019s.'}{' '}
+                The measured delta is real; the attribution of it to &ldquo;one session is better
+                than four&rdquo; is not established.
               </p>
             </li>
             <li className="rounded-[4px] border border-amber-line px-2.5 py-2">
