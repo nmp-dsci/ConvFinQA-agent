@@ -354,6 +354,45 @@ def test_a_high_band_miss_breaks_the_target() -> None:
     assert judge.wilson_upper(0, 300) == pytest.approx(0.009, abs=0.001)
 
 
+def test_an_unscored_turn_is_neither_released_nor_withheld() -> None:
+    """A rate-limited call is no verdict, so it leaves both bands alone.
+
+    Scored closed to `low` instead, a spent subscription reads as a cautious
+    judge: the j2 calibrate pass of 2026-09-07 withheld 175 of its 304 turns
+    that way and reported a failure capture of 56.7% it had never earned.
+    """
+    df = _scores(
+        [("A", True, "high", 0.99), ("A", False, "low", 0.2),
+         ("B", False, "low", 0.1), ("B", True, "high", 0.9)]
+    )  # fmt: skip
+    df["unscored"] = False
+    spent = df.copy()
+    spent.loc[[2, 3], ["band", "p_correct", "unscored"]] = ["", None, True]
+    m = judge.selective_metrics(spent)
+    assert m["n"] == 2 and m["n_scored"] == 2 and m["n_unscored"] == 2
+    assert m["complete"] is False
+    # Only the two judged turns count, on both sides of every ratio.
+    assert m["n_wrong"] == 1 and m["coverage"] == 0.5
+    assert m["failure_capture"] == 1.0 and m["high_band_error"] == 0.0
+    # And a complete frame is unaffected by the column existing.
+    assert judge.selective_metrics(df)["n"] == 4
+    assert judge.selective_metrics(df)["complete"] is True
+
+
+def test_a_gate_refuses_a_scores_file_with_unjudged_turns(tmp_path: Path) -> None:
+    df = _scores([("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "low", 0.1)])
+    df["unscored"] = False
+    partial = df.copy()
+    partial.loc[[2], ["band", "p_correct", "unscored"]] = ["", None, True]
+    full, half = tmp_path / "full.csv", tmp_path / "half.csv"
+    df.to_csv(full, index=False)
+    partial.to_csv(half, index=False)
+    with pytest.raises(judge.IncompleteJudgeScoresError, match="1 of 3 turns were never judged"):
+        judge.gate_judges(full, half, baseline_version="judge_j1", candidate_version="judge_j2")
+    with pytest.raises(judge.IncompleteJudgeScoresError):
+        judge.gate_judges(half, full, baseline_version="judge_j1", candidate_version="judge_j2")
+
+
 def test_gate_promotes_more_coverage_inside_the_bound_and_no_fewer_catches(
     tmp_path: Path,
 ) -> None:
@@ -400,6 +439,13 @@ async def test_distil_writes_the_module_registers_the_lineage_and_promotes_the_f
 ) -> None:
     import convfinqa.prompts as prompts_pkg
     from convfinqa.tracking import registry
+
+    # "First" means first in this registry: the fixture copies the repo's own,
+    # which carries the real j1/j2 lineage once a judge has been distilled.
+    doc0 = registry.load()
+    doc0.judge_prompts.clear()
+    doc0.aliases.pop("judge_champion", None)
+    registry.save(doc0)
 
     fake_calls.replies["JudgePromptDraft"] = {
         "prompt": GOOD_PROMPT,
@@ -609,6 +655,13 @@ def test_the_judge_lineage_stays_apart_from_the_answering_ones(
     judge_module: str, registry_tmp: Path
 ) -> None:
     from convfinqa.tracking import prompt_ledger, registry
+
+    # The lineage is numbered from this registry, and the fixture copies the
+    # repo's own — clear it so the sequence under test starts where it says.
+    doc0 = registry.load()
+    doc0.judge_prompts.clear()
+    doc0.aliases.pop("judge_champion", None)
+    registry.save(doc0)
 
     assert prompt_ledger.resolve_judge(judge_module)["seq"] == "j?"
     entry = prompt_ledger.ensure_judge(judge_module, source="test")

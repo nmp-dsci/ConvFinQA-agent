@@ -263,7 +263,19 @@ one"). Everything lives in `evalloop/judge.py`; the invariants, all pinned by te
   target, coverage rises, failures caught do not fall. A judge is never promoted on the
   test split. The history event records the `runtime_version` it was calibrated to.
 - **A failed judge call fails closed** — `low` band, error in the record — in scoring
-  and in serving. A guard-rail that fails open is not one.
+  and in serving. A guard-rail that fails open is not one. **A rate-limited one is
+  unscored instead** (2026-09-08), the same rule the eval runner applies to a
+  rate-limited turn: a spent subscription is *no verdict*, not a cautious one. Failing
+  it closed made the j2 calibrate pass withhold 175 of its 304 turns and report a
+  failure capture of 56.7% it had never earned, and the gate decided on it. `score_split`
+  catches `TeacherRateLimitError`, writes `unscored=True` with no band, and
+  short-circuits the rest of the pass rather than paying wall clock for the same
+  refusal; `scored_only` is the door every consumer of `band` comes through, so an
+  unscored turn is absent from the numerator *and* the denominator; the run carries
+  `n_unscored`/`complete`, the tag `incomplete=true` and a loud closing line; and
+  `gate_judges` refuses such a CSV (`IncompleteJudgeScoresError`) naming the file and
+  the count, with no override. Serving still fails a rate-limited turn closed — a
+  served answer with no judge must be withheld.
 - **Serving** (`SERVING_RUNTIME=agent_sdk`, the default; `JUDGE_ENABLED`): one live
   `ClaudeSDKClient` per chat session (`serving/sdk_session.py`), closed on delete,
   eviction and shutdown; `serving/sdk_turn.py` emits the pipeline's stage frames from

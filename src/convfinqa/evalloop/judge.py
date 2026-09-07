@@ -835,9 +835,12 @@ def selective_metrics(
     recorded `p_correct` draws, for the case where the binary band proves too
     coarse.
     """
+    n_all = int(len(df))
+    df = scored_only(df)
     n = int(len(df))
+    n_unscored = n_all - n
     if n == 0:
-        return {"n": 0}
+        return {"n": 0, "n_unscored": n_unscored, "n_scored": 0, "complete": n_all == 0}
     correct = df["correct"].astype(bool)
     high = df["band"].astype(str) == "high"
     n_wrong = int((~correct).sum())
@@ -851,6 +854,9 @@ def selective_metrics(
     best = max(at_target, key=lambda pt: pt["coverage"]) if at_target else None
     return {
         "n": n,
+        "n_scored": n,
+        "n_unscored": n_unscored,
+        "complete": n_unscored == 0,
         "n_wrong": n_wrong,
         "n_reports": int(df["report_id"].nunique()) if "report_id" in df else None,
         "accuracy": float(correct.mean()),
@@ -945,7 +951,11 @@ DIAGNOSIS_COLUMNS: tuple[str, ...] = (
 
 
 def _misses(scores: pd.DataFrame) -> pd.DataFrame:
-    """The judge's misses: wrong answers banded high, right answers banded low."""
+    """The judge's misses: wrong answers banded high, right answers banded low.
+
+    Unscored turns carry no band, so they are no one's miss.
+    """
+    scores = scored_only(scores)
     correct = scores["correct"].astype(bool)
     high = scores["band"].astype(str) == "high"
     return scores[(high & ~correct) | (~high & correct)].copy()
@@ -1471,7 +1481,45 @@ SCORE_COLUMNS: tuple[str, ...] = (
     "input_tokens",
     "output_tokens",
     "cost_usd",
+    # Trailing and defaulted: a CSV written before this column loads as all-False.
+    "unscored",
 )
+
+
+class IncompleteJudgeScoresError(RuntimeError):
+    """A scores CSV holding turns the judge was never able to answer."""
+
+
+def scored_only(df: pd.DataFrame) -> pd.DataFrame:
+    """The rows the judge actually answered.
+
+    A rate-limited call is *no verdict* — the same rule the eval runner applies
+    to a rate-limited turn (`agent_sdk.RATE_LIMIT_MARKERS`). Failing such a row
+    closed to `low` would score a spent subscription as a cautious judge: the
+    j2 calibrate pass of 2026-09-07 withheld 175 of 304 turns that way and read
+    as a 57% failure-capture improvement. Every consumer of `band` reads this,
+    so an unscored turn is absent from the numerator *and* the denominator.
+    """
+    if "unscored" not in df.columns:
+        return df
+    return df[~df["unscored"].fillna(False).astype(bool)]
+
+
+def _unscored_row(base: dict[str, Any], refusal: str) -> dict[str, Any]:
+    """A turn the judge never answered: no band, no probability, and it says why."""
+    return {
+        **base,
+        "band": "",
+        "p_correct": None,
+        "reason": "",
+        "checks": "{}",
+        "error": f"rate_limited: {refusal}",
+        "latency_ms": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "cost_usd": None,
+        "unscored": True,
+    }
 
 
 async def score_split(
@@ -1491,6 +1539,7 @@ async def score_split(
     silently answered turn.
     """
     from convfinqa.evalloop import teacher
+    from convfinqa.evalloop.sdk import TeacherRateLimitError
     from convfinqa.llm import judge_model_name, sdk_model_name
     from convfinqa.tracking import mlflow_log, prompt_ledger
 
@@ -1535,6 +1584,9 @@ async def score_split(
     ) as rec:
         sem = asyncio.Semaphore(max(1, concurrency))
         rows = list(frame.iterrows())
+        # Once the subscription session is spent every remaining call returns the
+        # same refusal, so stop paying wall clock for them: record them unscored.
+        spent: list[str] = []
 
         async def one(
             order: int, row: pd.Series
@@ -1548,6 +1600,8 @@ async def score_split(
                 "pred_answer": str(row.pred_answer),
                 "gold_answer": str(row.gold_answer),
             }
+            if spent:
+                return (order, _unscored_row(base, spent[0]), {})
             async with sem:
                 with tracing.span(
                     f"judge {row.report_id} q{int(row.turn_index)}",
@@ -1573,6 +1627,12 @@ async def score_split(
                             system_prompt=system_prompt,
                             model=model,
                         )
+                    except TeacherRateLimitError as exc:
+                        # No verdict at all — not a cautious one. Unscored.
+                        if not spent:
+                            spent.append(str(exc))
+                        span.set(error=repr(exc), unscored=True)
+                        return (order, _unscored_row(base, str(exc)), {})
                     except Exception as exc:  # noqa: BLE001 — a failed judge fails closed
                         span.set(error=repr(exc), band="low")
                         return (
@@ -1588,6 +1648,7 @@ async def score_split(
                                 "input_tokens": None,
                                 "output_tokens": None,
                                 "cost_usd": None,
+                                "unscored": False,
                             },
                             {},
                         )
@@ -1612,6 +1673,7 @@ async def score_split(
                     "input_tokens": m.get("input_tokens"),
                     "output_tokens": m.get("output_tokens"),
                     "cost_usd": m.get("cost_usd"),
+                    "unscored": False,
                 },
                 usage,
             )
@@ -1622,6 +1684,13 @@ async def score_split(
         for _order, record, usage in sorted(settled, key=lambda r: r[0]):
             out_rows.append(record)
             teacher._accumulate_usage(usage_total, usage)
+            if record["unscored"]:
+                print(  # noqa: T201
+                    f"  [{record['report_id']} q{record['turn_index']}] "
+                    f"{'✓' if record['correct'] else '✗'} → unscored "
+                    f"({record['error']})"
+                )
+                continue
             mark = "" if (record["band"] == "high") == record["correct"] else "  MISS"
             print(  # noqa: T201
                 f"  [{record['report_id']} q{record['turn_index']}] "
@@ -1639,14 +1708,16 @@ async def score_split(
         cap_lo, cap_hi = cluster_bootstrap(scores, "failure_capture")
         metrics["high_band_accuracy_ci"] = [lo, hi]
         metrics["failure_capture_ci"] = [cap_lo, cap_hi]
-        metrics["n_judge_errors"] = int((scores["error"].astype(str) != "").sum())
+        metrics["n_judge_errors"] = int(
+            (scored_only(scores)["error"].astype(str) != "").sum()
+        )
         rec.dict_artifact("metrics.json", metrics)
         rec.dict_artifact(
             "risk_coverage.json",
             {
                 "curve": risk_coverage(
-                    [float(x) for x in scores["p_correct"]],
-                    [bool(x) for x in scores["correct"]],
+                    [float(x) for x in scored_only(scores)["p_correct"]],
+                    [bool(x) for x in scored_only(scores)["correct"]],
                 )
             },
         )
@@ -1661,6 +1732,13 @@ async def score_split(
         )
         rec.metrics({"meets_target": 1.0 if metrics.get("meets_target") else 0.0})
         rec.metrics({f"judge_{k}": v for k, v in usage_total.items()})
+        if metrics["n_unscored"]:
+            rec.tag("incomplete", "true")
+            rec.param("unscored_rows", metrics["n_unscored"])
+            print(  # noqa: T201
+                f"\n  !! {metrics['n_unscored']} of {len(scores)} turns were never "
+                "judged (session limit). This pass is incomplete and cannot gate."
+            )
         print(  # noqa: T201
             f"\n{run_name}: coverage {metrics['coverage']:.1%} · high band "
             f"{(metrics['high_band_accuracy'] or 0):.2%} correct ({metrics['n_high_wrong']} wrong of "
@@ -1676,10 +1754,29 @@ async def score_split(
             "split": split,
             "metrics": metrics,
             "usage": usage_total,
+            "complete": bool(metrics["complete"]),
+            "n_unscored": int(metrics["n_unscored"]),
         }
 
 
 # ── Gate ──────────────────────────────────────────────────────────────────
+
+
+def _gateable(path: Path | str) -> pd.DataFrame:
+    """Load a scores CSV, refusing one whose turns were not all judged.
+
+    A paired comparison over a split part of which was never judged is not a
+    comparison: the unjudged turns land in whichever arm hit the session limit
+    and read there as caution. There is no override — finish the pass instead.
+    """
+    frame = pd.read_csv(path)
+    n_unscored = len(frame) - len(scored_only(frame))
+    if n_unscored:
+        raise IncompleteJudgeScoresError(
+            f"{path}: {n_unscored} of {len(frame)} turns were never judged "
+            "(session limit) — re-run the scoring pass before gating"
+        )
+    return frame
 
 
 def gate_judges(
@@ -1698,8 +1795,8 @@ def gate_judges(
     so the paired band flips are the whole story and are recorded beside the
     verdict.
     """
-    base = pd.read_csv(baseline_scores)
-    cand = pd.read_csv(candidate_scores)
+    base = _gateable(baseline_scores)
+    cand = _gateable(candidate_scores)
     if set(base["question_id"]) != set(cand["question_id"]):
         raise ValueError("the two scores files do not cover the same questions")
     bm = selective_metrics(base, error_target=error_target)

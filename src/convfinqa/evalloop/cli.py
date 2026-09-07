@@ -918,13 +918,16 @@ def main() -> None:
         from convfinqa.evalloop import judge
         from convfinqa.tracking import registry
 
-        verdict = judge.gate_judges(
-            args.baseline_scores,
-            args.candidate_scores,
-            baseline_version=args.baseline_version,
-            candidate_version=args.candidate_version,
-            error_target=args.error_target,
-        )
+        try:
+            verdict = judge.gate_judges(
+                args.baseline_scores,
+                args.candidate_scores,
+                baseline_version=args.baseline_version,
+                candidate_version=args.candidate_version,
+                error_target=args.error_target,
+            )
+        except judge.IncompleteJudgeScoresError as exc:
+            raise SystemExit(f"cannot gate: {exc}") from exc
         promoted = False
         if args.promote and verdict["promotable"]:
             outcome = registry.promote_judge(

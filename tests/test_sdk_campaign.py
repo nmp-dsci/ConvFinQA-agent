@@ -605,6 +605,9 @@ def test_story_check_covers_the_sdk_page(
     monkeypatch.setattr(story, "STORY_PATH", story_path)
     monkeypatch.setattr(registry, "champion", lambda path=None: "v8")
     monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+    # These stories predate the judge; the registry under test must too, or the
+    # repo's own judge champion leaks into a fixture that never mentions one.
+    monkeypatch.setattr(registry, "judge_champion", lambda path=None: None)
 
     data = _story(sdk_champion="sdk_v1")
     text = json.dumps(data, indent=1) + "\n"
@@ -639,6 +642,9 @@ def test_story_check_catches_a_stripped_caveat(
     monkeypatch.setattr(story, "STORY_PATH", story_path)
     monkeypatch.setattr(registry, "champion", lambda path=None: "v8")
     monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+    # These stories predate the judge; the registry under test must too, or the
+    # repo's own judge champion leaks into a fixture that never mentions one.
+    monkeypatch.setattr(registry, "judge_champion", lambda path=None: None)
 
     data = _story(sdk_champion="sdk_v1")
     text = json.dumps(data, indent=1) + "\n"
