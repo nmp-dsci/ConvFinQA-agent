@@ -107,7 +107,10 @@ def problems() -> list[str]:
         # figures: the runtime decision is only shippable with the judge, so a
         # page that shows the accuracy without the band is the wrong story.
         judge_champion = registry.judge_champion()
-        if judge_champion and "confidence judge" not in lowered:
+        judge_scored = any(
+            v.get("splits") for v in (story.get("judge") or {}).get("versions") or []
+        )
+        if judge_champion and judge_scored and "confidence judge" not in lowered:
             out.append(
                 f"{sdk_page.name} does not show the confidence judge "
                 f"({judge_champion!r} is judge_champion) — rebuild with "

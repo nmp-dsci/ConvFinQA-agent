@@ -438,11 +438,33 @@
       ],
       "metrics": {},
       "notes": ""
+    },
+    {
+      "version": "judge_j1",
+      "registered_at": "2026-09-07T05:08:53.855110+00:00",
+      "source": "judge_distil",
+      "bundle_id": "d5ccd8e2b57a",
+      "bundle": {
+        "prompts_version": "judge_j1",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "4a3f5da",
+        "composition": "j1",
+        "v_judge": "j1@7c7ff9dc"
+      },
+      "runs": [
+        "4eb01f0587814d0fa57085fad8041ad3"
+      ],
+      "metrics": {},
+      "notes": "confidence judge \u00b7 j1 \u00b7 calibrated to sdk_v1"
     }
   ],
   "aliases": {
     "champion": "v8",
-    "sdk_champion": "sdk_v1"
+    "sdk_champion": "sdk_v1",
+    "judge_champion": "judge_j1"
   },
   "history": [
     {
@@ -1736,6 +1758,19 @@
         },
         "notes": []
       }
+    },
+    {
+      "at": "2026-09-07T05:08:53.857066+00:00",
+      "event": "promote_judge",
+      "alias": "judge_champion",
+      "version": "judge_j1",
+      "previous_champion": null,
+      "runtime_version": "sdk_v1",
+      "actor": "evalloop-judge-distil",
+      "forced": false,
+      "reason": "first judge becomes judge_champion by default",
+      "evidence_split": "calibrate",
+      "comparison": null
     }
   ],
   "agent_prompts": {
@@ -1955,6 +1990,17 @@
       "source": "sdk_teacher",
       "registered_at": "2026-09-05T08:28:11.865511+00:00",
       "run_id": "5970fd3c29804bc99d9829c21c0a7fe0"
+    }
+  ],
+  "judge_prompts": [
+    {
+      "seq": "j1",
+      "hash": "7c7ff9dc",
+      "first_seen_in": "judge_j1",
+      "parent": null,
+      "source": "judge_distil",
+      "registered_at": "2026-09-07T05:08:53.852448+00:00",
+      "run_id": "4eb01f0587814d0fa57085fad8041ad3"
     }
   ]
 }
