@@ -193,6 +193,24 @@ cd frontend
 npm run dev
 ```
 
+### The confidence judge (s12)
+
+A Haiku 4.5 judge reads each served agent_sdk turn's trace and releases (`high`) or
+withholds (`low`) the answer. Trained by diagnose-with-gold → distil-without-gold on a
+50/50 optimise split, scored at natural prevalence on a calibrate split, tested once on
+the gate split. Full invariants in CLAUDE.md ("The confidence judge").
+
+```bash
+uv run convfinqa-evalloop judge-dataset --optimise-csv A.csv --calibrate-csv B.csv --test-csv gate.csv
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-diagnose --split optimise
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-distil --new-version judge_j1
+uv run convfinqa-evalloop judge-score --version judge_j1 --split calibrate
+uv run convfinqa-evalloop judge-gate --baseline-scores a.csv --candidate-scores b.csv \
+  --baseline-version judge_j1 --candidate-version judge_j2 --promote
+# Serving: SERVING_RUNTIME=agent_sdk (default) + JUDGE_ENABLED=1 (default); pipeline
+# via SERVING_RUNTIME=pipeline. /healthz reports runtime, sdk_champion, judge_champion.
+```
+
 ### Agent SDK experiment (s10)
 
 The single-session arm runs the same loop behind `--runtime agent_sdk` with

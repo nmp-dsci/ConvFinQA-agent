@@ -227,6 +227,69 @@ export interface CampaignsResponse {
   sdk_model_comparison?: SdkModelComparison | null;
   sdk_campaigns?: CampaignSummary[];
   sdk_experiments?: CampaignExperiment[];
+  /** The confidence judge (s12): `evalloop.judge.summary()`. */
+  judge?: JudgeSummary | null;
+}
+
+/** One judge version scored on one split — the band-based selective metrics. */
+export interface JudgeSplitMetrics {
+  scores_csv?: string;
+  n: number;
+  n_wrong: number;
+  n_reports?: number | null;
+  accuracy: number;
+  error_target: number;
+  coverage: number;
+  n_high: number;
+  n_high_wrong: number;
+  high_band_accuracy: number | null;
+  high_band_error: number | null;
+  /** One-sided 95% Wilson bound on the unseen high-band error. */
+  high_band_error_upper95: number | null;
+  high_band_accuracy_ci?: [number | null, number | null];
+  failure_capture: number | null;
+  n_failures_caught: number;
+  n_failures_missed: number;
+  false_alarm_rate: number;
+  n_false_alarms: number;
+  meets_target: boolean;
+  auroc: number | null;
+  brier: number;
+  ece: number | null;
+  coverage_at_target: number;
+  threshold_at_target: number | null;
+}
+
+export interface JudgeVersionSummary {
+  version: string;
+  splits: Partial<Record<'optimise' | 'calibrate' | 'test', JudgeSplitMetrics>>;
+}
+
+export interface JudgeGate {
+  gate_id: string;
+  gated_at: string;
+  baseline_version: string;
+  candidate_version: string;
+  promotable: boolean;
+  promoted: boolean;
+  reason: string;
+  n_released: number;
+  n_withheld: number;
+  champion_after: string;
+}
+
+export interface JudgeSummary {
+  dataset: {
+    name?: string;
+    runtime_version?: string;
+    stats?: Record<string, { n: number; n_wrong: number; n_reports: number }>;
+  } | null;
+  champion: string | null;
+  runtime_version?: string | null;
+  error_target?: number;
+  versions: JudgeVersionSummary[];
+  gates: JudgeGate[];
+  n_diagnoses?: number;
 }
 
 export function getCampaigns(campaign = ''): Promise<CampaignsResponse> {

@@ -22,6 +22,7 @@ import type {
   CampaignExperiment,
   CampaignSummary,
   ChampionPoint,
+  JudgeSummary,
   RuntimeArm,
   RuntimeComparison,
   RuntimeGate,
@@ -296,6 +297,64 @@ export function sliceRows(gate: RuntimeGate | null | undefined): SliceRow[] {
 // ---------------------------------------------------------------------------
 // The progression
 // ---------------------------------------------------------------------------
+
+/** One row of the judge table: a version scored on a split. */
+export interface JudgeRow {
+  version: string;
+  split: 'calibrate' | 'test';
+  isChampion: boolean;
+  n: number;
+  nWrong: number;
+  runtimeAccuracy: number;
+  coverage: number;
+  highBandAccuracy: number | null;
+  nHighWrong: number;
+  nHigh: number;
+  unseenErrorUpper: number | null;
+  failureCapture: number | null;
+  nCaught: number;
+  meetsTarget: boolean;
+  auroc: number | null;
+}
+
+/**
+ * The judge table, one row per (version, split), calibrate before test, the
+ * champion's test row being the headline. Optimise is deliberately absent:
+ * it is balanced 50/50 and its coverage means nothing at production prevalence.
+ */
+export function judgeRows(summary: JudgeSummary | null | undefined): JudgeRow[] {
+  if (!summary?.versions?.length) return [];
+  const rows: JudgeRow[] = [];
+  for (const entry of summary.versions) {
+    for (const split of ['calibrate', 'test'] as const) {
+      const m = entry.splits?.[split];
+      if (!m) continue;
+      rows.push({
+        version: entry.version,
+        split,
+        isChampion: entry.version === summary.champion,
+        n: m.n,
+        nWrong: m.n_wrong,
+        runtimeAccuracy: m.accuracy,
+        coverage: m.coverage,
+        highBandAccuracy: m.high_band_accuracy,
+        nHighWrong: m.n_high_wrong,
+        nHigh: m.n_high,
+        unseenErrorUpper: m.high_band_error_upper95,
+        failureCapture: m.failure_capture,
+        nCaught: m.n_failures_caught,
+        meetsTarget: m.meets_target,
+        auroc: m.auroc,
+      });
+    }
+  }
+  return rows;
+}
+
+/** The champion judge's test-split row, or null before one exists. */
+export function judgeHeadline(summary: JudgeSummary | null | undefined): JudgeRow | null {
+  return judgeRows(summary).find((r) => r.isChampion && r.split === 'test') ?? null;
+}
 
 export type StageKey =
   | 'pipeline_raw'

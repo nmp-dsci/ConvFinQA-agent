@@ -35,6 +35,8 @@ import type {
   SliceRow,
 } from './runtimeStory';
 import { NO_VALUE, formatCount, formatPercent, formatUsd } from '../landing/format';
+import { judgeRows } from './runtimeStory';
+import type { JudgeRow } from './runtimeStory';
 
 /**
  * Runtimes: one Claude Agent SDK session against four prompted agents.
@@ -266,6 +268,103 @@ export function ArmCard({
 // ---------------------------------------------------------------------------
 // 2b · The model swap: one prompt, several models
 // ---------------------------------------------------------------------------
+
+/**
+ * s12: the confidence judge, one row per (version, split). The champion's
+ * test row is the headline: the gate split, scored once by the frozen judge.
+ * "Unseen error" is the one-sided 95% bound on the high band's true error
+ * rate — zero misses among n released proves ≤ ~3/n, never 0%.
+ */
+export function JudgeTable({ rows, target }: { rows: JudgeRow[]; target: number }) {
+  if (!rows.length) {
+    return (
+      <EmptyState>
+        not yet run — no judge has been scored on the calibrate or test split
+      </EmptyState>
+    );
+  }
+  return (
+    <div className="min-w-0 overflow-x-auto">
+      <table data-testid="judge-table" className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b border-line">
+            {[
+              'judge',
+              'split',
+              'turns',
+              'runtime acc.',
+              'coverage',
+              'high band correct',
+              'wrong / released',
+              'unseen error (95%)',
+              'failures caught',
+              'AUROC',
+              'target',
+            ].map((h) => (
+              <th key={h} className="mono-caps py-1.5 pr-3 font-normal whitespace-nowrap">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={`${row.version}-${row.split}`}
+              data-judge={row.version}
+              data-split={row.split}
+              data-champion={row.isChampion ? 'true' : 'false'}
+              className={cn(
+                'border-b border-line last:border-0',
+                row.isChampion && row.split === 'test' && 'bg-good/5'
+              )}
+            >
+              <td className="py-2 pr-3 font-mono text-[12px] text-text">
+                {row.version}
+                {row.isChampion && <span className="ml-1.5 text-[10px] text-good">champion</span>}
+              </td>
+              <td className="py-2 pr-3 font-mono text-[12px] text-muted">{row.split}</td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {row.n} · {row.nWrong} wrong
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {formatPercent(row.runtimeAccuracy)}
+              </td>
+              <td className="type-num py-2 pr-3 text-[14px] text-text">
+                {formatPercent(row.coverage)}
+              </td>
+              <td
+                className={cn(
+                  'type-num py-2 pr-3 text-[14px]',
+                  row.meetsTarget ? 'text-good' : 'text-amber'
+                )}
+              >
+                {row.highBandAccuracy == null ? NO_VALUE : `${(row.highBandAccuracy * 100).toFixed(2)}%`}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {row.nHighWrong} / {row.nHigh}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {row.unseenErrorUpper == null ? NO_VALUE : `≤ ${(row.unseenErrorUpper * 100).toFixed(2)}%`}
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {formatPercent(row.failureCapture)} ({row.nCaught}/{row.nWrong})
+              </td>
+              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+                {row.auroc == null ? NO_VALUE : row.auroc.toFixed(3)}
+              </td>
+              <td className="py-2 pr-3 text-[12px]">
+                <span className={cn('font-mono', row.meetsTarget ? 'text-good' : 'text-amber')}>
+                  {row.meetsTarget ? `≤ ${(target * 100).toFixed(0)}% met` : 'missed'}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
   if (!rows.length) {
@@ -870,6 +969,8 @@ export default function Runtimes() {
   const verdict = runtimeVerdict(comparison, data?.split);
   const rows = sliceRows(comparison?.gate);
   const swapRows = modelRows(data?.sdk_model_comparison);
+  const judgeTable = judgeRows(data?.judge);
+  const judgeTarget = data?.judge?.error_target ?? 0.01;
   const sdkExperiments = data?.sdk_experiments ?? [];
   const stages = progression(
     data?.champion_track,
@@ -964,6 +1065,29 @@ export default function Runtimes() {
             from four DeepSeek agents and never optimised for either model — so neither figure is
             that model&rsquo;s ceiling. It answers &ldquo;how much of the SDK arm is the model&rdquo;
             for the session runtime only; the pipeline was never run on either of these models.
+          </Caveat>
+        )}
+      </Panel>
+
+      <Panel
+        title="the confidence judge: answer when the trace can be verified"
+        endpoint="/eval/campaigns"
+        note="A Haiku 4.5 judge reads each finished turn — question, filing, sub-questions, retrieved cells with their cited sources, program, calculator trajectory, answer — and returns a band. high releases the answer; low withholds it. It never sees the gold answer. Trained the way sdk_v1 was: a teacher diagnosed every case of a balanced optimise split with gold, one distil call wrote the prompt; scored at natural prevalence on a disjoint calibrate split, then once on the gate split by the frozen champion."
+        right={
+          <span className="type-small text-faint">
+            judge_champion {data?.judge?.champion ?? NO_VALUE} · calibrated to{' '}
+            {data?.judge?.runtime_version ?? NO_VALUE}
+          </span>
+        }
+      >
+        <JudgeTable rows={judgeTable} target={judgeTarget} />
+        {judgeTable.length > 0 && (
+          <Caveat>
+            Zero wrong answers among <em>n</em> released proves the true error rate is below about
+            3/<em>n</em> at 95% confidence, not that it is zero — that is the &ldquo;unseen
+            error&rdquo; column. Some misses are not the runtime&rsquo;s: a gold answer rounded
+            differently from the calculator&rsquo;s exact result leaves a trace that passes every
+            check, and no judge without gold can withhold it.
           </Caveat>
         )}
       </Panel>

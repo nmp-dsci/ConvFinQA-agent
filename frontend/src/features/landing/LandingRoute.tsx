@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { HudTile } from './HudTile';
+import { judgeHeadline } from '../admin/runtimeStory';
 import { LampStrip } from './LampStrip';
 import { PipelineStrip } from './PipelineStrip';
 import { RecordedConversations } from './RecordedConversations';
@@ -202,6 +203,7 @@ function RightPane({ board }: { board: BoardData }) {
   const sdkGate = campaigns?.runtime_comparison?.gate ?? null;
   const swap = campaigns?.sdk_model_comparison ?? null;
   const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
+  const judged = judgeHeadline(campaigns?.judge);
   const swapPair = swap?.pairs?.[0] ?? null;
   const shortModel = (model: string | null | undefined) =>
     (model ?? '')
@@ -326,6 +328,32 @@ function RightPane({ board }: { board: BoardData }) {
                     <span className="type-num">{formatUsd(sdkArm?.cost)}</span> per pass
                   </>
                 )}
+              </>
+            )
+          }
+        />
+
+        <HudTile
+          label="released answers, judged"
+          value={
+            judged?.highBandAccuracy == null
+              ? NO_VALUE
+              : `${(judged.highBandAccuracy * 100).toFixed(1)}%`
+          }
+          loading={!campaigns && board.loading}
+          reason="no confidence judge has been scored on the gate split yet"
+          tone={judged?.meetsTarget ? 'good' : 'plain'}
+          to="/admin/runtimes"
+          drill="/admin/runtimes"
+          meta={
+            judged && (
+              <>
+                <span className="type-num">{formatPercent(judged.coverage)}</span> of turns
+                released · {judged.nHighWrong} wrong of {judged.nHigh}
+                <br />
+                <span className="type-num">{formatPercent(judged.failureCapture)}</span> of
+                failures withheld ({judged.nCaught}/{judged.nWrong}) · {judged.version} on{' '}
+                {campaigns?.judge?.runtime_version ?? 'the sdk champion'}
               </>
             )
           }
