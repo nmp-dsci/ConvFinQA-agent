@@ -277,8 +277,11 @@ The six checks, in this order, with these exact names:
 Hard constraints:
 - Use EXACTLY the seven headings given, in that order, as markdown `## N. Name`
   lines. Nothing else may be a `## ` heading.
-- Never mention a reference, gold, expected or ground-truth answer — the judge
-  has none, and a rule phrased against one is a rule it cannot run.
+- The judge has no answer key and a rule phrased against one is a rule it cannot
+  run. So the words "gold", "ground truth" and "ground-truth" must not appear
+  ANYWHERE in the prompt — not even in a sentence telling the judge it has none
+  (a validator refuses the draft on the substring alone). Say "you have no
+  answer key" if you need to say it.
 - Name all six checks in the checks section, and require the judge to actually
   re-read the cited cell and re-derive the operation from the question.
 - The band rule must be explicit: which check failures force `low`, how
@@ -1216,6 +1219,19 @@ def distil_prompt_text(
 
 
 _HEADING_RE = re.compile(r"^## .+$", re.MULTILINE)
+_ANY_LEVEL_RE = re.compile(r"^#{1,4} (?=\d\. )", re.MULTILINE)
+
+
+def normalise_headings(text: str) -> str:
+    """Put every numbered section heading at level two.
+
+    The distil agent sometimes writes ``# 1. Role`` where the contract says
+    ``## 1. Role``. The level is formatting, not content, and refusing a
+    17k-character prompt for it would cost a teacher call to fix a character —
+    so the level is normalised here, mechanically, before the draft is judged
+    on what it says. Nothing else about the text changes.
+    """
+    return _ANY_LEVEL_RE.sub("## ", text)
 
 
 def validate_judge_prompt(text: str) -> list[str]:
@@ -1371,7 +1387,7 @@ async def distil_judge(
                 sections=list(draft.sections),
                 notes=draft.notes,
             )
-        prompt = draft.prompt.rstrip("\n") + "\n"
+        prompt = normalise_headings(draft.prompt.rstrip("\n") + "\n")
         problems = validate_judge_prompt(prompt)
         rec.dict_artifact(
             "draft.json",

@@ -70,7 +70,7 @@ class SdkSession:
             max_turns=self.max_turns,
             model=self.model,
         )
-        client = sdk.ClaudeSDKClient(options=options)
+        client = agent_sdk.new_client(sdk, options)
         await client.connect()
         self._sdk, self._client = sdk, client
 

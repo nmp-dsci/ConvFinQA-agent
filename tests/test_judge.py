@@ -385,6 +385,11 @@ def test_validate_judge_prompt_refuses_gold_and_wrong_headings() -> None:
     assert any("headings" in p for p in judge.validate_judge_prompt(reordered))
     no_check = GOOD_PROMPT.replace("unit_and_scale", "units")
     assert any("unit_and_scale" in p for p in judge.validate_judge_prompt(no_check))
+    # A draft at the wrong heading level is normalised, not refused.
+    one_hash = GOOD_PROMPT.replace("## ", "# ")
+    assert judge.validate_judge_prompt(one_hash) != []
+    assert judge.validate_judge_prompt(judge.normalise_headings(one_hash)) == []
+    assert judge.normalise_headings(one_hash) == GOOD_PROMPT
 
 
 async def test_distil_writes_the_module_registers_the_lineage_and_promotes_the_first_judge(
