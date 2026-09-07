@@ -103,6 +103,23 @@ def problems() -> list[str]:
                 "`convfinqa-evalloop story`"
             )
 
+        # Once a judge champion exists, the SDK page must carry its selective
+        # figures: the runtime decision is only shippable with the judge, so a
+        # page that shows the accuracy without the band is the wrong story.
+        judge_champion = registry.judge_champion()
+        if judge_champion and "confidence judge" not in lowered:
+            out.append(
+                f"{sdk_page.name} does not show the confidence judge "
+                f"({judge_champion!r} is judge_champion) — rebuild with "
+                "`convfinqa-evalloop story`"
+            )
+        if (story.get("judge") or {}).get("champion", None) != judge_champion:
+            out.append(
+                f"story.json names judge champion "
+                f"{(story.get('judge') or {}).get('champion')!r} but the registry "
+                f"says {judge_champion!r} — rebuild with `convfinqa-evalloop story`"
+            )
+
     published = DOCS_DIR / "story.json"
     if published.exists() and published.read_text() != STORY_PATH.read_text():
         out.append(

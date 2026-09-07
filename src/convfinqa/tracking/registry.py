@@ -46,6 +46,11 @@ CHALLENGER = "challenger"
 # sdk_vN name there would be a version nothing can serve.
 SDK_CHAMPION = "sdk_champion"
 
+# The confidence judge's alias (s12). Serving reads it to decide which judge
+# prompt sits between an agent_sdk answer and the user; it is calibrated to
+# the `sdk_champion` it was scored against, which `promote_judge` records.
+JUDGE_CHAMPION = "judge_champion"
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -64,6 +69,10 @@ class RegistryDoc:
     # The single-session prompt lineage: one ordered list of the same entry
     # shape, seq ``s1, s2, …``, keyed on the whole prompt's hash.
     sdk_prompts: list[dict[str, Any]] | None = None
+    # The confidence judge's prompt lineage (s12): same entry shape, seq
+    # ``j1, j2, …``. A judge prompt answers nothing, so it lives in neither of
+    # the answering lineages.
+    judge_prompts: list[dict[str, Any]] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form."""
@@ -74,6 +83,7 @@ class RegistryDoc:
             "history": self.history,
             "agent_prompts": self.agent_prompts or {},
             "sdk_prompts": self.sdk_prompts or [],
+            "judge_prompts": self.judge_prompts or [],
         }
 
 
@@ -89,6 +99,7 @@ def load(path: Path | None = None) -> RegistryDoc:
         history=list(raw.get("history", [])),
         agent_prompts=dict(raw.get("agent_prompts", {})),
         sdk_prompts=list(raw.get("sdk_prompts", [])),
+        judge_prompts=list(raw.get("judge_prompts", [])),
     )
 
 
@@ -186,6 +197,22 @@ def is_sdk_version(version: str) -> bool:
     return prompts_pkg.is_sdk_version(version)
 
 
+def is_judge_version(version: str) -> bool:
+    """Whether `version` belongs to the confidence-judge (`judge_jN`) lineage."""
+    import convfinqa.prompts as prompts_pkg
+
+    return prompts_pkg.is_judge_version(version)
+
+
+def _alias_family(name: str) -> str:
+    """Which lineage an alias or version name belongs to: pipeline, sdk or judge."""
+    if name.startswith("judge_"):
+        return "judge"
+    if name.startswith("sdk_"):
+        return "sdk"
+    return "pipeline"
+
+
 def set_alias(alias: str, version: str, path: Path | None = None) -> RegistryDoc:
     """Point `alias` at `version` without recording a promotion event.
 
@@ -201,10 +228,11 @@ def set_alias(alias: str, version: str, path: Path | None = None) -> RegistryDoc
     doc = load(path)
     if find_version(doc, version) is None:
         raise ValueError(f"Cannot alias unregistered version {version!r}")
-    if is_sdk_version(version) != alias.startswith("sdk_"):
+    if _alias_family(alias) != _alias_family(version):
         raise ValueError(
             f"alias {alias!r} and version {version!r} belong to different "
-            "runtimes: sdk_vN versions take sdk_-prefixed aliases only"
+            "runtimes: sdk_vN versions take sdk_-prefixed aliases only, "
+            "judge_jN versions judge_-prefixed ones, and bundles neither"
         )
     doc.aliases[alias] = version
     save(doc, path)
@@ -409,6 +437,98 @@ def promote_sdk(
         previous_champion=previous,
         reason=reason or "",
         comparison=comparison.as_dict() if comparison else None,
+    )
+
+
+def judge_champion(path: Path | None = None) -> str | None:
+    """The version currently aliased `judge_champion`, if any."""
+    return load(path).aliases.get(JUDGE_CHAMPION)
+
+
+def promote_judge(
+    version: str,
+    *,
+    verdict: dict[str, Any] | None = None,
+    runtime_version: str = "",
+    reason: str | None = None,
+    evidence_split: str = "calibrate",
+    actor: str = "evalloop-judge",
+    path: Path | None = None,
+) -> PromotionOutcome:
+    """Move ONLY the `judge_champion` alias to `version`, and record why.
+
+    The judge's promotion rule is decided by `evalloop.judge.gate_judges`; this
+    records its verdict. Refuses a non-judge version, refuses gate-split
+    evidence (the gate is the judge's *test*, scored once by the frozen
+    champion — a judge chosen on it would have been tuned on its own exam),
+    and, when a verdict is given, refuses one that did not pass. The first
+    judge becomes champion by default, as the first bundle does. The history
+    event is ``promote_judge`` and carries ``runtime_version`` — the
+    `sdk_champion` this judge was calibrated against — because a judge is only
+    calibrated for one answering model.
+    """
+    doc = load(path)
+    if not is_judge_version(version):
+        raise ValueError(
+            f"{version!r} is not a confidence-judge prompt version; promote_judge "
+            f"moves {JUDGE_CHAMPION!r} only and takes judge_jN versions only"
+        )
+    if find_version(doc, version) is None:
+        raise ValueError(f"Cannot promote unregistered version {version!r}")
+    if evidence_split == "test":
+        raise ValueError(
+            "a judge is never promoted on the gate split — that split is the "
+            "judge's own test, scored once by the frozen champion"
+        )
+    previous = doc.aliases.get(JUDGE_CHAMPION)
+    if previous == version:
+        return PromotionOutcome(
+            promoted=False,
+            version=version,
+            previous_champion=previous,
+            reason=f"{version} is already the {JUDGE_CHAMPION}",
+            comparison=verdict,
+        )
+    if previous is None and verdict is None:
+        reason = reason or f"first judge becomes {JUDGE_CHAMPION} by default"
+    elif verdict is not None and not verdict.get("promotable"):
+        return PromotionOutcome(
+            promoted=False,
+            version=version,
+            previous_champion=previous,
+            reason=f"judge rule refused: {verdict.get('reason', '')}",
+            comparison=verdict,
+        )
+    elif verdict is None:
+        raise ValueError(
+            f"{JUDGE_CHAMPION} is {previous!r}; moving it needs a passing judge gate"
+        )
+    else:
+        reason = reason or f"judge rule passed: {verdict.get('reason', '')}"
+
+    doc.aliases[JUDGE_CHAMPION] = version
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "promote_judge",
+            "alias": JUDGE_CHAMPION,
+            "version": version,
+            "previous_champion": previous,
+            "runtime_version": runtime_version,
+            "actor": actor,
+            "forced": False,
+            "reason": reason,
+            "evidence_split": evidence_split,
+            "comparison": verdict,
+        }
+    )
+    save(doc, path)
+    return PromotionOutcome(
+        promoted=True,
+        version=version,
+        previous_champion=previous,
+        reason=reason or "",
+        comparison=verdict,
     )
 
 

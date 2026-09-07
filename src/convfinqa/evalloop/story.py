@@ -247,7 +247,20 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         "sdk_model_comparison": sdk_model_comparison(
             eval_records, sdk_champion=sdk_champion
         ),
+        # The confidence judge (s12): every judge version's selective metrics
+        # on each split it was scored on, from the committed scores CSVs only.
+        "judge": _judge_summary(),
     }
+
+
+def _judge_summary() -> dict[str, Any]:
+    """`evalloop.judge.summary()`, degraded to an empty record when it cannot run."""
+    try:
+        from convfinqa.evalloop import judge
+
+        return judge.summary()
+    except Exception:  # noqa: BLE001 — the page still builds without a judge
+        return {"dataset": None, "champion": None, "versions": [], "gates": []}
 
 
 #: What a runtime's arm of the comparison carries. Every value is None until a

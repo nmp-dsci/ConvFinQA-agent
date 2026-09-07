@@ -792,9 +792,9 @@ async def diagnose_run(
 
 def teacher_model() -> str:
     """The model the teacher runs on — recorded on every teacher run."""
-    from convfinqa.llm import LM_TEACHER_MODEL
+    from convfinqa.llm import teacher_model_name
 
-    return LM_TEACHER_MODEL
+    return teacher_model_name()
 
 
 def _accumulate_usage(total: dict[str, float], usage: dict[str, Any]) -> None:

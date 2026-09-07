@@ -427,6 +427,7 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         sdk_model_comparison=_with_model_program_accuracy(
             data.get("sdk_model_comparison")
         ),
+        judge=data.get("judge"),
         sdk_campaigns=sdk_summaries,
         sdk_experiments=sdk_experiments,
         champion_track=[

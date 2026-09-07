@@ -22,6 +22,10 @@ class HealthResponse(BaseModel):
     bundle_id: str
     bundle: dict[str, Any]
     demo_reports: int
+    # s12: which runtime answers a live turn, and the aliases it is built from.
+    runtime: str = "pipeline"
+    sdk_champion: str | None = None
+    judge_champion: str | None = None
 
 
 class ReportSummary(BaseModel):
@@ -81,6 +85,11 @@ class AskResponse(BaseModel):
     # answering a paraphrase silently would present one question's number as
     # another's.
     matched_question: str = ""
+    # s12: the confidence judge's band on an agent_sdk turn — `high` released
+    # the answer, `low` withheld it (`answer` is then empty and `withheld` is
+    # True). None on the pipeline runtime and in demo mode.
+    band: str | None = None
+    withheld: bool = False
 
 
 class AccuracySlice(BaseModel):
@@ -319,6 +328,9 @@ class CampaignsResponse(BaseModel):
     # the reference model (`models`, `pairs`). A scoring pass, not an
     # experiment: nothing in it promotes.
     sdk_model_comparison: dict[str, Any] | None = None
+    # The confidence judge (s12): `judge.summary()` — dataset, champion, every
+    # version's selective metrics per split, and the gate verdicts.
+    judge: dict[str, Any] | None = None
     sdk_campaigns: list[CampaignSummary] = []
     # The SDK campaigns' experiments, kept in their own list rather than folded
     # into `experiments`: the two arms' rows are not comparable (one names a

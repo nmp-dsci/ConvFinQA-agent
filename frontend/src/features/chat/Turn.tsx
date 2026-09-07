@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, X } from 'lucide-react';
+import { AlertTriangle, Check, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { looseNumericMatch } from '../../numericMatch';
 import type { Message } from '../../types';
@@ -64,6 +64,68 @@ function StageStrip({ message }: { message: Message }) {
       }>
         {latency === null ? '— no timing' : fmtMs(latency)}
       </span>
+    </div>
+  );
+}
+
+/**
+ * s12: the confidence judge's band beside a released answer.
+ *
+ * A `high` band is the judge saying the trace checks out; the probability is
+ * its own estimate, shown so a reader can see how close to the line it was.
+ */
+function JudgeBadge({ message }: { message: Message }) {
+  const verdict = message.judge;
+  if (!verdict || message.withheld) return null;
+  return (
+    <span
+      data-testid="judge-badge"
+      data-band={verdict.band}
+      className="inline-flex items-center gap-1 rounded-[4px] border border-good/40 bg-good/10 px-1.5 py-0.5 font-mono text-[10px] text-good"
+      title={`Confidence judge (${verdict.version ?? 'judge'}): ${verdict.reason}`}
+    >
+      <ShieldCheck className="size-3" aria-hidden />
+      high · p {verdict.p_correct.toFixed(2)}
+    </span>
+  );
+}
+
+/**
+ * s12: what the visitor sees when the judge withheld the answer.
+ *
+ * The number exists — the session produced it and the trace keeps it — but the
+ * judge could not verify it against the filing, so the product says so rather
+ * than showing a figure it cannot stand behind.
+ */
+function WithheldBlock({ message }: { message: Message }) {
+  const verdict = message.judge;
+  const failed = verdict
+    ? Object.entries(verdict.checks ?? {}).filter(([, v]) => v !== 'pass')
+    : [];
+  return (
+    <div
+      data-testid="withheld-block"
+      data-band="low"
+      className="rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
+    >
+      <div className="flex items-baseline gap-1.5">
+        <ShieldAlert className="size-3.5 shrink-0 translate-y-0.5 text-amber" aria-hidden />
+        <span className="text-[13px] font-medium text-text">I'm not confident in this one</span>
+        {verdict && (
+          <span className="ml-auto font-mono text-[10px] text-faint">
+            low · p {verdict.p_correct.toFixed(2)}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted">
+        The answer was computed but withheld: the confidence judge could not verify it
+        against the filing.{verdict?.reason ? ` ${verdict.reason}` : ''}
+      </p>
+      {failed.length > 0 && (
+        <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-faint">
+          {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
+        </p>
+      )}
     </div>
   );
 }
@@ -144,11 +206,14 @@ export function Turn({ message, selected, onSelect }: Props) {
 
         {isError ? (
           <ErrorBlock message={message} />
+        ) : message.withheld && message.status === 'done' ? (
+          <WithheldBlock message={message} />
         ) : message.text ? (
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="font-mono text-2xl leading-none font-medium break-all text-text">
               {message.text}
             </span>
+            <JudgeBadge message={message} />
             {message.goldAnswer && message.status === 'done' && (
               <span
                 className={cn(

@@ -151,6 +151,13 @@ def _composition_fields(version: str) -> dict[str, str]:
                 "composition": prompt_ledger.sdk_composition_string(entry),
                 "v_sdk": f"{entry['seq']}@{entry['hash']}",
             }
+        if prompts_pkg.is_judge_version(version):
+            # The confidence judge (s12): one prompt, one lineage, `j1@abcd1234`.
+            entry = prompt_ledger.resolve_judge(version)
+            return {
+                "composition": entry["seq"],
+                "v_judge": f"{entry['seq']}@{entry['hash']}",
+            }
         comp = prompt_ledger.resolve(version)
     except Exception:  # noqa: BLE001 — identity extras must never break a fingerprint
         return {}

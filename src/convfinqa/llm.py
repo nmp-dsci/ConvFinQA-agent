@@ -52,6 +52,29 @@ LM_MINI_MODEL = "deepseek-v4-flash"
 # stronger model earns its keep.
 LM_TEACHER_MODEL = "claude-opus-5"
 
+
+def teacher_model_name() -> str:
+    """The model the teacher runs on: `settings.teacher_model`, else the constant.
+
+    The judge loop (s12) pins the diagnose/distil teacher to Sonnet 5 rather
+    than the loop's default Opus, and every teacher run records which one it
+    used (`actor_model`, `diagnoser_model`), so the override is a setting and
+    not an edit to the constant.
+    """
+    return settings.teacher_model or LM_TEACHER_MODEL
+
+
+# The confidence judge (s12): a second, cheaper model that reads a finished
+# turn's trace and says whether to release the answer. It runs on every served
+# turn, so it is the cheapest model that can do the job — and it is calibrated
+# to one answering model, so the run that scores it records both.
+LM_JUDGE_MODEL = "claude-haiku-4-5-20251001"
+
+
+def judge_model_name() -> str:
+    """The model the confidence judge runs on: the setting, else the constant."""
+    return settings.judge_model or LM_JUDGE_MODEL
+
 # DeepSeek v4 turned thinking mode *on by default*, and a thinking-mode request
 # rejects the `tool_choice` pydantic-ai sends for every structured `output_type`:
 #
@@ -295,8 +318,12 @@ def teacher_options(
     output_schema: dict[str, Any] | None = None,
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
+    model: str | None = None,
 ) -> Any:
     """Options for one Agent SDK call. The demo gate applies here as everywhere.
+
+    `model` defaults to the teacher's; the judge passes its own so the one
+    chokepoint (`evalloop/sdk.py::run_structured`) serves both.
 
     Note `setting_sources=[]`: the teacher must not inherit this repository's
     CLAUDE.md, settings or skills. It is being asked to judge a pipeline, not to
@@ -307,7 +334,7 @@ def teacher_options(
     from claude_agent_sdk import ClaudeAgentOptions
 
     kwargs: dict[str, Any] = {
-        "model": LM_TEACHER_MODEL,
+        "model": model or teacher_model_name(),
         "system_prompt": system_prompt,
         "env": subscription_env(),
         "max_turns": max_turns,

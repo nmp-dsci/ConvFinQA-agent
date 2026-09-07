@@ -90,6 +90,7 @@ def create_app(
             housekeeping.cancel()
             with suppress(asyncio.CancelledError):
                 await housekeeping
+            await store.close_all()
 
     app = FastAPI(
         title="ConvFinQA Agent",
@@ -164,6 +165,11 @@ def create_app(
             bundle_id=bundle_id(fingerprint),
             bundle=fingerprint,
             demo_reports=len(replay.packed_reports()),
+            runtime=settings.serving_runtime,
+            sdk_champion=registry.sdk_champion(),
+            judge_champion=registry.judge_champion()
+            if settings.judge_enabled
+            else None,
         )
 
     app.include_router(chat.router)
@@ -217,6 +223,7 @@ async def _housekeeping_loop(
     while True:
         await asyncio.sleep(interval_seconds)
         store.evict_expired()
+        await store.close_orphans()
         rate_limiter.prune()
 
 

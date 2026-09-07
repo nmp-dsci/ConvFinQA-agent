@@ -105,6 +105,25 @@ class Settings(BaseSettings):
     # the remaining turns are recorded as errors rather than attempted.
     sdk_total_tokens_limit: int = 60_000
 
+    # ---- Teacher and judge models (s12) -----------------------------------
+    # None → `llm.LM_TEACHER_MODEL` / `llm.LM_JUDGE_MODEL`. TEACHER_MODEL pins
+    # the diagnose/distil teacher (the judge loop runs it on claude-sonnet-5);
+    # JUDGE_MODEL pins the confidence judge (claude-haiku-4-5-20251001).
+    teacher_model: str | None = None
+    judge_model: str | None = None
+
+    # ---- Serving runtime (s12) --------------------------------------------
+    # Which runtime answers a live chat turn: the four-agent pipeline built
+    # from `champion`, or one Agent SDK session per conversation built from
+    # `sdk_champion`. The runtime decision (s11) moved to agent_sdk; the
+    # pipeline stays selectable for comparison and for the tests that drive it
+    # with stub models. Demo mode replays the recorded pack either way.
+    serving_runtime: Literal["pipeline", "agent_sdk"] = "agent_sdk"
+    # Whether a served agent_sdk turn is passed through the confidence judge
+    # (`judge_champion`) before its answer is released. Off → every answer is
+    # released, as before the judge existed.
+    judge_enabled: bool = True
+
     # ---- Prompts ----------------------------------------------------------
     # None → auto-detect highest version in prompts/. Otherwise pin (e.g. "v2").
     prompts_version: str | None = None

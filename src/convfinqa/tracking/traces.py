@@ -73,6 +73,11 @@ _ADDED_COLUMNS: dict[str, str] = {
     "split": "TEXT",
     "question_id": "TEXT",
     "model_version_id": "TEXT",
+    # s12: which runtime answered a served turn, and the confidence judge's
+    # band and probability when one sat between the answer and the user.
+    "runtime": "TEXT",
+    "judge_band": "TEXT",
+    "judge_p": "REAL",
 }
 
 _lock = threading.Lock()
@@ -137,6 +142,9 @@ class TraceStore:
         split: str | None = None,
         question_id: str | None = None,
         model_version_id: str | None = None,
+        runtime: str | None = None,
+        judge_band: str | None = None,
+        judge_p: float | None = None,
     ) -> str:
         """Persist one turn; return its trace id.
 
@@ -167,8 +175,9 @@ class TraceStore:
                         correct, bundle_id, bundle, latency_ms, total_tokens,
                         input_tokens, output_tokens, cost_usd,
                         error, error_code, capture,
-                        run_id, split, question_id, model_version_id
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        run_id, split, question_id, model_version_id,
+                        runtime, judge_band, judge_p
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         trace_id,
@@ -196,6 +205,9 @@ class TraceStore:
                         split,
                         question_id,
                         model_version_id,
+                        runtime,
+                        judge_band,
+                        judge_p,
                     ),
                 )
         except Exception:  # noqa: BLE001 — telemetry must never break serving
@@ -228,7 +240,8 @@ class TraceStore:
             f"""
             SELECT trace_id, created_at, source, session_id, report_id, turn_index,
                    question, answer, program, gold_answer, correct, bundle_id,
-                   latency_ms, total_tokens, cost_usd, error, error_code
+                   latency_ms, total_tokens, cost_usd, error, error_code,
+                   runtime, judge_band, judge_p
             FROM turns {where}
             ORDER BY created_at DESC LIMIT ? OFFSET ?
             """,

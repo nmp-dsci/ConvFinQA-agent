@@ -362,6 +362,85 @@ def build_parser() -> argparse.ArgumentParser:
     sd.add_argument("--new-version", default="sdk_v1", help="sdk_vN module to write.")
     sd.add_argument("--experiment", default=None, help="MLflow experiment override.")
 
+    # ── The confidence judge (s12) ────────────────────────────────────────
+    jd = sub.add_parser(
+        "judge-dataset",
+        help="Cut the judge's optimise/calibrate/test splits from three run CSVs.",
+    )
+    jd.add_argument(
+        "--optimise-csv", required=True, help="A train draw of the sdk champion."
+    )
+    jd.add_argument(
+        "--calibrate-csv", required=True, help="A second, disjoint train draw."
+    )
+    jd.add_argument(
+        "--test-csv", required=True, help="The gate-split pass of the sdk champion."
+    )
+    jd.add_argument("--seed", type=int, default=2026)
+    jd.add_argument("--name", default="judge_v1")
+
+    jdg = sub.add_parser(
+        "judge-diagnose",
+        help="Teacher (with gold): what each optimise case got wrong or right, for the judge.",
+    )
+    jdg.add_argument("--split", default="optimise", choices=("optimise", "calibrate"))
+    jdg.add_argument(
+        "--judge-scores",
+        default=None,
+        help="Round 2: a scores CSV; only the judge's misses are diagnosed, verdict attached.",
+    )
+    jdg.add_argument(
+        "--judge-version", default="", help="The judge the scores came from."
+    )
+    jdg.add_argument("--concurrency", type=int, default=8)
+    jdg.add_argument("--label", default=None)
+    jdg.add_argument("--experiment", default=None)
+
+    jds = sub.add_parser(
+        "judge-distil",
+        help="Write prompts/judge_jN.py from the diagnoses (revise with --base-version).",
+    )
+    jds.add_argument(
+        "--new-version", default=None, help="judge_jN; default: next in line."
+    )
+    jds.add_argument(
+        "--base-version",
+        default=None,
+        help="Revise this judge instead of starting fresh.",
+    )
+    jds.add_argument(
+        "--round",
+        type=int,
+        default=None,
+        help="Use only diagnoses from this round (default: every diagnosis on record).",
+    )
+    jds.add_argument("--experiment", default=None)
+
+    jsc = sub.add_parser(
+        "judge-score", help="Run a judge over one split; write the scores CSV."
+    )
+    jsc.add_argument("--version", required=True, help="judge_jN")
+    jsc.add_argument(
+        "--split", required=True, choices=("optimise", "calibrate", "test")
+    )
+    jsc.add_argument("--concurrency", type=int, default=8)
+    jsc.add_argument("--error-target", type=float, default=0.01)
+    jsc.add_argument("--label", default=None)
+    jsc.add_argument("--experiment", default=None)
+
+    jg = sub.add_parser(
+        "judge-gate",
+        help="Compare two judges' scores on the calibrate split; optionally promote.",
+    )
+    jg.add_argument("--baseline-scores", required=True)
+    jg.add_argument("--candidate-scores", required=True)
+    jg.add_argument("--baseline-version", required=True)
+    jg.add_argument("--candidate-version", required=True)
+    jg.add_argument("--error-target", type=float, default=0.01)
+    jg.add_argument(
+        "--promote", action="store_true", help="Move judge_champion on a pass."
+    )
+
     bl = sub.add_parser(
         "backfill-ledgers",
         help="Seed diagnoses/rewrites/gates ledgers from the per-run files and MLflow.",
@@ -767,6 +846,102 @@ def main() -> None:
             )
         )
         print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "judge-dataset":
+        from convfinqa.evalloop import judge
+
+        manifest = judge.build_dataset(
+            optimise_csv=args.optimise_csv,
+            calibrate_csv=args.calibrate_csv,
+            test_csv=args.test_csv,
+            seed=args.seed,
+            name=args.name,
+        )
+        print(  # noqa: T201
+            json.dumps(
+                {k: v for k, v in manifest.items() if k != "splits"},
+                indent=2,
+                default=str,
+            )
+        )
+
+    elif args.cmd == "judge-diagnose":
+        from convfinqa.evalloop import judge
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        out = asyncio.run(
+            judge.diagnose_split(
+                split=args.split,
+                judge_scores=args.judge_scores,
+                judge_version=args.judge_version,
+                concurrency=args.concurrency,
+                label=args.label,
+                **kwargs,
+            )
+        )
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "judge-distil":
+        from convfinqa.evalloop import judge
+
+        rows = judge.load_diagnoses()
+        if args.round is not None:
+            rows = [r for r in rows if r.get("round") == args.round]
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        out = asyncio.run(
+            judge.distil_judge(
+                new_version=args.new_version or judge.next_judge_version(),
+                base_version=args.base_version,
+                diagnoses=rows,
+                **kwargs,
+            )
+        )
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "judge-score":
+        from convfinqa.evalloop import judge
+
+        kwargs = {"experiment": args.experiment} if args.experiment else {}
+        out = asyncio.run(
+            judge.score_split(
+                version=args.version,
+                split=args.split,
+                concurrency=args.concurrency,
+                error_target=args.error_target,
+                label=args.label,
+                **kwargs,
+            )
+        )
+        print(json.dumps(out, indent=2, default=str))  # noqa: T201
+
+    elif args.cmd == "judge-gate":
+        from convfinqa.evalloop import judge
+        from convfinqa.tracking import registry
+
+        verdict = judge.gate_judges(
+            args.baseline_scores,
+            args.candidate_scores,
+            baseline_version=args.baseline_version,
+            candidate_version=args.candidate_version,
+            error_target=args.error_target,
+        )
+        promoted = False
+        if args.promote and verdict["promotable"]:
+            outcome = registry.promote_judge(
+                args.candidate_version,
+                verdict=verdict,
+                runtime_version=str(judge.load_dataset().get("runtime_version", "")),
+                actor="evalloop-judge-gate",
+            )
+            promoted = outcome.promoted
+        row = judge.record_gate(
+            verdict,
+            promoted=promoted,
+            champion_after=registry.judge_champion() or "",
+        )
+        print(json.dumps(row, indent=2, default=str))  # noqa: T201
+        if args.promote and not verdict["promotable"]:
+            print("judge rule failed — candidate NOT promoted")  # noqa: T201
 
     elif args.cmd == "backfill-ledgers":
         from pathlib import Path
