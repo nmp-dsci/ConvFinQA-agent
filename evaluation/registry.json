@@ -459,6 +459,27 @@
       ],
       "metrics": {},
       "notes": "confidence judge \u00b7 j1 \u00b7 calibrated to sdk_v1"
+    },
+    {
+      "version": "judge_j2",
+      "registered_at": "2026-09-07T05:49:28.771240+00:00",
+      "source": "judge_distil",
+      "bundle_id": "8bb8d002bfd9",
+      "bundle": {
+        "prompts_version": "judge_j2",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "91d81e2",
+        "composition": "j2",
+        "v_judge": "j2@ac0f3f92"
+      },
+      "runs": [
+        "ba0c14e85b144e86a94175f7892272ba"
+      ],
+      "metrics": {},
+      "notes": "confidence judge \u00b7 j2 \u00b7 calibrated to sdk_v1"
     }
   ],
   "aliases": {
@@ -2001,6 +2022,15 @@
       "source": "judge_distil",
       "registered_at": "2026-09-07T05:08:53.852448+00:00",
       "run_id": "4eb01f0587814d0fa57085fad8041ad3"
+    },
+    {
+      "seq": "j2",
+      "hash": "ac0f3f92",
+      "first_seen_in": "judge_j2",
+      "parent": "j1",
+      "source": "judge_revise",
+      "registered_at": "2026-09-07T05:49:28.768573+00:00",
+      "run_id": "ba0c14e85b144e86a94175f7892272ba"
     }
   ]
 }

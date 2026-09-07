@@ -752,10 +752,16 @@ def _judge_section(summary: dict[str, Any] | None) -> str:
             pill = (
                 ' <span class="pill yes">champion</span>' if version == champion else ""
             )
+            # An incomplete pass is reported, never hidden — and never read as a
+            # result: its band counts describe the turns that were judged only.
+            unscored = int(m.get("n_unscored") or 0)
+            split_cell = _e(split)
+            if unscored:
+                split_cell += f' <span class="pill no">{unscored} unjudged</span>'
             rows.append(
                 f'<tr class="{"hi" if is_champion_test else ""}">'
                 f"<td><code>{_e(version)}</code>{pill}</td>"
-                f"<td>{_e(split)}</td>"
+                f"<td>{split_cell}</td>"
                 f'<td class="num">{m.get("n", "—")}</td>'
                 f'<td class="num">{_pct(m.get("accuracy"))}</td>'
                 f'<td class="num">{_pct(m.get("coverage"))}</td>'
