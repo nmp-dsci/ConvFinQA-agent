@@ -391,6 +391,15 @@ def test_a_gate_refuses_a_scores_file_with_unjudged_turns(tmp_path: Path) -> Non
         judge.gate_judges(full, half, baseline_version="judge_j1", candidate_version="judge_j2")
     with pytest.raises(judge.IncompleteJudgeScoresError):
         judge.gate_judges(half, full, baseline_version="judge_j1", candidate_version="judge_j2")
+    # A CSV written before the column existed still says so in `error`, and it
+    # is exactly the file that must not read as a complete pass.
+    legacy = df.drop(columns=["unscored"])
+    legacy["error"] = ["", "", "TeacherRateLimitError('rate_limited: session limit')"]
+    old = tmp_path / "legacy.csv"
+    legacy.to_csv(old, index=False)
+    assert judge.selective_metrics(legacy)["n_unscored"] == 1
+    with pytest.raises(judge.IncompleteJudgeScoresError):
+        judge.gate_judges(full, old, baseline_version="judge_j1", candidate_version="judge_j2")
 
 
 def test_gate_promotes_more_coverage_inside_the_bound_and_no_fewer_catches(

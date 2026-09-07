@@ -1490,6 +1490,15 @@ class IncompleteJudgeScoresError(RuntimeError):
     """A scores CSV holding turns the judge was never able to answer."""
 
 
+RATE_LIMIT_ERROR = "rate_limited:"
+"""What a rate-limited judge call leaves in a scores row's `error`.
+
+`TeacherRateLimitError` carries the CLI's own refusal text, which already
+starts with this marker, so a row written before the `unscored` column existed
+is still recognisable.
+"""
+
+
 def scored_only(df: pd.DataFrame) -> pd.DataFrame:
     """The rows the judge actually answered.
 
@@ -1500,9 +1509,19 @@ def scored_only(df: pd.DataFrame) -> pd.DataFrame:
     as a 57% failure-capture improvement. Every consumer of `band` reads this,
     so an unscored turn is absent from the numerator *and* the denominator.
     """
-    if "unscored" not in df.columns:
-        return df
-    return df[~df["unscored"].fillna(False).astype(bool)]
+    unscored = pd.Series(False, index=df.index)
+    if "unscored" in df.columns:
+        unscored |= df["unscored"].fillna(False).astype(bool)
+    if "error" in df.columns:
+        # A CSV written before the column exists still says so in `error`, and
+        # that file is exactly the one that must not read as a complete pass.
+        unscored |= (
+            df["error"]
+            .fillna("")
+            .astype(str)
+            .str.contains(RATE_LIMIT_ERROR, regex=False)
+        )
+    return df[~unscored]
 
 
 def _unscored_row(base: dict[str, Any], refusal: str) -> dict[str, Any]:
