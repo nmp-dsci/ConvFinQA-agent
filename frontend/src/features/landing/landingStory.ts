@@ -104,8 +104,8 @@ export function landingStory(
 
   const holdout =
     questions !== null && reports !== null
-      ? `Every figure here is the sealed gate split: ${questions} questions across ${reports} conversations, fixed for the campaign. The holdout has never been opened, so nothing on this page is out-of-sample.`
-      : 'Every figure here is the fixed gate split. The holdout has never been opened, so nothing on this page is out-of-sample.';
+      ? `Every figure here is the gate split: ${questions} questions across ${reports} conversations, fixed for the campaign and reused every promotion cycle. The separate, sealed release holdout has never been opened, so this page's figures are not from it.`
+      : "Every figure here is the fixed gate split, reused every promotion cycle. The separate, sealed release holdout has never been opened, so this page's figures are not from it.";
 
   return { headline, lede, proof, caveat, holdout, measured };
 }
