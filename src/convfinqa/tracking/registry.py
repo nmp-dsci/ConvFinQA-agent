@@ -287,6 +287,12 @@ def promote(
             f"pipeline's champion, which cannot be an sdk version. Use "
             f"set_alias({SDK_CHAMPION!r}, ...) for the sdk lineage."
         )
+    if is_judge_version(version):
+        raise ValueError(
+            f"{version!r} is a confidence-judge prompt; `promote` moves the "
+            f"pipeline's champion, which cannot be a judge version. Use "
+            f"promote_judge(...) for the judge lineage."
+        )
 
     previous = doc.aliases.get(CHAMPION)
 

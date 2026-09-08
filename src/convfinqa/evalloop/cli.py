@@ -934,6 +934,7 @@ def main() -> None:
                 args.candidate_version,
                 verdict=verdict,
                 runtime_version=str(judge.load_dataset().get("runtime_version", "")),
+                evidence_split=str(verdict["evidence_split"]),
                 actor="evalloop-judge-gate",
             )
             promoted = outcome.promoted

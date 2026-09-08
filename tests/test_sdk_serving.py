@@ -209,6 +209,28 @@ def test_a_low_band_turn_withholds_the_answer_but_records_it(
 
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
+def test_a_low_band_stream_never_leaks_the_answer_before_the_verdict(
+    sdk_serving: dict[str, Any],
+) -> None:
+    sdk_serving["verdicts"].update({"band": "low", "p_correct": 0.3})
+    with _client() as client:
+        sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]
+        events = _stream(client, sid, "what was the change?")
+        # The real value never appears in any frame — not the content frames
+        # emitted before the judge's verdict, not the judge frame, not the
+        # answer frame.
+        assert "150" not in json.dumps(events)
+        stage_output = [e for e in events if e["event"] == "stage_output"]
+        assert stage_output and all(e["output"] == {} for e in stage_output)
+        tool_calls = [e for e in events if e["event"] in {"tool_call", "tool_return"}]
+        assert tool_calls
+        for frame in tool_calls:
+            assert frame.get("args", {}) == {} and frame.get("result", "") == ""
+        answer = next(e for e in events if e["event"] == "answer")
+        assert answer["answer"] == "" and answer["withheld"] is True
+
+
+@pytest.mark.skipif(not REPORT, reason="no reports loaded")
 def test_a_failed_judge_fails_closed(sdk_serving: dict[str, Any]) -> None:
     sdk_serving["verdicts"]["raise"] = True
     with _client() as client:

@@ -316,10 +316,19 @@ def test_dataset_refuses_a_test_split_that_overlaps_a_draw(
 # ---------------------------------------------------------------------------
 
 
-def _scores(rows: list[tuple[str, bool, str, float]]) -> pd.DataFrame:
+def _scores(
+    rows: list[tuple[str, bool, str, float]], *, split: str = "calibrate"
+) -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {"question_id": f"{r}_q{i}", "report_id": r, "correct": c, "band": b, "p_correct": p}
+            {
+                "question_id": f"{r}_q{i}",
+                "report_id": r,
+                "correct": c,
+                "band": b,
+                "p_correct": p,
+                "split": split,
+            }
             for i, (r, c, b, p) in enumerate(rows)
         ]
     )
@@ -418,6 +427,98 @@ def test_gate_promotes_more_coverage_inside_the_bound_and_no_fewer_catches(
     refused = judge.gate_judges(b, k, baseline_version="judge_j1", candidate_version="judge_j2")
     assert refused["promotable"] is False
     assert "exceeds" in refused["reason"] and "failure capture fell" in refused["reason"]
+
+
+def test_gate_rejects_lower_coverage_even_when_the_baseline_missed_target(
+    tmp_path: Path,
+) -> None:
+    """Coverage must not fall, full stop — not only when the baseline met target.
+
+    Calibrate is redrawn every cycle at natural prevalence, so a previously
+    promoted champion can legitimately miss the error target on a later draw.
+    A candidate that meets target on a much smaller slice of the split is
+    still a large, unexcused coverage regression.
+    """
+    baseline = _scores(
+        [("A", True, "high", 0.9), ("A", False, "high", 0.8), ("B", True, "high", 0.9), ("B", True, "high", 0.9)]
+    )  # fmt: skip
+    candidate = _scores(
+        [("A", True, "low", 0.5), ("A", False, "low", 0.4), ("B", True, "high", 0.9), ("B", True, "low", 0.5)]
+    )  # fmt: skip
+    b, c = tmp_path / "b.csv", tmp_path / "c.csv"
+    baseline.to_csv(b, index=False)
+    candidate.to_csv(c, index=False)
+    bm = judge.selective_metrics(baseline)
+    cm = judge.selective_metrics(candidate)
+    assert bm["meets_target"] is False and cm["meets_target"] is True
+    assert cm["coverage"] < bm["coverage"]
+    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    assert verdict["promotable"] is False
+    assert "coverage did not rise" in verdict["reason"]
+
+
+def test_gate_derives_split_from_the_scores_and_refuses_test_evidence(
+    tmp_path: Path,
+) -> None:
+    base_cal = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="calibrate")
+    cand_cal = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="calibrate")
+    cand_test = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test")
+    b, c, t = tmp_path / "b.csv", tmp_path / "c.csv", tmp_path / "t.csv"
+    base_cal.to_csv(b, index=False)
+    cand_cal.to_csv(c, index=False)
+    cand_test.to_csv(t, index=False)
+    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    assert verdict["evidence_split"] == "calibrate"
+    with pytest.raises(ValueError, match="same split"):
+        judge.gate_judges(b, t, baseline_version="judge_j1", candidate_version="judge_j2")
+    with pytest.raises(ValueError, match="never gated for promotion on the test split"):
+        judge.gate_judges(t, t, baseline_version="judge_j1", candidate_version="judge_j2")
+
+
+def test_gate_falls_back_to_the_filename_split_for_a_legacy_scores_csv(
+    tmp_path: Path,
+) -> None:
+    base = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)]).drop(columns=["split"])
+    cand = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)]).drop(columns=["split"])
+    b = tmp_path / "judge-score-calibrate2-judge_j1·j1-20260101_000000.csv"
+    c = tmp_path / "judge-score-calibrate2-judge_j2·j2-20260101_000000.csv"
+    base.to_csv(b, index=False)
+    cand.to_csv(c, index=False)
+    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    assert verdict["evidence_split"] == "calibrate"
+
+
+def test_cli_judge_gate_derives_evidence_split_and_refuses_the_test_split(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, judge_module: str, registry_tmp: Path
+) -> None:
+    """`judge-gate --promote` must not default to calibrate regardless of the CSVs fed in.
+
+    Previously `promote_judge` was called with no `evidence_split`, so it
+    silently defaulted to `calibrate` even when the scores CSVs were drawn
+    from the sealed test split — the CLI is the only reachable path to
+    promotion and it never derived the split from the evidence it was given.
+    """
+    from convfinqa.evalloop import cli
+    from convfinqa.tracking import registry
+
+    registry.register(judge_module, source="test")
+    base_test = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="test")
+    cand_test = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test")
+    b, c = tmp_path / "b.csv", tmp_path / "c.csv"
+    base_test.to_csv(b, index=False)
+    cand_test.to_csv(c, index=False)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "convfinqa-evalloop", "judge-gate",
+            "--baseline-scores", str(b), "--candidate-scores", str(c),
+            "--baseline-version", "judge_j1", "--candidate-version", judge_module,
+            "--promote",
+        ],
+    )  # fmt: skip
+    with pytest.raises(ValueError, match="never gated for promotion on the test split"):
+        cli.main()
+    assert registry.judge_champion() != judge_module
 
 
 # ---------------------------------------------------------------------------
@@ -620,8 +721,9 @@ async def test_round_two_diagnoses_only_the_misses_with_the_verdict_attached(
 async def test_run_structured_carries_the_model_it_is_given(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from convfinqa.evalloop import sdk
     from pydantic import BaseModel
+
+    from convfinqa.evalloop import sdk
 
     class Reply(BaseModel):
         ok: bool
@@ -687,6 +789,11 @@ def test_the_judge_lineage_stays_apart_from_the_answering_ones(
         registry.promote_judge(judge_module, evidence_split="test")
     first = registry.promote_judge(judge_module)
     assert first.promoted and registry.judge_champion() == judge_module
+    # The pipeline's promote() cannot move champion to a judge version either —
+    # serving reads champion to build four pipeline agents, and a judge prompt
+    # there is a champion nothing can serve.
+    with pytest.raises(ValueError, match="cannot be a judge version"):
+        registry.promote(judge_module)
     # The champion's fingerprint carries the judge composition, not a bundle's.
     from convfinqa.tracking.bundle import bundle_fingerprint
 

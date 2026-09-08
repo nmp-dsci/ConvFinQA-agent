@@ -1483,6 +1483,9 @@ SCORE_COLUMNS: tuple[str, ...] = (
     "cost_usd",
     # Trailing and defaulted: a CSV written before this column loads as all-False.
     "unscored",
+    # Trailing and defaulted: a CSV written before this column falls back to the
+    # split encoded in its filename (`judge-score-<split><n>-...`).
+    "split",
 )
 
 
@@ -1618,10 +1621,15 @@ async def score_split(
                 "correct": bool(row.correct),
                 "pred_answer": str(row.pred_answer),
                 "gold_answer": str(row.gold_answer),
+                "split": split,
             }
             if spent:
                 return (order, _unscored_row(base, spent[0]), {})
             async with sem:
+                # Re-check after the wait for a permit: another task may have
+                # discovered the session is spent while this one was queued.
+                if spent:
+                    return (order, _unscored_row(base, spent[0]), {})
                 with tracing.span(
                     f"judge {row.report_id} q{int(row.turn_index)}",
                     span_type="AGENT",
@@ -1781,6 +1789,26 @@ async def score_split(
 # ── Gate ──────────────────────────────────────────────────────────────────
 
 
+_SPLIT_FROM_FILENAME = re.compile(r"judge-score-([a-z]+)\d+-")
+
+
+def _derive_split(frame: pd.DataFrame, path: Path | str) -> str:
+    """The split this scores CSV was drawn from.
+
+    Trusts the `split` column when present; a CSV written before that column
+    existed falls back to the split encoded in its own filename
+    (`judge-score-<split><n>-...`) rather than assuming `calibrate`.
+    """
+    if "split" in frame.columns:
+        values = frame["split"].dropna().unique()
+        if len(values) == 1 and str(values[0]):
+            return str(values[0])
+    match = _SPLIT_FROM_FILENAME.search(Path(path).name)
+    if match:
+        return match.group(1)
+    raise ValueError(f"{path}: cannot determine which split these scores are from")
+
+
 def _gateable(path: Path | str) -> pd.DataFrame:
     """Load a scores CSV, refusing one whose turns were not all judged.
 
@@ -1818,6 +1846,19 @@ def gate_judges(
     cand = _gateable(candidate_scores)
     if set(base["question_id"]) != set(cand["question_id"]):
         raise ValueError("the two scores files do not cover the same questions")
+    base_split = _derive_split(base, baseline_scores)
+    cand_split = _derive_split(cand, candidate_scores)
+    if base_split != cand_split:
+        raise ValueError(
+            f"baseline scores are from {base_split!r}, candidate from {cand_split!r} "
+            "— a gate compares two judges on the same split"
+        )
+    if cand_split == "test":
+        raise ValueError(
+            "a judge is never gated for promotion on the test split — that "
+            "split is the judge's own test, scored once by the frozen champion"
+        )
+    evidence_split = cand_split
     bm = selective_metrics(base, error_target=error_target)
     cm = selective_metrics(cand, error_target=error_target)
     joined = base.merge(cand, on="question_id", suffixes=("_b", "_c"))
@@ -1840,7 +1881,7 @@ def gate_judges(
         reasons.append(
             f"candidate high band error {cm['high_band_error']:.2%} exceeds the {error_target:.0%} target"
         )
-    if cm["coverage"] <= bm["coverage"] and bm["meets_target"]:
+    if cm["coverage"] <= bm["coverage"]:
         reasons.append(
             f"coverage did not rise ({bm['coverage']:.1%} → {cm['coverage']:.1%})"
         )
@@ -1866,6 +1907,7 @@ def gate_judges(
         "candidate_version": candidate_version,
         "baseline_scores": str(baseline_scores),
         "candidate_scores": str(candidate_scores),
+        "evidence_split": evidence_split,
         "error_target": error_target,
         "n_paired": int(len(joined)),
         "baseline": bm,

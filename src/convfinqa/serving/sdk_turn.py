@@ -27,6 +27,25 @@ from convfinqa.serving.sessions import SessionState
 WITHHELD_TEXT = ""
 
 
+def _redact_content_frame(frame: dict[str, Any]) -> dict[str, Any]:
+    """Strip the reasoning trail's content, keeping only stage/event/metrics.
+
+    A `stage_output` frame carries the stage's `output` (which, for the
+    retriever on a number turn or the calculator on a program turn, *is* the
+    final answer); `tool_call`/`tool_return` frames carry the arithmetic that
+    produced it. On a withheld turn none of that may reach the wire, exactly
+    as the answer frame itself is emptied.
+    """
+    redacted = dict(frame)
+    if "output" in redacted:
+        redacted["output"] = {}
+    if "args" in redacted:
+        redacted["args"] = {}
+    if "result" in redacted:
+        redacted["result"] = ""
+    return redacted
+
+
 def stage_frames(capture: dict[str, Any]) -> list[dict[str, Any]]:
     """The four stage frames a capture stands for, in pipeline order."""
     frames: list[dict[str, Any]] = []
@@ -104,14 +123,15 @@ async def sdk_turn_events(
     capture.update(cap)
     answer = result.answer
     program = result.program if result.turn_type == "program" else ""
-    for frame in stage_frames(capture)[1:]:
-        yield frame
+    # Held, not streamed yet: the single-session runtime answers all four
+    # stages in one reply, so there is no progressive output to preserve, and
+    # these frames carry the answer the judge has not yet ruled on.
+    content_frames = stage_frames(capture)[1:]
 
     band: str | None = None
     verdict: dict[str, Any] | None = None
     version = serving_judge.judge_version()
     if version:
-        yield {"event": "stage_start", "stage": "judge"}
         verdict = await serving_judge.judge_capture(
             capture,
             report_id=state.report_id,
@@ -123,9 +143,15 @@ async def sdk_turn_events(
         )
         capture["judge"] = {**verdict, "answer": answer}
         band = str(verdict["band"])
-        yield {"event": "judge", **verdict}
 
     withheld = band == "low"
+    for frame in content_frames:
+        yield _redact_content_frame(frame) if withheld else frame
+
+    if verdict is not None:
+        yield {"event": "stage_start", "stage": "judge"}
+        yield {"event": "judge", **verdict}
+
     shown = WITHHELD_TEXT if withheld else answer
     state.conversation.append(
         question=question, answer=shown, report_id=state.report_id
