@@ -77,16 +77,56 @@ function StageStrip({ message }: { message: Message }) {
 function JudgeBadge({ message }: { message: Message }) {
   const verdict = message.judge;
   if (!verdict || message.withheld) return null;
+  // s13: a low band is advisory by default, so the answer is shown and the
+  // badge has to carry the caution rather than being the reward for a pass.
+  const low = verdict.band === 'low';
+  const Icon = low ? ShieldAlert : ShieldCheck;
   return (
     <span
       data-testid="judge-badge"
       data-band={verdict.band}
-      className="inline-flex items-center gap-1 rounded-[4px] border border-good/40 bg-good/10 px-1.5 py-0.5 font-mono text-[10px] text-good"
+      className={cn(
+        'inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px]',
+        low
+          ? 'border-amber-line bg-amber-soft text-amber'
+          : 'border-good/40 bg-good/10 text-good'
+      )}
       title={`Confidence judge (${verdict.version ?? 'judge'}): ${verdict.reason}`}
     >
-      <ShieldCheck className="size-3" aria-hidden />
-      high · p {verdict.p_correct.toFixed(2)}
+      <Icon className="size-3" aria-hidden />
+      {verdict.band} · p {verdict.p_correct.toFixed(2)}
     </span>
+  );
+}
+
+/**
+ * s13: the judge's caution, shown beside an answer it could not verify.
+ *
+ * The default policy is advisory, not abstention: withholding was measured
+ * and destroyed four correct answers for every wrong one it stopped, for a
+ * released-set accuracy indistinguishable from showing everything. So the
+ * answer stands and the doubt is stated — the reason and the checks that
+ * failed, which is the part a reader can actually act on.
+ */
+function CautionNote({ message }: { message: Message }) {
+  const verdict = message.judge;
+  if (!verdict || verdict.band !== 'low' || message.withheld) return null;
+  const failed = Object.entries(verdict.checks ?? {}).filter(([, v]) => v !== 'pass');
+  return (
+    <div
+      data-testid="judge-caution"
+      className="mt-1.5 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
+    >
+      <p className="text-[11px] leading-relaxed text-muted">
+        <span className="font-medium text-text">Check this one.</span> The confidence judge
+        could not verify it against the filing.{verdict.reason ? ` ${verdict.reason}` : ''}
+      </p>
+      {failed.length > 0 && (
+        <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-faint">
+          {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -240,6 +280,8 @@ export function Turn({ message, selected, onSelect }: Props) {
             <span className="animate-pulse">answering…</span>
           </div>
         )}
+
+        {message.status === 'done' && <CautionNote message={message} />}
 
         {message.goldProgram && message.status === 'done' && (
           <div

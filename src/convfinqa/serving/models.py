@@ -85,9 +85,11 @@ class AskResponse(BaseModel):
     # answering a paraphrase silently would present one question's number as
     # another's.
     matched_question: str = ""
-    # s12: the confidence judge's band on an agent_sdk turn — `high` released
-    # the answer, `low` withheld it (`answer` is then empty and `withheld` is
-    # True). None on the pipeline runtime and in demo mode.
+    # s12: the confidence judge's band on an agent_sdk turn — `high` means the
+    # trail verifies, `low` that it does not. What `low` does is `judge_mode`:
+    # `advisory` (the default) shows the answer with the band beside it and
+    # leaves `withheld` False; `gate` withholds it, and `answer` is then empty
+    # with `withheld` True. None on the pipeline runtime and in demo mode.
     band: str | None = None
     withheld: bool = False
 

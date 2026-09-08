@@ -123,6 +123,19 @@ class Settings(BaseSettings):
     # (`judge_champion`) before its answer is released. Off → every answer is
     # released, as before the judge existed.
     judge_enabled: bool = True
+    # What a `low` band does. `advisory` shows the answer with the judge's
+    # caution beside it; `gate` withholds it.
+    #
+    # The default is `advisory` because that is what the measurement supports
+    # (s13). On the sealed test split the high band is 91.46% accurate against
+    # 90.54% for releasing everything — +0.92pp, an interval that contains the
+    # baseline — while gating withholds 33 answers to remove 6 wrong ones, 27
+    # of the 33 being answers the runtime had got right. A guard-rail that
+    # destroys four correct answers for every wrong one it stops is not worth
+    # its cost as a gate; as a visible caveat the same signal is free. `gate`
+    # is kept, and tested, for a judge that earns it — the promotion rule
+    # (`gate_judges`) is what would settle that.
+    judge_mode: Literal["advisory", "gate"] = "advisory"
 
     # ---- Prompts ----------------------------------------------------------
     # None → auto-detect highest version in prompts/. Otherwise pin (e.g. "v2").

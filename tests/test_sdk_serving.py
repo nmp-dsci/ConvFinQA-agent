@@ -104,6 +104,10 @@ def sdk_serving(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(sdk_session, "SdkSession", FakeSdkSession)
     monkeypatch.setattr(settings, "serving_runtime", "agent_sdk")
     monkeypatch.setattr(settings, "judge_enabled", True)
+    # Left at the shipped default (`advisory`) on purpose: the tests that
+    # assert withholding opt into `gate` themselves, so the ones that do not
+    # are testing the policy that actually ships.
+    monkeypatch.setattr(settings, "judge_mode", "advisory")
     monkeypatch.setattr(registry, "judge_champion", lambda path=None: "judge_j1")
     monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
 
@@ -187,10 +191,45 @@ def test_a_high_band_turn_streams_the_stages_the_verdict_and_the_answer(
 
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
+def test_advisory_is_the_default_and_a_low_band_still_releases_the_answer(
+    sdk_serving: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """s13: the shipped policy. A `low` band is a caveat, not an abstention.
+
+    Gating was measured and did not earn its cost — it withheld four correct
+    answers for every wrong one it stopped — so the default shows the answer
+    with the band attached, and nothing about the turn's record changes.
+    """
+    from convfinqa.config import settings
+
+    monkeypatch.setattr(settings, "judge_mode", "advisory")
+    sdk_serving["verdicts"].update({"band": "low", "p_correct": 0.3})
+    with _client() as client:
+        sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]
+        body = client.post(
+            f"/sessions/{sid}/ask", json={"question": "what was the change?"}
+        ).json()
+        assert body["band"] == "low" and body["withheld"] is False
+        assert body["answer"] == "150"
+        assert body["history"][-1]["answer"] == "150"
+        # The stage frames are not redacted either — there is nothing to hide.
+        events = _stream(client, sid, "and doubled?")
+        outputs = [e for e in events if e["event"] == "stage_output"]
+        assert outputs and any(e.get("output") for e in outputs)
+        answer = next(e for e in events if e["event"] == "answer")
+        assert answer["answer"] == "42" and answer["withheld"] is False
+        assert answer["band"] == "low"
+
+
+@pytest.mark.skipif(not REPORT, reason="no reports loaded")
 def test_a_low_band_turn_withholds_the_answer_but_records_it(
     sdk_serving: dict[str, Any], tmp_path: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """`judge_mode="gate"`: kept and tested for a judge that earns it."""
+    from convfinqa.config import settings
     from convfinqa.tracking import traces
+
+    monkeypatch.setattr(settings, "judge_mode", "gate")
 
     store = traces.TraceStore(tmp_path / "traces.db")
     monkeypatch.setattr(traces, "get_store", lambda: store)
@@ -226,8 +265,16 @@ def test_a_low_band_turn_withholds_the_answer_but_records_it(
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
 def test_a_low_band_stream_never_leaks_the_answer_before_the_verdict(
-    sdk_serving: dict[str, Any],
+    sdk_serving: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Under `gate`, withholding has to hold on the streaming path too.
+
+    The stage frames carry the answer and are built before the judge runs, so
+    a stream that forwarded them verbatim released what the band refused.
+    """
+    from convfinqa.config import settings
+
+    monkeypatch.setattr(settings, "judge_mode", "gate")
     sdk_serving["verdicts"].update({"band": "low", "p_correct": 0.3})
     with _client() as client:
         sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]
@@ -247,7 +294,18 @@ def test_a_low_band_stream_never_leaks_the_answer_before_the_verdict(
 
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
-def test_a_failed_judge_fails_closed(sdk_serving: dict[str, Any]) -> None:
+def test_a_failed_judge_fails_closed(
+    sdk_serving: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A judge that cannot run bands `low` — under `gate`, that withholds.
+
+    Failing closed is about the *band*, which is what the record keeps and
+    what a stricter mode acts on; what a `low` band then does to the answer
+    is `judge_mode`.
+    """
+    from convfinqa.config import settings
+
+    monkeypatch.setattr(settings, "judge_mode", "gate")
     sdk_serving["verdicts"]["raise"] = True
     with _client() as client:
         sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]

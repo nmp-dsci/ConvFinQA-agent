@@ -85,8 +85,48 @@ describe('Turn with a judge', () => {
     );
     expect(html).toContain('data-testid="judge-badge"');
     expect(html).toContain('data-band="high"');
-    expect(html).toContain('p 0.97');
+    expect(html).toContain('high · p 0.97');
     expect(html).toContain('150');
+  });
+
+  it('shows the answer with a caution when the band is low and advisory', () => {
+    const verdict: JudgeVerdict = {
+      ...VERDICT,
+      band: 'low',
+      p_correct: 0.3,
+      reason: 'the cited cell holds a different period',
+      checks: { ...VERDICT.checks, period_matches: 'fail' },
+    };
+    const html = renderToStaticMarkup(
+      <Turn
+        message={message({ text: '150', status: 'done', judge: verdict, withheld: false })}
+        selected={false}
+        onSelect={() => {}}
+      />
+    );
+    // The answer stands — advisory is the default policy, not abstention.
+    expect(html).toContain('150');
+    expect(html).not.toContain('data-testid="withheld-block"');
+    // …and the doubt is stated, with the check a reader can act on.
+    expect(html).toContain('data-testid="judge-caution"');
+    expect(html).toContain('Check this one');
+    expect(html).toContain('the cited cell holds a different period');
+    expect(html).toContain('period_matches: fail');
+    // The badge carries the band rather than being a pass mark.
+    expect(html).toContain('data-band="low"');
+    expect(html).toContain('low · p 0.30');
+  });
+
+  it('shows no caution beside a high-band answer', () => {
+    const html = renderToStaticMarkup(
+      <Turn
+        message={message({ text: '150', status: 'done', judge: VERDICT, withheld: false })}
+        selected={false}
+        onSelect={() => {}}
+      />
+    );
+    expect(html).not.toContain('data-testid="judge-caution"');
+    expect(html).toContain('data-band="high"');
   });
 
   it('says it is not confident instead of showing a withheld number', () => {

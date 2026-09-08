@@ -8,10 +8,18 @@ frames the pipeline never emits:
 
 - ``judge`` — the confidence verdict (band, p_correct, checks, reason), when a
   judge is enabled and registered;
-- ``answer`` carries ``band`` and ``withheld``. A ``low`` band withholds the
-  answer: ``answer`` is empty on the wire and in the visible history, and the
-  turn's record (`capture["judge"]`, the trace row) keeps the value the judge
-  refused to release, so the withheld answers stay measurable.
+- ``answer`` carries ``band`` and ``withheld``. What a ``low`` band does is
+  `settings.judge_mode`: under ``advisory`` (the default) the answer is
+  released with the band beside it, and the UI shows the judge's reason and
+  its failed checks as a caveat; under ``gate`` the answer is withheld —
+  ``answer`` is empty on the wire and in the visible history, the stage
+  frames that carry it are redacted, and the turn's record
+  (`capture["judge"]`, the trace row) keeps the value the judge refused to
+  release, so withheld answers stay measurable.
+
+The default is advisory because gating was measured and did not earn its
+cost: it withholds four correct answers for every wrong one it stops, for a
+released-set accuracy indistinguishable from releasing everything (s13).
 
 The session itself keeps the real answer in its own context, so later turns
 that depend on a withheld one are still coherent.
@@ -144,7 +152,12 @@ async def sdk_turn_events(
         capture["judge"] = {**verdict, "answer": answer}
         band = str(verdict["band"])
 
-    withheld = band == "low"
+    # `advisory` (the default) shows the answer with the judge's caution beside
+    # it; only `gate` withholds. See `settings.judge_mode` for why the
+    # measurement puts the default here.
+    from convfinqa.config import settings
+
+    withheld = band == "low" and settings.judge_mode == "gate"
     for frame in content_frames:
         yield _redact_content_frame(frame) if withheld else frame
 

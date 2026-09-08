@@ -228,10 +228,12 @@ uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>
 
 ## The confidence judge (s12)
 
-The runtime decision (s11) moved serving to the Agent SDK; the judge is what makes
-that shippable. A second, cheaper model reads a finished turn's trace and returns a
-band: `high` releases the answer, `low` withholds it ("I'm not confident in this
-one"). Everything lives in `evalloop/judge.py`; the invariants, all pinned by tests:
+The runtime decision (s11) moved serving to the Agent SDK; the judge was the attempt
+to make it self-checking. A second, cheaper model reads a finished turn's trace and
+returns a band: `high` means the trail verifies, `low` means it does not. **Measured on
+the sealed split, the band did not earn the right to gate** (s13) — it is shown as a
+caveat instead, and `JUDGE_MODE=gate` keeps the withholding path for a judge that does.
+Everything lives in `evalloop/judge.py`; the invariants, all pinned by tests:
 
 - **The judge never sees gold.** `judge.judge_payload` builds its input from the
   same readers the teacher uses (question, history, document, the trail: sub-questions,

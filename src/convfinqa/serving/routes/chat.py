@@ -215,14 +215,17 @@ async def _turn_stream(
 
 
 def _recorded_answer(capture: dict[str, Any], shown: str) -> str:
-    """The answer the trace scores: the withheld value when the judge withheld it.
+    """The answer the trace scores: the runtime's, shown or not.
 
-    The visible answer of a `low`-band turn is empty; the value the runtime
-    produced is kept on `capture["judge"]["answer"]` so the trace's `correct`
-    still measures the runtime, and the band column says it was not shown.
+    Under `judge_mode="gate"` the visible answer of a `low`-band turn is
+    empty; the value the runtime produced is kept on
+    `capture["judge"]["answer"]` so the trace's `correct` still measures the
+    runtime and the band column says it was not shown. Keyed on the visible
+    answer being empty rather than on the band, because under `advisory` a
+    `low` band is shown and `shown` is already the real answer.
     """
     verdict = capture.get("judge")
-    if isinstance(verdict, dict) and verdict.get("band") == "low":
+    if not shown and isinstance(verdict, dict) and verdict.get("band") == "low":
         return str(verdict.get("answer", "") or "")
     return shown
 
