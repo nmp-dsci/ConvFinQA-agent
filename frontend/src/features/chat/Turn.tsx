@@ -4,6 +4,7 @@ import { looseNumericMatch } from '../../numericMatch';
 import type { Message } from '../../types';
 import { errorCopy } from './errors';
 import { fmtMs } from './format';
+import { howLine } from './how';
 import { stageViews, totalLatency } from './stages';
 
 /**
@@ -19,13 +20,13 @@ function MatchedBanner({ message }: { message: Message }) {
   return (
     <div
       data-testid="matched-banner"
-      className="mb-2 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2 text-[11px] leading-relaxed text-text"
+      className="type-small mb-2 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2 text-text"
     >
       <span className="mono-caps mr-1.5 text-amber">replayed</span>
       No recording for what you asked — playing the closest recorded question:{' '}
       <span className="font-medium">“{message.matchedQuestion}”</span>
       {typeof message.matchScore === 'number' && (
-        <span className="ml-1 font-mono text-faint">(match {message.matchScore.toFixed(2)})</span>
+        <span className="type-num ml-1 text-faint">(match {message.matchScore.toFixed(2)})</span>
       )}
     </div>
   );
@@ -36,7 +37,7 @@ function StageStrip({ message }: { message: Message }) {
   const latency = totalLatency(message);
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
       {views.map((view) => (
         <span
           key={view.stage}
@@ -44,11 +45,11 @@ function StageStrip({ message }: { message: Message }) {
           data-state={view.state}
           title={view.detail ? `${view.stage} — ${view.detail}` : view.stage}
           className={cn(
-            'rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px] leading-tight',
+            'type-num type-meta rounded-[4px] border px-1.5 py-0.5 leading-tight',
             view.state === 'done' && 'border-line-2 bg-panel-2 text-muted',
             view.state === 'active' && 'border-amber-line bg-amber-soft text-amber',
             view.state === 'pending' && 'border-line bg-transparent text-faint',
-            view.state === 'skipped' && 'border-line bg-transparent text-faint line-through'
+            view.state === 'skipped' && 'border-line bg-transparent text-faint line-through',
           )}
         >
           {view.stage}
@@ -57,11 +58,14 @@ function StageStrip({ message }: { message: Message }) {
           ) : null}
         </span>
       ))}
-      <span className="ml-auto font-mono text-[10px] text-faint" title={
-        latency === null
-          ? 'No per-stage timings were recorded for this turn'
-          : 'Sum of the measured per-stage latencies'
-      }>
+      <span
+        className="type-num type-meta ml-auto text-faint"
+        title={
+          latency === null
+            ? 'No per-stage timings were recorded for this turn'
+            : 'Sum of the measured per-stage latencies'
+        }
+      >
         {latency === null ? '— no timing' : fmtMs(latency)}
       </span>
     </div>
@@ -73,12 +77,12 @@ function StageStrip({ message }: { message: Message }) {
  *
  * A `high` band is the judge saying the trace checks out; the probability is
  * its own estimate, shown so a reader can see how close to the line it was.
+ * s13: a low band is advisory by default, so the answer is shown and the
+ * badge has to carry the caution rather than being the reward for a pass.
  */
 function JudgeBadge({ message }: { message: Message }) {
   const verdict = message.judge;
   if (!verdict || message.withheld) return null;
-  // s13: a low band is advisory by default, so the answer is shown and the
-  // badge has to carry the caution rather than being the reward for a pass.
   const low = verdict.band === 'low';
   const Icon = low ? ShieldAlert : ShieldCheck;
   return (
@@ -86,10 +90,8 @@ function JudgeBadge({ message }: { message: Message }) {
       data-testid="judge-badge"
       data-band={verdict.band}
       className={cn(
-        'inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px]',
-        low
-          ? 'border-amber-line bg-amber-soft text-amber'
-          : 'border-good/40 bg-good/10 text-good'
+        'type-num type-meta inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5',
+        low ? 'border-amber-line bg-amber-soft text-amber' : 'border-good/40 bg-good/10 text-good',
       )}
       title={`Confidence judge (${verdict.version ?? 'judge'}): ${verdict.reason}`}
     >
@@ -115,14 +117,14 @@ function CautionNote({ message }: { message: Message }) {
   return (
     <div
       data-testid="judge-caution"
-      className="mt-1.5 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
+      className="mt-2 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
     >
-      <p className="text-[11px] leading-relaxed text-muted">
-        <span className="font-medium text-text">Check this one.</span> The confidence judge
-        could not verify it against the filing.{verdict.reason ? ` ${verdict.reason}` : ''}
+      <p className="type-small text-muted">
+        <span className="font-medium text-text">Check this one.</span> The confidence judge could
+        not verify it against the filing.{verdict.reason ? ` ${verdict.reason}` : ''}
       </p>
       {failed.length > 0 && (
-        <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-faint">
+        <p className="type-num type-meta mt-1 text-faint">
           {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
         </p>
       )}
@@ -131,7 +133,7 @@ function CautionNote({ message }: { message: Message }) {
 }
 
 /**
- * s12: what the visitor sees when the judge withheld the answer.
+ * s12: what the visitor sees when the judge withheld the answer (gate mode).
  *
  * The number exists — the session produced it and the trace keeps it — but the
  * judge could not verify it against the filing, so the product says so rather
@@ -150,19 +152,19 @@ function WithheldBlock({ message }: { message: Message }) {
     >
       <div className="flex items-baseline gap-1.5">
         <ShieldAlert className="size-3.5 shrink-0 translate-y-0.5 text-amber" aria-hidden />
-        <span className="text-[13px] font-medium text-text">I'm not confident in this one</span>
+        <span className="type-body font-medium text-text">I'm not confident in this one</span>
         {verdict && (
-          <span className="ml-auto font-mono text-[10px] text-faint">
+          <span className="type-num type-meta ml-auto text-faint">
             low · p {verdict.p_correct.toFixed(2)}
           </span>
         )}
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-muted">
-        The answer was computed but withheld: the confidence judge could not verify it
-        against the filing.{verdict?.reason ? ` ${verdict.reason}` : ''}
+      <p className="type-small mt-1 text-muted">
+        The answer was computed but withheld: the confidence judge could not verify it against
+        the filing.{verdict?.reason ? ` ${verdict.reason}` : ''}
       </p>
       {failed.length > 0 && (
-        <p className="mt-1 font-mono text-[10.5px] leading-relaxed text-faint">
+        <p className="type-num type-meta mt-1 text-faint">
           {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
         </p>
       )}
@@ -176,16 +178,14 @@ function ErrorBlock({ message }: { message: Message }) {
     <div className="rounded-md border border-bad/40 bg-bad/10 px-2.5 py-2">
       <div className="flex items-baseline gap-1.5">
         <AlertTriangle className="size-3.5 shrink-0 translate-y-0.5 text-bad" aria-hidden />
-        <span className="text-[13px] font-medium text-text">{copy.title}</span>
+        <span className="type-body font-medium text-text">{copy.title}</span>
         {message.errorCode && (
-          <span className="ml-auto font-mono text-[10px] text-faint">{message.errorCode}</span>
+          <span className="type-num type-meta ml-auto text-faint">{message.errorCode}</span>
         )}
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-muted">{copy.hint}</p>
+      <p className="type-small mt-1 text-muted">{copy.hint}</p>
       {message.errorText && message.errorText !== 'aborted' && (
-        <p className="mt-1.5 font-mono text-[10.5px] leading-relaxed break-words text-faint">
-          {message.errorText}
-        </p>
+        <p className="type-num type-meta mt-1.5 break-words text-faint">{message.errorText}</p>
       )}
     </div>
   );
@@ -197,10 +197,17 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
+/**
+ * One turn. The hierarchy, top to bottom: the question (body), the answer
+ * (the HUD step — it is the one number the reader came for) with the gold
+ * verdict and the judge's band beside it, the trace in one sentence, then the
+ * four stage chips with the measured latency. Nothing on the card is under
+ * the meta step.
+ */
 export function Turn({ message, selected, onSelect }: Props) {
   if (message.role === 'system') {
     return (
-      <div data-role="system-message" className="my-2 text-center text-[11px] italic text-faint">
+      <div data-role="system-message" className="type-small my-2 text-center text-faint italic">
         {message.text}
       </div>
     );
@@ -208,8 +215,8 @@ export function Turn({ message, selected, onSelect }: Props) {
 
   if (message.role === 'user') {
     return (
-      <div data-role="user-message" className="my-2 flex justify-end">
-        <div className="max-w-[76%] rounded-lg rounded-br-sm bg-panel-2 px-3 py-2 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-text">
+      <div data-role="user-message" className="my-2.5 flex justify-end">
+        <div className="type-body max-w-[76%] rounded-lg rounded-br-sm bg-panel-2 px-3 py-2 break-words whitespace-pre-wrap text-text">
           {message.text}
         </div>
       </div>
@@ -222,6 +229,7 @@ export function Turn({ message, selected, onSelect }: Props) {
     message.goldAnswer && message.text && message.status === 'done'
       ? looseNumericMatch(message.text, message.goldAnswer)
       : undefined;
+  const how = message.status === 'done' && !isError ? howLine(message) : '';
 
   return (
     <div
@@ -230,7 +238,7 @@ export function Turn({ message, selected, onSelect }: Props) {
       data-final={message.status === 'done' ? 'true' : 'false'}
       data-gold={goldVerdict === undefined ? undefined : goldVerdict ? 'match' : 'mismatch'}
       data-selected={selected ? 'true' : 'false'}
-      className="my-2 flex justify-start"
+      className="my-2.5 flex justify-start"
     >
       <button
         type="button"
@@ -238,8 +246,8 @@ export function Turn({ message, selected, onSelect }: Props) {
         aria-pressed={selected}
         title="Show this turn in the trace inspector"
         className={cn(
-          'w-full max-w-[92%] cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-colors',
-          selected ? 'border-amber-line bg-panel-2/50' : 'border-line hover:border-line-2'
+          'w-full max-w-[92%] cursor-pointer rounded-lg border px-3.5 py-3 text-left transition-colors',
+          selected ? 'border-amber-line bg-panel-2/50' : 'border-line hover:border-line-2',
         )}
       >
         <MatchedBanner message={message} />
@@ -249,16 +257,13 @@ export function Turn({ message, selected, onSelect }: Props) {
         ) : message.withheld && message.status === 'done' ? (
           <WithheldBlock message={message} />
         ) : message.text ? (
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="font-mono text-2xl leading-none font-medium break-all text-text">
-              {message.text}
-            </span>
-            <JudgeBadge message={message} />
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span className="type-hud break-all">{message.text}</span>
             {message.goldAnswer && message.status === 'done' && (
               <span
                 className={cn(
-                  'inline-flex items-baseline gap-1 font-mono text-[11px]',
-                  goldVerdict ? 'text-good' : 'text-bad'
+                  'type-num type-small inline-flex items-baseline gap-1',
+                  goldVerdict ? 'text-good' : 'text-bad',
                 )}
                 title={
                   goldVerdict
@@ -267,25 +272,34 @@ export function Turn({ message, selected, onSelect }: Props) {
                 }
               >
                 {goldVerdict ? (
-                  <Check className="size-3 self-center" aria-hidden />
+                  <Check className="size-3.5 self-center" aria-hidden />
                 ) : (
-                  <X className="size-3 self-center" aria-hidden />
+                  <X className="size-3.5 self-center" aria-hidden />
                 )}
                 gold {message.goldAnswer}
               </span>
             )}
+            <span className="ml-auto">
+              <JudgeBadge message={message} />
+            </span>
           </div>
         ) : (
-          <div className="font-mono text-[13px] text-faint">
+          <div className="type-num type-body text-faint">
             <span className="animate-pulse">answering…</span>
           </div>
+        )}
+
+        {how && (
+          <p data-testid="turn-how" className="type-small mt-2 text-muted">
+            {how}
+          </p>
         )}
 
         {message.status === 'done' && <CautionNote message={message} />}
 
         {message.goldProgram && message.status === 'done' && (
           <div
-            className="mt-1 font-mono text-[10.5px] break-all text-faint"
+            className="type-num type-meta mt-1.5 break-all text-faint"
             title="The dataset's own program. It re-derives from raw values while the pipeline reuses prior answers, so a shorter program with the same answer is not a wrong one."
           >
             gold program {message.goldProgram}

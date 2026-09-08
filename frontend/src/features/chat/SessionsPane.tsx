@@ -66,20 +66,20 @@ function Row({ rid, meta, active, streaming, unread, example, onSelect }: RowPro
       >
         <div className="flex min-w-0 items-center gap-1.5">
           {streaming && <Spinner />}
-          <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] leading-tight">
+          <span className="type-num type-small min-w-0 flex-1 truncate leading-tight">
             {shortRid(rid)}
           </span>
           {!!unread && unread > 0 && (
             <span
               data-testid="unread-badge"
               title={`${unread} new answer${unread === 1 ? '' : 's'}`}
-              className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber px-1 font-mono text-[9px] font-semibold text-amber-ink"
+              className="type-num type-meta inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber px-1 font-semibold text-amber-ink"
             >
               {unread === 1 ? '' : unread}
             </span>
           )}
         </div>
-        <div className="mt-0.5 truncate font-mono text-[10px] text-faint">{meta}</div>
+        <div className="type-num type-meta mt-0.5 truncate text-faint">{meta}</div>
       </button>
     </li>
   );
@@ -124,7 +124,7 @@ export function SessionsPane({ onNew }: { onNew: () => void }) {
           type="button"
           onClick={onNew}
           data-testid="sidebar-new-conversation"
-          className="rounded-[4px] border border-line-2 px-1.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-amber-line hover:text-amber"
+          className="type-meta rounded-[4px] bg-amber px-2 py-0.5 font-medium text-amber-ink transition-opacity hover:opacity-90"
         >
           + new
         </button>
@@ -132,7 +132,7 @@ export function SessionsPane({ onNew }: { onNew: () => void }) {
 
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3">
         {groups.length === 0 && (
-          <p className="px-2.5 py-3 text-[11px] leading-relaxed text-faint">
+          <p className="type-small px-2.5 py-3 text-faint">
             Your conversations will appear here. Start one with <em>+ new</em>, or open a
             recorded example below.
           </p>
@@ -172,7 +172,7 @@ export function SessionsPane({ onNew }: { onNew: () => void }) {
         {unopened.length > 0 && (
           <section>
             <div className="sticky top-0 z-10 bg-ground px-2.5 pt-3 pb-1">
-              <span className="mono-caps">examples</span>
+              <span className="mono-caps">recorded · replayable without a key</span>
             </div>
             <ul>
               {unopened.map((example) => (
