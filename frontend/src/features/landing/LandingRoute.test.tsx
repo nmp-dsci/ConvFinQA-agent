@@ -89,17 +89,24 @@ function renderJudgeTile(v: JudgeVerdict | null): string {
   );
 }
 
-describe('the landing HUD judge tile', () => {
+describe('the landing judge card', () => {
   it('says the band fails to separate from the unjudged baseline when not significant', () => {
     const html = renderJudgeTile(verdict());
     expect(html).toContain('no effect');
     expect(html).toContain('fails to separate from it');
-    expect(html).not.toContain('unjudged — separates from it');
+    expect(html).toContain('data-significant="false"');
   });
 
   it('says the band separates from the unjudged baseline when significant', () => {
     const html = renderJudgeTile(verdict({ significant: true }));
     expect(html).toContain('separates from it');
     expect(html).not.toContain('fails to separate from it');
+    expect(html).toContain('data-significant="true"');
+  });
+
+  it('states the sealed holdout under the tiles instead of an empty tile', () => {
+    const html = renderJudgeTile(verdict());
+    expect(html).toContain('never been opened');
+    expect(html).not.toContain('hud-tile-out-of-sample-accuracy');
   });
 });

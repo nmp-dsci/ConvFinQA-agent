@@ -1,47 +1,39 @@
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { HudTile } from './HudTile';
-import { formatPp } from '../admin/runtimeStory';
 import { LampStrip } from './LampStrip';
-import { PipelineStrip } from './PipelineStrip';
 import { RecordedConversations } from './RecordedConversations';
-import {
-  NO_VALUE,
-  formatCount,
-  formatLatency,
-  formatPercent,
-  formatPointsDelta,
-  formatUsd,
-} from './format';
+import { ProgressionChart } from '../admin/ProgressionChart';
+import { progression } from '../admin/runtimeStory';
+import { NO_VALUE, formatLatency, formatPercent, formatPointsDelta, formatUsd } from './format';
+import { judgeSentence, landingStory } from './landingStory';
 import { useBoardData } from './useBoardData';
 import type { BoardData } from './useBoardData';
+import { useStore } from '../../store';
 
 /**
- * The status board — the public front door at `/`.
+ * The front door at `/`.
  *
- * Two panes, and the split is the argument. On the left, what the system does
- * and three doors straight into it. On the right, whether it works, how fast,
- * what it costs — with the source of every figure printed underneath, because
- * the whole point of this project is that a number you cannot trace is not
- * evidence.
+ * Two panes, and the split is the argument. On the left, the outcome in one
+ * sentence with its baseline and its caveat, and the doors into the product.
+ * On the right, the record: the five-stage progression on a zero baseline —
+ * the star — then four tiles with a baseline on every number, and the judge
+ * tried last.
  *
  * Three rules this file must not break:
  *
  *  1. **No number is written here.** Every figure comes from a query in
- *     `useBoardData`. If a read fails or has nothing, the tile says so.
+ *     `useBoardData`; every sentence comes from `landingStory`, a pure
+ *     function with a test per branch. If a read fails or has nothing, the
+ *     tile says so.
  *  2. **`null` is not `0`.** `/metrics/production` returns `null` with
- *     `n_measured: 0` for latency, tokens and cost until someone pays for a
- *     metered eval run. Half these tiles are legitimately empty today. An
- *     empty tile prints an em dash and the reason; it never prints a zero and
- *     it never draws a flat line.
- *  3. **Gate accuracy and out-of-sample accuracy are two tiles.** The gate
- *     split is the loop's own evidence and is what the campaign gates on; it
- *     is not out-of-sample, because every challenger of the campaign has been
- *     measured against it. The second tile is empty on purpose and says why:
- *     the holdout is unallocated during a campaign and has never been opened.
- *     Filling it with the gate figure — or with the legacy corpus's holdout
- *     number, which belongs to a rolled-back version — would be the board
- *     lying about generalisation, which is the one thing it exists not to do.
+ *     `n_measured: 0` for latency and cost until someone pays for a metered
+ *     eval run. An empty tile prints an em dash and the reason; it never
+ *     prints a zero and it never draws a flat line.
+ *  3. **Every figure is the gate split, and the page says so.** The holdout
+ *     has never been opened; the sentence under the tiles states it, rather
+ *     than an empty tile implying it.
  */
 export function LandingRoute() {
   const board = useBoardData(3);
@@ -50,8 +42,8 @@ export function LandingRoute() {
     <div data-testid="landing-board" className="h-full overflow-y-auto overflow-x-hidden bg-ground">
       <div
         className={cn(
-          'mx-auto grid w-full max-w-[1200px] gap-7 px-4 py-8',
-          'lg:grid-cols-[minmax(0,1.02fr)_minmax(0,1fr)] lg:gap-9 lg:px-8 lg:py-12',
+          'mx-auto grid w-full max-w-[1200px] gap-8 px-4 py-8',
+          'lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10 lg:px-8 lg:py-12',
         )}
       >
         <LeftPane board={board} />
@@ -62,30 +54,72 @@ export function LandingRoute() {
 }
 
 // ---------------------------------------------------------------------------
-// Left — the system, in one line, and three ways in
+// Left — the outcome, its baseline, its caveat, and the way in
 // ---------------------------------------------------------------------------
 
+const PROOF_TONE = {
+  text: 'text-text',
+  violet: 'text-violet',
+  good: 'text-good',
+  bad: 'text-bad',
+  faint: 'text-faint',
+} as const;
+
 function LeftPane({ board }: { board: BoardData }) {
-  const { isDemo, recorded, recordedLoading } = board;
+  const { isDemo, recorded, recordedLoading, campaigns } = board;
+  const nReports = useStore((s) => s.reports.length);
+  const story = landingStory(campaigns, isDemo);
 
   return (
     <section className="min-w-0">
       <p className="mono-caps">
-        Multi-turn financial QA · four-agent pipeline · single-session challenger measured
+        multi-turn financial QA · the ConvFinQA benchmark
+        {nReports > 0 ? ` · ${nReports} filings` : ''}
       </p>
 
-      <h1 className="type-display mt-3">
-        A system that answers <span className="text-amber">dependent</span> questions about SEC
-        filings — and shows its work.
+      <h1 className="type-display mt-3" data-testid="landing-headline">
+        {story.headline.before}
+        {story.headline.emphasis && (
+          <span className="text-amber">{story.headline.emphasis}</span>
+        )}
+        {story.headline.after}
       </h1>
 
-      <p className="type-lede mt-4 max-w-[54ch]">
-        {isDemo
-          ? 'Step into a recorded conversation. Every turn replays the real stage events, tool calls and timings captured in development — this deployment holds no API key and makes no model calls.'
-          : 'Step into a conversation. Every turn runs the four agents live and streams each stage — triage, preprocess, retriever, calculator — as it resolves, with the gold answer beside its own.'}
-      </p>
+      <p className="type-lede mt-4 max-w-[56ch]">{story.lede}</p>
 
-      <div className="mt-7 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <dl data-testid="landing-proof" className="mt-5 flex flex-wrap gap-x-7 gap-y-3">
+        {story.proof.map((p) => (
+          <div key={p.key} className="min-w-0" data-proof={p.key}>
+            <dd className={cn('type-hud', PROOF_TONE[p.tone])}>{p.value}</dd>
+            <dt className="type-meta mt-1 max-w-[22ch]">{p.label}</dt>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Link
+          to="/chat"
+          data-testid="landing-enter"
+          className="type-body inline-flex items-center gap-1.5 rounded-md bg-amber px-4 py-2 font-medium text-amber-ink transition-[transform,box-shadow,opacity] duration-[var(--dur)] hover:-translate-y-px hover:opacity-95 hover:shadow-[var(--lift)]"
+        >
+          Open a conversation
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+        <Link
+          to="/admin/system"
+          className="type-body rounded-md border border-line-2 px-4 py-2 text-text transition-colors hover:border-amber-line hover:bg-panel-2"
+        >
+          How it was built
+        </Link>
+      </div>
+
+      {story.caveat && (
+        <p data-testid="landing-caveat" className="type-meta mt-3 max-w-[60ch] text-faint">
+          {story.caveat}
+        </p>
+      )}
+
+      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="mono-caps">
           {isDemo ? 'replay a recorded conversation' : 'open a recorded conversation'}
         </span>
@@ -99,38 +133,12 @@ function LeftPane({ board }: { board: BoardData }) {
       </div>
 
       <div className="mt-2">
-        <RecordedConversations
-          conversations={recorded}
-          loading={recordedLoading}
-          isDemo={isDemo}
-        />
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Link
-          to="/chat"
-          data-testid="landing-enter"
-          className="rounded-md bg-amber px-3.5 py-2 type-body font-medium text-amber-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
-        >
-          Open the chat
-        </Link>
-        <Link
-          to="/admin"
-          className="rounded-md border border-line-2 bg-panel px-3.5 py-2 type-body text-text transition-colors hover:border-amber-line hover:bg-panel-2"
-        >
-          Admin portal
-        </Link>
-        <Link
-          to="/admin/system"
-          className="rounded-md border border-line-2 bg-panel px-3.5 py-2 type-body text-text transition-colors hover:border-amber-line hover:bg-panel-2"
-        >
-          System
-        </Link>
+        <RecordedConversations conversations={recorded} loading={recordedLoading} isDemo={isDemo} />
       </div>
 
       {board.error && (
         <p className="type-meta mt-5 rounded-md border border-dashed border-bad/50 bg-panel p-2.5 text-bad">
-          A board read failed: {board.error}. The tiles below show what did load; nothing has been
+          A board read failed: {board.error}. The tiles show what did load; nothing has been
           substituted.
         </p>
       )}
@@ -139,31 +147,15 @@ function LeftPane({ board }: { board: BoardData }) {
 }
 
 // ---------------------------------------------------------------------------
-// Right — does it work, how fast, how much
+// Right — the record
 // ---------------------------------------------------------------------------
 
 export function RightPane({ board }: { board: BoardData }) {
-  const {
-    health,
-    isDemo,
-    campaigns,
-    metrics,
-    metricsSource,
-    metricsLoading,
-    metricsWindowHours,
-    traceCaptureEnabled,
-  } = board;
-
-  const series = metrics?.series ?? [];
-  // A bucket with no turns has no cost and no errors *to measure* — plotting a
-  // zero there would draw the same line as a measured zero. Nulls keep the
-  // hole visible.
-  const measured = <T,>(pick: (s: (typeof series)[number]) => T): Array<T | null> =>
-    series.map((s) => (s.n_turns > 0 ? pick(s) : null));
+  const { health, isDemo, campaigns, metrics, metricsLoading, metricsWindowHours, traceCaptureEnabled } =
+    board;
 
   const window = metricsWindowHours ?? 24;
   const sourceWord = isDemo ? 'replayed' : 'served';
-
   const noMetrics = !metrics;
   const noTurns = Boolean(metrics && metrics.n_turns === 0);
 
@@ -174,14 +166,23 @@ export function RightPane({ board }: { board: BoardData }) {
     return `${what} not yet measured — awaiting a metered eval run`;
   }
 
+  const comparison = campaigns?.runtime_comparison ?? null;
+  const stages = progression(
+    campaigns?.champion_track,
+    comparison,
+    campaigns?.sdk_experiments ?? [],
+    campaigns?.sdk_model_comparison,
+  );
+  const sdkArm = comparison?.agent_sdk ?? null;
+  const gate = comparison?.gate ?? null;
+  const story = landingStory(campaigns, isDemo);
+  const judge = judgeSentence(campaigns);
+
   /**
    * How far the champion has moved across the campaign, on the gate split.
-   *
-   * The track holds only versions a promotion actually moved the champion to,
-   * so its first entry is the campaign's starting champion and its last is the
-   * current one. A campaign with no promotion yet has fewer than two entries
-   * and this is null — there is no move to report, and inventing one from the
-   * rejected challengers would be reporting a change that never shipped.
+   * A campaign with no promotion yet has fewer than two track entries and this
+   * is null — inventing a move from rejected challengers would report a change
+   * that never shipped.
    */
   const campaignMove = (() => {
     const track = campaigns?.champion_track ?? [];
@@ -196,58 +197,56 @@ export function RightPane({ board }: { board: BoardData }) {
     };
   })();
 
-  // The runtime decision, read from the same story the Runtimes page renders:
-  // the SDK arm on the model it was gated with, and the same prompt on the
-  // second model. Absent until those runs exist — never a zero.
-  const sdkArm = campaigns?.runtime_comparison?.agent_sdk ?? null;
-  const sdkGate = campaigns?.runtime_comparison?.gate ?? null;
-  const swap = campaigns?.sdk_model_comparison ?? null;
-  const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
-  const judgeVerdict = campaigns?.judge?.verdict ?? null;
-  const swapPair = swap?.pairs?.[0] ?? null;
-  const shortModel = (model: string | null | undefined) =>
-    (model ?? '')
-      .replace(/^claude-/, '')
-      .replace(/-\d{8}$/, '');
-
   return (
     <section className="min-w-0">
-      <p className="mono-caps break-words">
-        {health
-          ? `champion ${health.champion ?? '—'} · bundle ${health.bundle_id} · ${health.bundle.lm_mini} · code ${health.bundle.code_sha}`
-          : 'reading deployment…'}
-      </p>
+      <LampStrip board={board} />
 
-      <div className="mt-3">
-        <LampStrip board={board} />
+      {/* --- The star: the record as one figure ------------------------- */}
+      <div
+        data-testid="landing-star"
+        className="mt-3 rounded-md border border-line bg-panel p-3.5 sm:p-4"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="mono-caps">the record · five stages, one sealed split</span>
+          <Link
+            to="/admin/runtimes"
+            className="type-meta text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
+          >
+            read the comparison →
+          </Link>
+        </div>
+        <div className="mt-3">
+          <ProgressionChart
+            points={stages}
+            pipelineBaseline={comparison?.pipeline?.accuracy ?? null}
+            compact
+          />
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {/* --- Does it work ------------------------------------------------ */}
+      {/* --- Four numbers, each with its baseline ----------------------- */}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <HudTile
           label="gate accuracy"
           value={formatPercent(campaigns?.champion_accuracy)}
           loading={!campaigns && board.loading}
-          reason="no gate run recorded for the champion — run a cycle, then `convfinqa-evalloop story`"
+          reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
           to="/admin/campaigns"
           drill="/admin/campaigns"
           meta={
             campaigns?.champion_accuracy != null && (
               <>
-                <span className="type-num">{campaigns.champion}</span> ·{' '}
-                <span className="type-num">{String(campaigns.split?.gate_questions ?? '—')}</span>{' '}
-                questions across{' '}
-                <span className="type-num">{String(campaigns.split?.gate_reports ?? '—')}</span>{' '}
-                conversations, fixed for the campaign
+                four-agent pipeline · <span className="type-num">{campaigns.champion}</span>
                 {campaignMove && (
                   <>
                     <br />
                     <span className={cn('type-num', campaignMove.delta >= 0 ? 'text-good' : 'text-bad')}>
                       {formatPointsDelta(campaignMove.delta)}
                     </span>{' '}
-                    vs {campaignMove.from} over {campaignMove.nPromoted} promotion
-                    {campaignMove.nPromoted === 1 ? '' : 's'}
+                    vs {campaignMove.from} · {campaignMove.nPromoted} promotion
+                    {campaignMove.nPromoted === 1 ? '' : 's'} in{' '}
+                    {(campaigns.experiments ?? []).length} tries
                   </>
                 )}
               </>
@@ -256,135 +255,27 @@ export function RightPane({ board }: { board: BoardData }) {
         />
 
         <HudTile
-          label="out-of-sample accuracy"
-          value="—"
-          reason="the holdout is unallocated during a campaign and has never been opened"
-          tone="good"
-          to="/admin/campaigns"
-          drill="/admin/campaigns"
-          meta={
-            <>
-              no confirmatory run yet ·{' '}
-              <span className="type-num">
-                {campaigns?.experiments?.length ?? 0}
-              </span>{' '}
-              challenger{(campaigns?.experiments?.length ?? 0) === 1 ? '' : 's'} have now been
-              measured against the gate split, so part of the figure beside this is selection
-            </>
-          }
-        />
-
-        {/* --- The runtime decision ---------------------------------------- */}
-        <HudTile
-          label="single-session runtime"
+          label="runtime accuracy"
           value={formatPercent(sdkArm?.accuracy)}
           loading={!campaigns && board.loading}
           reason="the Claude Agent SDK arm has no run on the gate split yet"
-          tone={sdkGate?.promoted ? 'good' : 'plain'}
+          tone={gate?.promoted ? 'good' : 'plain'}
           to="/admin/runtimes"
           drill="/admin/runtimes"
           meta={
             sdkArm?.accuracy != null && (
               <>
-                <span className="type-num">{sdkArm.version ?? '—'}</span> on{' '}
-                <span className="type-num">{shortModel(sdkArm.model) || 'claude'}</span> · same{' '}
-                {String(campaigns?.split?.gate_questions ?? '—')} questions
-                {sdkGate?.delta_pp != null && (
+                one Claude session · <span className="type-num">{sdkArm.version ?? '—'}</span>
+                {gate?.ci?.[0] != null && gate?.ci?.[1] != null && (
                   <>
                     <br />
-                    <span className={cn('type-num', sdkGate.delta_pp >= 0 ? 'text-good' : 'text-bad')}>
-                      {formatPointsDelta(sdkGate.delta_pp / 100)}
+                    95% CI{' '}
+                    <span className="type-num">
+                      {formatPointsDelta(gate.ci[0])} … {formatPointsDelta(gate.ci[1])}
                     </span>{' '}
-                    vs {campaigns?.champion ?? 'the champion'}, paired ·{' '}
-                    {sdkGate.promoted ? 'recommended runtime' : 'not promoted'}
+                    vs {comparison?.pipeline?.version ?? 'the pipeline'}, paired
                   </>
                 )}
-              </>
-            )
-          }
-        />
-
-        <HudTile
-          label="same prompt, smaller model"
-          value={formatPercent(swapArm?.accuracy)}
-          loading={!campaigns && board.loading}
-          reason="the sdk champion has been scored on one model only"
-          tone="plain"
-          to="/admin/runtimes"
-          drill="/admin/runtimes"
-          meta={
-            swapArm?.accuracy != null && (
-              <>
-                <span className="type-num">{shortModel(swapArm.model)}</span> · scoring pass, no
-                optimisation
-                {swapPair?.delta_pp != null && (
-                  <>
-                    <br />
-                    <span className={cn('type-num', swapPair.delta_pp >= 0 ? 'text-good' : 'text-bad')}>
-                      {formatPointsDelta(swapPair.delta_pp / 100)}
-                    </span>{' '}
-                    vs {shortModel(swap?.reference_model)} · cost{' '}
-                    <span className="type-num">{formatUsd(swapArm.cost)}</span> vs{' '}
-                    <span className="type-num">{formatUsd(sdkArm?.cost)}</span> per pass
-                  </>
-                )}
-              </>
-            )
-          }
-        />
-
-        <HudTile
-          label="confidence judge, tried"
-          value={
-            judgeVerdict == null
-              ? NO_VALUE
-              : judgeVerdict.significant
-                ? `${formatPp(judgeVerdict.delta_pp)}`
-                : 'no effect'
-          }
-          loading={!campaigns && board.loading}
-          reason="no confidence judge has been scored on the gate split yet"
-          tone={judgeVerdict?.significant ? 'good' : 'plain'}
-          to="/admin/runtimes"
-          drill="/admin/runtimes"
-          meta={
-            judgeVerdict && (
-              <>
-                high band{' '}
-                <span className="type-num">
-                  {formatPercent(judgeVerdict.high_band_accuracy, 2)}
-                </span>{' '}
-                vs{' '}
-                <span className="type-num">
-                  {formatPercent(judgeVerdict.baseline_accuracy, 2)}
-                </span>{' '}
-                unjudged —{' '}
-                {judgeVerdict.significant
-                  ? 'separates from it'
-                  : 'fails to separate from it'}
-                <br />
-                withholds {judgeVerdict.n_withheld} to remove {judgeVerdict.n_failures_caught} ·{' '}
-                {judgeVerdict.n_false_alarms} of them were right
-              </>
-            )
-          }
-        />
-
-        {/* --- How fast, how much ------------------------------------------ */}
-        <HudTile
-          label="p50 latency"
-          value={formatLatency(metrics?.latency_ms.p50)}
-          loading={metricsLoading}
-          reason={metricsReason('latency')}
-          tone="info"
-          series={series.map((s) => s.p50_latency_ms)}
-          to="/admin/traces"
-          drill="/admin/traces"
-          meta={
-            metrics && (
-              <>
-                p95 <span className="type-num">{formatLatency(metrics.latency_ms.p95)}</span> ·{' '}
-                <span className="type-num">{metrics.latency_ms.n_measured}</span> turns measured
               </>
             )
           }
@@ -396,77 +287,82 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={metricsLoading}
           reason={metricsReason('token cost')}
           tone="amber"
-          series={measured((s) => s.cost_usd)}
           to="/admin/traces"
           drill="/admin/traces"
           meta={
             metrics && (
               <>
-                <span className="type-num">{formatUsd(metrics.cost_usd.total)}</span> total ·{' '}
-                <span className="type-num">{metrics.cost_usd.n_measured}</span> turns priced
+                last {window} h · <span className="type-num">{formatUsd(metrics.cost_usd.total)}</span>{' '}
+                over <span className="type-num">{metrics.cost_usd.n_measured}</span> turns priced
               </>
             )
           }
         />
 
         <HudTile
-          label="turns served"
-          value={metrics ? formatCount(metrics.n_turns) : NO_VALUE}
+          label="p50 latency"
+          value={formatLatency(metrics?.latency_ms.p50)}
           loading={metricsLoading}
-          reason={metricsReason('turn count')}
-          tone="plain"
-          series={series.map((s) => s.n_turns)}
+          reason={metricsReason('latency')}
+          tone="info"
           to="/admin/traces"
           drill="/admin/traces"
           meta={
             metrics && (
               <>
-                last <span className="type-num">{window}</span> h · source group “
-                <span className="type-num">{metricsSource}</span>”
-                {metrics.accuracy.n_scored > 0 && (
+                p95 <span className="type-num">{formatLatency(metrics.latency_ms.p95)}</span> ·{' '}
+                <span className="type-num">{metrics.latency_ms.n_measured}</span> turns measured
+                {metrics.n_turns > 0 && (
                   <>
-                    <br />
-                    <span className="type-num">
-                      {formatPercent(metrics.accuracy.accuracy)}
-                    </span>{' '}
-                    correct over <span className="type-num">{metrics.accuracy.n_scored}</span>{' '}
-                    scored
+                    {' '}
+                    · <span className="type-num">{metrics.n_turns}</span> {sourceWord}
                   </>
                 )}
               </>
             )
           }
         />
-
-        <HudTile
-          label="error rate"
-          value={formatPercent(metrics?.errors.error_rate)}
-          loading={metricsLoading}
-          reason={metricsReason('error rate')}
-          tone={metrics && metrics.errors.n_errors > 0 ? 'bad' : 'good'}
-          series={measured((s) => s.n_errors)}
-          to="/admin/traces"
-          drill="/admin/traces"
-          meta={
-            metrics && (
-              <>
-                <span className="type-num">{metrics.errors.n_errors}</span> errors over{' '}
-                <span className="type-num">{metrics.n_turns}</span> turns
-              </>
-            )
-          }
-        />
       </div>
 
-      <SourceNote board={board} />
+      <p data-testid="landing-holdout" className="type-meta mt-2.5 text-faint">
+        {story.holdout}
+      </p>
 
-      <div className="mt-3">
-        <PipelineStrip />
-      </div>
+      {/* --- Tried last -------------------------------------------------- */}
+      <Link
+        to="/admin/runtimes"
+        data-testid="landing-judge"
+        data-significant={judge ? String(judge.significant) : 'none'}
+        className="group mt-3 block rounded-md border border-line bg-panel p-3.5 transition-colors hover:border-amber-line hover:bg-panel-2"
+      >
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="mono-caps">tried last · llm-as-judge</span>
+          <span className={cn('type-hud', judge?.significant ? 'text-good' : 'text-text')}>
+            {judge ? judge.headline : NO_VALUE}
+          </span>
+        </div>
+        <p className="type-small mt-2 text-muted">
+          {judge
+            ? judge.body
+            : 'No confidence judge has been scored on the gate split yet.'}
+          <span className="type-meta ml-1 text-amber group-hover:underline">read the measurement →</span>
+        </p>
+      </Link>
+
+      <details className="mt-3 rounded-md border border-dashed border-line-2 bg-panel/60 p-3">
+        <summary className="mono-caps cursor-pointer select-none">where these numbers come from</summary>
+        <SourceNote board={board} />
+      </details>
 
       {traceCaptureEnabled === false && (
         <p className="type-meta mt-3 text-faint">
-          Trace capture is off on this deployment, so the four operational tiles will not move.
+          Trace capture is off on this deployment, so the cost and latency tiles will not move.
+        </p>
+      )}
+      {health && health.runtime !== 'agent_sdk' && (
+        <p className="type-meta mt-3 text-faint">
+          This deployment still serves the four-agent pipeline; the runtime accuracy above is the
+          challenger’s.
         </p>
       )}
     </section>
@@ -474,36 +370,28 @@ export function RightPane({ board }: { board: BoardData }) {
 }
 
 /**
- * Where every number above came from, in the reader's line of sight.
- *
- * This is the single most important paragraph on the page. Accuracy is
- * recomputed from committed CSVs and is reproducible on any machine; the
- * operational figures are development traffic, and in the demo they are
- * replays of recordings. Neither has ever seen production load. Saying so here
- * costs three lines and is the difference between a portfolio piece and a
- * claim that is not true.
+ * Where every number above came from. Accuracy is recomputed from committed
+ * CSVs and is reproducible on any machine; the operational figures are
+ * development traffic, and in the demo they are replays of recordings.
+ * Neither has ever seen production load.
  */
 function SourceNote({ board }: { board: BoardData }) {
   const { isDemo, metricsSource, metricsGeneratedAt, metricsWindowHours, health } = board;
   const window = metricsWindowHours ?? 24;
 
   return (
-    <div className="mt-3 rounded-md border border-dashed border-line-2 bg-panel/60 p-3">
-
-      <div className="mono-caps mb-1.5">sources</div>
-      <p className="type-meta">
-        <span className="text-text">gate accuracy</span> — the champion's accuracy on the fixed
-        gate split of the committed split manifest, read from{' '}
-        <span className="type-num">evaluation/story.json</span>, which the optimisation loop builds
-        from its own runs. No API calls, no cached figure to drift. It is deliberately not the
-        legacy 770-question corpus figure: that is a different population under a retired scoring
-        protocol, and it lives on{' '}
-        <span className="type-num">/admin/evaluations</span> where it is labelled as such.
+    <div className="mt-2 space-y-2">
+      <p className="type-small text-muted">
+        <span className="text-text">accuracy</span> — both arms on the fixed gate split of the
+        committed split manifest, read from <span className="type-num">evaluation/story.json</span>,
+        which the optimisation loop builds from its own runs. No API calls, no cached figure to
+        drift. The legacy 770-question corpus is a different population under a retired protocol
+        and lives on <span className="type-num">/admin/evaluations</span>, labelled as such.
       </p>
-      <p className="type-meta mt-1.5">
-        <span className="text-text">latency, cost, turns, errors</span> —{' '}
+      <p className="type-small text-muted">
+        <span className="text-text">latency and cost</span> —{' '}
         {isDemo
-          ? `turns this deployment replayed from conversations recorded in development. Replay timing is not production latency: a turn recorded at 6.7 s and replayed in 2 s is a 6.7 s turn, so recorded and served turns are counted in separate source groups and never summed.`
+          ? 'turns this deployment replayed from conversations recorded in development. Replay timing is not production latency, so recorded and served turns are counted in separate source groups and never summed.'
           : `turns this development process has served in the last ${window} h. Development traffic on one machine — not production load, and not a benchmark.`}{' '}
         Source group “<span className="type-num">{metricsSource}</span>”
         {metricsGeneratedAt && (
@@ -515,8 +403,8 @@ function SourceNote({ board }: { board: BoardData }) {
         .
       </p>
       {health && (
-        <p className="type-meta mt-1.5 break-words">
-          <span className="text-text">bundle</span> — every figure above is attributable to{' '}
+        <p className="type-small break-words text-muted">
+          <span className="text-text">bundle</span> — every figure is attributable to{' '}
           <span className="type-num">{health.bundle_id}</span>: prompts{' '}
           <span className="type-num">{health.bundle.prompts_version}</span>, models{' '}
           <span className="type-num">{health.bundle.lm_mini}</span> /{' '}

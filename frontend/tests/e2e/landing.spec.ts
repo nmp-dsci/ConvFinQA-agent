@@ -20,14 +20,18 @@ import { BACKEND, enterChatFromBoard } from './enter';
 
 const SEED_RID = 'Single_VLO/2011/page_126.pdf-1';
 
-/** The six tiles, by the testid `HudTile` derives from each label. */
+/**
+ * The four tiles, by the testid `HudTile` derives from each label. The
+ * redesign (s14, P2) cut the board from nine tiles to four with a baseline on
+ * each; turns served and error rate moved to the Scoreboard, and the sealed
+ * holdout became a sentence under the tiles rather than a permanently empty
+ * tile.
+ */
 const TILES = [
   'hud-tile-gate-accuracy',
-  'hud-tile-out-of-sample-accuracy',
+  'hud-tile-runtime-accuracy',
   'hud-tile-p50-latency',
   'hud-tile-cost-per-turn',
-  'hud-tile-turns-served',
-  'hud-tile-error-rate',
 ] as const;
 
 const NO_VALUE = '—';
@@ -56,7 +60,7 @@ async function health(request: APIRequestContext): Promise<{
 // ---------------------------------------------------------------------------
 
 test.describe('status board at /', () => {
-  test('shows the three lamps, six HUD tiles and three recorded conversations', async ({
+  test('shows the three lamps, four HUD tiles, the progression and three recorded conversations', async ({
     page,
     request,
   }) => {
@@ -82,7 +86,11 @@ test.describe('status board at /', () => {
       await expect(page.getByTestId('lamp-champion')).toContainText(champion);
     }
 
-    // --- six tiles, each a link with somewhere to go ----------------------
+    // --- the star: the five-stage progression on a zero baseline ----------
+    await expect(page.getByTestId('landing-star')).toBeVisible();
+    await expect(page.getByTestId('progression-chart')).toBeVisible();
+
+    // --- four tiles, each a link with somewhere to go ---------------------
     for (const testId of TILES) {
       const tile = page.getByTestId(testId);
       await expect(tile, `${testId} should be on the board`).toBeVisible();
@@ -118,7 +126,6 @@ test.describe('status board at /', () => {
     const expected: Record<string, number | null> = {
       'hud-tile-p50-latency': metrics.latency_ms.p50,
       'hud-tile-cost-per-turn': metrics.cost_usd.per_turn,
-      'hud-tile-error-rate': metrics.errors.error_rate,
     };
 
     await openBoard(page);
@@ -151,10 +158,9 @@ test.describe('status board at /', () => {
     }
 
     // Gate accuracy comes from committed CSVs, so it is measured on every
-    // deployment. Out-of-sample is deliberately unmeasured mid-campaign — the
-    // holdout stays sealed until a release opens it — so it renders an em
-    // dash with a reason, same as any other unmeasured tile, and the two
-    // populations stay two tiles, never an average.
+    // deployment. The holdout stays sealed until a release opens it, and the
+    // board says so in words rather than implying it with an empty tile — the
+    // two populations are never averaged.
     await expect(
       page.getByTestId('hud-tile-gate-accuracy').getByTestId('hud-value')
     ).not.toHaveText(NO_VALUE);
@@ -162,10 +168,7 @@ test.describe('status board at /', () => {
       'data-absent',
       'false'
     );
-
-    const outOfSample = page.getByTestId('hud-tile-out-of-sample-accuracy');
-    await expect(outOfSample.getByTestId('hud-value')).toHaveText(NO_VALUE);
-    await expect(outOfSample).toHaveAttribute('data-absent', 'true');
+    await expect(page.getByTestId('landing-holdout')).toContainText(/never been opened/i);
   });
 
   test('an unmeasured metric renders an em dash, not a zero, even with turns served', async ({
@@ -204,18 +207,16 @@ test.describe('status board at /', () => {
 
     await openBoard(page);
 
-    for (const testId of ['hud-tile-p50-latency', 'hud-tile-cost-per-turn', 'hud-tile-error-rate']) {
+    for (const testId of ['hud-tile-p50-latency', 'hud-tile-cost-per-turn']) {
       const tile = page.getByTestId(testId);
       await expect(tile).toHaveAttribute('data-absent', 'true');
       await expect(tile.getByTestId('hud-value')).toHaveText(NO_VALUE);
       await expect(tile.getByTestId('hud-reason')).toContainText(/measur|no turns|returned nothing/i);
     }
 
-    // A measured zero is a different fact and still prints as a number: 27
-    // turns were genuinely served, and the board says so.
-    const served = page.getByTestId('hud-tile-turns-served');
-    await expect(served).toHaveAttribute('data-absent', 'false');
-    await expect(served.getByTestId('hud-value')).toHaveText('27');
+    // The 27 turns were genuinely served, and the board still says so — in
+    // the latency tile's reason, since the count tile moved to the Scoreboard.
+    await expect(page.getByTestId('hud-tile-p50-latency')).not.toContainText(/no turns/i);
   });
 
   test('the mode lamp separates a live deployment from a keyless replay by shape', async ({
@@ -232,6 +233,27 @@ test.describe('status board at /', () => {
     await expect(lamp).toHaveAttribute('data-shape', demo ? 'dashed' : 'solid');
     await expect(lamp).toHaveAttribute('data-tone', demo ? 'amber' : 'good');
     await expect(lamp).toContainText(demo ? /replay/i : /live/i);
+  });
+
+  test('the headline states the outcome with its baseline, or nothing it cannot support', async ({
+    page,
+    request,
+  }) => {
+    // The claim is generated from /eval/campaigns, so it is held to that read:
+    // "human-expert" appears only when the sdk arm is scored at or above the
+    // paper's figure, and never without the caveat beside it.
+    const campaigns = await request.get(`${BACKEND}/eval/campaigns`).then((r) => r.json());
+    const sdk = campaigns?.runtime_comparison?.agent_sdk?.accuracy ?? null;
+    await openBoard(page);
+    const headline = page.getByTestId('landing-headline');
+    await expect(headline).toBeVisible();
+    if (typeof sdk === 'number' && sdk >= 0.8944) {
+      await expect(headline).toContainText(/human-expert/i);
+      await expect(page.getByTestId('landing-caveat')).toContainText(/contamination/i);
+    } else {
+      await expect(headline).not.toContainText(/human-expert/i);
+    }
+    await expect(page.getByTestId('landing-proof')).toBeVisible();
   });
 
   test('both CTAs lead into the chat', async ({ page }) => {
