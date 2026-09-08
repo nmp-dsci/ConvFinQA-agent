@@ -89,6 +89,9 @@ extend-select = [
 # Tests document themselves through their names; docstring rules add noise
 # without adding information. `print` is legitimate output in CLI scripts.
 "tests/**" = ["D101", "D102", "D103"]
+# Fixtures imported from test_sdk_teacher and reused as parameter names in
+# every test function trip F811 at each usage site, not just the import.
+"tests/test_judge.py" = ["F811"]
 # `print` is the output of a command-line tool, not a stray debug statement.
 "scripts/**" = ["T201"]
 "src/convfinqa/**/cli.py" = ["T201"]

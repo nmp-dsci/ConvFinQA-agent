@@ -260,8 +260,16 @@ one"). Everything lives in `evalloop/judge.py`; the invariants, all pinned by te
   risk–coverage curve. Operating target: high-band error ≤ 1%.
 - **Promotion rule** (`gate_judges`, `registry.promote_judge`, alias `judge_champion`,
   lineage `judge_prompts` `j1, j2, …`): the candidate's high band stays inside the
-  target, coverage rises, failures caught do not fall. A judge is never promoted on the
-  test split. The history event records the `runtime_version` it was calibrated to.
+  target, coverage rises (no exception for a baseline that itself misses target),
+  failures caught do not fall. A judge is never promoted on the test split — `gate_judges`
+  derives each side's split from its own scores CSV (the trailing `split` column, or the
+  `judge-score-<split>N-…` filename for a CSV written before that column existed) rather
+  than trusting a caller-supplied argument, refuses a mismatched pair, and refuses outright
+  when the evidence is `test`; the derived split is what `registry.promote_judge` checks.
+  `registry.promote` also refuses a judge version the same way it refuses an sdk version —
+  serving reads `champion` to build the four pipeline agents, and a judge there is a
+  champion nothing can serve. The history event records the `runtime_version` it was
+  calibrated to.
 - **A failed judge call fails closed** — `low` band, error in the record — in scoring
   and in serving. A guard-rail that fails open is not one. **A rate-limited one is
   unscored instead** (2026-09-08), the same rule the eval runner applies to a
@@ -278,10 +286,13 @@ one"). Everything lives in `evalloop/judge.py`; the invariants, all pinned by te
   served answer with no judge must be withheld.
 - **Serving** (`SERVING_RUNTIME=agent_sdk`, the default; `JUDGE_ENABLED`): one live
   `ClaudeSDKClient` per chat session (`serving/sdk_session.py`), closed on delete,
-  eviction and shutdown; `serving/sdk_turn.py` emits the pipeline's stage frames from
-  the capture, then a `judge` frame and an `answer` frame with `band`/`withheld`. A
-  withheld answer is empty on the wire and in the visible history; the trace row keeps
-  the value (`capture["judge"]["answer"]`), `judge_band` and `judge_p`. The judge runs
+  eviction and shutdown; `serving/sdk_turn.py` holds the stage frames from the capture
+  until the judge has ruled, then emits them — redacted (`output`/`args`/`result`
+  stripped) on a `low` band, since a program's calculator trajectory or a number
+  turn's retrieved cell *is* the answer — followed by a `judge` frame and an `answer`
+  frame with `band`/`withheld`. A withheld answer is empty on the wire and in the
+  visible history; the trace row keeps the value (`capture["judge"]["answer"]`),
+  `judge_band` and `judge_p`. The judge runs
   through `evalloop/sdk.py::run_structured(model=judge_model_name())` — the Agent SDK
   on the subscription — the same chokepoint as the teacher. The demo container replays
   the recorded pack and never runs either.
