@@ -60,7 +60,7 @@ function Block({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-1.5">
       <div className="mono-caps">{label}</div>
-      <pre className="mt-0.5 max-h-52 overflow-auto rounded-[4px] border border-line bg-panel px-1.5 py-1 font-mono text-[10.5px] leading-relaxed whitespace-pre-wrap break-words text-muted">
+      <pre className="type-num type-meta mt-0.5 max-h-52 overflow-auto rounded-[4px] border border-line bg-panel px-2 py-1.5 leading-relaxed whitespace-pre-wrap break-words text-muted">
         {value}
       </pre>
     </div>
@@ -72,7 +72,7 @@ function ToolLoop({ lines }: { lines: ToolLine[] }) {
   return (
     <div className="mt-1.5">
       <div className="mono-caps">tool loop · {lines.length} calls</div>
-      <ol className="mt-0.5 space-y-0.5 font-mono text-[10.5px] leading-relaxed">
+      <ol className="type-num type-meta mt-0.5 space-y-0.5 leading-relaxed">
         {lines.map((line, i) => (
           <li key={i} className="break-words">
             <span className="text-amber">→</span>{' '}
@@ -135,20 +135,20 @@ function StageRow({ view, message, capture, traceLoaded, expanded, onToggle }: S
         />
         <span
           className={cn(
-            'font-mono text-[11.5px]',
+            'type-num type-body',
             skipped ? 'text-faint line-through' : 'text-text',
             view.state === 'active' && 'text-amber'
           )}
         >
           {view.stage}
         </span>
-        <span className="ml-auto shrink-0 font-mono text-[10px] text-muted">
+        <span className="type-num type-meta ml-auto shrink-0 text-muted">
           {skipped ? 'skipped' : `${fmtMs(metrics?.latency_ms)} · ${fmtTokens(metrics?.total_tokens)} tok`}
         </span>
       </button>
 
       {!skipped && view.detail && (
-        <div className="mt-0.5 pl-4.5 font-mono text-[10px] leading-relaxed break-words text-faint">
+        <div className="type-num type-meta mt-0.5 pl-4.5 break-words text-faint">
           {view.detail}
         </div>
       )}
@@ -157,7 +157,7 @@ function StageRow({ view, message, capture, traceLoaded, expanded, onToggle }: S
         <div className="pl-4.5">
           <Block label="input" value={asText(capture?.input)} />
           {!capture?.input && (
-            <p className="mt-1.5 text-[10px] leading-relaxed text-faint">
+            <p className="type-meta mt-1.5 text-faint">
               {traceLoaded
                 ? 'This turn’s stored trace records outputs only — a replayed turn is rebuilt from its recorded event stream, which never carried the stage inputs.'
                 : 'Stage inputs live in the trace store, not on the live stream, and no stored trace was found for this turn.'}
@@ -175,7 +175,7 @@ function StageRow({ view, message, capture, traceLoaded, expanded, onToggle }: S
 function Total({ label, value, reason }: { label: string; value: string; reason?: string }) {
   return (
     <div title={value === EM_DASH ? reason : undefined}>
-      <div className="font-mono text-[13px] text-text">{value}</div>
+      <div className="type-num type-body text-text">{value}</div>
       <div className="mono-caps">{label}</div>
     </div>
   );
@@ -193,23 +193,23 @@ function JudgeRow({ verdict, withheld }: { verdict: JudgeVerdict; withheld: bool
   return (
     <div className="border-b border-line px-2.5 py-2" data-stage="judge" data-band={verdict.band}>
       <div className="flex items-baseline gap-2">
-        <span className="font-mono text-[11px] text-text">judge</span>
+        <span className="type-num type-body text-text">judge</span>
         <span
           className={
             verdict.band === 'high'
-              ? 'font-mono text-[10px] text-good'
-              : 'font-mono text-[10px] text-amber'
+              ? 'type-num type-meta text-good'
+              : 'type-num type-meta text-amber'
           }
         >
           {verdict.band} · p {verdict.p_correct.toFixed(2)}
           {withheld ? ' · withheld' : ''}
         </span>
         {verdict.version && (
-          <span className="ml-auto font-mono text-[10px] text-faint">{verdict.version}</span>
+          <span className="type-num type-meta ml-auto text-faint">{verdict.version}</span>
         )}
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-muted">{verdict.reason}</p>
-      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 font-mono text-[10px]">
+      <p className="type-small mt-1 text-muted">{verdict.reason}</p>
+      <ul className="type-num type-meta mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
         {Object.entries(verdict.checks ?? {}).map(([name, value]) => (
           <li key={name} data-check={name} data-verdict={value} className="flex justify-between">
             <span className="text-faint">{name}</span>
@@ -256,11 +256,11 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
   return (
     <>
       <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-line px-2.5">
-        <span className="mono-caps">
+        <span className="mono-caps" title="What each stage was given, what it returned, and what it cost — the record behind the answer">
           {message ? `trace · turn ${turnNumber}` : 'trace'}
         </span>
         {message?.traceId && (
-          <span className="truncate font-mono text-[10px] text-faint" title={message.traceId}>
+          <span className="type-num type-meta truncate text-faint" title={message.traceId}>
             {message.traceId.slice(0, 8)}
           </span>
         )}
@@ -272,7 +272,7 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
         className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
       >
         {!message ? (
-          <p className="px-2.5 py-4 text-[11px] leading-relaxed text-faint">
+          <p className="type-small px-2.5 py-4 text-faint">
             Ask a question, or click any answer in the thread, to see the four stages that
             produced it — what each one was given, what it decided, and what it cost.
           </p>
@@ -313,7 +313,7 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
             </div>
 
             {(latency === null || tokens === null) && (
-              <p className="px-2.5 py-2 text-[10px] leading-relaxed text-faint">
+              <p className="type-meta px-2.5 py-2 text-faint">
                 {EM_DASH} means not measured, not zero. Recorded turns in the demo pack carry no
                 latency or token figures yet; populating them needs a metered eval run.
               </p>
@@ -324,7 +324,7 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
 
       {bundle && (
         <div
-          className="shrink-0 border-t border-line px-2.5 py-2 font-mono text-[9.5px] leading-relaxed break-words text-faint"
+          className="type-num type-meta shrink-0 border-t border-line px-2.5 py-2 break-words text-faint"
           title="The fingerprint this answer is attributable to — prompts, both models, the dataset and the code that ran them"
         >
           bundle {bundleId} · prompts {bundle.prompts_version} · {bundle.lm_mini} · dataset{' '}

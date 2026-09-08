@@ -24,14 +24,14 @@ export function ChatEmptyHeader({ onShowSessions }: { onShowSessions: () => void
         <PanelLeft className="size-3" aria-hidden />
       </button>
       <span className="mono-caps shrink-0">filing</span>
-      <span className="min-w-0 flex-1 truncate text-[11.5px] text-faint italic">
+      <span className="type-small min-w-0 flex-1 truncate text-faint italic">
         none selected
       </span>
       <button
         type="button"
         onClick={openPicker}
         data-testid="topbar-change-report"
-        className="shrink-0 rounded-[4px] border border-line-2 px-1.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-amber-line hover:text-amber"
+        className="type-num type-meta shrink-0 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
       >
         + new conversation
       </button>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '../../components/ui/tooltip';
 import { RightPane } from './LandingRoute';
 import type { BoardData } from './useBoardData';
@@ -80,26 +81,38 @@ function boardWithVerdict(v: JudgeVerdict | null): BoardData {
 }
 
 function renderJudgeTile(v: JudgeVerdict | null): string {
+  // The readiness strip inside the pane reads /eval/readiness through
+  // react-query; with no fetch it stays in its loading skeleton, which is fine.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderToStaticMarkup(
-    <MemoryRouter>
-      <TooltipProvider>
-        <RightPane board={boardWithVerdict(v)} />
-      </TooltipProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <TooltipProvider>
+          <RightPane board={boardWithVerdict(v)} />
+        </TooltipProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
-describe('the landing HUD judge tile', () => {
+describe('the landing judge card', () => {
   it('says the band fails to separate from the unjudged baseline when not significant', () => {
     const html = renderJudgeTile(verdict());
     expect(html).toContain('no effect');
     expect(html).toContain('fails to separate from it');
-    expect(html).not.toContain('unjudged — separates from it');
+    expect(html).toContain('data-significant="false"');
   });
 
   it('says the band separates from the unjudged baseline when significant', () => {
     const html = renderJudgeTile(verdict({ significant: true }));
     expect(html).toContain('separates from it');
     expect(html).not.toContain('fails to separate from it');
+    expect(html).toContain('data-significant="true"');
+  });
+
+  it('states the sealed holdout under the tiles instead of an empty tile', () => {
+    const html = renderJudgeTile(verdict());
+    expect(html).toContain('never been opened');
+    expect(html).not.toContain('hud-tile-out-of-sample-accuracy');
   });
 });

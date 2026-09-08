@@ -85,6 +85,10 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      # DESIGN.md's never-do list as a check: hex outside tokens.css and legacy
+      # aliases fail outright; raw `text-[Npx]` sizes ratchet down per file.
+      - name: Design lint
+        run: npm run lint:design
       - name: Unit tests
         run: npm run test:unit
       - name: Build

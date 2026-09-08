@@ -95,7 +95,7 @@ export function Composer({ reportId, isStreaming }: Props) {
                 : 'The dataset questions for this filing, with their gold answers'
             }
           >
-            {isDemo ? 'recorded' : 'dataset'}
+            {isDemo ? 'recorded' : 'the dataset’s questions'}
           </span>
           <div className="flex min-w-0 flex-wrap gap-1">
             {chips.map((chip) => (
@@ -104,7 +104,7 @@ export function Composer({ reportId, isStreaming }: Props) {
                 type="button"
                 onClick={() => void send(chip.question, chip.gold, chip.goldProgram)}
                 title={chip.question}
-                className="max-w-[280px] truncate rounded-full border border-line-2 px-2 py-0.5 text-[11px] text-muted transition-colors hover:border-amber-line hover:text-amber"
+                className="type-meta max-w-[300px] truncate rounded-full border border-line-2 px-2.5 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
               >
                 {chip.question}
               </button>
@@ -132,14 +132,14 @@ export function Composer({ reportId, isStreaming }: Props) {
             }
           }}
           data-testid="composer-input"
-          className="min-h-[34px] min-w-0 flex-1 resize-none rounded-md border border-line bg-ground px-2.5 py-2 text-[13px] text-text outline-none transition-colors focus:border-amber-line max-sm:basis-full disabled:opacity-50"
+          className="type-body min-h-[36px] min-w-0 flex-1 resize-none rounded-md border border-line bg-ground px-3 py-2 text-text outline-none transition-colors focus:border-amber-line max-sm:basis-full disabled:opacity-50"
         />
         <button
           type="button"
           onClick={() => void send(text)}
           disabled={isStreaming || !text.trim()}
           data-testid="composer-send"
-          className="h-[34px] shrink-0 rounded-md bg-amber px-3 text-[12px] font-semibold text-amber-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="type-small h-[36px] shrink-0 rounded-md bg-amber px-3.5 font-medium text-amber-ink transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           Send
         </button>
@@ -150,7 +150,7 @@ export function Composer({ reportId, isStreaming }: Props) {
           title={
             runAllBlocked
               ? 'This deployment replays recorded conversations and has no recording for this filing'
-              : 'Run every question for this filing in order, threading the conversation'
+              : 'Run every dataset question for this filing in order, threading the conversation — each answer is marked against the gold the dataset carries, which is how the accuracy figures on the Overview were measured'
           }
         >
           <button
@@ -158,7 +158,7 @@ export function Composer({ reportId, isStreaming }: Props) {
             onClick={() => void runAllGold(reportId, chips)}
             disabled={isStreaming}
             data-testid="composer-run-all"
-            className="h-[34px] rounded-md border border-line-2 px-3 text-[12px] font-medium text-muted transition-colors hover:border-amber-line hover:text-amber disabled:opacity-40"
+            className="type-small h-[36px] rounded-md border border-line-2 px-3 font-medium text-muted transition-colors hover:border-amber-line hover:text-amber disabled:opacity-40"
           >
             {isDemo ? 'Replay all' : 'Run all gold'}
             {chips.length > 0 ? ` (${chips.length})` : ''}
@@ -167,7 +167,7 @@ export function Composer({ reportId, isStreaming }: Props) {
       </div>
 
       {runAllBlocked && (
-        <p className="mt-1.5 text-[10.5px] text-faint">
+        <p className="type-meta mt-1.5 text-faint">
           <span className="mono-caps mr-1 text-amber">demo</span>
           No recording for this filing, so there is nothing to replay. Open one of the
           recorded examples in the sessions pane to watch a full conversation.

@@ -1,0 +1,218 @@
+{
+  "score": "6 / 9",
+  "rung": 10,
+  "measured": "2026-09-08",
+  "statuses": {
+    "shipped": {
+      "glyph": "●",
+      "label": "shipped",
+      "blurb": "built, measured, in the repo"
+    },
+    "partial": {
+      "glyph": "◐",
+      "label": "partial",
+      "blurb": "present but narrower than the rubric asks"
+    },
+    "designed": {
+      "glyph": "○",
+      "label": "designed",
+      "blurb": "written up, not built"
+    },
+    "na": {
+      "glyph": "—",
+      "label": "n/a",
+      "blurb": "not needed by design"
+    }
+  },
+  "halves": [
+    {
+      "label": "The learning half",
+      "range": "R1–R4",
+      "upto": 4,
+      "blurb": "How a version gets better without getting worse."
+    },
+    {
+      "label": "The operating half",
+      "range": "R5–R9",
+      "upto": 9,
+      "blurb": "What happens once it is live, and who finds out first."
+    }
+  ],
+  "rows": [
+    {
+      "ref": "R1",
+      "key": "evals",
+      "order": 1,
+      "label": "Evals & golden set",
+      "short": "Evals",
+      "question": "Is there a versioned golden set, and can anyone reproduce the score offline?",
+      "status": "shipped",
+      "how": "Committed manifest — train 100 / gate 100 reports (368 / 349 questions), seed 2026, drawn only from conversations GEPA and s7 never saw — plus committed prediction CSVs for every run of both runtimes. Each turn carries numeric and program match, a cascade flag and a gold-derived per-agent panel.",
+      "proof": [
+        "evaluation/splits/eval_loop_v2.json",
+        "src/convfinqa/evalloop/splits.py",
+        "src/convfinqa/evalloop/stage_scores.py",
+        "evaluation/predictions/evalloop"
+      ],
+      "app": [
+        "/admin/dataset",
+        "/admin/evaluations"
+      ]
+    },
+    {
+      "ref": "R2",
+      "key": "judge",
+      "order": 2,
+      "label": "LLM-as-judge",
+      "short": "Judge",
+      "question": "Who grades the open-ended answers, and is the judge independent of the model being graded?",
+      "status": "partial",
+      "how": "Tried last (s12/s13): a Haiku 4.5 judge that never sees gold reads each finished turn's trace and returns a band from six named checks. Scored once on the sealed gate split — high band 91.46% against 90.54% releasing everything, a 95% interval of 87.9–95.2% that contains the baseline, 6 of 33 failures caught at the cost of 27 correct answers withheld. Not adopted as a gate; the band ships as an advisory caution (JUDGE_MODE=advisory).",
+      "proof": [
+        "src/convfinqa/evalloop/judge.py",
+        "evaluation/judge/judge_gates.jsonl",
+        "evaluation/judge/scores",
+        "src/convfinqa/serving/sdk_turn.py"
+      ],
+      "app": [
+        "/admin/runtimes"
+      ]
+    },
+    {
+      "ref": "R3",
+      "key": "gate",
+      "order": 3,
+      "label": "Regression gate",
+      "short": "Gate",
+      "question": "What stops a worse version from shipping?",
+      "status": "shipped",
+      "how": "Net positive on the fixed unseen split and one-sided cluster-corrected McNemar p < 0.05, with a bootstrap CI on every verdict; --promote refused on train evidence. Three earlier promotions rolled back under it; v8 is the first that passed. CI re-scores the champion from its CSV on every PR — but v8's registry metrics are empty, so that floor is −0.5% and cannot fail. Open defect.",
+      "proof": [
+        "src/convfinqa/tracking/comparator.py",
+        "src/convfinqa/evalloop/gate.py",
+        "evaluation/diagnostics/evalloop/gates.jsonl",
+        "src/convfinqa/tracking/gate.py",
+        ".github/workflows/ci.yml"
+      ],
+      "app": [
+        "/admin/campaigns"
+      ]
+    },
+    {
+      "ref": "R4",
+      "key": "loop",
+      "order": 4,
+      "label": "Learning loop",
+      "short": "Loop",
+      "question": "How does the system get better — and is each change traceable to one lever?",
+      "status": "shipped",
+      "how": "A teacher on Opus 5 blames one agent per first-wrong turn; the challenger rewrites only that prompt; a campaign is up to five experiments, target rotated off after two rejections. Three campaigns, seven experiments, one promotion (v8). The runtime arm promoted sdk_v1 to sdk_champion and rejected sdk_v2. Holdout release gate built, never opened.",
+      "proof": [
+        "src/convfinqa/evalloop/teacher.py",
+        "src/convfinqa/evalloop/campaign.py",
+        "src/convfinqa/evalloop/sdk_teacher.py",
+        "evaluation/registry.json",
+        "src/convfinqa/evalloop/release.py"
+      ],
+      "app": [
+        "/admin/campaigns",
+        "/admin/experiments"
+      ]
+    },
+    {
+      "ref": "R5",
+      "key": "guardrails",
+      "order": 5,
+      "label": "Guardrails & security",
+      "short": "Guardrails",
+      "question": "What sits between the model and anything it can touch — data, tools, money, other users?",
+      "status": "partial",
+      "how": "Abuse controls, not policy gates: one LLM choke point owns the demo gate, retries and the 120 s ceiling; an in-flight cap of 4 and a per-IP window of 30 / 60 s; admin writes need the owner token and a non-demo build; replay declines below its match threshold. No per-user auth, no row-level policy, no red-team suite.",
+      "proof": [
+        "src/convfinqa/serving/limits.py",
+        "src/convfinqa/llm.py",
+        "src/convfinqa/serving/demo_pack/store.py"
+      ],
+      "app": [
+        "/admin/system"
+      ]
+    },
+    {
+      "ref": "R6",
+      "key": "trace",
+      "order": 6,
+      "label": "Observability & tracing",
+      "short": "Tracing",
+      "question": "Can you replay exactly what the agent did on one request, and see the fleet's health on one screen?",
+      "status": "shipped",
+      "how": "Every pipeline LLM call is an MLflow span linked to its run; SDK spans opened by hand at one chokepoint. Every served turn is a row at /admin/traces with per-stage IO, tokens, latency and bundle id. GET /metrics/production splits by source and never blends. The demo container has no tracking server.",
+      "proof": [
+        "src/convfinqa/tracking/tracing.py",
+        "src/convfinqa/evalloop/sdk.py",
+        "src/convfinqa/tracking/traces.py",
+        "src/convfinqa/serving/routes/metrics.py",
+        "docker-compose.yml"
+      ],
+      "app": [
+        "/admin/traces"
+      ]
+    },
+    {
+      "ref": "R7",
+      "key": "cost",
+      "order": 7,
+      "label": "Cost tracking & control",
+      "short": "Cost",
+      "question": "What does one answer cost, what caps the worst day, and what's the cheap-by-default tier?",
+      "status": "shipped",
+      "how": "Per-turn cost from the runner's own metrics, prices declared in code; the SDK arm's spend recorded per question. A gate pass is ~$1–2 on the pipeline, $27.62 on the Sonnet 5 session and $17.14 on Haiku 4.5. The public deployment performs no inference.",
+      "proof": [
+        "src/convfinqa/tracking/cost.py",
+        "src/convfinqa/llm.py",
+        "evaluation/story.json",
+        "infra/terraform/demo/main.tf"
+      ],
+      "app": [
+        "/admin/traces",
+        "/admin/runtimes"
+      ]
+    },
+    {
+      "ref": "R8",
+      "key": "release",
+      "order": 8,
+      "label": "Deploy & release",
+      "short": "Release",
+      "question": "Is a merge a deploy — and does the deploy prove the live URL is what it claims?",
+      "status": "shipped",
+      "how": "Merge → CI → OIDC deploy to ECR and App Runner, no stored keys; the smoke test asserts mode=demo, served bundle == champion, the evidence, and a 403 on a write. Rollback is retagging a :sha. The holdout release gate is stub-tested, not exercised.",
+      "proof": [
+        ".github/workflows/deploy-aws.yml",
+        "scripts/demo_smoke.sh",
+        "infra/terraform/demo/main.tf",
+        "src/convfinqa/evalloop/release.py"
+      ],
+      "app": [
+        "/admin/system"
+      ]
+    },
+    {
+      "ref": "R9",
+      "key": "scale",
+      "order": 9,
+      "label": "Scale path",
+      "short": "Scale",
+      "question": "What's the topology today, what's been measured under load, and what changes at 100 / 1,000 concurrent users?",
+      "status": "designed",
+      "how": "Rung 10 only. One instance, --workers 1, sessions and rate-limit state in process memory — and the code names that as the seam. No auto-scaling asserted, no load test; rungs 100 and 1,000 are design only.",
+      "proof": [
+        "src/convfinqa/serving/limits.py",
+        "CLAUDE.md",
+        "infra/terraform/demo/main.tf"
+      ],
+      "app": [
+        "/admin/system"
+      ]
+    }
+  ]
+}

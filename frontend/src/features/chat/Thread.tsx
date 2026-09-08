@@ -18,13 +18,13 @@ function ModeChip() {
           : 'Live: every turn is a real model call'
       }
       className={cn(
-        'shrink-0 rounded-full px-1.5 py-0.5 font-mono text-[9.5px] leading-tight',
+        'type-num type-meta shrink-0 rounded-full px-2 py-0.5 leading-tight',
         isDemo
           ? 'border border-dashed border-amber-line text-amber'
           : 'border border-good-line text-good'
       )}
     >
-      {isDemo ? 'replay' : 'live'}
+      {isDemo ? 'recorded replay' : 'live model'}
     </span>
   );
 }
@@ -67,6 +67,7 @@ export function Thread({
   });
 
   const canReset = !conversation.isStreaming && conversation.messages.length > 0;
+  const isDemo = useIsDemo();
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-panel">
@@ -88,7 +89,7 @@ export function Thread({
         <h1
           data-testid="active-report-id"
           title={rid}
-          className="min-w-0 flex-1 truncate font-mono text-[11.5px] font-normal text-text"
+          className="type-num type-small min-w-0 flex-1 truncate font-normal text-text"
         >
           {rid}
         </h1>
@@ -101,7 +102,7 @@ export function Thread({
           data-testid="toggle-document"
           title="Show the filing, with the cells this turn's retriever returned highlighted"
           className={cn(
-            'flex shrink-0 items-center gap-1 rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px] transition-colors',
+            'type-num type-meta flex shrink-0 items-center gap-1 rounded-[4px] border px-2 py-0.5 transition-colors',
             docOpen
               ? 'border-amber-line bg-amber-soft text-amber'
               : 'border-line-2 text-muted hover:border-amber-line hover:text-amber'
@@ -116,7 +117,7 @@ export function Thread({
           onClick={openPicker}
           data-testid="topbar-change-report"
           title="Open a different filing"
-          className="shrink-0 rounded-[4px] border border-line-2 px-1.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-amber-line hover:text-amber"
+          className="type-num type-meta shrink-0 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
         >
           change
         </button>
@@ -133,7 +134,7 @@ export function Thread({
           }}
           data-testid="reset-conversation"
           title="Clear the history so the next question is answered with no prior context"
-          className="flex shrink-0 items-center gap-1 rounded-[4px] border border-line-2 px-1.5 py-0.5 font-mono text-[10px] text-muted transition-colors hover:border-bad hover:text-bad disabled:opacity-30 disabled:hover:border-line-2 disabled:hover:text-muted"
+          className="type-num type-meta flex shrink-0 items-center gap-1 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-bad hover:text-bad disabled:opacity-30 disabled:hover:border-line-2 disabled:hover:text-muted"
         >
           <Trash2 className="size-3" aria-hidden />
           reset
@@ -156,13 +157,24 @@ export function Thread({
         the control that opened it has to stay reachable to close it, and
         reading the table while typing the next question is the whole point.
       */}
+      {isDemo && (
+        <p
+          data-testid="demo-banner"
+          className="type-small shrink-0 border-b border-dashed border-amber-line bg-amber-soft px-3 py-1.5 text-text"
+        >
+          <span className="mono-caps mr-1.5 text-amber">demo</span>
+          Replaying a recorded run at its real pacing — the stage events, tool calls and timings
+          captured in development. No model is called on this deployment.
+        </p>
+      )}
+
       <div className="relative min-h-0 min-w-0 flex-1">
         <div
           ref={scrollRef}
           className="absolute inset-0 overflow-y-auto overflow-x-hidden px-3 py-2"
         >
           {conversation.messages.length === 0 ? (
-            <p className="mt-10 text-center text-[12px] leading-relaxed text-faint">
+            <p className="type-small mt-10 text-center text-faint">
               No turns yet. Ask a question below, or pick one of the suggested questions to watch
               all four stages run.
             </p>

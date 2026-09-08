@@ -47,6 +47,13 @@ def problems() -> list[str]:
                 "its embedded record — it was built from an older story.json"
             )
 
+    # The readiness scorecard is hand-maintained, so it goes stale the moment a
+    # proof file moves or a route is renamed. Only checked once one is committed.
+    from convfinqa.evalloop import readiness
+
+    if readiness.READINESS_PATH.exists():
+        out.extend(f"readiness.json: {p}" for p in readiness.problems())
+
     # The Agent SDK page is built from the same story.json by the same command,
     # so it goes stale in exactly the same ways — a missing page, or one whose
     # embedded record names a different sdk_champion from the registry.

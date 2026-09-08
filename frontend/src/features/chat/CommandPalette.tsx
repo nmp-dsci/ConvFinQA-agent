@@ -1,16 +1,4 @@
-import {
-  BarChart3,
-  FileText,
-  FlaskConical,
-  LayoutDashboard,
-  Microscope,
-  MoonStar,
-  Plus,
-  Search,
-  Server,
-  Sun,
-  Waypoints,
-} from 'lucide-react';
+import { FileText, MoonStar, Plus, Search, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,16 +13,11 @@ import {
 } from '@/components/ui/command';
 import { useTheme } from '@/lib/theme';
 import { useStore } from '../../store';
+import { NAV_ITEMS } from '../../app/nav';
 import { shortRid } from './format';
 
-const ADMIN_PAGES: Array<{ to: string; label: string; icon: typeof LayoutDashboard }> = [
-  { to: '/admin', label: 'Admin overview', icon: LayoutDashboard },
-  { to: '/admin/evaluations', label: 'Evaluations', icon: BarChart3 },
-  { to: '/admin/experiments', label: 'Experiments', icon: FlaskConical },
-  { to: '/admin/traces', label: 'Traces', icon: Waypoints },
-  { to: '/admin/research', label: 'Research', icon: Microscope },
-  { to: '/admin/system', label: 'System', icon: Server },
-];
+/** Every page but the chat itself, in story order — the same list the rail reads. */
+const PAGES = NAV_ITEMS.filter((item) => item.to !== '/chat');
 
 /**
  * ⌘K. Four things a person actually wants mid-conversation: change filing,
@@ -97,7 +80,7 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Pages">
-          {ADMIN_PAGES.map((page) => {
+          {PAGES.map((page) => {
             const Icon = page.icon;
             return (
               <CommandItem
@@ -133,7 +116,7 @@ export function CommandPalette() {
                   onSelect={() => run(() => void selectReport(rid))}
                 >
                   <FileText aria-hidden />
-                  <span className="truncate font-mono text-[12px]">{rid}</span>
+                  <span className="type-num type-small truncate">{rid}</span>
                   <CommandShortcut>{shortRid(rid)}</CommandShortcut>
                 </CommandItem>
               ))}

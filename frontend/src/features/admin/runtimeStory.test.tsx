@@ -12,7 +12,8 @@ import {
   sliceEffect,
   sliceRows,
 } from './runtimeStory';
-import { ArmCard, ModelSwapTable, ProgressionChart, SliceTable, VerdictBanner } from './Runtimes';
+import { ArmCard, ModelSwapTable, SliceTable, VerdictBanner } from './Runtimes';
+import { ProgressionChart } from './ProgressionChart';
 import type {
   CampaignExperiment,
   ChampionPoint,

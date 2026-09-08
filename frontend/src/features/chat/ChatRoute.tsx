@@ -219,10 +219,34 @@ export function ChatRoute() {
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize the trace inspector"
+          aria-valuemin={INSPECTOR_MIN}
+          aria-valuemax={INSPECTOR_MAX}
+          aria-valuenow={width}
+          tabIndex={0}
+          title="Drag, or use the arrow keys, to resize the trace inspector"
           onPointerDown={onDrag}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
-          className="w-1 shrink-0 cursor-col-resize bg-line hover:bg-amber-line"
+          onKeyDown={(event) => {
+            // The pointer path is the common one; this is the one a keyboard
+            // reader has. Arrow keys step the width, Home/End snap to the ends.
+            const step = event.shiftKey ? 48 : 16;
+            let next: number | null = null;
+            if (event.key === 'ArrowLeft') next = width + step;
+            else if (event.key === 'ArrowRight') next = width - step;
+            else if (event.key === 'Home') next = INSPECTOR_MAX;
+            else if (event.key === 'End') next = INSPECTOR_MIN;
+            if (next === null) return;
+            event.preventDefault();
+            const clamped = Math.min(INSPECTOR_MAX, Math.max(INSPECTOR_MIN, next));
+            setWidth(clamped);
+            try {
+              window.localStorage.setItem(INSPECTOR_KEY, String(clamped));
+            } catch {
+              /* the width holds for this session and no longer */
+            }
+          }}
+          className="w-1 shrink-0 cursor-col-resize bg-line transition-colors hover:bg-amber-line focus-visible:bg-amber"
         />
       )}
 
@@ -239,7 +263,7 @@ export function ChatRoute() {
           <button
             type="button"
             onClick={() => setInspectorOpen(false)}
-            className="flex shrink-0 items-center justify-between border-b border-line px-2.5 py-1.5 text-left font-mono text-[10px] text-muted transition-colors hover:text-amber xl:hidden"
+            className="type-num type-meta flex shrink-0 items-center justify-between border-b border-line px-2.5 py-1.5 text-left text-muted transition-colors hover:text-amber xl:hidden"
           >
             <span className="mono-caps">trace inspector</span>
             <span aria-hidden>close ×</span>

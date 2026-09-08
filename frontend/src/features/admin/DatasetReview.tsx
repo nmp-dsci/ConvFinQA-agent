@@ -198,7 +198,7 @@ export default function DatasetReview() {
               className={cn(
                 'rounded-[4px] border px-2.5 py-1 mono-caps transition-colors',
                 s === split
-                  ? 'border-accent text-accent'
+                  ? 'border-amber-line bg-amber-soft text-amber'
                   : 'border-line text-muted hover:border-line-2',
               )}
             >

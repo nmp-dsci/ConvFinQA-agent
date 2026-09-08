@@ -437,3 +437,22 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
             for p in data.get("champion_track", [])
         ],
     )
+
+
+@router.get("/readiness")
+async def get_readiness() -> dict[str, Any]:
+    """The production-readiness scorecard, as committed.
+
+    Reads ``evaluation/readiness.json`` verbatim — hand-maintained, checked by
+    `evalloop.readiness.problems` on every pull request — so the app shows the
+    same nine rows the repo carries. Nothing here touches a model; the route
+    stays live in the demo.
+    """
+    from convfinqa.evalloop.readiness import READINESS_PATH, load_readiness
+
+    if not READINESS_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"no readiness scorecard committed at {READINESS_PATH}",
+        )
+    return load_readiness()

@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatPercent } from '../landing/format';
+import { getCampaigns } from './api';
+import type { CampaignExperiment, ChampionPoint } from './api';
 import { CHAMPION_ROW, InstrumentTable } from './InstrumentTable';
 import {
   bundleLine,
@@ -34,13 +36,19 @@ import { useMode } from '../../modeStore';
 import type { ExperimentRun, PromotionEvent, RegistryVersion } from '../../types';
 
 /**
- * Experiments: what was run, what is registered, and what was promoted.
+ * Experiments: every run, every campaign, the registry, and what was promoted
+ * — one page instead of three that used to say the same thing three ways.
  *
  * The promotion history is append-only and is presented that way — a list of
  * events with the actor and the comparator's reason attached, not a "current
  * state" that quietly forgets how it got there. The promote control is the one
  * write on this page and is wrapped in a real disabled fieldset with the reason
  * printed beside it; the server refuses the same call independently.
+ *
+ * Campaigns group runs into the experiments they belong to (one subagent's
+ * prompt rewritten and gated per experiment); this is pipeline-only by design
+ * — the single-session challenger runs a separate cap and gate. See Runtimes
+ * for that comparison and the runtime recommendation.
  */
 
 const KIND_TONE: Record<string, string> = {
@@ -48,6 +56,200 @@ const KIND_TONE: Record<string, string> = {
   gepa: 'text-violet',
   s7: 'text-amber',
 };
+
+const AGENTS = ['triage', 'preprocess', 'retriever', 'calculator'] as const;
+type Agent = (typeof AGENTS)[number];
+
+const AGENT_COLOR: Record<Agent, string> = {
+  triage: 'var(--info)',
+  preprocess: 'var(--violet)',
+  retriever: 'var(--amber)',
+  calculator: 'var(--good)',
+};
+
+function pct(value: number | null | undefined, digits = 1) {
+  return value === null || value === undefined ? '—' : `${(value * 100).toFixed(digits)}%`;
+}
+
+function pp(value: number | null | undefined) {
+  return value === null || value === undefined ? '—' : `${(value * 100 >= 0 ? '+' : '')}${(value * 100).toFixed(2)}pp`;
+}
+
+/**
+ * Overall accuracy plus each subagent's own gold-derived metric, at every point
+ * the champion moved. Hand-drawn SVG rather than a charting dependency: five
+ * series over a handful of points does not justify one, and this way the shape
+ * is the same in the app and on the published page.
+ */
+function ChampionChart({ track }: { track: ChampionPoint[] }) {
+  const points = track.filter((p) => p.accuracy !== null && p.accuracy !== undefined);
+  if (points.length < 2) return null;
+
+  const w = 900;
+  const h = 300;
+  const [left, right, top, bottom] = [58, 132, 24, 48];
+  const series: Array<{ name: string; colour: string; width: number; values: Array<number | null> }> = [
+    { name: 'overall', colour: 'var(--text)', width: 2.4, values: points.map((p) => p.accuracy ?? null) },
+    ...AGENTS.map((a) => ({
+      name: a,
+      colour: AGENT_COLOR[a],
+      width: 1.4,
+      values: points.map((p) => p.panel?.[a] ?? null),
+    })),
+  ];
+  const all = series.flatMap((s) => s.values).filter((v): v is number => v !== null);
+  const rawLo = Math.min(...all);
+  const rawHi = Math.max(...all);
+  const pad = Math.max(0.02, (rawHi - rawLo) * 0.25);
+  const lo = Math.max(0, rawLo - pad);
+  const hi = Math.min(1, rawHi + pad);
+  const xOf = (i: number) => left + (i * (w - left - right)) / Math.max(1, points.length - 1);
+  const yOf = (v: number) => top + ((hi - v) / (hi - lo)) * (h - top - bottom);
+
+  return (
+    <figure className="m-0">
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Champion accuracy and per-subagent metrics">
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => {
+          const v = lo + f * (hi - lo);
+          return (
+            <g key={f}>
+              <line x1={left} y1={yOf(v)} x2={w - right} y2={yOf(v)} stroke="currentColor" className="text-line" strokeWidth={1} />
+              <text x={left - 8} y={yOf(v) + 3} textAnchor="end" className="fill-faint font-mono text-[10px]">
+                {(v * 100).toFixed(0)}%
+              </text>
+            </g>
+          );
+        })}
+        {points.map((p, i) => (
+          <g key={`${p.version}-${i}`}>
+            <text x={xOf(i)} y={h - 26} textAnchor="middle" className="fill-text font-mono text-[10px]">
+              {p.version}
+            </text>
+            {p.target_agent && (
+              <text
+                x={xOf(i)}
+                y={h - 12}
+                textAnchor="middle"
+                className="font-mono text-[9px]"
+                fill={AGENT_COLOR[p.target_agent as Agent] ?? 'var(--faint)'}
+              >
+                ↑ {p.target_agent}
+              </text>
+            )}
+          </g>
+        ))}
+        {series.map((s) => {
+          const pts = s.values
+            .map((v, i) => (v === null ? null : `${xOf(i)},${yOf(v)}`))
+            .filter((v): v is string => v !== null);
+          if (pts.length < 2) return null;
+          return (
+            <g key={s.name}>
+              <polyline points={pts.join(' ')} fill="none" stroke={s.colour} strokeWidth={s.width} strokeLinejoin="round" />
+              {s.values.map((v, i) =>
+                v === null ? null : <circle key={i} cx={xOf(i)} cy={yOf(v)} r={3} fill={s.colour} />,
+              )}
+            </g>
+          );
+        })}
+        {/* End labels are placed after the lines and nudged apart: two series can
+            finish within a few tenths of a point of each other, and overprinted
+            labels read as a rendering fault rather than as two close values. */}
+        {(() => {
+          const placed: Array<{ y: number; colour: string; name: string }> = series
+            .map((s) => {
+              const lastIdx = s.values.reduce<number>((acc, v, i) => (v !== null ? i : acc), -1);
+              return lastIdx < 0
+                ? null
+                : { y: yOf(s.values[lastIdx] as number), colour: s.colour, name: s.name };
+            })
+            .filter((v): v is { y: number; colour: string; name: string } => v !== null)
+            .sort((a, b) => a.y - b.y);
+          const gap = 12;
+          for (let i = 1; i < placed.length; i += 1) {
+            if (placed[i].y - placed[i - 1].y < gap) placed[i].y = placed[i - 1].y + gap;
+          }
+          return placed.map((l) => (
+            <text key={l.name} x={w - right + 8} y={l.y + 3} fill={l.colour} className="font-mono text-[10px]">
+              {l.name}
+            </text>
+          ));
+        })()}
+      </svg>
+      <figcaption className="type-meta mt-2 text-faint">
+        Overall gate accuracy in white; each subagent&rsquo;s own gold-derived metric in colour. The
+        arrow under a version names the one subagent that experiment rewrote.
+      </figcaption>
+    </figure>
+  );
+}
+
+function ExperimentCard({ exp }: { exp: CampaignExperiment }) {
+  const [open, setOpen] = useState(false);
+  const p = exp.cluster_p_one_sided;
+  return (
+    <div className="rounded-[5px] border border-line bg-panel">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full flex-wrap items-center gap-2.5 px-3 py-2.5 text-left"
+      >
+        <span className="font-mono text-[12px] text-text">{exp.label || exp.candidate_version}</span>
+        <Verdict ok={exp.promoted}>{exp.promoted ? 'promoted' : 'rejected'}</Verdict>
+        <span
+          className="rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px]"
+          style={{ color: AGENT_COLOR[exp.target_agent as Agent], borderColor: AGENT_COLOR[exp.target_agent as Agent] }}
+        >
+          {exp.target_agent}
+        </span>
+        <span className="ml-auto type-num text-[12px] text-muted">
+          {pp(exp.accuracy_delta)} · p={p === null ? '—' : p.toFixed(3)}
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-line px-3 py-3">
+          <p className="type-small mb-2 text-muted">
+            <span className="font-mono text-text">
+              {exp.baseline_version} → {exp.candidate_version}
+            </span>{' '}
+            — {exp.summary_of_changes || 'no summary recorded'}
+          </p>
+          {exp.rationale && <p className="type-small mb-3 text-muted">{exp.rationale}</p>}
+          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            {AGENTS.map((a) => (
+              <div key={a} className="rounded-[4px] border border-line-2 bg-panel-2 px-2 py-1.5">
+                <div className="mono-caps text-faint">{a}</div>
+                <div className="type-num text-[12px]">
+                  {pct(exp.panel_baseline?.[a])} → {pct(exp.panel_candidate?.[a])}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="type-small text-faint">
+            {exp.fixed ?? 0} fixed / {exp.broken ?? 0} broken of {exp.n_compared ?? 0} shared questions ·
+            95% CI [{pp(exp.delta_ci_lo)}, {pp(exp.delta_ci_hi)}]
+          </div>
+          {exp.diff && (
+            <pre className="mt-2 max-h-80 overflow-auto rounded-[4px] border border-line bg-ground p-2.5 font-mono text-[11px] leading-relaxed">
+              {exp.diff.split('\n').map((line, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    line.startsWith('+') && !line.startsWith('+++') && 'text-good',
+                    line.startsWith('-') && !line.startsWith('---') && 'text-bad',
+                    line.startsWith('@@') && 'text-violet',
+                  )}
+                >
+                  {line}
+                </div>
+              ))}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 
@@ -110,6 +312,18 @@ export default function Experiments() {
   const [target, setTarget] = useState('');
   const [writeError, setWriteError] = useState<string | null>(null);
   const [writeOk, setWriteOk] = useState<string | null>(null);
+  const [campaignOnly, setCampaignOnly] = useState('');
+
+  const campaignsQuery = useQuery({
+    queryKey: ['eval-campaigns'],
+    queryFn: () => getCampaigns(),
+    staleTime: 60_000,
+  });
+  const campaignData = campaignsQuery.data;
+  const shownExperiments = useMemo(
+    () => (campaignData?.experiments ?? []).filter((e) => !campaignOnly || e.campaign === campaignOnly),
+    [campaignData, campaignOnly],
+  );
 
   const runs = experiments.data?.runs ?? [];
   const kinds = useMemo(() => [...new Set(runs.map((r) => r.kind))].sort(), [runs]);
@@ -365,7 +579,7 @@ export default function Experiments() {
       testId="admin-experiments"
       eyebrow="admin · experiments"
       title="Experiments"
-      sub="Every run that produced a version, the registry that decides which one serves, and the append-only record of every promotion."
+      sub="Every campaign, every run, the registry, and the append-only promotion record — one page, not three."
     >
       <LampRow>
         <Lamp
@@ -398,6 +612,85 @@ export default function Experiments() {
       </LampRow>
 
       {experiments.error ? <ErrorNote error={experiments.error} /> : null}
+
+      <Panel
+        testId="experiments-campaign-track"
+        title="Campaign track — four-agent pipeline only"
+        endpoint="/eval/campaigns"
+        note={campaignData?.rule || 'the promotion rule'}
+        right={<span className="type-small text-faint">champion {campaignData?.champion ?? '—'}</span>}
+      >
+        <p className="type-small mb-2 text-faint">
+          Every point here is a four-agent pipeline version, plotted with its per-subagent
+          accuracy — a single Claude session has no subagents, so it has nothing to plot on this
+          chart. Its own campaign (capped at 2 experiments, not 5) and the sdk_v1-vs-pipeline
+          comparison are on{' '}
+          <Link to="/admin/runtimes" className="text-amber underline underline-offset-4">
+            Runtimes
+          </Link>
+          .
+        </p>
+        {campaignsQuery.isLoading ? (
+          <LoadingRows rows={6} />
+        ) : campaignsQuery.error ? (
+          <ErrorNote error={campaignsQuery.error} />
+        ) : !campaignData?.champion_track?.length ? (
+          <EmptyState>
+            {campaignData?.experiments?.length
+              ? `${campaignData.experiments.length} experiment${campaignData.experiments.length === 1 ? '' : 's'} gated, none significant — the experiments are below.`
+              : 'No experiment has been gated yet.'}
+          </EmptyState>
+        ) : (
+          <>
+            <ChampionChart track={campaignData.champion_track} />
+            <Caveat>
+              Only promoted experiments move this line. Each rewrites exactly one subagent's
+              prompt; a paired significance test on the fixed gate split decides promotion.
+            </Caveat>
+          </>
+        )}
+      </Panel>
+
+      <Panel
+        testId="experiments-campaigns"
+        title="Campaign experiments"
+        endpoint="/eval/campaigns"
+        note="every challenger, promoted or not"
+        right={
+          <span className="type-small text-faint">
+            {shownExperiments.length} experiments · {shownExperiments.filter((e) => e.promoted).length} promoted
+          </span>
+        }
+      >
+        {(campaignData?.campaigns?.length ?? 0) > 1 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {['', ...(campaignData?.campaigns ?? []).map((c) => c.name)].map((name) => (
+              <button
+                key={name || 'all'}
+                type="button"
+                onClick={() => setCampaignOnly(name)}
+                className={cn(
+                  'rounded-[4px] border px-2.5 py-1 mono-caps transition-colors',
+                  name === campaignOnly
+                    ? 'border-amber-line bg-amber-soft text-amber'
+                    : 'border-line text-muted hover:border-line-2',
+                )}
+              >
+                {name || 'all'}
+              </button>
+            ))}
+          </div>
+        )}
+        {shownExperiments.length === 0 ? (
+          <EmptyState>Nothing gated yet.</EmptyState>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {shownExperiments.map((exp) => (
+              <ExperimentCard key={`${exp.campaign}-${exp.label}-${exp.candidate_version}`} exp={exp} />
+            ))}
+          </div>
+        )}
+      </Panel>
 
       <Panel
         testId="experiments-promote"

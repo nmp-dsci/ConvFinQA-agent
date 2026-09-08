@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NextFooter } from '@/components/console';
 import { cn } from '@/lib/utils';
 import { PaperSection, BenchmarkSection } from './SectionPaper';
 import { BundleSection, LlmSection, PipelineSection } from './SectionArchitecture';
@@ -9,6 +10,7 @@ import {
   ObservabilitySection,
   OpenWorkSection,
 } from './SectionOperations';
+import { ReadinessSection } from './SectionReadiness';
 import { Lamp, Live, Mono } from './ui';
 import { useSystemData } from './useSystemData';
 
@@ -53,6 +55,7 @@ const TOC: TocEntry[] = [
   { id: 'deploy', label: 'Deploy' },
   { id: 'new-version', label: 'Make a new version' },
   { id: 'open-work', label: 'Open work' },
+  { id: 'readiness', label: 'Production readiness' },
 ];
 
 /**
@@ -230,6 +233,8 @@ export default function SystemRoute() {
             <DeploySection data={data} />
             <NewVersionSection />
             <OpenWorkSection data={data} />
+            <ReadinessSection />
+            <NextFooter />
           </div>
         </div>
       </div>
