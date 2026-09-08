@@ -5,19 +5,16 @@ import {
   ClipboardCheck,
   Cpu,
   FlaskConical,
-  LayoutDashboard,
   MessageSquare,
-  Microscope,
   Server,
   Sparkles,
-  TrendingUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
  * The navigation, as data — and the story order, as navigation.
  *
- * Twelve routes in four labelled groups, in the order the write-up tells it:
+ * Nine routes in four labelled groups, in the order the write-up tells it:
  * the product, how it was built, the evidence, and the operations behind it.
  * Every surface that walks the story — the rail, the phone tab bar, the page
  * headers' eyebrows and the "next" footers — reads this one list, so the order
@@ -83,10 +80,10 @@ export const NAV: NavGroup[] = [
     label: 'Evidence',
     items: [
       {
-        to: '/admin',
-        label: 'Scoreboard',
-        hint: 'What serves now and what production has been doing',
-        icon: LayoutDashboard,
+        to: '/admin/runtimes',
+        label: 'Runtimes',
+        hint: 'How we got to sdk_v1: the progression, the test score, the recommendation',
+        icon: Cpu,
       },
       {
         to: '/admin/evaluations',
@@ -101,21 +98,9 @@ export const NAV: NavGroup[] = [
         icon: BookOpenCheck,
       },
       {
-        to: '/admin/campaigns',
-        label: 'Campaigns',
-        hint: 'The optimisation loop: one prompt per experiment, and what moved',
-        icon: TrendingUp,
-      },
-      {
-        to: '/admin/runtimes',
-        label: 'Runtimes',
-        hint: 'One Claude session against four agents on one sealed split — and the judge tried after',
-        icon: Cpu,
-      },
-      {
         to: '/admin/experiments',
         label: 'Experiments',
-        hint: 'Runs, the registry, and the append-only promotion history',
+        hint: 'Campaigns, runs, the registry, and the append-only promotion history',
         icon: FlaskConical,
       },
     ],
@@ -129,12 +114,6 @@ export const NAV: NavGroup[] = [
         label: 'Traces',
         hint: 'Every served turn, by source, with the four stage captures behind it',
         icon: Activity,
-      },
-      {
-        to: '/admin/research',
-        label: 'Research (s7)',
-        hint: 'The retired per-case harness that wrote v3_1, kept because its stores are committed',
-        icon: Microscope,
       },
     ],
   },

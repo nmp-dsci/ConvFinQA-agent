@@ -13,10 +13,8 @@ import { Shell } from './Shell';
 // Admin and system are lazy so the first paint — landing or chat — never pays
 // for pages most visitors never open. `Shell` renders the <Suspense> boundary
 // these resolve into.
-const AdminOverview = lazy(() => import('../features/admin/AdminOverview'));
 const Evaluations = lazy(() => import('../features/admin/Evaluations'));
 const Experiments = lazy(() => import('../features/admin/Experiments'));
-const Campaigns = lazy(() => import('../features/admin/Campaigns'));
 const Runtimes = lazy(() => import('../features/admin/Runtimes'));
 const Traces = lazy(() => import('../features/admin/Traces'));
 const TraceDetail = lazy(() => import('../features/admin/TraceDetail'));
@@ -92,11 +90,11 @@ export const router = createBrowserRouter([
       {
         path: 'admin',
         children: [
-          { index: true, element: <AdminOverview /> },
+          { index: true, element: <Navigate to="/admin/runtimes" replace /> },
           { path: 'evaluations', element: <Evaluations /> },
           { path: 'dataset', element: <DatasetReview /> },
           { path: 'experiments', element: <Experiments /> },
-          { path: 'campaigns', element: <Campaigns /> },
+          { path: 'campaigns', element: <Navigate to="/admin/experiments" replace /> },
           { path: 'runtimes', element: <Runtimes /> },
           { path: 'traces', element: <Traces /> },
           { path: 'traces/:traceId', element: <TraceDetail /> },

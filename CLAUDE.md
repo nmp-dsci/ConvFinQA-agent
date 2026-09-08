@@ -110,8 +110,8 @@ uv run convfinqa-evalloop make-splits --name eval_loop_v2 --extend eval_loop_v1 
 ```
 
 `EVAL_MANIFEST` selects the manifest for a whole session — set it once so every run, gate
-and diagnosis agrees on what "the gate split" means. The **Campaigns page**
-(`/admin/campaigns`, backend `GET /eval/campaigns`) and the published page both read
+and diagnosis agrees on what "the gate split" means. The **Experiments page**
+(`/admin/experiments`, backend `GET /eval/campaigns`) and the published page both read
 `evaluation/story.json`, so they cannot disagree; rebuild both with `story`.
 
 ## Agent SDK experiment (s10)

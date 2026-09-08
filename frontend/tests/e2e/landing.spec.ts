@@ -23,7 +23,7 @@ const SEED_RID = 'Single_VLO/2011/page_126.pdf-1';
 /**
  * The four tiles, by the testid `HudTile` derives from each label. The
  * redesign (s14, P2) cut the board from nine tiles to four with a baseline on
- * each; turns served and error rate moved to the Scoreboard, and the sealed
+ * each; turns served and error rate live on Traces, and the sealed
  * holdout became a sentence under the tiles rather than a permanently empty
  * tile.
  */
@@ -220,7 +220,7 @@ test.describe('status board at /', () => {
     }
 
     // The 27 turns were genuinely served, and the board still says so — in
-    // the latency tile's reason, since the count tile moved to the Scoreboard.
+    // the latency tile's reason, since the count tile moved to Traces.
     await expect(page.getByTestId('hud-tile-p50-latency')).not.toContainText(/no turns/i);
   });
 

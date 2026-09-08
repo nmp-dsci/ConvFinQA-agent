@@ -234,8 +234,8 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={!campaigns && board.loading}
           reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
-          to="/admin/campaigns"
-          drill="/admin/campaigns"
+          to="/admin/experiments"
+          drill="/admin/experiments"
           meta={
             campaigns?.champion_accuracy != null && (
               <>

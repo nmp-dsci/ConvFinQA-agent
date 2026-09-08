@@ -98,7 +98,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         value={gateLamp.value}
         tone={gateLamp.tone}
         dashed={gateLamp.dashed}
-        to="/admin/campaigns"
+        to="/admin/experiments"
         tooltip={gateLamp.tooltip}
       />
     </div>

@@ -34,12 +34,12 @@ describe('the nav model', () => {
     expect(activeItem('/admin/traces/abc')?.label).toBe('Traces');
     expect(activeItem('/chat/Double_MAR/2010/page_55.pdf')?.label).toBe('Chat');
     expect(activeItem('/admin/evaluations')?.label).toBe('Evaluations');
-    expect(activeItem('/admin')?.label).toBe('Scoreboard');
+    expect(activeItem('/admin/runtimes')?.label).toBe('Runtimes');
     expect(activeItem('/debrief')?.label).toBe('Architecture');
   });
 
   it('prints the position as group · nn of nn', () => {
-    expect(positionOf('/admin/campaigns')).toBe('Evidence · 04 of 06');
+    expect(positionOf('/admin/experiments')).toBe('Evidence · 04 of 04');
     expect(positionOf('/')).toBe('Product · 01 of 02');
     expect(positionOf('/nowhere')).toBeNull();
   });
@@ -48,10 +48,10 @@ describe('the nav model', () => {
     expect(nextItem('/')?.label).toBe('Chat');
     expect(nextItem('/chat')?.label).toBe('Architecture');
     expect(nextItem('/admin/system')?.label).toBe('Readiness');
-    expect(nextItem('/admin/readiness')?.label).toBe('Scoreboard');
+    expect(nextItem('/admin/readiness')?.label).toBe('Runtimes');
     expect(prevItem('/')).toBeNull();
-    expect(nextItem('/admin/research')).toBeNull();
-    expect(prevItem('/admin/research')?.label).toBe('Traces');
+    expect(nextItem('/admin/traces')).toBeNull();
+    expect(prevItem('/admin/traces')?.label).toBe('Experiments');
   });
 });
 
@@ -69,15 +69,15 @@ describe('the rail', () => {
 describe('the page header and footer', () => {
   it('derive the eyebrow and the next step from the nav', () => {
     const html = render(
-      '/admin/campaigns',
+      '/admin/experiments',
       <>
-        <PageHeader title="Campaigns" verdict="Seven experiments, one promotion." />
+        <PageHeader title="Experiments" verdict="Seven experiments, one promotion." />
         <NextFooter />
       </>,
     );
-    expect(html).toContain('Evidence · 04 of 06');
+    expect(html).toContain('Evidence · 04 of 04');
     expect(html).toContain('Seven experiments, one promotion.');
-    expect(html).toContain('href="/admin/runtimes"');
+    expect(html).toContain('href="/admin/traces"');
     expect(html).toContain('href="/admin/dataset"');
   });
 });
