@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { NextFooter, PageHeader } from '@/components/console';
 import { NO_VALUE } from '../landing/format';
+
+export { Lamp, LampRow } from '@/components/console';
+export type { LampTone } from '@/components/console';
 
 /**
  * The admin console's chrome, built once.
@@ -25,25 +29,22 @@ export function AdminPage({
   children,
   testId,
 }: {
-  eyebrow: string;
+  /** Kept for callers; the header now derives its eyebrow from the nav. */
+  eyebrow?: string;
   title: string;
+  /** The sentence the page settles — rendered at the lede step. */
   sub: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   testId: string;
 }) {
+  void eyebrow;
   return (
     <div className="h-full overflow-y-auto bg-ground" data-testid={testId}>
-      <div className="mx-auto flex max-w-[1560px] min-w-0 flex-col gap-3 px-3 py-4 sm:px-5">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mono-caps">{eyebrow}</div>
-            <h1 className="type-h2 mt-0.5">{title}</h1>
-            <p className="type-small mt-1 max-w-[92ch] text-muted">{sub}</p>
-          </div>
-          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
-        </header>
+      <div className="mx-auto flex max-w-[1560px] min-w-0 flex-col gap-4 px-3 py-5 sm:px-5">
+        <PageHeader title={title} verdict={sub} chips={actions} />
         {children}
+        <NextFooter />
       </div>
     </div>
   );
@@ -119,84 +120,6 @@ export function EndpointChip({ path, to }: { path: string; to?: string }) {
     </span>
   );
   return to ? <Link to={to}>{body}</Link> : body;
-}
-
-// ---------------------------------------------------------------------------
-// Lamps
-// ---------------------------------------------------------------------------
-
-export type LampTone = 'good' | 'amber' | 'bad' | 'info' | 'idle';
-
-const DOT_TONE: Record<LampTone, string> = {
-  good: 'border-good bg-good shadow-[0_0_6px_var(--good-glow)]',
-  amber: 'border-amber',
-  bad: 'border-bad bg-bad',
-  info: 'border-info bg-info',
-  idle: 'border-line-2',
-};
-
-const TEXT_TONE: Record<LampTone, string> = {
-  good: 'text-good',
-  amber: 'text-amber',
-  bad: 'text-bad',
-  info: 'text-info',
-  idle: 'text-faint',
-};
-
-/**
- * One lamp. State is a shape as well as a colour: a dashed ring means replayed
- * or unverified, a solid one means measured. That survives a colour-blind
- * reader and a greyscale screenshot, which a hue alone does not.
- */
-export function Lamp({
-  label,
-  value,
-  tone,
-  dashed = false,
-  title,
-  to,
-}: {
-  label: string;
-  value: string;
-  tone: LampTone;
-  dashed?: boolean;
-  title?: string;
-  to?: string;
-}) {
-  const body = (
-    <span
-      data-testid={`lamp-${label}`}
-      data-tone={tone}
-      data-shape={dashed ? 'dashed' : 'solid'}
-      title={title}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border border-line bg-panel py-1 pr-2.5 pl-2',
-        to && 'transition-colors hover:border-amber-line hover:bg-panel-2',
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          'size-2 shrink-0 rounded-full border',
-          DOT_TONE[tone],
-          dashed && 'border-dashed bg-transparent shadow-none',
-        )}
-      />
-      <span className="mono-caps text-faint">{label}</span>
-      <span className={cn('type-num text-[11px]', TEXT_TONE[tone])}>{value}</span>
-    </span>
-  );
-  return to ? (
-    <Link to={to} className="cursor-pointer">
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-}
-
-export function LampRow({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-1.5">{children}</div>;
 }
 
 // ---------------------------------------------------------------------------

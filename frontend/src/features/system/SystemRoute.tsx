@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { NextFooter } from '@/components/console';
 import { cn } from '@/lib/utils';
 import { PaperSection, BenchmarkSection } from './SectionPaper';
 import { BundleSection, LlmSection, PipelineSection } from './SectionArchitecture';
@@ -230,6 +231,7 @@ export default function SystemRoute() {
             <DeploySection data={data} />
             <NewVersionSection />
             <OpenWorkSection data={data} />
+            <NextFooter />
           </div>
         </div>
       </div>

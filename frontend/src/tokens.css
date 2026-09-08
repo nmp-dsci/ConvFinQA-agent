@@ -104,8 +104,9 @@
   --font-mono:
     'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Width of the icon nav rail. Referenced by the shell grid. */
+  /* The nav rail: icon-only between md and lg, labelled from lg. */
   --rail-w: 52px;
+  --rail-w-wide: 176px;
 
   /*
    * The Console type scale.

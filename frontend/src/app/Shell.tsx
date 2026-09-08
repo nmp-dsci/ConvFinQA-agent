@@ -6,27 +6,30 @@ import { useMode } from '../modeStore';
 import { useStore } from '../store';
 import { ModeLamp } from './ModeLamp';
 import { NavRail } from './NavRail';
+import { TabBar } from './TabBar';
 
 function BrandMark() {
   return (
     <Link
       to="/"
-      className="flex items-center gap-2 text-text hover:text-amber transition-colors"
+      className="flex items-center gap-2 text-text transition-colors hover:text-amber"
       title="ConvFinQA console"
     >
       <span
         aria-hidden
-        className="grid size-6 place-items-center rounded-[4px] border border-amber-line bg-amber-soft font-mono text-[10px] font-semibold text-amber"
+        className="grid size-6 place-items-center rounded-[4px] border border-amber-line bg-amber-soft type-num type-meta font-semibold text-amber"
       >
         CF
       </span>
-      <span className="text-[13px] font-medium tracking-tight">ConvFinQA</span>
+      <span className="type-body font-medium tracking-tight">ConvFinQA</span>
     </Link>
   );
 }
 
 function TopBar() {
-  const champion = useMode((s) => s.health?.champion);
+  const health = useMode((s) => s.health);
+  const serving =
+    health?.runtime === 'agent_sdk' ? (health.sdk_champion ?? health.champion) : health?.champion;
 
   return (
     <header
@@ -35,10 +38,13 @@ function TopBar() {
     >
       <BrandMark />
       <div className="flex items-center gap-3">
-        {champion && (
+        {serving && (
           <span className="hidden items-baseline gap-1.5 lg:inline-flex">
-            <span className="mono-caps">champion</span>
-            <span className="font-mono text-[11px] text-muted">{champion}</span>
+            <span className="mono-caps">serving</span>
+            <span className="type-num type-meta text-muted">
+              {serving}
+              {health?.runtime === 'agent_sdk' ? ' · agent sdk' : ''}
+            </span>
           </span>
         )}
         <ModeLamp />
@@ -48,16 +54,25 @@ function TopBar() {
   );
 }
 
+/** A skeleton in the page-header shape, so a lazy route does not flash blank. */
 function RouteFallback() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <span className="mono-caps animate-pulse">loading…</span>
+    <div className="mx-auto max-w-[1560px] px-3 py-4 sm:px-5" aria-label="loading" aria-busy>
+      <div className="h-2.5 w-28 animate-pulse rounded bg-panel-2" />
+      <div className="mt-3 h-6 w-56 animate-pulse rounded bg-panel-2" />
+      <div className="mt-3 h-4 w-[min(70ch,100%)] animate-pulse rounded bg-panel-2" />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="h-24 animate-pulse rounded-md bg-panel" />
+        ))}
+      </div>
     </div>
   );
 }
 
 /**
- * The app shell: nav rail on the left, top bar across, routed content below.
+ * The app shell: rail on the left, top bar across, routed content below, and
+ * on a phone a tab bar along the bottom instead of the rail.
  *
  * The rail and the top bar sit at `--ground`; whatever the route renders is
  * responsible for its own lit surface. That is the elevation rule made
@@ -85,6 +100,7 @@ export function Shell() {
               <Outlet />
             </Suspense>
           </main>
+          <TabBar />
         </div>
       </div>
     </TooltipProvider>
