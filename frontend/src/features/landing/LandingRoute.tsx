@@ -5,6 +5,7 @@ import { HudTile } from './HudTile';
 import { LampStrip } from './LampStrip';
 import { RecordedConversations } from './RecordedConversations';
 import { ProgressionChart } from '../admin/ProgressionChart';
+import { versionLabel } from '../admin/lib';
 import { progression } from '../admin/runtimeStory';
 import { NO_VALUE, formatLatency, formatPercent, formatPointsDelta, formatUsd } from './format';
 import { judgeSentence, landingStory } from './landingStory';
@@ -216,7 +217,9 @@ export function RightPane({ board }: { board: BoardData }) {
         className="mt-3 rounded-md border border-line bg-panel p-3.5 sm:p-4"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="mono-caps">the record · five stages, one sealed split</span>
+          <span className="mono-caps">
+            optimising the ConvFinQA agent · accuracy on the unseen gate split
+          </span>
           <Link
             to="/admin/runtimes"
             className="type-meta text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
@@ -224,6 +227,10 @@ export function RightPane({ board }: { board: BoardData }) {
             read the comparison →
           </Link>
         </div>
+        <p className="type-small mt-1.5 text-muted">
+          Every version scored on the same 349 held-back questions, in the order the work happened —
+          from the raw four-agent pipeline to the single-session agent serving today.
+        </p>
         <div className="mt-3">
           <ProgressionChart
             points={stages}
@@ -247,14 +254,15 @@ export function RightPane({ board }: { board: BoardData }) {
           meta={
             campaigns?.champion_accuracy != null && (
               <>
-                four-agent pipeline · <span className="type-num">{campaigns.champion}</span>
+                four-agent pipeline ·{' '}
+                <span className="type-num">{versionLabel(campaigns.champion)}</span>
                 {campaignMove && (
                   <>
                     <br />
                     <span className={cn('type-num', campaignMove.delta >= 0 ? 'text-good' : 'text-bad')}>
                       {formatPointsDelta(campaignMove.delta)}
                     </span>{' '}
-                    vs {campaignMove.from} · {campaignMove.nPromoted} promotion
+                    vs {versionLabel(campaignMove.from)} · {campaignMove.nPromoted} promotion
                     {campaignMove.nPromoted === 1 ? '' : 's'} in{' '}
                     {(campaigns.experiments ?? []).length} tries
                   </>
@@ -275,7 +283,8 @@ export function RightPane({ board }: { board: BoardData }) {
           meta={
             sdkArm?.accuracy != null && (
               <>
-                one Claude session · <span className="type-num">{sdkArm.version ?? '—'}</span>
+                one Claude session ·{' '}
+                <span className="type-num">{sdkArm.version ? versionLabel(sdkArm.version) : '—'}</span>
                 {gate?.ci?.[0] != null && gate?.ci?.[1] != null && (
                   <>
                     <br />
@@ -283,7 +292,7 @@ export function RightPane({ board }: { board: BoardData }) {
                     <span className="type-num">
                       {formatPointsDelta(gate.ci[0])} … {formatPointsDelta(gate.ci[1])}
                     </span>{' '}
-                    vs {comparison?.pipeline?.version ?? 'the pipeline'}, paired
+                    vs {comparison?.pipeline?.version ? versionLabel(comparison.pipeline.version) : 'the pipeline'}, paired
                   </>
                 )}
               </>

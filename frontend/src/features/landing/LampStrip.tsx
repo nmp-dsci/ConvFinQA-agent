@@ -1,6 +1,7 @@
 import { Lamp } from '@/components/console';
 import type { LampTone } from '@/components/console';
 import type { BoardData } from './useBoardData';
+import { versionLabel } from '../admin/lib';
 
 /**
  * Mode, champion, gate — the three facts that decide how to read every other
@@ -84,7 +85,7 @@ export function LampStrip({ board }: { board: BoardData }) {
       />
       <Lamp
         label="champion"
-        value={servingChampion ?? campaigns?.sdk_champion ?? campaigns?.champion ?? 'unset'}
+        value={versionLabel(servingChampion ?? campaigns?.sdk_champion ?? campaigns?.champion) || 'unset'}
         tone="info"
         to="/admin/runtimes"
         tooltip={

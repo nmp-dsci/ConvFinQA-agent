@@ -1,6 +1,7 @@
 import type { CampaignsResponse } from '../admin/api';
 import { PAPER_HUMAN, runtimeVerdict } from '../admin/runtimeStory';
 import { NO_VALUE, formatPercent, formatPointsDelta } from './format';
+import { versionLabel } from '../admin/lib';
 
 /**
  * What the landing says, as pure functions over `/eval/campaigns`.
@@ -89,7 +90,7 @@ export function landingStory(
       value: verdict.deltaPp !== null ? formatPointsDelta(verdict.deltaPp / 100) : NO_VALUE,
       label:
         verdict.deltaPp !== null
-          ? `over the optimised pipeline${verdict.baselineVersion ? ` (${verdict.baselineVersion})` : ''}, paired · p=${
+          ? `over the optimised pipeline${verdict.baselineVersion ? ` (${versionLabel(verdict.baselineVersion)})` : ''}, paired · p=${
               verdict.pValue !== null ? verdict.pValue.toExponential(0) : '—'
             }`
           : 'no cross-runtime gate has been run',

@@ -13,6 +13,7 @@ import {
   observedErrorCodes,
   relativeTime,
   sourceNote,
+  versionLabel,
 } from './lib';
 import type { TraceFilter } from './lib';
 import type { SourceMetrics, VersionAccuracyRow } from '../../lib/api';
@@ -259,5 +260,29 @@ describe('small helpers', () => {
     expect(bundleLine({ prompts_version: 'v2', code_sha: 'abc1234' })).toBe(
       'prompts v2 · code abc1234',
     );
+  });
+});
+
+describe('versionLabel', () => {
+  it('names the lineage a bare version id leaves implicit', () => {
+    // `v2`, `v8`, `sdk_v1` side by side on a chart axis read as two unlabelled
+    // counts and one prefixed one; this is what makes the axis self-describing.
+    expect(versionLabel('v2')).toBe('llm-v2');
+    expect(versionLabel('v8')).toBe('llm-v8');
+    expect(versionLabel('v3_1')).toBe('llm-v3_1');
+    expect(versionLabel('sdk_v1')).toBe('sdk-v1');
+    expect(versionLabel('judge_j1')).toBe('judge-j1');
+  });
+
+  it('renames only the version, never a qualifier after it', () => {
+    expect(versionLabel('sdk_v1 · haiku-4-5')).toBe('sdk-v1 · haiku-4-5');
+    expect(versionLabel('v8 · rejected')).toBe('llm-v8 · rejected');
+  });
+
+  it('leaves anything that is not a version id alone', () => {
+    expect(versionLabel('champion')).toBe('champion');
+    expect(versionLabel('variant')).toBe('variant');
+    expect(versionLabel(null)).toBe('');
+    expect(versionLabel(undefined)).toBe('');
   });
 });

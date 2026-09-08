@@ -42,6 +42,7 @@ import { NO_VALUE, formatCount, formatPercent, formatUsd } from '../landing/form
 import { judgeRows } from './runtimeStory';
 import type { JudgeRow } from './runtimeStory';
 import { ProgressionChart } from './ProgressionChart';
+import { versionLabel } from './lib';
 
 /**
  * Runtimes: one Claude Agent SDK session against four prompted agents.
@@ -210,7 +211,9 @@ export function ArmCard({
             <span className="type-num text-[27px] leading-none text-text">
               {formatPercent(arm?.accuracy ?? null)}
             </span>
-            <span className="font-mono text-[11px] text-muted">{arm?.version ?? NO_VALUE}</span>
+            <span className="font-mono text-[11px] text-muted">
+              {arm?.version ? versionLabel(arm.version) : NO_VALUE}
+            </span>
           </div>
           <p className="type-meta mb-2 break-all text-faint">{arm?.run_name ?? NO_VALUE}</p>
           <div className="flex flex-col gap-1">
@@ -304,7 +307,7 @@ export function JudgeVerdictBanner({ verdict }: { verdict: JudgeVerdictSummary }
         <span className="mono-caps">recommendation</span>
         <Verdict ok={adopt}>{adopt ? 'adopt as a gate' : 'advisory only'}</Verdict>
         <span className="font-mono text-[10px] text-faint">
-          {verdict.version} on {verdict.split}
+          {versionLabel(verdict.version)} on {verdict.split}
         </span>
       </div>
       <p className="type-lede max-w-[80ch] text-text">
@@ -375,7 +378,7 @@ export function JudgeTable({ rows, target }: { rows: JudgeRow[]; target: number 
               )}
             >
               <td className="py-2 pr-3 font-mono text-[12px] text-text">
-                {row.version}
+                {versionLabel(row.version)}
                 {row.isChampion && <span className="ml-1.5 text-[10px] text-good">champion</span>}
               </td>
               <td className="py-2 pr-3 font-mono text-[12px] text-muted">{row.split}</td>
@@ -752,7 +755,8 @@ export default function Runtimes() {
         note="Both arms are scored by the same evaluator on the same questions; the per-stage panel is derived from gold, with no model calls."
         right={
           <span className="type-small text-faint">
-            champion {data?.champion ?? NO_VALUE} · sdk_champion {data?.sdk_champion ?? NO_VALUE}
+            champion {data?.champion ? versionLabel(data.champion) : NO_VALUE} · sdk_champion{' '}
+            {data?.sdk_champion ? versionLabel(data.sdk_champion) : NO_VALUE}
           </span>
         }
       >
@@ -808,8 +812,9 @@ export default function Runtimes() {
         note="Tried last, after the runtime decision. A Haiku 4.5 judge reads each finished turn — question, filing, sub-questions, retrieved cells with their cited sources, program, calculator trajectory, answer — and returns a band. high releases the answer; low withholds it. It never sees the gold answer. Trained the way sdk_v1 was: a teacher diagnosed every case of a balanced optimise split with gold, one distil call wrote the prompt; scored at natural prevalence on a disjoint calibrate split, then once on the gate split by the frozen champion. The result did not clear the bar — see the recommendation."
         right={
           <span className="type-small text-faint">
-            judge_champion {data?.judge?.champion ?? NO_VALUE} · calibrated to{' '}
-            {data?.judge?.runtime_version ?? NO_VALUE}
+            judge_champion {data?.judge?.champion ? versionLabel(data.judge.champion) : NO_VALUE} ·{' '}
+            calibrated to{' '}
+            {data?.judge?.runtime_version ? versionLabel(data.judge.runtime_version) : NO_VALUE}
           </span>
         }
       >
@@ -827,9 +832,9 @@ export default function Runtimes() {
       </Panel>
 
       <Panel
-        title="the progression"
+        title="Optimising the ConvFinQA agent — accuracy on the unseen gate split"
         endpoint="/eval/campaigns"
-        note="Five stages, in the order they happened. The pipeline points are the champion track's first and last; the SDK points are the distilled prompt, the loop's attempt on it, and the same prompt scored on a second model."
+        note="Every version that has been scored, on the same 349 held-back questions, in the order the work actually happened: the raw four-agent pipeline, the same pipeline after the optimisation loop, the single-session agent distilled from it, the loop's one attempt to improve that, and the same prompt on a second model. The pipeline points are the champion track's first and last."
       >
         <ProgressionChart points={stages} pipelineBaseline={comparison?.pipeline?.accuracy ?? null} />
       </Panel>

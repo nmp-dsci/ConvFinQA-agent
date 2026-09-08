@@ -7,6 +7,7 @@ import { useStore } from '../store';
 import { ModeLamp } from './ModeLamp';
 import { NavRail } from './NavRail';
 import { TabBar } from './TabBar';
+import { versionLabel } from '@/features/admin/lib';
 
 function BrandMark() {
   return (
@@ -41,7 +42,7 @@ function TopBar() {
           <span className="hidden items-baseline gap-1.5 lg:inline-flex">
             <span className="mono-caps">serving</span>
             <span className="type-num type-meta text-muted">
-              {serving}
+              {versionLabel(serving)}
               {health?.runtime === 'agent_sdk' ? ' · agent sdk' : ''}
             </span>
           </span>

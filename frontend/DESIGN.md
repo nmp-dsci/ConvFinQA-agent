@@ -40,6 +40,20 @@ sentence in its header, generated from the same data it renders.
   reachable one below.
 - No colour-only status. Lamps and bands carry a shape or a word as well.
 - No unlabelled em dash. An absent value prints `—` **and** the reason.
+- No naked chart. Every chart carries a title that says what it is a chart *of*
+  and one sentence introducing it before the plot — what is on the axes, on what
+  data, and why a reader should care. A caption underneath is where the caveats
+  go, not where the subject is first named: a reader who has to infer the subject
+  from the bars has already been asked to do the chart's job.
+- No bare version id in a label. Versions are printed through `versionLabel`:
+  `llm-v8`, `sdk-v1`, `judge-j1`. The registry's `v8` / `sdk_v1` say which
+  lineage they belong to only if you already know the convention, and on an axis
+  beside each other the pipeline ones read as unlabelled counts. The raw id
+  stays the *value* of every option, URL and data attribute — it is what an
+  operator pastes into a CLI and what the ledgers are keyed on.
+- No constant column. A column with the same value in every row is a sentence,
+  not a column: the two `n` columns on Accuracy per version repeated 770 and 309
+  down the table and cost two columns to say nothing that varied.
 - No ghost primary. One solid amber CTA per screen; secondaries are quiet.
 - No page without a main character, and no page that ends without a next step.
 - No number written in a component. Every figure is read from a query or a

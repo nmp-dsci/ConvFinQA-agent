@@ -262,6 +262,32 @@ export function sourceNote(source: string, generatedAt: string | undefined): str
 // Small display helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * `v8` → `llm-v8`, `sdk_v1` → `sdk-v1`, `judge_j1` → `judge-j1`.
+ *
+ * The registry's ids only say which lineage a version belongs to if you already
+ * know the convention: a bare `vN` is a four-agent pipeline bundle, an `sdk_vN`
+ * is a single-session prompt, a `judge_jN` is a confidence judge. Side by side
+ * on a chart axis — `v2`, `v8`, `sdk_v1` — the first two read as unlabelled
+ * counts. Naming the pipeline lineage puts the answer in the label.
+ *
+ * Display only. The raw id stays the value of every option, URL and data
+ * attribute, because that is the string an operator pastes into a CLI and the
+ * one the registry, the ledgers and the run names are keyed on.
+ *
+ * A qualifier after ` · ` (`sdk_v1 · haiku-4-5`) is left alone — only the
+ * version at the head of the string is renamed.
+ */
+export function versionLabel(version: string | null | undefined): string {
+  if (!version) return '';
+  const [head, ...rest] = version.split(' · ');
+  const tail = rest.length ? ` · ${rest.join(' · ')}` : '';
+  if (/^sdk_v/.test(head)) return `${head.replace(/^sdk_v/, 'sdk-v')}${tail}`;
+  if (/^judge_j/.test(head)) return `${head.replace(/^judge_j/, 'judge-j')}${tail}`;
+  if (/^v\d/.test(head)) return `llm-${head}${tail}`;
+  return version;
+}
+
 /** `Number` / `Program`, `Type I` / `Type II` and friends, safely. */
 export function titleCase(value: string): string {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
