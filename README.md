@@ -117,8 +117,9 @@ instrument-style admin section at `/admin`, all reading the same backend:
 | **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
 | **`/admin/campaigns`** | Every campaign's experiments — target agent, promoted/rejected, p-value — same `evaluation/story.json` the published write-up reads. |
 | **`/admin/runtimes`** | The runtime decision: pipeline vs. the single-session Agent SDK, on the reference model and on the Haiku swap — same `evaluation/story.json` as the landing HUD and the overview's "Runtime decision" strip. |
+| **`/admin/readiness`** | The production gen-AI rubric (R1–R9), scored against this system with its proof paths and in-app routes — same `evaluation/readiness.json` the landing strip and Architecture read. |
 
-All nine admin pages are visible **read-only** in the public demo — that is
+All ten admin pages are visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
@@ -805,8 +806,8 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 |---|---|
 | ruff check + format | clean |
 | mypy (strict-ish, 72 files) | clean |
-| pytest | **174 passed**, zero network calls, no API key required |
-| frontend typecheck + vitest + build | clean, 99 unit tests |
+| pytest | **368 passed**, zero network calls, no API key required |
+| frontend typecheck + vitest + build | clean, 161 unit tests |
 | Playwright e2e (`landing.spec.ts`, keyless) | 7/7 passing in CI; full local suite (needs `DEEPSEEK_API_KEY`) is 11/11 |
 | eval-regression gate | checks the s7/GEPA versions (`v1`, `v2`, `v3_1`) committed under `evaluation/predictions/`, and floor-checks the registered champion from whichever evidence its `source` used |
 

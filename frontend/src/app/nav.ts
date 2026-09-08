@@ -17,7 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 /**
  * The navigation, as data — and the story order, as navigation.
  *
- * Eleven routes in four labelled groups, in the order the write-up tells it:
+ * Twelve routes in four labelled groups, in the order the write-up tells it:
  * the product, how it was built, the evidence, and the operations behind it.
  * Every surface that walks the story — the rail, the phone tab bar, the page
  * headers' eyebrows and the "next" footers — reads this one list, so the order
