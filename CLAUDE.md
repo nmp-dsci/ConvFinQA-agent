@@ -289,12 +289,15 @@ Everything lives in `evalloop/judge.py`; the invariants, all pinned by tests:
 - **Serving** (`SERVING_RUNTIME=agent_sdk`, the default; `JUDGE_ENABLED`): one live
   `ClaudeSDKClient` per chat session (`serving/sdk_session.py`), closed on delete,
   eviction and shutdown; `serving/sdk_turn.py` holds the stage frames from the capture
-  until the judge has ruled, then emits them — redacted (`output`/`args`/`result`
-  stripped) on a `low` band, since a program's calculator trajectory or a number
-  turn's retrieved cell *is* the answer — followed by a `judge` frame and an `answer`
-  frame with `band`/`withheld`. A withheld answer is empty on the wire and in the
-  visible history; the trace row keeps the value (`capture["judge"]["answer"]`),
-  `judge_band` and `judge_p`. The judge runs
+  until the judge has ruled, then emits them, followed by a `judge` frame and an
+  `answer` frame with `band`/`withheld`. What a `low` band does to those frames is
+  `settings.judge_mode` (`JUDGE_MODE`, default `advisory`): under `advisory` the answer
+  is released with the band and the judge's reason/failed checks shown as a caveat;
+  under `gate` the stage frames are redacted (`output`/`args`/`result` stripped, since
+  a program's calculator trajectory or a number turn's retrieved cell *is* the answer)
+  and `answer` is empty on the wire and in the visible history. Either way the trace row
+  keeps the value (`capture["judge"]["answer"]`), `judge_band` and `judge_p`, so the
+  policy can change without breaking the record. The judge runs
   through `evalloop/sdk.py::run_structured(model=judge_model_name())` — the Agent SDK
   on the subscription — the same chokepoint as the teacher. The demo container replays
   the recorded pack and never runs either.
