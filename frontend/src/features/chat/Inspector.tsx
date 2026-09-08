@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import * as api from '../../api';
 import { useMode } from '../../modeStore';
 import { qk } from '../../lib/queryClient';
-import type { Message, StageCapture, StageName, ToolTrace } from '../../types';
+import type { JudgeVerdict, Message, StageCapture, StageName, ToolTrace } from '../../types';
 import { asText, EM_DASH, fmtCost, fmtMs, fmtTokens } from './format';
 import { stageViews, totalLatency, totalTokens } from './stages';
 
@@ -188,6 +188,45 @@ function Total({ label, value, reason }: { label: string; value: string; reason?
  * agentic system's reasoning is the product, so hiding it behind a click would
  * undo the design. It sits at `--ground` beside the lit thread.
  */
+/** s12: the confidence judge's six checks, after the four stages. */
+function JudgeRow({ verdict, withheld }: { verdict: JudgeVerdict; withheld: boolean }) {
+  return (
+    <div className="border-b border-line px-2.5 py-2" data-stage="judge" data-band={verdict.band}>
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-[11px] text-text">judge</span>
+        <span
+          className={
+            verdict.band === 'high'
+              ? 'font-mono text-[10px] text-good'
+              : 'font-mono text-[10px] text-amber'
+          }
+        >
+          {verdict.band} · p {verdict.p_correct.toFixed(2)}
+          {withheld ? ' · withheld' : ''}
+        </span>
+        {verdict.version && (
+          <span className="ml-auto font-mono text-[10px] text-faint">{verdict.version}</span>
+        )}
+      </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted">{verdict.reason}</p>
+      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 font-mono text-[10px]">
+        {Object.entries(verdict.checks ?? {}).map(([name, value]) => (
+          <li key={name} data-check={name} data-verdict={value} className="flex justify-between">
+            <span className="text-faint">{name}</span>
+            <span
+              className={
+                value === 'pass' ? 'text-good' : value === 'fail' ? 'text-bad' : 'text-amber'
+              }
+            >
+              {value}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function Inspector({ message, turnNumber }: { message: Message | null; turnNumber: number }) {
   const [expanded, setExpanded] = useState<StageName | null>(null);
   const bundleId = useMode((s) => s.health?.bundle_id);
@@ -252,6 +291,8 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
                 }
               />
             ))}
+
+            {message.judge && <JudgeRow verdict={message.judge} withheld={!!message.withheld} />}
 
             <div className="grid grid-cols-3 gap-2 border-b border-line px-2.5 py-2.5">
               <Total

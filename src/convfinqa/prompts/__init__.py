@@ -125,6 +125,48 @@ def latest_sdk() -> str:
     return versions[-1]
 
 
+# --- Confidence-judge prompts (s12) -------------------------------------------
+#
+# The judge has its own lineage: modules named `judge_j1`, `judge_j2`, …
+# exporting a single `JUDGE_PROMPT` constant. Kept apart from both the bundle
+# and the sdk lineages for the same reason those are kept apart: a judge prompt
+# is not a thing that can answer a question, so nothing that enumerates
+# answering prompts may ever offer one.
+
+_JUDGE_VERSION_RE = re.compile(r"^judge_j(\d+)$")
+JUDGE_VAR = "JUDGE_PROMPT"
+
+
+def is_judge_version(version: str) -> bool:
+    """Whether `version` names a confidence-judge prompt (`judge_jN`)."""
+    return bool(_JUDGE_VERSION_RE.match(version))
+
+
+def judge_versions() -> list[str]:
+    """Every `judge_jN` module in this package, sorted ascending by N."""
+    found = [
+        m.name
+        for m in pkgutil.iter_modules([str(Path(__file__).parent)])
+        if _JUDGE_VERSION_RE.match(m.name)
+    ]
+    return sorted(found, key=lambda name: int(name.removeprefix("judge_j")))
+
+
+def load_judge(version: str) -> str:
+    """The system prompt of judge `version` (`judge_jN`)."""
+    if not is_judge_version(version):
+        raise ValueError(
+            f"{version!r} is not a confidence-judge prompt version (expected judge_jN)"
+        )
+    module = importlib.import_module(f"convfinqa.prompts.{version}")
+    text = getattr(module, JUDGE_VAR, None)
+    if not isinstance(text, str):
+        raise AttributeError(
+            f"prompts.{version} must export a string constant {JUDGE_VAR!r}"
+        )
+    return text
+
+
 def load_sdk(version: str) -> str:
     """The single-session prompt of `version` (`sdk_vN`).
 

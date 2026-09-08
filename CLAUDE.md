@@ -226,6 +226,102 @@ uv run convfinqa-evalloop backfill-ledgers --no-mlflow
 uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>
 ```
 
+## The confidence judge (s12)
+
+The runtime decision (s11) moved serving to the Agent SDK; the judge was the attempt
+to make it self-checking. A second, cheaper model reads a finished turn's trace and
+returns a band: `high` means the trail verifies, `low` means it does not. **Measured on
+the sealed split, the band did not earn the right to gate** (s13) — it is shown as a
+caveat instead, and `JUDGE_MODE=gate` keeps the withholding path for a judge that does.
+Everything lives in `evalloop/judge.py`; the invariants, all pinned by tests:
+
+- **The judge never sees gold.** `judge.judge_payload` builds its input from the
+  same readers the teacher uses (question, history, document, the trail: sub-questions,
+  retrieved cells with sources, program, calculator trajectory, answer, reasoning) and
+  asserts that no `GOLD_KEYS` entry reached it. `validate_judge_prompt` refuses a
+  distilled prompt that mentions gold / ground truth. `row_from_capture` is the bridge
+  from a served turn's capture to the row shape, so serving and scoring build
+  byte-identical judge inputs.
+- **Trained the way `sdk_v1` was: diagnose with gold, distil without it.** The teacher
+  (pinned to Sonnet 5 via `TEACHER_MODEL`; the loop's default is Opus) goes through
+  *every* case of the optimise split — correct and incorrect — and writes what the trace
+  got wrong or right, how each of six named checks reads (`CHECKS`), whether a judge
+  without gold could have known, and one rule such a judge could run. One distil call
+  writes `prompts/judge_jN.py` (`JUDGE_PROMPT`); round 2 re-diagnoses the judge's own
+  misses with its verdict attached and revises. Never hand-edit a judge prompt.
+- **Three splits, cut by conversation, from committed run CSVs only**
+  (`evaluation/judge/dataset.json`). *optimise* is balanced 50/50 — every attributable
+  negative (NON_AGENT attributions excluded) plus as many positives, hard ones first —
+  because the teacher's unit is a miss. *calibrate* stays at natural prevalence because
+  coverage and high-band precision are prevalence-dependent; it gates versions.
+  *test* is the runtime's gate split, scored once by the frozen champion. The manifest
+  carries the attribution rule id; a rule change means a rebuild.
+- **Band-based metrics are the contract** (`selective_metrics`): coverage, high-band
+  accuracy, failures caught, the one-sided 95% Wilson bound on the unseen high-band
+  error (≈3/n at zero errors — a bound, never "100%"). `p_correct` is recorded for the
+  risk–coverage curve. Operating target: high-band error ≤ 1%.
+- **Promotion rule** (`gate_judges`, `registry.promote_judge`, alias `judge_champion`,
+  lineage `judge_prompts` `j1, j2, …`): the candidate's high band stays inside the
+  target, coverage rises (no exception for a baseline that itself misses target),
+  failures caught do not fall. A judge is never promoted on the test split — `gate_judges`
+  derives each side's split from its own scores CSV (the trailing `split` column, or the
+  `judge-score-<split>N-…` filename for a CSV written before that column existed) rather
+  than trusting a caller-supplied argument, refuses a mismatched pair, and refuses outright
+  when the evidence is `test`; the derived split is what `registry.promote_judge` checks.
+  `registry.promote` also refuses a judge version the same way it refuses an sdk version —
+  serving reads `champion` to build the four pipeline agents, and a judge there is a
+  champion nothing can serve. The history event records the `runtime_version` it was
+  calibrated to.
+- **A failed judge call fails closed** — `low` band, error in the record — in scoring
+  and in serving. A guard-rail that fails open is not one. **A rate-limited one is
+  unscored instead** (2026-09-08), the same rule the eval runner applies to a
+  rate-limited turn: a spent subscription is *no verdict*, not a cautious one. Failing
+  it closed made the j2 calibrate pass withhold 175 of its 304 turns and report a
+  failure capture of 56.7% it had never earned, and the gate decided on it. `score_split`
+  catches `TeacherRateLimitError`, writes `unscored=True` with no band, and
+  short-circuits the rest of the pass rather than paying wall clock for the same
+  refusal; `scored_only` is the door every consumer of `band` comes through, so an
+  unscored turn is absent from the numerator *and* the denominator; the run carries
+  `n_unscored`/`complete`, the tag `incomplete=true` and a loud closing line; and
+  `gate_judges` refuses such a CSV (`IncompleteJudgeScoresError`) naming the file and
+  the count, with no override. Serving still fails a rate-limited turn closed — a
+  served answer with no judge must be withheld.
+- **Serving** (`SERVING_RUNTIME=agent_sdk`, the default; `JUDGE_ENABLED`): one live
+  `ClaudeSDKClient` per chat session (`serving/sdk_session.py`), closed on delete,
+  eviction and shutdown; `serving/sdk_turn.py` holds the stage frames from the capture
+  until the judge has ruled, then emits them, followed by a `judge` frame and an
+  `answer` frame with `band`/`withheld`. What a `low` band does to those frames is
+  `settings.judge_mode` (`JUDGE_MODE`, default `advisory`): under `advisory` the answer
+  is released with the band and the judge's reason/failed checks shown as a caveat;
+  under `gate` the stage frames are redacted (`output`/`args`/`result` stripped, since
+  a program's calculator trajectory or a number turn's retrieved cell *is* the answer)
+  and `answer` is empty on the wire and in the visible history. Either way the trace row
+  keeps the value (`capture["judge"]["answer"]`), `judge_band` and `judge_p`, so the
+  policy can change without breaking the record. The judge runs
+  through `evalloop/sdk.py::run_structured(model=judge_model_name())` — the Agent SDK
+  on the subscription — the same chokepoint as the teacher. The demo container replays
+  the recorded pack and never runs either.
+- **The record**: `evaluation/judge/judge_diagnoses.jsonl` and `judge_gates.jsonl`
+  (append-only), `evaluation/judge/scores/*.csv` (one per version × split), MLflow
+  experiment `convfinqa-judge` (kinds `judge_diagnose`, `judge_distil`, `judge_score`).
+  `story.json → judge` (`judge.summary()`) feeds `/eval/campaigns`, `/admin/runtimes`,
+  the landing HUD and `docs/optimization/agent-sdk.html`; `story_check` fails a page
+  that hides the judge once a champion exists.
+
+```bash
+uv run convfinqa-evalloop judge-dataset --optimise-csv <draw A> --calibrate-csv <draw B> --test-csv <gate pass>
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-diagnose --split optimise
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-distil --new-version judge_j1
+uv run convfinqa-evalloop judge-score --version judge_j1 --split calibrate
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-diagnose --split calibrate \
+  --judge-scores evaluation/judge/scores/<j1 calibrate>.csv --judge-version judge_j1   # round 2: the misses
+TEACHER_MODEL=claude-sonnet-5 uv run convfinqa-evalloop judge-distil --new-version judge_j2 --base-version judge_j1 --round 2
+uv run convfinqa-evalloop judge-score --version judge_j2 --split calibrate
+uv run convfinqa-evalloop judge-gate --baseline-scores <j1 cal> --candidate-scores <j2 cal> \
+  --baseline-version judge_j1 --candidate-version judge_j2 --promote
+uv run convfinqa-evalloop judge-score --version <champion> --split test      # once
+```
+
 ## Eval loop (M1) & teacher (M2) — the underlying commands
 
 ```bash

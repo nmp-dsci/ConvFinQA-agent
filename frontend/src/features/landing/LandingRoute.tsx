@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { HudTile } from './HudTile';
+import { formatPp } from '../admin/runtimeStory';
 import { LampStrip } from './LampStrip';
 import { PipelineStrip } from './PipelineStrip';
 import { RecordedConversations } from './RecordedConversations';
@@ -141,7 +142,7 @@ function LeftPane({ board }: { board: BoardData }) {
 // Right — does it work, how fast, how much
 // ---------------------------------------------------------------------------
 
-function RightPane({ board }: { board: BoardData }) {
+export function RightPane({ board }: { board: BoardData }) {
   const {
     health,
     isDemo,
@@ -202,6 +203,7 @@ function RightPane({ board }: { board: BoardData }) {
   const sdkGate = campaigns?.runtime_comparison?.gate ?? null;
   const swap = campaigns?.sdk_model_comparison ?? null;
   const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
+  const judgeVerdict = campaigns?.judge?.verdict ?? null;
   const swapPair = swap?.pairs?.[0] ?? null;
   const shortModel = (model: string | null | undefined) =>
     (model ?? '')
@@ -326,6 +328,43 @@ function RightPane({ board }: { board: BoardData }) {
                     <span className="type-num">{formatUsd(sdkArm?.cost)}</span> per pass
                   </>
                 )}
+              </>
+            )
+          }
+        />
+
+        <HudTile
+          label="confidence judge, tried"
+          value={
+            judgeVerdict == null
+              ? NO_VALUE
+              : judgeVerdict.significant
+                ? `${formatPp(judgeVerdict.delta_pp)}`
+                : 'no effect'
+          }
+          loading={!campaigns && board.loading}
+          reason="no confidence judge has been scored on the gate split yet"
+          tone={judgeVerdict?.significant ? 'good' : 'plain'}
+          to="/admin/runtimes"
+          drill="/admin/runtimes"
+          meta={
+            judgeVerdict && (
+              <>
+                high band{' '}
+                <span className="type-num">
+                  {formatPercent(judgeVerdict.high_band_accuracy, 2)}
+                </span>{' '}
+                vs{' '}
+                <span className="type-num">
+                  {formatPercent(judgeVerdict.baseline_accuracy, 2)}
+                </span>{' '}
+                unjudged —{' '}
+                {judgeVerdict.significant
+                  ? 'separates from it'
+                  : 'fails to separate from it'}
+                <br />
+                withholds {judgeVerdict.n_withheld} to remove {judgeVerdict.n_failures_caught} ·{' '}
+                {judgeVerdict.n_false_alarms} of them were right
               </>
             )
           }

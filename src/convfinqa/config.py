@@ -105,6 +105,38 @@ class Settings(BaseSettings):
     # the remaining turns are recorded as errors rather than attempted.
     sdk_total_tokens_limit: int = 60_000
 
+    # ---- Teacher and judge models (s12) -----------------------------------
+    # None → `llm.LM_TEACHER_MODEL` / `llm.LM_JUDGE_MODEL`. TEACHER_MODEL pins
+    # the diagnose/distil teacher (the judge loop runs it on claude-sonnet-5);
+    # JUDGE_MODEL pins the confidence judge (claude-haiku-4-5-20251001).
+    teacher_model: str | None = None
+    judge_model: str | None = None
+
+    # ---- Serving runtime (s12) --------------------------------------------
+    # Which runtime answers a live chat turn: the four-agent pipeline built
+    # from `champion`, or one Agent SDK session per conversation built from
+    # `sdk_champion`. The runtime decision (s11) moved to agent_sdk; the
+    # pipeline stays selectable for comparison and for the tests that drive it
+    # with stub models. Demo mode replays the recorded pack either way.
+    serving_runtime: Literal["pipeline", "agent_sdk"] = "agent_sdk"
+    # Whether a served agent_sdk turn is passed through the confidence judge
+    # (`judge_champion`) before its answer is released. Off → every answer is
+    # released, as before the judge existed.
+    judge_enabled: bool = True
+    # What a `low` band does. `advisory` shows the answer with the judge's
+    # caution beside it; `gate` withholds it.
+    #
+    # The default is `advisory` because that is what the measurement supports
+    # (s13). On the sealed test split the high band is 91.46% accurate against
+    # 90.54% for releasing everything — +0.92pp, an interval that contains the
+    # baseline — while gating withholds 33 answers to remove 6 wrong ones, 27
+    # of the 33 being answers the runtime had got right. A guard-rail that
+    # destroys four correct answers for every wrong one it stops is not worth
+    # its cost as a gate; as a visible caveat the same signal is free. `gate`
+    # is kept, and tested, for a judge that earns it — the promotion rule
+    # (`gate_judges`) is what would settle that.
+    judge_mode: Literal["advisory", "gate"] = "advisory"
+
     # ---- Prompts ----------------------------------------------------------
     # None → auto-detect highest version in prompts/. Otherwise pin (e.g. "v2").
     prompts_version: str | None = None

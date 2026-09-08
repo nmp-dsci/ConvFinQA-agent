@@ -721,6 +721,151 @@ def _sdk_experiment(exp: dict[str, Any]) -> str:
 </div></details>"""
 
 
+def _sentence(text: Any) -> str:
+    """A phrase written to stand on its own after a full stop."""
+    s = str(text or "")
+    return s[:1].upper() + s[1:]
+
+
+def _judge_section(summary: dict[str, Any] | None) -> str:
+    """The confidence judge (s12): selective accuracy per judge version and split.
+
+    Renders only once a judge has been scored. The contract figures are
+    band-based — coverage, high-band accuracy, failures caught — with the
+    one-sided 95% bound on the unseen high-band error beside them, because a
+    zero on a 300-turn split proves "≤ 1%", not "0%". The test row is the gate
+    split, scored once by the frozen champion; the calibrate row is what
+    chose it.
+    """
+    summary = summary or {}
+    versions = [v for v in summary.get("versions") or [] if v.get("splits")]
+    if not versions:
+        return ""
+    champion = summary.get("champion") or ""
+    target = float(summary.get("error_target") or 0.01)
+    dataset = summary.get("dataset") or {}
+    stats = dataset.get("stats") or {}
+    rows = []
+    for entry in versions:
+        version = str(entry.get("version") or "")
+        for split in ("calibrate", "test"):
+            m = (entry.get("splits") or {}).get(split)
+            if not m:
+                continue
+            is_champion_test = version == champion and split == "test"
+            bound = m.get("high_band_error_upper95")
+            auroc = m.get("auroc")
+            pill = (
+                ' <span class="pill yes">champion</span>' if version == champion else ""
+            )
+            # An incomplete pass is reported, never hidden — and never read as a
+            # result: its band counts describe the turns that were judged only.
+            unscored = int(m.get("n_unscored") or 0)
+            split_cell = _e(split)
+            if unscored:
+                split_cell += f' <span class="pill no">{unscored} unjudged</span>'
+            rows.append(
+                f'<tr class="{"hi" if is_champion_test else ""}">'
+                f"<td><code>{_e(version)}</code>{pill}</td>"
+                f"<td>{split_cell}</td>"
+                f'<td class="num">{m.get("n", "—")}</td>'
+                f'<td class="num">{_pct(m.get("accuracy"))}</td>'
+                f'<td class="num">{_pct(m.get("coverage"))}</td>'
+                f'<td class="num">{_pct(m.get("high_band_accuracy"), 2)}</td>'
+                f'<td class="num">{m.get("n_high_wrong", "—")} / {m.get("n_high", "—")}</td>'
+                f'<td class="num">≤ {_pct(bound, 2) if bound is not None else "—"}</td>'
+                f'<td class="num">{_pct(m.get("failure_capture"))} '
+                f"({m.get('n_failures_caught', '—')}/{m.get('n_wrong', '—')})</td>"
+                f'<td class="num">{"—" if auroc is None else f"{float(auroc):.3f}"}</td>'
+                "</tr>"
+            )
+    gates = summary.get("gates") or []
+    gate_rows = "".join(
+        f"<tr><td><code>{_e(g.get('baseline_version'))}</code> → "
+        f"<code>{_e(g.get('candidate_version'))}</code></td>"
+        f"<td>{'promoted' if g.get('promoted') else 'rejected'}</td>"
+        f"<td>{_e(g.get('reason'))}</td>"
+        f'<td class="num">{g.get("n_released", "—")} / {g.get("n_withheld", "—")}</td></tr>'
+        for g in gates
+    )
+    gate_table = (
+        '<div class="scroll"><table><thead><tr><th>gate</th><th>verdict</th><th>why</th>'
+        '<th class="num">released / withheld flips</th></tr></thead><tbody>'
+        + gate_rows
+        + "</tbody></table></div>"
+        if gate_rows
+        else ""
+    )
+    n_diag = summary.get("n_diagnoses") or 0
+    verdict = summary.get("verdict") or {}
+    if verdict:
+        lo, hi = (verdict.get("high_band_accuracy_ci") or [None, None])[:2]
+        sig = (
+            "and the interval separates them"
+            if verdict.get("significant")
+            else "and the interval does <strong>not</strong> separate them"
+        )
+        adopted = bool(verdict.get("significant") and verdict.get("meets_target"))
+        headline = (
+            "Tried, measured, and adopted as a gate."
+            if adopted
+            else "Tried, measured, and not adopted as a gate."
+        )
+        against = (
+            "and on the gate split it does, measurably."
+            if adopted
+            else "and on the gate split it does not, to any measurable degree."
+        )
+        verdict_block = (
+            f'<div class="note"><strong>{headline}</strong>'
+            f"<p>The band only earns its place if it beats the policy it replaces — "
+            f"releasing everything — {against} High band {_pct(verdict.get('high_band_accuracy'), 2)} "
+            f"against a no-judge baseline of "
+            f"{_pct(verdict.get('baseline_accuracy'), 2)} on the same turns: "
+            f"<strong>{verdict.get('delta_pp', 0):+.2f}pp</strong>, 95% CI "
+            f"{_pct(lo, 1)}–{_pct(hi, 1)} {sig}. It withholds "
+            f"{verdict.get('n_withheld', '—')} answers to remove "
+            f"{verdict.get('n_failures_caught', '—')} wrong ones, and "
+            f"{verdict.get('n_false_alarms', '—')} of those withheld were correct. "
+            f"<strong>{_e(_sentence(verdict.get('recommendation')))}.</strong>"
+            "</p></div>"
+        )
+    else:
+        verdict_block = ""
+    opt = stats.get("optimise") or {}
+    cal = stats.get("calibrate") or {}
+    tst = stats.get("test") or {}
+    return f"""<h2>The confidence judge: answer when the trace can be verified</h2>
+<p>A second, cheaper model (claude-haiku-4-5) reads each finished turn — the question,
+the filing, the session's sub-questions, retrieved cells with their cited sources, the
+program, the calculator trajectory and the answer — and returns a band. <strong>high</strong>
+releases the answer; <strong>low</strong> withholds it. The judge never sees the gold answer.
+It was trained the way the runtime's own prompt was: a teacher diagnosed every case of a
+balanced optimise split <em>with</em> gold ({n_diag} diagnoses on record — what the trace got
+wrong, what it got right, and a rule a judge without gold could run), one distil call wrote the
+judge's prompt, and the prompt was scored at natural prevalence on a disjoint calibrate split,
+then once on the gate split by the frozen champion. Operating target: high-band error
+≤&nbsp;{target:.0%}.</p>
+{verdict_block}
+<div class="scroll"><table><thead><tr><th>judge</th><th>split</th><th class="num">turns</th>
+<th class="num">runtime acc.</th><th class="num">coverage</th><th class="num">high band correct</th>
+<th class="num">wrong / released</th><th class="num">unseen error (95%)</th>
+<th class="num">failures caught</th><th class="num">AUROC</th></tr></thead>
+<tbody>{"".join(rows)}</tbody></table></div>
+<p class="sub">Dataset: optimise {opt.get("n", "—")} turns balanced 50/50 ({opt.get("n_wrong", "—")} wrong),
+calibrate {cal.get("n", "—")} turns at natural prevalence ({cal.get("n_wrong", "—")} wrong), test = the
+gate split ({tst.get("n", "—")} turns, {tst.get("n_wrong", "—")} wrong); cut by conversation, never by
+turn. Every figure is read from the committed scores CSVs.</p>
+{gate_table}
+<div class="note"><strong>What a bound is.</strong><p>Zero wrong answers among <em>n</em> released
+proves the true error rate is below about 3/<em>n</em> at 95% confidence, not that it is zero.
+The "unseen error" column is that bound (Wilson, one-sided). Some wrong answers are not the
+agent's: a gold answer rounded differently from the calculator's exact result leaves a trace
+that is internally consistent and correct by every check, and no judge without gold can
+withhold it. Those are the misses to expect in the high band.</p></div>
+"""
+
+
 def render_sdk_page(data: dict[str, Any]) -> str:
     """The Agent SDK experiment: one prompt, one session, the same gate.
 
@@ -853,6 +998,7 @@ the same split the pipeline campaigns gate on</div></div>
 {_turn_type_verdict(gate)}
 
 {_model_swap(data.get("sdk_model_comparison"))}
+{_judge_section(data.get("judge"))}
 
 <h2>What is different, and what is not</h2>
 {contamination_note}

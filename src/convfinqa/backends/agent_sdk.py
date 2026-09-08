@@ -617,6 +617,20 @@ def _tokens_used(usage: dict[str, Any]) -> int:
     )
 
 
+def new_client(sdk: Any, options: Any) -> Any:
+    """Construct a runtime client for a caller that keeps it open across turns.
+
+    `run_conversation` opens its own client for the span of one eval walk.
+    Serving (s12) cannot: a conversation arrives one request at a time, so
+    `serving.sdk_session` holds a client per chat session and drives it
+    through `_ask`, which opens the same span per attempt. Constructing it
+    here keeps the set of modules that build a `ClaudeSDKClient` at two — this
+    runtime and the teacher chokepoint — which a test pins, because a third
+    constructor would be an untraced call waiting to happen.
+    """
+    return sdk.ClaudeSDKClient(options=options)
+
+
 async def run_conversation(
     report_id: str,
     questions: list[str],

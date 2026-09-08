@@ -160,6 +160,35 @@ at this prompt — the prompt was distilled from four DeepSeek agents and then
 scored on both models with no further optimisation, so neither model's figure
 is its ceiling. It still leaves the cross-runtime confound half-open: the
 pipeline was never run on either of these models.</p></div>
+<h2>The confidence judge: answer when the trace can be verified</h2>
+<p>A second, cheaper model (claude-haiku-4-5) reads each finished turn — the question,
+the filing, the session's sub-questions, retrieved cells with their cited sources, the
+program, the calculator trajectory and the answer — and returns a band. <strong>high</strong>
+releases the answer; <strong>low</strong> withholds it. The judge never sees the gold answer.
+It was trained the way the runtime's own prompt was: a teacher diagnosed every case of a
+balanced optimise split <em>with</em> gold (123 diagnoses on record — what the trace got
+wrong, what it got right, and a rule a judge without gold could run), one distil call wrote the
+judge's prompt, and the prompt was scored at natural prevalence on a disjoint calibrate split,
+then once on the gate split by the frozen champion. Operating target: high-band error
+≤&nbsp;1%.</p>
+<div class="note"><strong>Tried, measured, and not adopted as a gate.</strong><p>The band only earns its place if it beats the policy it replaces — releasing everything — and on the gate split it does not, to any measurable degree. High band 91.46% against a no-judge baseline of 90.54% on the same turns: <strong>+0.91pp</strong>, 95% CI 87.9%–95.2% and the interval does <strong>not</strong> separate them. It withholds 33 answers to remove 6 wrong ones, and 27 of those withheld were correct. <strong>Advisory only — do not gate on it.</strong></p></div>
+<div class="scroll"><table><thead><tr><th>judge</th><th>split</th><th class="num">turns</th>
+<th class="num">runtime acc.</th><th class="num">coverage</th><th class="num">high band correct</th>
+<th class="num">wrong / released</th><th class="num">unseen error (95%)</th>
+<th class="num">failures caught</th><th class="num">AUROC</th></tr></thead>
+<tbody><tr class=""><td><code>judge_j1</code> <span class="pill yes">champion</span></td><td>calibrate</td><td class="num">304</td><td class="num">90.1%</td><td class="num">87.8%</td><td class="num">91.39%</td><td class="num">23 / 267</td><td class="num">≤ 11.87%</td><td class="num">23.3% (7/30)</td><td class="num">0.621</td></tr><tr class="hi"><td><code>judge_j1</code> <span class="pill yes">champion</span></td><td>test</td><td class="num">349</td><td class="num">90.5%</td><td class="num">90.5%</td><td class="num">91.46%</td><td class="num">27 / 316</td><td class="num">≤ 11.50%</td><td class="num">18.2% (6/33)</td><td class="num">0.524</td></tr><tr class=""><td><code>judge_j2</code></td><td>calibrate <span class="pill no">235 unjudged</span></td><td class="num">69</td><td class="num">87.0%</td><td class="num">85.5%</td><td class="num">88.14%</td><td class="num">7 / 59</td><td class="num">≤ 20.51%</td><td class="num">22.2% (2/9)</td><td class="num">0.548</td></tr></tbody></table></div>
+<p class="sub">Dataset: optimise 70 turns balanced 50/50 (35 wrong),
+calibrate 304 turns at natural prevalence (30 wrong), test = the
+gate split (349 turns, 33 wrong); cut by conversation, never by
+turn. Every figure is read from the committed scores CSVs.</p>
+<div class="scroll"><table><thead><tr><th>gate</th><th>verdict</th><th>why</th><th class="num">released / withheld flips</th></tr></thead><tbody><tr><td><code>judge_j1</code> → <code>judge_j2</code></td><td>rejected</td><td>candidate high band error 11.82% exceeds the 1% target</td><td class="num">3 / 160</td></tr></tbody></table></div>
+<div class="note"><strong>What a bound is.</strong><p>Zero wrong answers among <em>n</em> released
+proves the true error rate is below about 3/<em>n</em> at 95% confidence, not that it is zero.
+The "unseen error" column is that bound (Wilson, one-sided). Some wrong answers are not the
+agent's: a gold answer rounded differently from the calculator's exact result leaves a trace
+that is internally consistent and correct by every check, and no judge without gold can
+withhold it. Those are the misses to expect in the high band.</p></div>
+
 
 <h2>What is different, and what is not</h2>
 <div class="note"><strong>Contamination cannot be excluded.</strong>
@@ -243,10 +272,10 @@ both arms.</p></div>
 
 </div></details>
 
-<footer>Generated 2026-09-05T23:21:15+00:00 from
+<footer>Generated 2026-09-08T03:54:37+00:00 from
 <code>evaluation/registry.json</code>, the three ledgers under
 <code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-05T23:21:15+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-08T03:54:37+00:00"}</script>
 </footer>
 </div></body></html>

@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>s12 · Confidence judge — selective answering for the Agent SDK runtime</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ground:#191b1f;--panel:#212429;--panel-2:#2a2e34;--line:#32363d;--line-2:#434850;--text:#e8e9ea;--muted:#b6bbc2;--faint:#9ba1ab;--amber:#f0a93f;--good:#4ecb9d;--bad:#ef8282;--info:#74adf2;--violet:#ab92f2;--ui:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--maxw:1100px}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--ground);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.55}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:40px 24px 96px}
+h1{font-size:30px;line-height:1.2;margin:8px 0 12px;letter-spacing:-.01em}
+h2{font-size:21px;margin:56px 0 14px;padding-top:18px;border-top:1px solid var(--line);letter-spacing:-.005em}
+h3{font-size:16px;margin:26px 0 8px}
+h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+p{margin:8px 0}
+a{color:var(--info)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.lede{font-size:17px;color:var(--muted);max-width:820px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+.card h3{margin-top:0}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.metrics{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));margin:14px 0}
+.metric{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.metric .v{font-family:var(--mono);font-size:22px;font-weight:600}
+.metric .k{font-size:12px;color:var(--faint);margin-top:2px}
+.metric .s{font-size:12px;color:var(--muted);margin-top:4px}
+.good{color:var(--good)}.bad{color:var(--bad)}.amber{color:var(--amber)}.info{color:var(--info)}.violet{color:var(--violet)}
+.scroll-x{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono);white-space:nowrap}
+tr.hi td{background:rgba(78,203,157,.07)}
+td code,p code,li code,dd code{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;white-space:nowrap}
+pre{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:#15171a;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;max-width:100%;margin:10px 0;white-space:pre}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap;margin-right:4px}
+.chip.good{color:var(--good);border-color:rgba(78,203,157,.45)}
+.chip.bad{color:var(--bad);border-color:rgba(239,130,130,.45)}
+.chip.info{color:var(--info);border-color:rgba(116,173,242,.45)}
+.chip.amber{color:var(--amber);border-color:rgba(240,169,63,.5)}
+.chip.violet{color:var(--violet);border-color:rgba(171,146,242,.5)}
+.callout{border-left:3px solid var(--amber);background:rgba(240,169,63,.06);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+.callout.bad{border-color:var(--bad);background:rgba(239,130,130,.06)}
+.callout.good{border-color:var(--good);background:rgba(78,203,157,.06)}
+.callout.info{border-color:var(--info);background:rgba(116,173,242,.06)}
+.toc{display:grid;gap:4px 18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));font-size:14px;margin:18px 0 0}
+.toc a{color:var(--muted);text-decoration:none}
+.toc a:hover{color:var(--text)}
+.toc .n{font-family:var(--mono);color:var(--amber);margin-right:8px}
+ul,ol{padding-left:22px;margin:8px 0}
+li{margin:4px 0}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+.verdict{background:linear-gradient(180deg,rgba(78,203,157,.10),rgba(78,203,157,.03));border:1px solid rgba(78,203,157,.4);border-radius:12px;padding:22px 24px;margin:18px 0}
+.verdict .h{font-size:23px;font-weight:600;letter-spacing:-.005em;margin:0 0 6px}
+figure{margin:14px 0}
+figure svg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+figcaption{font-size:13px;color:var(--faint);margin-top:8px;max-width:820px}
+.two{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+.arm{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.arm.win{border-color:rgba(78,203,157,.45)}
+.arm h3{margin-top:0}
+.arm dl{margin:0;display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:6px 12px;font-size:14px}
+.arm dt{color:var(--faint);font-size:12px;letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.arm dd{margin:0}
+.arm .big{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1.1}
+.q{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:12px 0}
+.q .qt{font-weight:600;margin:0 0 8px}
+.q label{display:block;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;cursor:pointer;background:var(--panel-2)}
+.q label:has(input:checked){border-color:var(--amber)}
+.q input[type=radio]{margin-right:8px}
+.q .ol{font-weight:500}
+.q .od{display:block;font-size:13px;color:var(--muted);margin-left:22px}
+.q textarea{width:100%;background:#15171a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--ui);font-size:13.5px;margin:8px 0}
+.q button{background:var(--amber);color:#1a1a1a;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-family:var(--ui)}
+.q .status{display:inline-block;margin-left:10px;font-size:13px;color:var(--faint);font-family:var(--mono)}
+.q .status.ok{color:var(--good)}
+.footer{margin-top:64px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--faint)}
+.phase{display:grid;grid-template-columns:minmax(0,56px) minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.phase .pn{font-family:var(--mono);color:var(--amber);font-weight:600}
+.phase .pt{font-weight:600}
+.phase .pd{font-size:14px;color:var(--muted)}
+table.phases td{padding:12px 10px}
+table.phases li{margin:3px 0;color:var(--muted)}
+table.phases td strong{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="eyebrow">s12 · plan · confidence judge &amp; selective answering · branch guide-rail · 2026-09-07</div>
+<h1>Answer when a judge can verify the trace; abstain when it cannot</h1>
+<p class="lede">The runtime decision is made: one Claude Agent SDK session, <code>sdk_v1</code>, scores <strong>90.54%</strong> on the 349-question gate. This plan adds the piece that makes that shippable — a second, cheap model that reads the session's own evidence (retrieved cells, program, calculator calls, answer) and scores how likely the answer is right, so production returns only the answers it can stand behind and routes the rest to a person.</p>
+<p class="lede"><strong>Decided:</strong> the design is an <strong>LLM-as-judge trained on the evals</strong> — Claude Haiku 4.5 reads the trace, Sonnet 5 stays the answering agent. This page sizes the training data (50/50 for tuning, natural mix for calibration), fixes what "trained" means in MLflow, and keeps a fitted-calibrator fallback in reserve. Every open decision was settled in review; §09 lists them. It starts from three measurements taken today on data already on disk, one of which changes the shape of the problem.</p>
+
+<div class="toc">
+  <div><span class="n">01</span><a href="#goal">Goal and the shipped behaviour</a></div>
+  <div><span class="n">02</span><a href="#measured">What the data already says</a></div>
+  <div><span class="n">03</span><a href="#target">The honest target</a></div>
+  <div><span class="n">04</span><a href="#options">The judge: decided design and fallback</a></div>
+  <div><span class="n">05</span><a href="#data">Data: how much, from where</a></div>
+  <div><span class="n">06</span><a href="#mlflow">Training and tracking in MLflow</a></div>
+  <div><span class="n">07</span><a href="#phases">Build phases</a></div>
+  <div><span class="n">08</span><a href="#risks">Risks</a></div>
+  <div><span class="n">09</span><a href="#decisions">Decisions (all made)</a></div>
+</div>
+
+<h2 id="goal">01 · Goal and the shipped behaviour</h2>
+
+<p><strong>Today</strong> the SDK runtime returns every answer with equal conviction, and one in ten is wrong. <strong>Desired:</strong> every turn carries a confidence score from a judge that never saw the gold answer; a threshold splits it into two bands; the high band goes to the user, the low band becomes <em>"I'm not confident in this one"</em>. A human-review queue is deliberately out of scope for this phase — the low-band turn is still recorded with its verdict, so the queue is a later read of data this phase already writes. The judge sees the same thing a reviewer would — the question, the document, and the session's trajectory — and nothing else.</p>
+
+<figure>
+<svg viewBox="0 0 1000 300" role="img" aria-labelledby="flow-t flow-d">
+  <title id="flow-t">Production flow: user question, Agent SDK session, judge, band split</title>
+  <desc id="flow-d">A question enters the Agent SDK session which produces an answer and a trace capture. Both go to the Haiku judge which returns a confidence score. Scores at or above the threshold return the answer to the user; scores below return an abstention and a human-review queue item. Every step writes an MLflow span.</desc>
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9ba1ab"/></marker></defs>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="#e8e9ea">
+    <g id="n-user"><title>User question, one turn of a conversation</title>
+      <rect x="20" y="110" width="120" height="60" rx="8" fill="#2a2e34" stroke="#434850"/>
+      <text x="80" y="136" text-anchor="middle">user</text><text x="80" y="154" text-anchor="middle" fill="#9ba1ab" font-size="11">question · turn n</text></g>
+    <g id="n-sdk"><title>backends/agent_sdk.py — one session per conversation, calculator tools only</title>
+      <rect x="190" y="95" width="180" height="90" rx="8" fill="#2a2e34" stroke="#74adf2"/>
+      <text x="280" y="122" text-anchor="middle">Agent SDK session</text>
+      <text x="280" y="140" text-anchor="middle" fill="#9ba1ab" font-size="11">sdk_v1 · Sonnet 5</text>
+      <text x="280" y="158" text-anchor="middle" fill="#9ba1ab" font-size="11">answer + capture</text></g>
+    <g id="n-judge"><title>evalloop/judge.py — Haiku reads question + document + capture, returns a score; never sees gold</title>
+      <rect x="430" y="95" width="180" height="90" rx="8" fill="#2a2e34" stroke="#ab92f2"/>
+      <text x="520" y="122" text-anchor="middle">confidence judge</text>
+      <text x="520" y="140" text-anchor="middle" fill="#9ba1ab" font-size="11">Haiku 4.5 · judge_champion</text>
+      <text x="520" y="158" text-anchor="middle" fill="#9ba1ab" font-size="11">score ∈ [0, 1]</text></g>
+    <g id="n-answer"><title>High band: the answer is returned as today, with its score attached</title>
+      <rect x="720" y="40" width="250" height="62" rx="8" fill="rgba(78,203,157,.10)" stroke="#4ecb9d"/>
+      <text x="845" y="66" text-anchor="middle">answer returned</text>
+      <text x="845" y="84" text-anchor="middle" fill="#9ba1ab" font-size="11">score ≥ τ · target error ≤ 1%</text></g>
+    <g id="n-abstain"><title>Low band: abstain to the user, enqueue for human review with the trace</title>
+      <rect x="720" y="178" width="250" height="62" rx="8" fill="rgba(239,130,130,.10)" stroke="#ef8282"/><title>Low band: abstain to the user; the turn, its answer and the judge's verdict are logged to traces.db so a review queue can read them later</title>
+      <text x="845" y="203" text-anchor="middle">"I'm not confident in this one"</text>
+      <text x="845" y="221" text-anchor="middle" fill="#9ba1ab" font-size="11">band = low · recorded with its verdict · no queue yet</text></g>
+    <g stroke="#9ba1ab" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+      <path id="e-1" d="M140 140 H188"><title>question, with conversation history</title></path>
+      <path id="e-2" d="M370 140 H428"><title>answer + capture (sub-questions, retrieved cells with sources, program, tool trajectory)</title></path>
+      <path id="e-3" d="M610 128 C660 128 670 71 718 71"><title>score ≥ τ</title></path>
+      <path id="e-4" d="M610 152 C660 152 670 209 718 209"><title>score &lt; τ</title></path>
+    </g>
+    <g id="n-mlflow"><title>Every hop is a hand-opened span joined to the serving trace: tracking/tracing.py</title>
+      <rect x="190" y="235" width="420" height="40" rx="8" fill="#1d2024" stroke="#32363d" stroke-dasharray="4 3"/>
+      <text x="400" y="260" text-anchor="middle" fill="#9ba1ab" font-size="12">MLflow trace: session span → judge span (model, prompt ref, score, tokens, cost)</text></g>
+    <text x="640" y="60" fill="#4ecb9d" font-size="11" font-family="IBM Plex Mono, monospace">high band</text>
+    <text x="640" y="232" fill="#ef8282" font-size="11" font-family="IBM Plex Mono, monospace">low band</text>
+  </g>
+</svg>
+<figcaption>The judge is a gate on the way out, not a change to the agent. The session's <code>capture</code> — already built per turn in <code>backends/agent_sdk.py::_capture</code> — is the judge's input, so nothing new is recorded to make it work. One prerequisite sits outside this plan: serving still builds the four pipeline agents from <code>champion</code>; the SDK runtime has to be wired into <code>serving/routes/chat.py</code> before the judge has a live path to sit on. The judge itself can be built and proven entirely offline first.</figcaption>
+</figure>
+
+<h2 id="measured">02 · What the data already says</h2>
+
+<p>Three things were measured this morning from committed CSVs and <code>.traces/traces.db</code>, no model calls. They set the floor the judge has to beat and the ceiling it cannot exceed.</p>
+
+<div class="grid">
+  <div class="card">
+    <h4>A second model re-solving is not enough</h4>
+    <div class="metric" style="margin:8px 0"><div class="v bad">24 / 322</div><div class="k">agreed-and-wrong on the gate</div><div class="s">Haiku's answer matches Sonnet's on 322 of 349 turns; 24 of those matches are both wrong</div></div>
+    <p class="muted" style="font-size:14px">If "two models agree" were the confidence signal, the high band would be <strong>92.5%</strong> accurate and would catch only <strong>27%</strong> of the failures. The two models share their mistakes — same table misread, same period slip — so agreement mostly confirms the error. <em>Whatever the judge does, it has to check the evidence, not vote.</em></p>
+  </div>
+  <div class="card">
+    <h4>Cheap trace signals do not carry it either</h4>
+    <div class="metric" style="margin:8px 0"><div class="v bad">3 / 99</div><div class="k">failures any structural flag catches</div><div class="s">over 967 Sonnet <code>sdk_v1</code> turns: skipped stage, inline arithmetic, no tool call, turn cap, missing source</div></div>
+    <p class="muted" style="font-size:14px">The session almost never fails <em>visibly</em>: 19 flags fire in 967 turns and only 3 of them sit on a wrong answer. The failures are well-formed trajectories with a wrong value or a wrong operation inside them — which is exactly what a reading judge can see and a rule cannot.</p>
+    <p style="font-size:14px"><strong class="good">The solution:</strong> the judge reads the trajectory <em>against the document</em> and tests six claims per turn — is the cited cell the one the question names, is it the right period, does "that" resolve to the right prior turn, does the program do what the question asks, do the tool calls compute it, does the unit match. Those checks are the judge's output schema (§04), and the failure ledger says they cover the misses.</p>
+  </div>
+  <div class="card">
+    <h4>Some failures are not the agent's</h4>
+    <div class="metric" style="margin:8px 0"><div class="v amber">~4–7%</div><div class="k">of wrong turns where gold is suspect or ambiguous</div><div class="s">2 of 56 diagnosed <code>sdk_v1</code> misses are <code>gold-answer-contradicts-gold-program</code>; project-wide the <code>NON_AGENT</code> share is ~7%</div></div>
+    <p class="muted" style="font-size:14px">A judge that reads the evidence will — correctly — call those answers right. They land in the high band as "errors" and no judge can move them. The target in §03 is stated against <em>attributable</em> failures for that reason, and the dataset build excludes <code>NON_AGENT</code> verdicts from the negatives.</p>
+  </div>
+</div>
+
+<div class="callout info"><strong>What the misses look like.</strong> The 56 diagnosed <code>sdk_v1</code> first-wrong turns are dominated by checkable things: <code>calculator/wrong-format</code> (13 — the number is right, the unit or scale is not), <code>triage/wrong-turn-type</code> (9 — computed when it should have looked up, or vice versa), <code>preprocess/wrong-operation</code> (6), <code>retriever/wrong-period</code> (6), <code>retriever/wrong-value</code> (3). Each is a specific claim about the trace that a judge with the document in front of it can test: <em>is the cited cell the one the question names? is that the period asked for? does the program do what the question says? does the answer's unit match?</em> That is the judge's checklist, and it comes straight from the diagnosis ledger.</div>
+
+<h2 id="target">03 · The honest target</h2>
+
+<p>The brief is "the high band is 100% accurate and the low band holds 100% of the failures". Nothing finite proves 100%; what an evaluation proves is an <strong>upper bound</strong> on the error you did not see. With zero misses in <em>n</em> trials, the 95% bound on the true miss rate is ≈ 3/<em>n</em> (the rule of three). That converts the brief into numbers you can size a dataset against:</p>
+
+<div class="scroll-x"><table>
+<thead><tr><th>Claim you want to make</th><th class="num">Zero misses needed among…</th><th>Where that many come from</th></tr></thead>
+<tbody>
+<tr><td>High band error ≤ 1% (95% conf.)</td><td class="num">300 high-band answers</td><td>the gate split alone (349 turns, ~90% answered)</td></tr>
+<tr class="hi"><td>High band error ≤ 0.5%</td><td class="num">600 high-band answers</td><td>gate + one confirmatory draw</td></tr>
+<tr><td>High band error ≤ 0.3%</td><td class="num">1,000 high-band answers</td><td>gate + two confirmatory draws</td></tr>
+<tr><td>Failure capture ≥ 90% (miss ≤ 10%)</td><td class="num">30 wrong answers, all caught</td><td>the gate split alone (33 wrong)</td></tr>
+<tr class="hi"><td>Failure capture ≥ 95%</td><td class="num">60 wrong answers, all caught</td><td>gate + one confirmatory draw</td></tr>
+<tr><td>Failure capture ≥ 97%</td><td class="num">100 wrong answers, all caught</td><td>gate + two confirmatory draws</td></tr>
+</tbody></table></div>
+
+<p>Two consequences. <strong>Negatives are the scarce resource</strong>: at a 10% error rate every 100 wrong answers costs 1,000 scored turns, so the volume plan in §05 is driven by how many failures you need, not how many questions. And <strong>the operating point is a choice, not an output</strong> — the judge produces a curve (coverage against error, "risk–coverage"), and the threshold τ picks a point on it. Tightening the error bound always lowers coverage, i.e. sends more turns to the human. Decision D2 below sets the point.</p>
+
+<div class="verdict">
+  <p class="h">Recommended operating point: high-band error ≤ 1%, maximise coverage subject to that; report failure capture beside it.</p>
+  <p class="muted" style="margin:0">Provable on the gate split with the data you already have, and it beats the paper's human expert (89.44%) by construction: the answered subset is ≥ 99% correct. Coverage is the number to watch — if the judge can only hold 1% error by answering 60% of turns, the feature is a triage tool, not a product; if it holds it at 85%+, it ships.</p>
+</div>
+
+<h2 id="options">04 · The judge — decided design, and its fallback</h2>
+
+<p><strong>Decided:</strong> Option A. Sonnet 5 keeps answering; Haiku 4.5 judges. Option B stays on the page as the fallback it turns into if A's calibration fails, because A records everything B needs. Both read the same input — the question, its history, the report's text and table, and the session's <code>capture</code> (sub-questions, retrieved values with their cited sources, program, calculator trajectory, answer, the agent's own reasoning) — and both hide the gold answer. They differ in <em>what the model is asked to emit</em> and <em>what "training" means</em>.</p>
+
+<div class="two">
+  <div class="arm win">
+    <span class="chip good">decided</span> <span class="chip">one call per turn</span> <span class="chip info">Haiku 4.5 judge · Sonnet 5 agent</span>
+    <h3>Option A · LLM-as-judge, trained on the evals</h3>
+    <div class="big violet">score = judge's own probability</div>
+    <dl>
+      <dt>Emits</dt><dd>A structured verdict: a checklist of named checks (operand-in-source, period-matches, reference-resolved, program-matches-question, arithmetic-verified, unit-and-scale) each <code>pass / fail / cannot-tell</code>, then a binary <code>band: high | low</code> (high = correct, answer it; low = incorrect, abstain), a <code>p_correct</code> kept for the curve, and a one-line reason.</dd>
+      <dt>Score</dt><dd>The band is the contract; <code>p_correct</code> is recorded so the risk–coverage curve and a τ can still be read off the calibrate split if the binary verdict proves too coarse.</dd>
+      <dt>Training</dt><dd><strong>Diagnose, then distil</strong> — the same two moves that produced <code>sdk_v1</code>. A diagnose agent that <em>does</em> see gold goes through every case, correct and incorrect, and writes what the trace got wrong or what it got right; a distil pass reads all of those diagnoses and writes the judge's system prompt, which sees no gold. Iteration re-diagnoses the judge's misses and re-distils. Details below. Lineage <code>judges</code> in <code>registry.json</code>, versions <code>j1, j2, …</code>, alias <code>judge_champion</code>.</dd>
+      <dt>Cost</dt><dd>~5k input / ~400 output tokens → <strong>≈ $0.007 per turn</strong> on Haiku 4.5. Latency +2–4 s, in parallel with rendering.</dd>
+      <dt>Catches</dt><dd>Exactly the §02 classes: it re-reads the cited cell, re-checks the period, re-derives the operation from the question. Format errors are near-free for it.</dd>
+      <dt>Weak spot</dt><dd>The score is a model's self-report, not a frequency; calibration can drift between judge versions and must be re-fitted each time. Two judge misses that share a cause need the writer to see both — which the ledger gives it.</dd>
+    </dl>
+  </div>
+  <div class="arm">
+    <span class="chip violet">fallback only</span> <span class="chip">k calls per turn</span>
+    <h3>Option B · Check extractor + fitted calibrator</h3>
+    <div class="big info">score = logistic model over judge outputs</div>
+    <dl>
+      <dt>Emits</dt><dd>Only the checklist — no global probability. Sampled <em>k</em> = 3 times at temperature so each check has a pass-rate, plus the independent-re-solve agreement from §02 as one more feature.</dd>
+      <dt>Score</dt><dd>A logistic regression (or isotonic map) fitted on the judge-dev set turns the feature vector into a real calibrated probability. Logged with <code>mlflow.sklearn.log_model</code>, signature and all; τ is a property of the fitted model.</dd>
+      <dt>Training</dt><dd>Real supervised training on labels gold already provides. The judge prompt is frozen; what changes between versions is the feature set and the fit. Re-fitting after a judge-model upgrade is a script, not a prompt campaign.</dd>
+      <dt>Cost</dt><dd>3× the calls (parallel, so latency similar) → <strong>≈ $0.02 per turn</strong>; +~10 s and another SDK-style solve if the re-solve feature is kept.</dd>
+      <dt>Catches</dt><dd>The same classes, with a proper reliability curve and a per-check attribution of <em>why</em> the score is low — useful in the human queue.</dd>
+      <dt>Weak spot</dt><dd>Needs more negatives to fit than A needs to tune: ~150 wrong turns before the coefficients stop moving. The re-solve feature was measured at 92.5% / 27% on its own; it helps only in combination and costs the most.</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="callout good"><strong>How the fallback stays free.</strong> Build A with B's <em>structured checklist</em> as the output schema from day one, so every judge run also produces the features B needs. If A's raw <code>p_correct</code> holds the D2 error bound at ≥ 85% coverage on the calibrate split, ship A. If it holds the bound only by abstaining on a third of the turns, or its calibration is visibly off (reliability curve far from the diagonal), fit B's calibrator on the same runs — no new data is required, because the checklist was recorded all along. That ordering costs nothing extra and keeps the decision empirical.</div>
+
+<h3>How the judge is trained: diagnose with gold, distil without it</h3>
+
+<figure>
+<svg viewBox="0 0 1000 250" role="img" aria-labelledby="train-t train-d">
+  <title id="train-t">Judge training pipeline: diagnose every case with gold, distil the diagnoses into a judge prompt, score, iterate</title>
+  <desc id="train-d">The judge-optimise cases, half correct and half incorrect, go to a diagnose agent that compares gold answer and program against the agent's answer, program and trajectory, writing what went wrong or what went right per case. A distil pass reads all diagnoses and writes the judge system prompt. The judge, without gold, scores the calibrate split; its misses go back to the diagnose agent and the prompt is re-distilled.</desc>
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#9ba1ab"/></marker></defs>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="#e8e9ea">
+    <g id="t-cases"><title>judge-optimise split: every attributable negative + an equal number of hard positives, each with gold answer, gold program, agent answer, agent program and the full capture</title>
+      <rect x="20" y="70" width="170" height="90" rx="8" fill="#2a2e34" stroke="#434850"/>
+      <text x="105" y="98" text-anchor="middle">cases · 50/50</text>
+      <text x="105" y="116" text-anchor="middle" fill="#9ba1ab" font-size="11">gold answer + program</text>
+      <text x="105" y="132" text-anchor="middle" fill="#9ba1ab" font-size="11">agent answer + program + trace</text></g>
+    <g id="t-diag"><title>Diagnose agent — the existing SDK teacher, run on Sonnet 5 (subscription), extended to every turn including correct ones; sees gold</title>
+      <rect x="250" y="70" width="190" height="90" rx="8" fill="rgba(240,169,63,.10)" stroke="#f0a93f"/>
+      <text x="345" y="98" text-anchor="middle">diagnose agent</text>
+      <text x="345" y="116" text-anchor="middle" fill="#9ba1ab" font-size="11">sees gold · Sonnet 5 teacher</text>
+      <text x="345" y="132" text-anchor="middle" fill="#9ba1ab" font-size="11">"what it got wrong / right"</text></g>
+    <g id="t-distil"><title>Distil — one SDK teacher call reads every diagnosis and writes prompts/judge_jN.py, the way sdk-distil wrote sdk_v1</title>
+      <rect x="500" y="70" width="170" height="90" rx="8" fill="rgba(171,146,242,.10)" stroke="#ab92f2"/>
+      <text x="585" y="98" text-anchor="middle">distil</text>
+      <text x="585" y="116" text-anchor="middle" fill="#9ba1ab" font-size="11">all diagnoses →</text>
+      <text x="585" y="132" text-anchor="middle" fill="#9ba1ab" font-size="11">judge system prompt jN</text></g>
+    <g id="t-judge"><title>The judge — Haiku 4.5 with prompt jN; input is agent answer + program + trace only; output high / low. Scored on the natural-mix calibrate split.</title>
+      <rect x="730" y="70" width="240" height="90" rx="8" fill="rgba(78,203,157,.10)" stroke="#4ecb9d"/>
+      <text x="850" y="98" text-anchor="middle">judge · Haiku 4.5 · no gold</text>
+      <text x="850" y="116" text-anchor="middle" fill="#9ba1ab" font-size="11">answer + program + trace → high / low</text>
+      <text x="850" y="132" text-anchor="middle" fill="#9ba1ab" font-size="11">scored on calibrate (natural mix)</text></g>
+    <g stroke="#9ba1ab" stroke-width="1.5" fill="none" marker-end="url(#ar2)">
+      <path d="M190 115 H248"/><path d="M440 115 H498"/><path d="M670 115 H728"/>
+      <path id="t-loop" d="M850 160 V205 H345 V162"><title>Iterate: the judge's misses on the calibrate split (wrong scored high, right scored low) go back to the diagnose agent with the judge's own reason; the prompt is re-distilled as j(N+1); gated before it replaces jN</title></path>
+    </g>
+    <text x="600" y="222" text-anchor="middle" fill="#9ba1ab" font-size="12">judge misses → re-diagnose → re-distil · one experiment per version, gated on calibrate, cap 5</text>
+  </g>
+</svg>
+<figcaption>Three pieces of this already exist. The diagnose agent is <code>sdk_teacher.diagnose_run</code> — today it looks only at the first wrong turn per conversation, so it is extended to <em>every</em> turn in the optimise split, with a second mode for correct turns ("which evidence in the trace confirms this answer, and what would have made it wrong"). The distil step is <code>sdk-distil</code> pointed at a diagnosis ledger instead of a prompt bundle. The gate and the campaign cap are the ones the runtime uses.</figcaption>
+</figure>
+
+<div class="grid">
+  <div class="card">
+    <h4>1 · Diagnose — with gold</h4>
+    <p style="font-size:14px"><strong>Teacher model: Sonnet 5</strong> (decided in review; the loop's default teacher is Opus 5, so the judge commands pin <code>claude-sonnet-5</code> and record it as the <code>diagnoser_model</code> on every ledger row). Per case the teacher receives gold answer + gold program, the agent's answer + program, the retrieved values with sources, the calculator trajectory and the document. For a wrong case it writes the existing taxonomy label, <em>what went wrong</em>, and the evidence in the trace that reveals it. For a right case it writes <em>what it got right</em> — the checks that pass and the trace features that confirm it — and, importantly, whether a judge without gold could have known. Output: <code>judge_diagnoses.jsonl</code>, one row per case, appended never rewritten.</p>
+  </div>
+  <div class="card">
+    <h4>2 · Distil — without gold</h4>
+    <p style="font-size:14px">One teacher call reads every diagnosis and writes <code>prompts/judge_j1.py</code>: the rules that separate the right traces from the wrong ones, phrased as checks the judge can run on the answer, program and trace alone. The distil prompt forbids any reference to gold — it is validated by a test that the judge prompt contains no gold field names — and the output schema is fixed by <code>JudgeVerdict</code>. Registered by hash in <code>registry.json → judges</code>.</p>
+  </div>
+  <div class="card">
+    <h4>3 · Score, then iterate</h4>
+    <p style="font-size:14px">Haiku runs <code>j1</code> over the calibrate split (natural mix). Misses — wrong answers banded high, right answers banded low — go back through step 1 with the judge's own <code>reason</code> attached, and step 2 writes <code>j2</code>. The gate promotes <code>judge_champion</code> only if coverage rises at the target error bound and failure capture does not fall; cap five versions. The gate split is scored once, by the frozen champion.</p>
+  </div>
+</div>
+
+<h3>The judge's output schema</h3>
+<pre>class JudgeVerdict(BaseModel):
+    checks: dict[Check, Literal["pass", "fail", "cannot_tell"]]
+    #   operand_in_source   – every retrieved value is in the cited cell / sentence
+    #   period_matches      – the period of each operand is the one the question names
+    #   reference_resolved  – "that", "this change", "the sum" bind to the right prior turn
+    #   program_matches     – the operation(s) are what the question asks for
+    #   arithmetic_verified – the tool calls compute that program and the answer is the result
+    #   unit_and_scale      – %, millions, sign, rounding match the question's framing
+    band: Literal["high", "low"]   # high = correct, answer; low = incorrect, abstain to a human
+    p_correct: float          # recorded for the risk–coverage curve; Option B's calibrator reads the checks
+    reason: str               # one line, shown in the review queue
+    # never present: gold_answer, gold_program — the judge is not told them</pre>
+
+<h2 id="data">05 · Data: how much, from where</h2>
+
+<p>Labels are free — gold gives them — and the SDK runtime has already been scored on more than the gate. What exists today for the production configuration (<code>sdk_v1</code> on Sonnet 5):</p>
+
+<div class="metrics">
+  <div class="metric"><div class="v">967</div><div class="k">Sonnet <code>sdk_v1</code> turns scored</div><div class="s">gate 349 + two train draws (314, 316), 4 reports overlap removed</div></div>
+  <div class="metric"><div class="v bad">99</div><div class="k">of them wrong</div><div class="s">33 on the gate · 66 on the train draws</div></div>
+  <div class="metric"><div class="v">967</div><div class="k">with a full trace capture</div><div class="s">every row has a <code>trace_id</code> resolving in <code>.traces/traces.db</code></div></div>
+  <div class="metric"><div class="v">11,417</div><div class="k">unseen questions in pool − gate</div><div class="s">3,144 conversations · nothing here is scarce</div></div>
+  <div class="metric"><div class="v">~32 min</div><div class="k">per 100-conversation draw</div><div class="s">measured wall clock, concurrency 8, subscription</div></div>
+</div>
+
+<h3>Should the training data be sampled 50/50 correct / incorrect?</h3>
+
+<p><strong>Yes for the set the judge is tuned on; no for the sets that pick the threshold and prove the claim.</strong> The two jobs want different mixes, and using one mix for both is the classic way a judge ends up abstaining on a third of production traffic.</p>
+
+<div class="scroll-x"><table>
+<thead><tr><th>Split</th><th>Mix</th><th>Why</th><th class="num">Turns</th></tr></thead>
+<tbody>
+<tr class="hi"><td><strong>judge-optimise</strong> — what the prompt writer sees</td><td><strong>~50 / 50</strong>: every attributable negative, plus an equal number of positives</td><td>The writer's unit is a <em>miss</em>; at natural prevalence 9 of 10 cases it reads are correct answers and the misses drown. Balancing makes each experiment's evidence dense. Positives are not random: pick the <strong>hard ones</strong> — the 16 turns where a structural flag fired and the answer was still right, the 18 where Haiku disagreed and Sonnet was right, and a stratified fill by turn type and conversation type — so the judge learns not to over-abstain on unusual-looking but correct traces.</td><td class="num">~72 now (36 + 36) · ~200 with draws</td></tr>
+<tr><td><strong>judge-calibrate</strong> — picks τ, gates versions</td><td><strong>natural</strong> (~10% wrong)</td><td>τ, coverage and high-band precision are all prevalence-dependent. A threshold chosen on 50/50 data assumes half the traffic is wrong and sends far too much to the human; a precision measured there means nothing in production. Never rebalance.</td><td class="num">~300 now · ~630 with draws</td></tr>
+<tr><td><strong>judge-test</strong> — the gate, once</td><td><strong>natural</strong></td><td>Same reason, and it is the split the runtime's 90.54% is stated on, so the selective figure sits beside it like-for-like.</td><td class="num">349</td></tr>
+</tbody></table></div>
+
+<p>The consequence for volume: <strong>the negatives are what you pay for.</strong> At 90% accuracy every scored turn yields 0.1 negatives, so the question "how many turns?" is really "how many failures do I want the judge to have seen?":</p>
+
+<div class="scroll-x"><table>
+<thead><tr><th>Negatives for the judge to learn from</th><th class="num">Scored turns needed</th><th class="num">100-conv. draws</th><th>Have / need</th></tr></thead>
+<tbody>
+<tr class="hi"><td>~60 — enough to write a first checklist prompt and see the curve (D3: start here)</td><td class="num">~600</td><td class="num">2</td><td>on disk today (66 non-gate)</td></tr>
+<tr><td>~100 — enough that a prompt edit fixing 5 misses is signal, not noise; the floor to reach if P1b says so</td><td class="num">~1,000</td><td class="num">3–4</td><td>+1–2 draws</td></tr>
+<tr><td>~160 — headroom for 5 experiments without the writer re-reading the same misses</td><td class="num">~1,600</td><td class="num">5</td><td>+3 draws (the plan)</td></tr>
+<tr><td>~300 — what a fitted calibrator (Option B) wants</td><td class="num">~3,000</td><td class="num">10</td><td>+8 draws · ~4.3 h</td></tr>
+</tbody></table></div>
+<p class="muted" style="font-size:14px">Every draw also yields ~90 positives, so the 50/50 optimise set never lacks its other half; the natural-mix calibrate split is simply the remaining 40% of the draws untouched. One caution on "trained on the evals": the judge must be tuned on the <em>agent's</em> failures under the prompt that will serve — <code>sdk_v1</code> on Sonnet — not on the pipeline's or Haiku's. Those other passes are a robustness check, never training data.</p>
+
+<h3>The three splits the judge needs, and why they are separate</h3>
+
+<div class="callout"><strong>D3 applied: no fresh draws yet.</strong> The two existing train draws are already disjoint by conversation (4 reports overlap; they go to optimise only), so the cut is by draw rather than by percentage: <strong>optimise = draw <code>180924</code></strong> (314 turns, 36 wrong → a 50/50 set of ~72 cases), <strong>calibrate = draw <code>184211</code> minus the overlap</strong> (~300 turns, ~30 wrong, natural mix), <strong>test = the gate</strong> (349, 33). That is thin — a prompt edit that fixes 3 misses on 30 is inside the noise — so P1b's curve is also the decision point for draws: if <code>j1</code> is not already close to the 1% bound at useful coverage, or two consecutive versions cannot be told apart on calibrate, run the three draws described below and rebuild.</div>
+
+<figure>
+<svg viewBox="0 0 1000 250" role="img" aria-labelledby="split-t split-d">
+  <title id="split-t">Judge data: optimise, calibrate, test, confirm</title>
+  <desc id="split-d">Fresh train draws feed judge-optimise and judge-calibrate; the gate split is judge-test; optional confirmatory draws widen the test. The gate is never used for tuning.</desc>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="#e8e9ea">
+    <g id="s-existing"><title>Existing train draws (seeds already logged): 618 turns, 66 wrong</title>
+      <rect x="20" y="30" width="200" height="70" rx="8" fill="#2a2e34" stroke="#434850"/>
+      <text x="120" y="56" text-anchor="middle">2 existing draws</text><text x="120" y="76" text-anchor="middle" fill="#9ba1ab" font-size="11">618 turns · 66 wrong · on disk</text></g>
+    <g id="s-fresh"><title>Three fresh draws from pool − gate through run --split train --runtime agent_sdk</title>
+      <rect x="20" y="130" width="200" height="70" rx="8" fill="#2a2e34" stroke="#f0a93f" stroke-dasharray="5 4"/>
+      <text x="120" y="156" text-anchor="middle">+3 fresh draws (if P1b says so)</text><text x="120" y="176" text-anchor="middle" fill="#9ba1ab" font-size="11">~950 turns · ~95 wrong · ~1.6 h</text></g>
+    <g id="s-opt"><title>judge-optimise: the prompt writer sees these misses; 60% of the pooled draws by conversation</title>
+      <rect x="330" y="30" width="220" height="70" rx="8" fill="rgba(171,146,242,.10)" stroke="#ab92f2"/>
+      <text x="440" y="56" text-anchor="middle">judge-optimise</text><text x="440" y="76" text-anchor="middle" fill="#9ba1ab" font-size="11">now: 314 turns · 36 wrong · with draws: ~940 / ~96</text></g>
+    <g id="s-cal"><title>judge-calibrate: picks τ and gates judge versions; never shown to the writer</title>
+      <rect x="330" y="130" width="220" height="70" rx="8" fill="rgba(116,173,242,.10)" stroke="#74adf2"/>
+      <text x="440" y="156" text-anchor="middle">judge-calibrate</text><text x="440" y="176" text-anchor="middle" fill="#9ba1ab" font-size="11">now: ~300 · ~30 wrong · with draws: ~630 / ~64</text></g>
+    <g id="s-test"><title>judge-test = the gate split. Touched once, after the judge is frozen. Same split the 90.54% claim lives on.</title>
+      <rect x="660" y="30" width="310" height="70" rx="8" fill="rgba(78,203,157,.10)" stroke="#4ecb9d"/>
+      <text x="815" y="56" text-anchor="middle">judge-test = the gate split</text><text x="815" y="76" text-anchor="middle" fill="#9ba1ab" font-size="11">349 turns · 33 wrong · frozen judge only</text></g>
+    <g id="s-confirm"><title>Optional: 2 confirmatory draws widen the test to ~980 turns / ~97 wrong for the tighter bounds</title>
+      <rect x="660" y="130" width="310" height="70" rx="8" fill="#2a2e34" stroke="#434850" stroke-dasharray="5 4"/>
+      <text x="815" y="156" text-anchor="middle">+2 confirmatory draws (optional)</text><text x="815" y="176" text-anchor="middle" fill="#9ba1ab" font-size="11">→ ~980 test turns · ~97 wrong · ~1.1 h</text></g>
+    <g stroke="#9ba1ab" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+      <path d="M220 65 C270 65 280 65 328 65"/><path d="M220 165 C270 165 270 90 328 80"/>
+      <path d="M220 165 H328"/><path d="M220 65 C270 65 270 150 328 150"/>
+    </g>
+    <text x="500" y="230" text-anchor="middle" fill="#9ba1ab" font-size="12">split by conversation, never by turn — a report's turns share history and usually share an error</text>
+  </g>
+</svg>
+<figcaption>The gate split is the judge's test set for the same reason it was the runtime's: it is the only split no optimiser in this project has ever seen. Every draw is <code>splits.draw_train(seed=…)</code> from pool − gate with its seed logged, so the dataset is reproducible from the manifest and the run ids alone.</figcaption>
+</figure>
+
+<div class="scroll-x"><table>
+<thead><tr><th>Step</th><th class="num">Turns</th><th class="num">Wrong</th><th>Cost</th><th>Buys</th></tr></thead>
+<tbody>
+<tr class="hi"><td>Use what exists (D3)</td><td class="num">967</td><td class="num">99</td><td>zero</td><td>a judge v1 and a first curve, today</td></tr>
+<tr><td>+3 fresh draws (deferred by D3 — triggered by P1b's curve)</td><td class="num">~1,920</td><td class="num">~195</td><td>~1.6 h subscription · ~$15 Haiku to score</td><td>~160 negatives for tuning + calibration, 33 held out on the gate</td></tr>
+<tr><td>+2 confirmatory draws</td><td class="num">~2,550</td><td class="num">~260</td><td>~1.1 h more · ~$5 Haiku</td><td>the 0.5% / 95%-capture claims from §03</td></tr>
+<tr><td>Judge optimisation loop</td><td class="num">—</td><td class="num">—</td><td>≤ 5 experiments × ~940 turns ≈ $35 Haiku, plus writer time on the subscription</td><td>each experiment is one prompt edit with a named cause</td></tr>
+</tbody></table></div>
+
+<p class="muted" style="font-size:14px">Rule of thumb for the volume: <strong>a judge needs ~100 negatives to tune against and ~60 untouched negatives to prove a 95%-capture claim</strong>. At this runtime's 10% error rate that is ~1,600 scored turns for development and the gate for proof — five 100-conversation draws in total, three of which do not exist yet. Also worth having, not for the production judge but for its robustness check: the <code>sdk_v2</code> and Haiku passes on the gate (43 and 44 wrong) are a free out-of-distribution set — a judge that only works on Sonnet's failure style will show it there.</p>
+
+<h2 id="mlflow">06 · Training and tracking in MLflow</h2>
+
+<p>The judge follows the pattern every other artefact in this project follows: a lineage in <code>registry.json</code>, an alias that serving reads, runs the runner logs itself, an append-only ledger, and a promotion rule enforced in code.</p>
+
+<div class="grid">
+  <div class="card">
+    <h4>Experiment <code>convfinqa-judge</code></h4>
+    <p style="font-size:14px"><strong>One run per (judge version × dataset split).</strong> Params: <code>judge_model</code>, <code>judge_version</code> and prompt hash, <code>runtime_version</code> (<code>sdk_v1</code>) and its model, dataset hash and split, <code>k</code> samples, <code>threshold</code>, <code>error_target</code>. Tags mirror the params that are search keys — same convention as <code>sdk_model</code>.</p>
+  </div>
+  <div class="card">
+    <h4>Metrics per run</h4>
+    <p style="font-size:14px"><code>auroc</code>, <code>aurc</code> (area under risk–coverage), <code>coverage_at_target</code>, <code>selective_accuracy_at_target</code>, <code>failure_capture_at_target</code>, <code>brier</code>, <code>ece</code>, plus the same by <code>gold_turn_type</code>. The gate's own conversation-clustered bootstrap gives CIs; the dashboard number is <em>coverage at the bound</em>.</p>
+  </div>
+  <div class="card">
+    <h4>Artefacts per run</h4>
+    <p style="font-size:14px"><code>judge_scores.csv</code> (one row per turn: score, checks, band, correct), <code>risk_coverage.json</code> and its plot, <code>reliability.json</code>, <code>flips.json</code> for judge-vs-judge comparisons (which turns moved band), the fitted calibrator as an MLflow model for Option B, and the judge prompt by reference through <code>prompt_refs</code> — never raw text.</p>
+  </div>
+  <div class="card">
+    <h4>Promotion rule for <code>judge_champion</code></h4>
+    <p style="font-size:14px">On the calibrate split, with τ set to the D2 bound: <strong>coverage rises, failure capture does not fall, and the clustered one-sided test on the band decisions clears α</strong> — the same shape as the runtime's rule. Refuses train evidence, refuses any run whose <code>runtime_version</code> is not the current <code>sdk_champion</code>: a judge is calibrated to one agent, and swapping the agent silently invalidates it.</p>
+  </div>
+</div>
+
+<h3>Tracing in production</h3>
+<p>The judge is one more Agent-SDK-style call outside the autologger's reach, so it gets a hand-opened <code>LLM</code> span the way <code>evalloop/sdk.py::run_structured</code> does — inputs by reference (<code>judge_prompt</code>, the capture's trace id), outputs the verdict, attributes for model, tokens, cost and band. In serving it nests under the session's turn span so a reviewer opening the queue item sees the whole story in one trace. The ledger row (<code>judgements.jsonl</code>, append-only, frozen columns) is what backfills and the write-up read.</p>
+
+<h2 id="phases">07 · Build phases</h2>
+
+<div class="scroll-x"><table class="phases"><thead><tr><th class="num">Phase</th><th style="min-width:220px">Step · deliverable</th><th>Scope, and what "done" means</th></tr></thead><tbody><tr><td class="num" style="color:var(--amber);font-weight:600">P0</td><td><strong>Dataset build</strong><br><span class="faint" style="font-size:13px"><code>evalloop/judge.py::build_dataset</code></span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>Join the committed <code>sdk_v1</code> CSVs to their captures in <code>traces.db</code>, attach the document, drop <code>NON_AGENT</code>-attributed negatives, assign <em>optimise / calibrate / test</em> by conversation with a logged seed.</li><li>Writes <code>evaluation/judge/dataset_&lt;hash&gt;.jsonl</code> (committed) and an MLflow run recording what went in.</li><li>Done when the file rebuilds byte-identical from the manifest and run ids.</li><li><strong>Zero model calls.</strong></li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P1</td><td><strong>Diagnose every case</strong><br><span class="faint" style="font-size:13px"><code>convfinqa-evalloop judge diagnose</code></span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>Extend <code>sdk_teacher.diagnose_run</code> to every turn of the optimise split, correct ones included, with the "what it got right" mode.</li><li>Small prerequisite: <code>teacher.teacher_model()</code> is a hard constant today (<code>LM_TEACHER_MODEL = "claude-opus-5"</code>, no override) — add a <code>TEACHER_MODEL</code> setting / <code>--teacher-model</code> flag so the judge commands pin <code>claude-sonnet-5</code>, recorded per ledger row as <code>diagnoser_model</code>.</li><li>~200 teacher calls on the subscription, concurrent under the usual semaphore, appended to <code>judge_diagnoses.jsonl</code>.</li><li>Done when every optimise case has exactly one diagnosis row.</li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P1b</td><td><strong>Distil <code>j1</code> and draw the curve</strong><br><span class="faint" style="font-size:13px"><code>convfinqa-evalloop judge distil</code>, <code>judge score</code></span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>One distil call writes <code>prompts/judge_j1.py</code>; Haiku scores the calibrate split; the run logs risk–coverage and reliability.</li><li>This is the day-one answer to "how much coverage does 1% error buy?" and decides whether the binary band is enough or τ on <code>p_correct</code> is needed.</li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P2</td><td><strong>Three fresh draws — only if P1b's curve calls for them (D3)</strong><br><span class="faint" style="font-size:13px"><code>run --split train --runtime agent_sdk --train-seed …</code> × 3</span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>~1.6 h on the subscription, in the background while P1 runs.</li><li>Rebuild the dataset; the negatives roughly triple.</li><li><code>--resume-from</code> finishes any pass a rate limit interrupts; a pass with unscored rows never enters the dataset.</li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P3</td><td><strong>Judge campaign</strong><br><span class="faint" style="font-size:13px"><code>convfinqa-evalloop judge cycle --campaign jc01</code></span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>Re-diagnose the judge's misses (the teacher sees the judge's reason beside gold), re-distil as <code>j2…</code>, gate on calibrate, cap 5.</li><li>Every experiment appends to <code>judgements.jsonl</code> and <code>gates.jsonl</code> with <code>runtime=judge</code> so nothing pools with the agent's history.</li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P4</td><td><strong>Freeze, test once, decide A vs B</strong></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>Fix τ on calibrate.</li><li>Score the gate split <em>once</em> with the frozen judge; record it as the judge's test run.</li><li>If coverage at the bound &lt; 85% or ECE &gt; 0.05, fit Option B's calibrator on the recorded checklists (no new calls) and test that once too.</li><li>Run the sdk_v2 / Haiku gate passes as the robustness check.</li><li>Optionally P2-style confirmatory draws for the tighter bounds.</li></ul></td></tr>
+<tr><td class="num" style="color:var(--amber);font-weight:600">P5</td><td><strong>Ship</strong><br><span class="faint" style="font-size:13px">serving, queue, frontend, write-up</span></td><td><ul style="margin:0;padding-left:18px;font-size:13.5px"><li>Prerequisite: the SDK runtime served from <code>sdk_champion</code>.</li><li>D4: the production judge is an Anthropic API call — new wiring in <code>llm.py</code> (an <code>anthropic</code> client behind the demo gate, its own key, Haiku pinned), the first non-DeepSeek API path in the project; development keeps running the judge through the Agent SDK on the subscription.</li><li>Then: judge call in the turn path behind <code>judge_champion</code>; band and reason on the turn event (the demo pack carries recorded verdicts — the demo container has no key); no review queue this phase — low-band turns land in <code>traces.db</code> with band, reason and score, which is all a later queue needs; the landing page and <code>/admin/runtimes</code> gain the selective-accuracy tile; <code>docs/optimization/judge.html</code> from <code>story.json</code> with <code>story_check</code> coverage.</li><li>Write-up after it is fully delivered, as agreed.</li></ul></td></tr></tbody></table></div>
+
+<h2 id="risks">08 · Risks</h2>
+
+<ul>
+  <li><strong>Correlated blindness.</strong> The judge reads the same document the agent did; a table both misparse is invisible to both. §02's 24 agreed-and-wrong turns are the size of this today. Mitigation: the checklist forces the judge to quote the cell, not restate the value; a human queue (out of scope this phase) is the eventual backstop for what survives. This is why the target is a bound, not a promise.</li>
+  <li><strong>Label noise trains the judge to distrust correct answers.</strong> ~4–7% of "wrong" turns are gold's fault. Excluding <code>NON_AGENT</code> verdicts from negatives is necessary; it means the judge-dev set depends on the attribution rule and must be rebuilt (with its <code>attribution_rule</code> tag) when that rule changes — the same guard <code>backfill-attribution</code> already uses.</li>
+  <li><strong>Calibration is per agent version.</strong> Promote a new <code>sdk_vN</code> and τ is wrong until the judge is re-calibrated on that version's turns. The promotion rule refuses a mismatched <code>runtime_version</code>; the campaign runbook has to say "re-score the judge" as a step after any runtime promotion.</li>
+  <li><strong>Billing path for the judge.</strong> The only Anthropic path in <code>llm.py</code> today is the Agent SDK on the subscription; there is no Anthropic API client at all. A Haiku judge in <em>production</em> has to be an API call (serving cannot hold a subscription session), which is new wiring and a new key — and the standing rule that the SDK runtime never bills the API stays untouched. Development can run the judge through the SDK on the subscription to avoid API spend while iterating; D4 decides.</li>
+  <li><strong>The 33 gate negatives cap the proof.</strong> With zero misses the miss-rate bound is still ~9%. The confirmatory draws exist for that reason; say so in the write-up rather than round to "100%".</li>
+  <li><strong>Latency and turn budget.</strong> +2–4 s per turn for A, more for B with the re-solve. The session's own median is 31 s, so this is small in proportion, but the abstain path must not wait on a second full solve in the user's request — B's re-solve, if kept, runs concurrently with the judge.</li>
+  <li><strong>Abstaining changes the conversation.</strong> A later turn may depend on an answer the user was never given. The session still holds it, so the agent stays coherent; the UI has to make clear that the low-band value exists but is unverified, or later turns become confusing.</li>
+</ul>
+
+<h2 id="decisions">09 · Decisions</h2>
+
+<div class="callout good"><strong>All decisions are made (review of 2026-09-07).</strong>
+<ul style="margin:6px 0 0">
+<li><strong>Design:</strong> Option A — LLM-as-judge trained on the evals, by diagnose (with gold) → distil (without gold) → score → iterate.</li>
+<li><strong>Models:</strong> Sonnet 5 answers · Haiku 4.5 judges · Sonnet 5 is the diagnose/distil teacher (not the loop's default Opus 5).</li>
+<li><strong>Training data:</strong> 50/50 correct/incorrect for the optimise split; natural mix for calibrate and test.</li>
+<li><strong>Operating point (D2):</strong> high-band error ≤ 1%, maximise coverage; failure capture reported beside it.</li>
+<li><strong>Data budget (D3):</strong> no fresh draws yet — start from the 967 turns on disk; draws only if the first curve says they are needed.</li>
+<li><strong>Judge billing (D4):</strong> subscription (Agent SDK, Haiku) while developing; an API path for production serving.</li>
+<li><strong>Low-band UX (D5):</strong> abstain only — no human review queue in this phase; low-band turns are still recorded with their verdict so a queue can be added later.</li>
+</ul></div>
+<p class="muted">Nothing is left open on this page. Next step is P0.</p>
+
+<div class="footer">
+  Numbers in §02 and §05 were computed on 2026-09-07 from <code>evaluation/predictions/evalloop/sdk-evalloop-*sdk_v1*.csv</code>, <code>.traces/traces.db</code>, <code>evaluation/diagnostics/evalloop/diagnoses.jsonl</code> and <code>evaluation/splits/eval_loop_v2.json</code>. Haiku 4.5 costs are list-price estimates at ~5k input / ~400 output tokens per judgement. The rule-of-three bounds are 95% one-sided. Design follows the project's own dark console tokens (IBM Plex, the s10/s11 palette), as the earlier artefacts in this series do.
+</div>
+
+</div>
+<script>
+function queueAnswer(ev,id,label){
+  ev.preventDefault();
+  var form=ev.target;
+  var picked=form.querySelector('input[name="'+id+'"]:checked');
+  var note=(form.querySelector('textarea[name=note]')||{}).value||'';
+  var status=form.querySelector('.status');
+  if(!picked){status.textContent='pick an option first';return false;}
+  var answerLabel=picked.parentElement.querySelector('.ol').textContent.trim();
+  var text=id+' · '+label+': '+answerLabel+(note?' — '+note:'');
+  var prompt='Decision '+id+' ('+label+'): '+answerLabel+' [value='+picked.value+']'+(note?'\nNote: '+note:'');
+  if(window.lavish&&window.lavish.queuePrompt){
+    window.lavish.queuePrompt(prompt,{tag:'decision',text:text,element:form,queueKey:id,data:{question:id,answer:picked.value,note:note}});
+    status.textContent='queued · '+answerLabel;status.classList.add('ok');
+  }else{
+    status.textContent='lavish not connected — open this page via lavish-axi';
+  }
+  return false;
+}
+</script>
+</body>
+</html>

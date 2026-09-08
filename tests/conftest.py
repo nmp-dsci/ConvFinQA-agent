@@ -33,6 +33,10 @@ def _isolated_settings(
 
     monkeypatch.setattr(settings, "demo_mode", False, raising=False)
     monkeypatch.setattr(settings, "trace_capture_enabled", False, raising=False)
+    # The serving default is the agent_sdk runtime (s12); the API tests drive
+    # the four pipeline agents with stub models, so they run on the pipeline
+    # unless a test opts into the SDK path with its own fake session.
+    monkeypatch.setattr(settings, "serving_runtime", "pipeline", raising=False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", TEST_API_KEY)
 
     from pydantic import SecretStr

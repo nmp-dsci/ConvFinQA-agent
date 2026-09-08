@@ -465,7 +465,11 @@ export function applyEvent(message: Message, event: SSEEvent): Message {
       return { ...message, tools };
     }
     case 'answer':
-      return { ...message, text: event.answer };
+      return { ...message, text: event.answer, withheld: event.withheld === true };
+    case 'judge': {
+      const { event: _name, ...verdict } = event;
+      return { ...message, judge: verdict };
+    }
     case 'matched':
       // Arrives before any stage frame. Recording it on the message — rather
       // than as a transient toast — is what keeps the substitution visible in

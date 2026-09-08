@@ -238,3 +238,56 @@ def ensure_sdk(
 def sdk_composition_string(entry: dict[str, str]) -> str:
     """`s1` — the single-session counterpart of `t1.p1.r2.c1`."""
     return entry["seq"]
+
+
+# ── The confidence judge's lineage (s12) ──────────────────────────────────
+#
+# One prompt, one lineage: ``registry.json → judge_prompts``, seq ``j1, j2, …``,
+# keyed on the whole prompt's hash — the sdk lineage's shape exactly, and kept
+# out of it for the same reason it is kept out of `agent_prompts`.
+
+JUDGE_INITIAL = "j"
+
+
+def _judge_lineage(doc: Any) -> list[dict[str, Any]]:
+    if doc.judge_prompts is None:
+        doc.judge_prompts = []
+    lineage: list[dict[str, Any]] = doc.judge_prompts
+    return lineage
+
+
+def resolve_judge(version: str) -> dict[str, str]:
+    """Read-only identity of a `judge_jN` prompt: ``{seq, hash}``, ``j?`` if unseen."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import registry
+
+    h = prompt_hash(prompts_pkg.load_judge(version))
+    doc = registry.load()
+    entry = next((e for e in (doc.judge_prompts or []) if e["hash"] == h), None)
+    return {"seq": entry["seq"] if entry else f"{JUDGE_INITIAL}?", "hash": h}
+
+
+def ensure_judge(
+    version: str, *, source: str = "manual", run_id: str = ""
+) -> dict[str, str]:
+    """Register the prompt hash of judge `version` if unseen; return ``{seq, hash}``."""
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import registry
+
+    h = prompt_hash(prompts_pkg.load_judge(version))
+    doc = registry.load()
+    lineage = _judge_lineage(doc)
+    entry = next((e for e in lineage if e["hash"] == h), None)
+    if entry is None:
+        entry = {
+            "seq": f"{JUDGE_INITIAL}{len(lineage) + 1}",
+            "hash": h,
+            "first_seen_in": version,
+            "parent": lineage[-1]["seq"] if lineage else None,
+            "source": source,
+            "registered_at": _now(),
+            "run_id": run_id,
+        }
+        lineage.append(entry)
+        registry.save(doc)
+    return {"seq": entry["seq"], "hash": h}

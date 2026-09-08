@@ -17,6 +17,7 @@ import logfire
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
+from convfinqa.config import settings
 from convfinqa.data.loader import _DOCS, qa_data
 from convfinqa.error_codes import classify
 from convfinqa.llm import DemoModeError, demo_mode_enabled
@@ -175,10 +176,11 @@ async def get_session(session_id: str, request: Request) -> SessionResponse:
 
 @router.delete("/sessions/{session_id}", status_code=204)
 async def delete_session(session_id: str, request: Request) -> Response:
-    """Close a session."""
+    """Close a session, and the SDK client behind it if there is one."""
     store = _store(request)
     _session_or_404(store, session_id)
     store.delete(session_id)
+    await store.close_orphans()
     return Response(status_code=204)
 
 
@@ -197,12 +199,35 @@ async def _turn_stream(
         ):
             yield event
         return
+    if settings.serving_runtime == "agent_sdk":
+        # s12: one live SDK session per chat session, judged before release.
+        from convfinqa.serving.sdk_turn import sdk_turn_events
+
+        async for event in sdk_turn_events(question, state, capture=capture):
+            yield event
+        return
     from convfinqa.pipeline.runner import turn_events
 
     async for event in turn_events(
         question, state.report_id, state.conversation, capture=capture
     ):
         yield event
+
+
+def _recorded_answer(capture: dict[str, Any], shown: str) -> str:
+    """The answer the trace scores: the runtime's, shown or not.
+
+    Under `judge_mode="gate"` the visible answer of a `low`-band turn is
+    empty; the value the runtime produced is kept on
+    `capture["judge"]["answer"]` so the trace's `correct` still measures the
+    runtime and the band column says it was not shown. Keyed on the visible
+    answer being empty rather than on the band, because under `advisory` a
+    `low` band is shown and `shown` is already the real answer.
+    """
+    verdict = capture.get("judge")
+    if not shown and isinstance(verdict, dict) and verdict.get("band") == "low":
+        return str(verdict.get("answer", "") or "")
+    return shown
 
 
 def _record_trace(
@@ -229,6 +254,7 @@ def _record_trace(
         from convfinqa.evaluation import numeric_match
 
         correct = bool(numeric_match(answer, gold))
+    verdict = capture.get("judge") if isinstance(capture.get("judge"), dict) else None
     return store.record(
         report_id=state.report_id,
         turn_index=turn_index,
@@ -242,6 +268,9 @@ def _record_trace(
         correct=correct,
         error=error,
         error_code=error_code,
+        runtime=("demo" if demo_mode_enabled() else settings.serving_runtime),
+        judge_band=str(verdict["band"]) if verdict else None,
+        judge_p=float(verdict["p_correct"]) if verdict else None,
     )
 
 
@@ -260,11 +289,15 @@ async def ask(session_id: str, body: AskRequest, request: Request) -> AskRespons
             answer = ""
             program = ""
             matched_question = ""
+            band: str | None = None
+            withheld = False
             try:
                 async for event in _turn_stream(state, body.question, capture):
                     if event.get("event") == "answer":
                         answer = str(event.get("answer", ""))
                         program = str(event.get("program", ""))
+                        band = event.get("band")
+                        withheld = bool(event.get("withheld", False))
                     elif event.get("event") == "matched":
                         matched_question = str(event.get("matched_question", ""))
             except DemoModeError as exc:
@@ -297,7 +330,12 @@ async def ask(session_id: str, body: AskRequest, request: Request) -> AskRespons
                 ) from exc
             state.touch()
             trace_id = _record_trace(
-                state, body.question, capture, answer, program, turn_index
+                state,
+                body.question,
+                capture,
+                _recorded_answer(capture, answer),
+                program,
+                turn_index,
             )
             return AskResponse(
                 answer=answer,
@@ -305,6 +343,8 @@ async def ask(session_id: str, body: AskRequest, request: Request) -> AskRespons
                 history=history_items(state.conversation),
                 trace_id=trace_id,
                 matched_question=matched_question,
+                band=band,
+                withheld=withheld,
             )
     finally:
         await limiter.release()
@@ -349,7 +389,12 @@ async def ask_stream(
                             yield f"data: {json.dumps(event)}\n\n"
                         state.touch()
                         trace_id = _record_trace(
-                            state, body.question, capture, answer, program, turn_index
+                            state,
+                            body.question,
+                            capture,
+                            _recorded_answer(capture, answer),
+                            program,
+                            turn_index,
                         )
                         yield _frame(
                             {

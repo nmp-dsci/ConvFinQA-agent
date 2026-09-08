@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
 from convfinqa.data.schemas import ConversationHistory
@@ -29,6 +30,11 @@ class SessionState:
     created_at: datetime
     updated_at: datetime
     conversation: ConversationHistory = field(default_factory=ConversationHistory)
+    # The live Agent SDK client behind this session when the serving runtime
+    # is `agent_sdk` (s12). Opened lazily on the first turn; closed by the
+    # store when the session is deleted or evicted. None on the pipeline
+    # runtime and in demo mode.
+    sdk_session: Any = None
 
     def touch(self) -> None:
         """Mark the session as recently used, deferring TTL eviction."""
@@ -59,6 +65,10 @@ class SessionStore:
         self.sessions: dict[str, SessionState] = {}
         self.locks: dict[str, asyncio.Lock] = {}
         self._valid_reports = valid_reports
+        # SDK clients whose sessions are gone but whose subprocess is not yet
+        # closed. `delete` is synchronous and closing is not, so the close is
+        # deferred to `close_orphans`, which the housekeeping loop awaits.
+        self._orphans: list[Any] = []
 
     def create(self, report_id: str) -> SessionState:
         """Open a session against `report_id`. Raises KeyError if unknown."""
@@ -83,9 +93,25 @@ class SessionStore:
             raise KeyError(session_id) from exc
 
     def delete(self, session_id: str) -> None:
-        """Drop a session and its lock."""
-        self.sessions.pop(session_id, None)
+        """Drop a session and its lock; queue its SDK client for closing."""
+        state = self.sessions.pop(session_id, None)
         self.locks.pop(session_id, None)
+        if state is not None and state.sdk_session is not None:
+            self._orphans.append(state.sdk_session)
+            state.sdk_session = None
+
+    async def close_orphans(self) -> int:
+        """Close every SDK client whose session has gone; return how many."""
+        pending, self._orphans = self._orphans, []
+        for client in pending:
+            await client.close()
+        return len(pending)
+
+    async def close_all(self) -> int:
+        """Delete every session and close its client — shutdown."""
+        for session_id in list(self.sessions):
+            self.delete(session_id)
+        return await self.close_orphans()
 
     def get_lock(self, session_id: str) -> asyncio.Lock:
         """The per-session lock that serialises turns within a conversation."""

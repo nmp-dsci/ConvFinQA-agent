@@ -17,7 +17,20 @@ export type SSEEvent =
     }
   | { event: 'tool_call'; stage: StageName; tool: string; args: unknown }
   | { event: 'tool_return'; stage: StageName; tool: string; result: string }
-  | { event: 'answer'; answer: string; program?: string }
+  | {
+      event: 'answer';
+      answer: string;
+      program?: string;
+      /** s12: the judge's band on an agent_sdk turn; absent on the pipeline and in demo. */
+      band?: JudgeBand | null;
+      /** True when the judge withheld the answer — `answer` is then empty. */
+      withheld?: boolean;
+    }
+  /**
+   * s12: the confidence judge's verdict on an agent_sdk turn, emitted after the
+   * four stages and before `answer`. `low` means the answer is withheld.
+   */
+  | ({ event: 'judge' } & JudgeVerdict)
   | { event: 'done'; turn_index: number; trace_id?: string; matched_question?: string }
   /**
    * Demo mode only, and always the *first* frame of the turn when it appears.
@@ -34,6 +47,19 @@ export type SSEEvent =
       score: number;
     }
   | { event: 'error'; error: string; code?: string };
+
+export type JudgeBand = 'high' | 'low';
+export type CheckVerdict = 'pass' | 'fail' | 'cannot_tell';
+
+export interface JudgeVerdict {
+  version?: string;
+  band: JudgeBand;
+  p_correct: number;
+  reason: string;
+  checks: Record<string, CheckVerdict>;
+  metrics?: StageMetrics & { cost_usd?: number | null };
+  error?: string;
+}
 
 export interface ToolTrace {
   tool: string;
@@ -67,6 +93,10 @@ export interface Message {
   matchedQuestion?: string;
   askedQuestion?: string;
   matchScore?: number;
+  /** s12: the confidence judge's verdict, when one judged this turn. */
+  judge?: JudgeVerdict;
+  /** s12: true when the judge withheld the answer; `text` is then empty. */
+  withheld?: boolean;
   createdAt: number;
 }
 
@@ -150,6 +180,10 @@ export interface Health {
   bundle_id: string;
   bundle: BundleSpec;
   demo_reports: number;
+  /** s12: which runtime answers a live turn, and the aliases it is built from. */
+  runtime?: 'pipeline' | 'agent_sdk';
+  sdk_champion?: string | null;
+  judge_champion?: string | null;
 }
 
 export interface DemoQuestion {

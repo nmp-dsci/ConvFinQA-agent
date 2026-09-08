@@ -131,8 +131,13 @@ async def run_structured(
     max_turns: int = 12,
     attempts: int = 2,
     refs: dict[str, Any] | None,
+    model: str | None = None,
 ) -> tuple[T, dict[str, Any]]:
     """Run one Agent SDK turn and validate its reply against `schema`.
+
+    `model` defaults to the teacher's (`llm.teacher_model_name()`); the
+    confidence judge passes `llm.judge_model_name()` so its calls go through
+    this same span-opening chokepoint rather than a second, untraced path.
 
     `refs` says how to reconstruct this call's prompts — see `prompt_refs`. The
     span records those references and a short head rather than tens of kilobytes
@@ -157,9 +162,10 @@ async def run_structured(
     calls, so an unrecorded one is a gap in the only number that constrains it.
     """
     from convfinqa.evalloop import prompt_refs
-    from convfinqa.llm import LM_TEACHER_MODEL
+    from convfinqa.llm import teacher_model_name
     from convfinqa.tracking import tracing
 
+    model_name = model or teacher_model_name()
     last: Exception | None = None
     n = max(1, attempts)
     for attempt in range(n):
@@ -170,7 +176,7 @@ async def run_structured(
             f"agent_sdk {schema.__name__}",
             span_type="LLM",
             attributes={
-                "model": LM_TEACHER_MODEL,
+                "model": model_name,
                 "schema": schema.__name__,
                 "attempt": attempt + 1,
                 "max_attempts": n,
@@ -199,6 +205,7 @@ async def run_structured(
                     mcp_servers=mcp_servers,
                     allowed_tools=allowed_tools,
                     max_turns=max_turns,
+                    model=model_name,
                 )
             except TeacherRateLimitError as exc:
                 # Not retried: the next identical call gets the same refusal, and
@@ -235,6 +242,7 @@ async def _run_structured_once(
     mcp_servers: dict[str, Any] | None = None,
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
+    model: str | None = None,
 ) -> tuple[T, dict[str, Any]]:
     """One attempt. See `run_structured` for the contract."""
     from claude_agent_sdk import (
@@ -252,6 +260,7 @@ async def _run_structured_once(
         output_schema=schema.model_json_schema(),
         allowed_tools=allowed_tools,
         max_turns=max_turns,
+        model=model,
     )
     if mcp_servers:
         options.mcp_servers = mcp_servers

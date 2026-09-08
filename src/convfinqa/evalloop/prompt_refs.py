@@ -24,6 +24,8 @@ So a span stores a **reference** and the store holds one copy:
 - ``sdk_prompt`` — the qa_agent runtime's single-session system prompt, a
   module constant in its own ``sdk_vN`` lineage. Resolved from the code, like
   ``agent_prompt``, and checked the same way.
+- ``judge_prompt`` — the confidence judge's system prompt (s12), a module
+  constant in the ``judge_jN`` lineage. Same treatment as ``sdk_prompt``.
 
 Every ref carries the sha256 of the text it stands for, so a resolution can be
 *checked* rather than assumed. That matters because two of these resolve against
@@ -79,6 +81,17 @@ def sdk_prompt_ref(version: str, text: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001 — a ref is never load-bearing
         seq = ""
     return {"kind": "sdk_prompt", "version": version, "seq": seq, "sha": sha(text)}
+
+
+def judge_prompt_ref(version: str, text: str) -> dict[str, Any]:
+    """A reference to the confidence judge's prompt of a `judge_jN` version (s12)."""
+    from convfinqa.tracking import prompt_ledger
+
+    try:
+        seq = prompt_ledger.resolve_judge(version)["seq"]
+    except Exception:  # noqa: BLE001 — a ref is never load-bearing
+        seq = ""
+    return {"kind": "judge_prompt", "version": version, "seq": seq, "sha": sha(text)}
 
 
 def run_artifact_ref(name: str, text: str, *, run_id: str = "") -> dict[str, Any]:
@@ -182,6 +195,15 @@ def resolve(ref: dict[str, Any], *, run_id: str = "") -> str:
 
         try:
             text = prompts_pkg.load_sdk(str(ref["version"]))
+        except Exception as exc:  # noqa: BLE001
+            raise UnresolvedRefError(
+                f"cannot load {ref.get('version')}: {exc}"
+            ) from exc
+    elif kind == "judge_prompt":
+        import convfinqa.prompts as prompts_pkg
+
+        try:
+            text = prompts_pkg.load_judge(str(ref["version"]))
         except Exception as exc:  # noqa: BLE001
             raise UnresolvedRefError(
                 f"cannot load {ref.get('version')}: {exc}"
