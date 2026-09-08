@@ -691,7 +691,7 @@ export function SdkExperimentList({
 
 export default function Runtimes() {
   const query = useQuery({
-    // The same key the Campaigns page uses: one payload backs both, and two
+    // The same key the Experiments page uses: one payload backs both, and two
     // cache entries of the same story could show two different champions.
     queryKey: ['eval-campaigns'],
     queryFn: () => getCampaigns(),

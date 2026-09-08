@@ -806,7 +806,7 @@ Every one of these runs in CI on every pull request, plus a Docker build and
 | ruff check + format | clean |
 | mypy (strict-ish, 72 files) | clean |
 | pytest | **368 passed**, zero network calls, no API key required |
-| frontend typecheck + vitest + build | clean, 161 unit tests |
+| frontend typecheck + vitest + build | clean, 162 unit tests |
 | Playwright e2e (`landing.spec.ts`, keyless) | 7/7 passing in CI; full local suite (needs `DEEPSEEK_API_KEY`) is 11/11 |
 | eval-regression gate | checks the s7/GEPA versions (`v1`, `v2`, `v3_1`) committed under `evaluation/predictions/`, and floor-checks the registered champion from whichever evidence its `source` used |
 
