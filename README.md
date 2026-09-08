@@ -165,6 +165,7 @@ uv run convfinqa-mlflow compare v2 v3_1           # exit 1 if not promotable
 uv run convfinqa-mlflow promote v3_1              # refused unless it passes
 uv run convfinqa-mlflow backfill                  # rebuild history from git
 uv run convfinqa-mlflow snapshot                  # export for the demo image
+uv run convfinqa-mlflow traces-snapshot           # export the trace store the demo image seeds from
 uv run mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
 ```
 
@@ -383,11 +384,13 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `evaluation/splits/` | Committed eval-loop split manifest (`eval_loop_v1.json`: train/test/holdout `report_id`s). Tracked in git. |
 | `runs/` | GEPA optimization artifacts (`optimized_runner.json`). Tracked in git so prior runs are usable on any clone. |
 | `evaluation/registry.json`, `evaluation/mlflow_snapshot.json` | Bundle registry (including per-agent prompt lineages in `agent_prompts`) + exported experiment history. Tracked, and baked into the demo image. |
+| `evaluation/story.json`, `evaluation/readiness.json` | The campaign record and the readiness scorecard. Tracked, and baked into the demo image — the whole Runtimes page, the campaign track, the progression chart, the judge panel and the readiness strip read one or the other. |
+| `evaluation/traces_snapshot.jsonl.gz` | The trace store exported verbatim (8.4k turns, 6 MB gz). Tracked, and baked in: it seeds a store with no turns of its own, so the demo browses the recorded runs rather than only what it has replayed. |
 | `archive/` | Retired experiment by-products (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round). Nothing reads it; `archive/README.md` lists what moved. |
 | `infra/terraform/` | `bootstrap/` (run once: the OIDC deploy role) and `demo/` (ECR + App Runner + alarm). |
 | `Dockerfile`, `docker-compose.yml` | The demo image, the local dev/demo toggle, and an always-on `mlflow` tracking-server service. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
-| `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshot is what ships. |
+| `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshots are what ship (`convfinqa-mlflow snapshot`, `convfinqa-mlflow traces-snapshot`). |
 
 ## Pipeline
 

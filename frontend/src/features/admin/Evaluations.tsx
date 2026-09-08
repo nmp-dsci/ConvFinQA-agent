@@ -7,7 +7,7 @@ import { NO_VALUE, formatFilingId, formatPercent } from '../landing/format';
 import { getAnswers } from './api';
 import { FlipsDrawer, FlipsSummary } from './FlipsDrawer';
 import { CHAMPION_ROW, InstrumentTable } from './InstrumentTable';
-import { PROG_ACC_CAVEAT, clip, formatCount, fraction } from './lib';
+import { PROG_ACC_CAVEAT, clip, formatCount, fraction, versionLabel } from './lib';
 import { SliceChart } from './SliceChart';
 import type { SliceSeries } from './SliceChart';
 import {
@@ -224,7 +224,7 @@ export default function Evaluations() {
     for (const version of versionNames) {
       base.push({
         id: `v-${version}`,
-        header: version,
+        header: versionLabel(version),
         accessorFn: (r) => r.versions.find((v) => v.version === version)?.pred_answer ?? '',
         meta: { width: '92px' },
         cell: ({ row }) => {
@@ -248,6 +248,28 @@ export default function Evaluations() {
     return base;
   }, [versionNames, selectedVersion]);
 
+  /**
+   * The denominators the two `n` columns used to hold.
+   *
+   * They were the same two numbers on every row — 770 sampled, 309 never-seen —
+   * repeated down the table and already stated in the Splits panel above, so
+   * they cost two columns to say nothing that varied. Said once here instead,
+   * and computed from the rows rather than written down, so a version scored on
+   * a different set makes the sentence change rather than makes it wrong.
+   */
+  const denominators = useMemo(() => {
+    const overall = new Set(
+      rows.map((r) => r.nQuestions).filter((n): n is number => typeof n === 'number'),
+    );
+    const neverSeen = new Set(
+      rows.map((r) => r.holdoutN).filter((n): n is number => typeof n === 'number'),
+    );
+    if (overall.size !== 1 || neverSeen.size !== 1) {
+      return 'denominators differ between versions — the per-version counts are on /admin/versions';
+    }
+    return `every version scored on the same ${formatCount([...overall][0])} sampled questions, ${formatCount([...neverSeen][0])} of them never seen by any optimizer`;
+  }, [rows]);
+
   const versionColumns = useMemo<Array<ColumnDef<(typeof rows)[number], unknown>>>(
     () => [
       {
@@ -261,7 +283,7 @@ export default function Evaluations() {
             onClick={() => setParam('version', row.original.version)}
             className={cn('hover:text-amber', row.original.version === selectedVersion && 'text-amber')}
           >
-            {row.original.version}
+            {versionLabel(row.original.version)}
             {row.original.isChampion && <span className="text-faint"> · champion</span>}
           </button>
         ),
@@ -273,24 +295,12 @@ export default function Evaluations() {
         cell: ({ row }) => formatPercent(row.original.overall),
       },
       {
-        id: 'n',
-        header: 'n',
-        accessorFn: (r) => r.nQuestions ?? -1,
-        cell: ({ row }) => formatCount(row.original.nQuestions),
-      },
-      {
         id: 'holdout',
         header: 'never-seen exe',
         accessorFn: (r) => r.holdout ?? -1,
         cell: ({ row }) => (
           <span className="text-good">{formatPercent(row.original.holdout)}</span>
         ),
-      },
-      {
-        id: 'holdoutN',
-        header: 'n',
-        accessorFn: (r) => r.holdoutN ?? -1,
-        cell: ({ row }) => formatCount(row.original.holdoutN),
       },
       {
         id: 'prog',
@@ -355,7 +365,7 @@ export default function Evaluations() {
         <Panel
           title="Accuracy per version"
           endpoint="/admin/versions"
-          note="execution accuracy and program accuracy are different questions about the same run"
+          note={`Execution accuracy and program accuracy are different questions about the same run — ${denominators}.`}
         >
           {isLoading ? (
             <LoadingRows />
@@ -375,12 +385,12 @@ export default function Evaluations() {
         </Panel>
 
         <Panel
-          title="Slices"
+          title="Where the accuracy is won and lost"
           endpoint={`/eval/runs/${selectedVersion}/summary`}
           note={
             sliceDenominator
-              ? `${model} backend · ${formatCount(sliceDenominator)} scored questions for ${selectedVersion}`
-              : 'accuracy per slice, per version'
+              ? `The same questions cut by turn position, question type or conversation type, one bar per version — an aggregate hides which turns a version actually fixed. ${model} backend · ${formatCount(sliceDenominator)} scored questions for ${versionLabel(selectedVersion)}.`
+              : 'The same questions cut by turn position, question type or conversation type, one bar per version — an aggregate hides which turns a version actually fixed.'
           }
           right={
             <div className="flex flex-wrap gap-1">
@@ -459,7 +469,7 @@ export default function Evaluations() {
               >
                 {versionNames.map((v) => (
                   <option key={v} value={v}>
-                    {v}
+                    {versionLabel(v)}
                   </option>
                 ))}
               </select>
@@ -473,7 +483,7 @@ export default function Evaluations() {
               >
                 {versionNames.map((v) => (
                   <option key={v} value={v}>
-                    {v}
+                    {versionLabel(v)}
                   </option>
                 ))}
               </select>

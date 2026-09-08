@@ -1,6 +1,7 @@
 import { Lamp } from '@/components/console';
 import type { LampTone } from '@/components/console';
 import type { BoardData } from './useBoardData';
+import { versionLabel } from '../admin/lib';
 
 /**
  * Mode, champion, gate — the three facts that decide how to read every other
@@ -13,7 +14,7 @@ import type { BoardData } from './useBoardData';
  * sits above the tiles rather than beside them.
  */
 export function LampStrip({ board }: { board: BoardData }) {
-  const { health, isDemo, champion, campaigns } = board;
+  const { health, isDemo, servingChampion, servingRuntime, campaigns } = board;
 
   /**
    * The gate lamp reports the campaign's most recent verdict.
@@ -84,12 +85,12 @@ export function LampStrip({ board }: { board: BoardData }) {
       />
       <Lamp
         label="champion"
-        value={champion ?? campaigns?.champion ?? 'unset'}
+        value={versionLabel(servingChampion ?? campaigns?.sdk_champion ?? campaigns?.champion) || 'unset'}
         tone="info"
-        to="/admin/experiments"
+        to="/admin/runtimes"
         tooltip={
           health
-            ? `Bundle ${health.bundle_id} · prompts ${health.bundle.prompts_version} · ${health.bundle.lm_mini} · dataset ${health.bundle.dataset_hash} · code ${health.bundle.code_sha}.`
+            ? `${servingRuntime === 'agent_sdk' ? 'One Claude Agent SDK session per conversation, the six calculator tools as its only tools' : 'Four prompted agents in a fixed order'} · sdk_champion ${health.sdk_champion ?? 'unset'} · pipeline champion ${health.champion ?? 'unset'} · dataset ${health.bundle.dataset_hash} · code ${health.bundle.code_sha}.`
             : 'The version currently serving.'
         }
       />

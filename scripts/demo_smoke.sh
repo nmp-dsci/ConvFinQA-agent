@@ -51,6 +51,39 @@ loop_runs="$(curl -fsS --max-time 20 "$BASE/eval/loop-runs" \
   | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')" || fail "loop runs unreachable"
 [[ "$loop_runs" -gt 0 ]] || fail "no eval-loop runs served"
 
+# 3c. The campaign record is served. This is the single artifact the Runtimes
+#     page, the campaign track, the progression chart, the judge panel and four
+#     of the landing HUD tiles all read. It was left out of the image once, and
+#     nothing failed: every one of those surfaces rendered its "not yet run"
+#     empty state on a deployment whose whole job is to show them. An empty
+#     state is a legitimate answer in dev and a deployment bug here.
+campaigns="$(curl -fsS --max-time 20 "$BASE/eval/campaigns")" || fail "campaigns unreachable"
+echo "$campaigns" | python3 -c '
+import json, sys
+body = json.load(sys.stdin)
+if not body.get("sdk_champion"):
+    sys.exit("no sdk_champion — evaluation/story.json is not in the image")
+if not body.get("champion_track"):
+    sys.exit("champion_track is empty — evaluation/story.json is not in the image")
+if not body.get("runtime_comparison"):
+    sys.exit("no runtime_comparison — the cross-runtime gate is not being served")
+' || fail "/eval/campaigns is serving its empty state: $campaigns"
+
+# 3d. The readiness scorecard is served, or the Readiness page, the landing
+#     strip and Architecture 13 all render "did not load".
+readiness_rows="$(curl -fsS --max-time 20 "$BASE/eval/readiness" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["rows"]))')" \
+  || fail "readiness scorecard unreachable — evaluation/readiness.json is not in the image"
+[[ "$readiness_rows" -eq 9 ]] || fail "readiness has $readiness_rows rows, expected 9"
+
+# 3e. The recorded traces are served. A cold container has answered nothing, so
+#     without the committed snapshot the Traces page and every production-metric
+#     card are empty here while dev shows thousands of scored turns.
+trace_turns="$(curl -fsS --max-time 20 "$BASE/traces/stats" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["n_turns"])')" \
+  || fail "trace stats unreachable"
+[[ "$trace_turns" -gt 1000 ]] || fail "only $trace_turns traces served — the snapshot did not seed"
+
 # 4. The demo pack is present, or chat is a dead end.
 reports="$(curl -fsS --max-time 20 "$BASE/demo/reports" \
   | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
@@ -87,9 +120,20 @@ for name in ("serving", "demo", "eval"):
     for key in ("n_turns", "latency_ms", "cost_usd", "accuracy", "errors", "series"):
         if key not in group:
             sys.exit(f"source {name} is missing {key}")
+    for key in ("series_bucket", "first_turn_at", "last_turn_at"):
+        if key not in group:
+            sys.exit(f"source {name} is missing {key}")
     buckets = group["series"]
     if len(buckets) != 24:
-        sys.exit(f"source {name} has {len(buckets)} series buckets, expected 24 hourly")
+        sys.exit(f"source {name} has {len(buckets)} series buckets, expected 24")
+window = body.get("window")
+if window != "all-time":
+    sys.exit(f"window is {window!r}, expected all-time")
+# The seeded eval history is days old, so a series windowed to the last 24 hours
+# would be twenty-four measured zeros here while the count above it reads 8,343.
+evaluation = sources["eval"]
+if evaluation["n_turns"] and not any(b["n_turns"] for b in evaluation["series"]):
+    sys.exit("the eval series is empty despite eval turns — it is still windowed to now")
 ' || fail "/metrics/production payload is not the three-source shape: $metrics"
 
 # 6. The gate holds: an admin write is refused.
@@ -98,7 +142,18 @@ code="$(curl -s -o /tmp/smoke_promote.json -w '%{http_code}' --max-time 20 \
   -H 'Content-Type: application/json' -d '{"version":"v2"}')"
 [[ "$code" == "403" ]] || fail "POST /admin/registry/promote returned $code, expected 403"
 
+# 6b. A page URL resolves to the page. `/admin` is both an API prefix and a UI
+#     route prefix, and `/admin/experiments` is spelled the same on both sides;
+#     without the document-request rule in `serving/app.py` FastAPI wins and a
+#     visitor opening that page — a bookmark, a refresh, a shared link — is
+#     handed raw JSON. Dev cannot catch this: Vite's proxy applies the same rule
+#     from the other side.
+page="$(curl -fsS --max-time 20 -H 'Accept: text/html' -H 'Sec-Fetch-Dest: document' \
+  "$BASE/admin/experiments")" || fail "/admin/experiments unreachable"
+echo "$page" | grep -qi '<!doctype html' \
+  || fail "/admin/experiments returned the API payload, not the page"
+
 # 6. The React shell serves from the same origin.
 curl -fsS --max-time 20 "$BASE/" | grep -qi '<!doctype html' || fail "index did not render"
 
-echo "SMOKE PASS: $BASE — mode=demo, $versions eval runs, $reports recorded reports, writes refused"
+echo "SMOKE PASS: $BASE — mode=demo, $versions eval runs, $reports recorded reports, $readiness_rows readiness rows, $trace_turns traces, writes refused"

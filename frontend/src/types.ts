@@ -184,6 +184,12 @@ export interface Health {
   runtime?: 'pipeline' | 'agent_sdk';
   sdk_champion?: string | null;
   judge_champion?: string | null;
+  /**
+   * The alias that actually answers a turn here: `sdk_champion` under the
+   * `agent_sdk` runtime, `champion` under the pipeline. Resolved by the backend
+   * so the top bar, the landing lamp and the pages do not each re-derive it.
+   */
+  serving_champion?: string | null;
 }
 
 export interface DemoQuestion {

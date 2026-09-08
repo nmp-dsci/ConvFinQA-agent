@@ -189,11 +189,25 @@ export interface SourceMetrics {
     p50_latency_ms: number | null;
     cost_usd: number;
   }>;
+  /**
+   * What one bar of `series` is worth: `hour`, `day` or `week`. The backend
+   * widens the bucket until 24 of them span this source's whole history, so the
+   * series always covers the runs rather than an arbitrary yesterday — and the
+   * label has to come with it, or the sparkline means nothing.
+   */
+  series_bucket: 'hour' | 'day' | 'week';
+  /** The oldest and newest turn this source holds; null when it holds none. */
+  first_turn_at: string | null;
+  last_turn_at: string | null;
 }
 
 export interface ProductionMetrics {
   generated_at: string;
-  window_hours: number;
+  /**
+   * `all-time`. Every aggregate covers every turn the store holds — it always
+   * did, and the old `window_hours: 24` label was simply wrong about it.
+   */
+  window: string;
   n_turns_total: number;
   trace_capture_enabled: boolean;
   sources: Record<MetricsSource, SourceMetrics>;

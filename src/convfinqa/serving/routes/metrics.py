@@ -15,6 +15,15 @@ carries its own count so a reader can see how much weight its p95 deserves.
 Read-only, therefore registered in demo mode too: the public demo showing its own
 `demo`-source numbers, correctly labelled, is the honest version of a metrics
 page — not one that hides them.
+
+**Every aggregate here is all-time**, over every turn the store holds. It always
+was; what was wrong until 2026-09-08 was the label. The response advertised
+`window_hours: 24` and the UI printed "last 24 h" above figures computed from the
+whole store — so the demo, whose committed traces are days old, showed "no turns
+in the last 24 h" beside a count of eight thousand. The only thing that was ever
+windowed is the sparkline, and it is now windowed to *the data*: buckets end at
+the newest turn of that source and widen from hours to days to weeks so the
+series always spans the run history rather than an arbitrary yesterday.
 """
 
 from __future__ import annotations
@@ -33,8 +42,17 @@ router = APIRouter(prefix="/metrics")
 #: The sources the trace store writes, in the order a reader should meet them.
 SOURCES: tuple[str, ...] = ("serving", "demo", "eval")
 
-#: Hours in the sparkline series.
-SERIES_HOURS = 24
+#: How many buckets a sparkline draws, whatever the bucket turns out to be.
+SERIES_BUCKETS = 24
+
+#: Bucket widths, narrowest first. The first one that covers a source's whole
+#: history in `SERIES_BUCKETS` steps wins, so a busy afternoon reads hour by hour
+#: and a month of eval runs reads day by day, in the same number of bars.
+BUCKET_UNITS: tuple[tuple[str, timedelta], ...] = (
+    ("hour", timedelta(hours=1)),
+    ("day", timedelta(days=1)),
+    ("week", timedelta(weeks=1)),
+)
 
 
 def _percentile(values: list[float], pct: float) -> float | None:
@@ -64,36 +82,84 @@ def _numbers(rows: list[dict[str, Any]], column: str) -> list[float]:
     return out
 
 
-def _hour_key(created_at: Any) -> str:
-    return str(created_at)[:13]
+def _parse(created_at: Any) -> datetime | None:
+    """A stored `created_at` as an aware UTC datetime, or None if unreadable."""
+    try:
+        stamp = datetime.fromisoformat(str(created_at))
+    except (TypeError, ValueError):
+        return None
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
 
 
-def _series(rows: list[dict[str, Any]], now: datetime) -> list[dict[str, Any]]:
-    """One bucket per hour for the last `SERIES_HOURS`, oldest first.
+def _floor(stamp: datetime, unit: str) -> datetime:
+    """Truncate to the start of its bucket, so bars line up with clock time."""
+    stamp = stamp.replace(minute=0, second=0, microsecond=0)
+    if unit == "hour":
+        return stamp
+    return stamp.replace(hour=0)  # `day` and `week` both start at midnight UTC
 
-    Every hour is emitted, including the empty ones — a sparkline that silently
-    drops idle hours compresses time and turns a quiet night into a cliff.
+
+def _bucket_unit(span: timedelta) -> tuple[str, timedelta]:
+    """The narrowest bucket that fits `span` into `SERIES_BUCKETS` bars."""
+    for unit, step in BUCKET_UNITS:
+        if span <= step * SERIES_BUCKETS:
+            return unit, step
+    return BUCKET_UNITS[-1]
+
+
+def _series(
+    rows: list[dict[str, Any]], now: datetime
+) -> tuple[list[dict[str, Any]], str, datetime | None, datetime | None]:
+    """`SERIES_BUCKETS` buckets ending at this source's newest turn, oldest first.
+
+    Returns the buckets plus the bucket unit and the first/last turn, because a
+    reader cannot interpret a sparkline without knowing what one bar is worth —
+    and until 2026-09-08 the label said "24 h" regardless.
+
+    Every bucket is emitted, including the empty ones: a series that silently
+    drops idle buckets compresses time and turns a quiet night into a cliff.
+    Anchoring the right-hand edge on the newest *turn* rather than on `now` is
+    what makes this work in the demo, where every committed trace is days old and
+    a series ending at `now` would be twenty-four measured zeros.
     """
-    by_hour: dict[str, list[dict[str, Any]]] = {}
+    stamps = [s for s in (_parse(r.get("created_at")) for r in rows) if s is not None]
+    if not stamps:
+        # Shape is identical for a source that has served nothing, so the
+        # frontend renders one layout: empty hourly buckets ending now.
+        unit, step = BUCKET_UNITS[0]
+        end = _floor(now, unit)
+        first = last = None
+    else:
+        first, last = min(stamps), max(stamps)
+        unit, step = _bucket_unit(last - first)
+        end = _floor(last, unit)
+
+    start = end - step * (SERIES_BUCKETS - 1)
+    binned: dict[int, list[dict[str, Any]]] = {}
     for row in rows:
-        by_hour.setdefault(_hour_key(row.get("created_at")), []).append(row)
+        stamp = _parse(row.get("created_at"))
+        if stamp is None:
+            continue
+        index = int((stamp - start) // step)
+        if 0 <= index < SERIES_BUCKETS:
+            binned.setdefault(index, []).append(row)
 
     buckets: list[dict[str, Any]] = []
-    for offset in range(SERIES_HOURS - 1, -1, -1):
-        stamp = (now - timedelta(hours=offset)).replace(
-            minute=0, second=0, microsecond=0
-        )
-        hour_rows = by_hour.get(stamp.isoformat()[:13], [])
+    for index in range(SERIES_BUCKETS):
+        bucket_rows = binned.get(index, [])
         buckets.append(
             {
-                "hour": stamp.isoformat(),
-                "n_turns": len(hour_rows),
-                "n_errors": sum(1 for r in hour_rows if r.get("error")),
-                "p50_latency_ms": _percentile(_numbers(hour_rows, "latency_ms"), 50),
-                "cost_usd": round(sum(_numbers(hour_rows, "cost_usd")), 6),
+                # `hour` is the historical name of this field and stays one, so
+                # a stored payload keeps parsing; `bucket` beside the series
+                # says what a step actually is.
+                "hour": (start + step * index).isoformat(),
+                "n_turns": len(bucket_rows),
+                "n_errors": sum(1 for r in bucket_rows if r.get("error")),
+                "p50_latency_ms": _percentile(_numbers(bucket_rows, "latency_ms"), 50),
+                "cost_usd": round(sum(_numbers(bucket_rows, "cost_usd")), 6),
             }
         )
-    return buckets
+    return buckets, unit, first, last
 
 
 def _group(source: str, rows: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
@@ -108,9 +174,7 @@ def _group(source: str, rows: list[dict[str, Any]], now: datetime) -> dict[str, 
     failed = [r for r in rows if r.get("error")]
     by_code = Counter(normalise(str(r.get("error_code") or "")) for r in failed)
 
-    # `created_at` is ISO-8601 UTC, so a lexicographic compare is a time compare.
-    cutoff = (now - timedelta(hours=SERIES_HOURS)).isoformat()
-    recent = [r for r in rows if str(r.get("created_at") or "") >= cutoff]
+    series, bucket, first_turn, last_turn = _series(rows, now)
 
     return {
         "source": source,
@@ -142,7 +206,12 @@ def _group(source: str, rows: list[dict[str, Any]], now: datetime) -> dict[str, 
             "error_rate": round(len(failed) / len(rows), 6) if rows else None,
             "by_code": {code: by_code.get(code, 0) for code in ALL_CODES},
         },
-        "series": _series(recent, now),
+        # All-time, like every figure above it — the series is bucketed, not
+        # windowed, and the caller needs the unit to label a bar.
+        "series": series,
+        "series_bucket": bucket,
+        "first_turn_at": first_turn.isoformat() if first_turn else None,
+        "last_turn_at": last_turn.isoformat() if last_turn else None,
     }
 
 
@@ -166,7 +235,9 @@ async def production_metrics(
 
     return {
         "generated_at": now.isoformat(),
-        "window_hours": SERIES_HOURS,
+        # Not a window. Every aggregate below covers every turn the store holds;
+        # the field is kept so a client can say so out loud rather than assume.
+        "window": "all-time",
         "n_turns_total": len(rows),
         "trace_capture_enabled": store is not None,
         # Never blended. The three populations answer different questions and a

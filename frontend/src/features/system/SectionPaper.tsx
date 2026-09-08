@@ -307,9 +307,14 @@ export function BenchmarkSection({ data }: { data: SystemData }) {
 
       <Panel>
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <span className="mono-caps">by question type and conversation type</span>
+          <span className="mono-caps">accuracy by question type and conversation type</span>
           <SliceLegend />
         </div>
+        <p className="type-meta mb-2.5">
+          This system beside the paper&rsquo;s two baselines on the cuts the paper reports. Hybrid
+          conversations are the hard half — two multi-hop questions concatenated, so the dependency
+          chains are longer — and every model in the table falls on them.
+        </p>
         <SliceChart rows={rows} />
         <Provenance origin="committed">
           our bars are recomputed on request from{' '}
@@ -323,6 +328,11 @@ export function BenchmarkSection({ data }: { data: SystemData }) {
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Panel>
           <PanelTitle>accuracy against turn position</PanelTitle>
+          <p className="type-meta mb-2.5">
+            Accuracy at each turn of a conversation, ours against the paper&rsquo;s models. A turn
+            depends on the answers before it, so the curve falling to the right is error compounding,
+            not later questions being intrinsically harder.
+          </p>
           <PerTurnChart ours={perTurn} paper={PER_TURN_BASELINE} />
         </Panel>
         <Panel>

@@ -72,9 +72,10 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `archive/` | Retired experiment by-products (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round). Nothing reads it; `archive/README.md` lists what moved and what stayed. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
 | `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshot/registry is what ships. |
+| `evaluation/traces_snapshot.jsonl.gz` | The trace store, exported verbatim (8.4k turns, 6 MB gz) by `convfinqa-mlflow traces-snapshot`. **Tracked in git**; seeds a store with no turns of its own, so the demo container's Traces page and production metrics show the recorded runs rather than only what it has replayed. |
 | `infra/terraform/bootstrap/` | Run once by hand: the GitHub OIDC deploy role. Not applied by CI. |
 | `infra/terraform/demo/` | ECR + App Runner + a 5xx alarm. Reconciled by `deploy-aws.yml` after each push to `main`. |
-| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), the local `demo`/`dev` toggle, and an always-on `mlflow` tracking-server service (`docker compose up -d mlflow`). |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), the local `demo`/`dev` toggle, and an always-on `mlflow` tracking-server service (`docker compose up -d mlflow`). Every committed artifact a read-only route opens must be `COPY`d — a missing one empties a page rather than failing anything; `tests/test_demo_image.py` pins the list and `scripts/demo_smoke.sh` asserts the payloads are not their empty states. |
 | `.github/workflows/ci.yml`, `.github/workflows/deploy-aws.yml` | CI (lint, mypy, pytest, frontend checks, eval-regression gate, Docker build, `terraform fmt`/`validate`) and the keyless AWS deploy chained on CI passing. |
 | `frontend/` | Vite + React + Zustand + Tailwind operator console ("The Console"): landing status board at `/`, chat at `/chat`, admin section at `/admin` (Evaluations, Dataset, Experiments, Traces, Research, System, Runtimes, Readiness), IBM Plex type, terminal-amber accent, dark-first with a light variant. |
 | `docs/optimization/` | The published campaign write-up (`index.html` + `story.json`) and the Agent SDK experiment page (`agent-sdk.html`, linked from the index), both built by `convfinqa-evalloop story` from the tracking store, the ledgers and `evaluation/registry.json`; `evalloop/story_check.py` fails CI when either has gone stale. |
@@ -146,6 +147,7 @@ uv run convfinqa-mlflow compare v2 v3_1   # exit 1 if not promotable
 uv run convfinqa-mlflow promote v3_1      # refused unless the comparator passes
 uv run convfinqa-mlflow backfill          # rebuild history from committed artifacts
 uv run convfinqa-mlflow snapshot          # export what the demo image reads
+uv run convfinqa-mlflow traces-snapshot   # export the trace store the demo image seeds from
 uv run python -m convfinqa.tracking.gate  # the CI eval-regression gate
 ```
 
@@ -329,7 +331,7 @@ The repo treats cached evaluation outputs as first-class artifacts, not throwawa
 - **`runs/<gepa_name>/`** — committed. Holds the optimized prompt (`optimized_runner.json` / `dspy_optimized_runner.json`), `config.json` and stats from each GEPA optimization. Lets anyone re-score a prior run with `RUN_GEPA=1 GEPA_NAME=<name> uv run convfinqa-optimize`. The per-iteration logs and `gepa_state.bin` are under `archive/runs/<gepa_name>/`; restore `gepa_state.bin` with `git mv` before using `RESUME_GEPA` on a run.
 - **`evaluation/registry.json`, `evaluation/mlflow_snapshot.json`** — committed. Bundle registry (promotion history) and exported MLflow run/experiment history, regenerated with `convfinqa-mlflow backfill` / `snapshot`. Baked into the demo image so the Experiments tab works with no tracking server.
 - **`.dspy_cache/`** — gitignored (~366 MB). Local LM response cache. Sync between machines via `rsync -av .dspy_cache/ user@host:~/ConvFinQA-agent/.dspy_cache/` rather than committing.
-- **`mlruns/`, `.traces/`** — gitignored. Local MLflow store and trace DB; dev state, not shipped.
+- **`mlruns/`, `.traces/`** — gitignored. Local MLflow store and trace DB; dev state, not shipped. The trace store's committed export is `evaluation/traces_snapshot.jsonl.gz` (`convfinqa-mlflow traces-snapshot`), which seeds an empty store — a dev machine with its own history is never touched.
 
 Rule of thumb: if regenerating it costs an API call, commit it. If it can be rebuilt locally without network, leave it ignored.
 

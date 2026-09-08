@@ -34,6 +34,17 @@ def _make_parser() -> argparse.ArgumentParser:
     sub.add_parser("versions", help="List versions with committed predictions.")
     sub.add_parser("snapshot", help="Export the committed mlflow_snapshot.json.")
 
+    p_traces = sub.add_parser(
+        "traces-snapshot",
+        help="Export the trace store to the committed traces_snapshot.jsonl.gz.",
+    )
+    p_traces.add_argument(
+        "--limit-per-source",
+        type=int,
+        default=None,
+        help="Keep only the newest N turns of each source (default: all).",
+    )
+
     p_backfill = sub.add_parser(
         "backfill", help="Reconstruct history from committed CSVs and GEPA runs."
     )
@@ -97,6 +108,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "snapshot":
         path = snapshot.write_snapshot()
         print(f"wrote {path}")
+        return 0
+
+    if args.command == "traces-snapshot":
+        from convfinqa.tracking.trace_snapshot import export_snapshot
+        from convfinqa.tracking.traces import TraceStore
+
+        store = TraceStore()
+        try:
+            _print(export_snapshot(store, limit_per_source=args.limit_per_source))
+        finally:
+            store.close()
         return 0
 
     if args.command == "backfill":

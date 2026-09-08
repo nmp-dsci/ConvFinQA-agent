@@ -158,18 +158,25 @@ def create_app(
         from convfinqa.tracking.bundle import bundle_fingerprint, bundle_id
 
         fingerprint = bundle_fingerprint()
+        champion = registry.champion()
+        sdk_champion = registry.sdk_champion()
         return HealthResponse(
             ok=True,
             mode="demo" if demo_mode_enabled() else "dev",
-            champion=registry.champion(),
+            champion=champion,
             bundle_id=bundle_id(fingerprint),
             bundle=fingerprint,
             demo_reports=len(replay.packed_reports()),
             runtime=settings.serving_runtime,
-            sdk_champion=registry.sdk_champion(),
+            sdk_champion=sdk_champion,
             judge_champion=registry.judge_champion()
             if settings.judge_enabled
             else None,
+            serving_champion=(
+                (sdk_champion or champion)
+                if settings.serving_runtime == "agent_sdk"
+                else champion
+            ),
         )
 
     app.include_router(chat.router)
@@ -182,6 +189,15 @@ def create_app(
 
     _mount_frontend(app)
     return app
+
+
+def _wants_document(sec_fetch_dest: str | None, accept: str | None) -> bool:
+    """True when this request is a browser navigating, not a client fetching."""
+    if sec_fetch_dest == "document":
+        return True
+    if sec_fetch_dest:  # an explicit non-document destination settles it
+        return False
+    return bool(accept) and "text/html" in str(accept)
 
 
 def _mount_frontend(app: FastAPI) -> None:
@@ -199,6 +215,33 @@ def _mount_frontend(app: FastAPI) -> None:
 
     index = FRONTEND_DIST / "index.html"
     root = FRONTEND_DIST.resolve()
+
+    @app.middleware("http")
+    async def spa_page_requests(request: Request, call_next: Any) -> Any:
+        """Hand `/admin/...` *page* requests to the client router.
+
+        `/admin` is both an API prefix and a UI route prefix, and one path is
+        spelled the same on both sides: `GET /admin/experiments` is a JSON route
+        *and* a page. FastAPI matches the API route first and the SPA fallback
+        below never runs, so in the container a browser opening that page — a
+        bookmark, a refresh, a shared link — was handed raw JSON. Dev never
+        showed it, because Vite's proxy already applies this exact rule from the
+        other side (`bypassDocumentRequests` in `vite.config.ts`); this is the
+        same rule on this side, so both deployments resolve a page URL the same
+        way instead of the collision being invisible until it is public.
+
+        A document request is never an API call: `fetch()` sends `*/*` and the
+        SSE client sends `text/event-stream`, so no real API request is caught.
+        """
+        if (
+            request.method in ("GET", "HEAD")
+            and request.url.path.startswith("/admin")
+            and _wants_document(
+                request.headers.get("sec-fetch-dest"), request.headers.get("accept")
+            )
+        ):
+            return FileResponse(index)
+        return await call_next(request)
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str) -> FileResponse:

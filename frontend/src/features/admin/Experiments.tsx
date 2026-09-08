@@ -7,14 +7,7 @@ import { formatPercent } from '../landing/format';
 import { getCampaigns } from './api';
 import type { CampaignExperiment, ChampionPoint } from './api';
 import { CHAMPION_ROW, InstrumentTable } from './InstrumentTable';
-import {
-  bundleLine,
-  clip,
-  formatCount,
-  formatEpochMs,
-  formatRunDuration,
-  formatStamp,
-} from './lib';
+import { bundleLine, clip, formatCount, formatEpochMs, formatRunDuration, formatStamp, versionLabel } from './lib';
 import {
   AdminPage,
   Caveat,
@@ -123,7 +116,7 @@ function ChampionChart({ track }: { track: ChampionPoint[] }) {
         {points.map((p, i) => (
           <g key={`${p.version}-${i}`}>
             <text x={xOf(i)} y={h - 26} textAnchor="middle" className="fill-text font-mono text-[10px]">
-              {p.version}
+              {versionLabel(p.version)}
             </text>
             {p.target_agent && (
               <text
@@ -599,7 +592,7 @@ export default function Experiments() {
           }
         />
         {Object.entries(registry.data?.aliases ?? {}).map(([alias, version]) => (
-          <Lamp key={alias} label={alias} value={version} tone="info" />
+          <Lamp key={alias} label={alias} value={versionLabel(version)} tone="info" title={version} />
         ))}
         <Lamp
           label="writes"
@@ -618,7 +611,11 @@ export default function Experiments() {
         title="Campaign track — four-agent pipeline only"
         endpoint="/eval/campaigns"
         note={campaignData?.rule || 'the promotion rule'}
-        right={<span className="type-small text-faint">champion {campaignData?.champion ?? '—'}</span>}
+        right={
+          <span className="type-small text-faint">
+            champion {campaignData?.champion ? versionLabel(campaignData.champion) : '—'}
+          </span>
+        }
       >
         <p className="type-small mb-2 text-faint">
           Every point here is a four-agent pipeline version, plotted with its per-subagent

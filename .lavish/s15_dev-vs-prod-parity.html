@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dev vs prod parity — ConvFinQA demo</title>
+    <style>
+      /*
+       * The ConvFinQA Console's own tokens (frontend/src/styles/tokens.css),
+       * copied verbatim so this page reads as the product it is about.
+       */
+      :root,
+      [data-theme='dark'] {
+        --ground: #191b1f;
+        --panel: #212429;
+        --panel-2: #2a2e34;
+        --line: #32363d;
+        --line-2: #434850;
+        --text: #e8e9ea;
+        --muted: #b6bbc2;
+        --faint: #9ba1ab;
+        --amber: #f0a93f;
+        --amber-soft: rgba(240, 169, 63, 0.13);
+        --amber-line: rgba(240, 169, 63, 0.45);
+        --good: #4ecb9d;
+        --good-soft: rgba(78, 203, 157, 0.12);
+        --good-line: rgba(78, 203, 157, 0.4);
+        --bad: #ef8282;
+        --bad-soft: rgba(239, 130, 130, 0.12);
+        --bad-line: rgba(239, 130, 130, 0.4);
+        --info: #74adf2;
+        --info-soft: rgba(116, 173, 242, 0.12);
+        --violet: #ab92f2;
+      }
+
+      * { box-sizing: border-box; min-width: 0; }
+      html { color-scheme: dark; }
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--text);
+        font-family: ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono, code, th.mono, .num {
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+      }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 96px; }
+
+      /* ---- micro-labels ------------------------------------------------ */
+      .caps {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+
+      /* ---- masthead ---------------------------------------------------- */
+      header.masthead { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 30px; }
+      .brand { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; }
+      .brand .cf {
+        display: grid; place-items: center; width: 24px; height: 24px; border-radius: 4px;
+        border: 1px solid var(--amber-line); background: var(--amber-soft);
+        color: var(--amber); font-size: 11px; font-weight: 600;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      h1 { font-size: 30px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.02em; font-weight: 600; }
+      .standfirst { font-size: 16px; color: var(--muted); max-width: 74ch; margin: 0 0 18px; }
+      .standfirst strong { color: var(--text); font-weight: 600; }
+
+      .verdict {
+        display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px;
+        border-radius: 999px; border: 1px solid var(--good-line); background: var(--good-soft);
+        color: var(--good); font-size: 12px; font-weight: 600;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+      /* ---- headline stats ---------------------------------------------- */
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 10px; margin-top: 20px; }
+      .stat { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 13px 14px; }
+      .stat .v { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; font-family: ui-monospace, Menlo, monospace; }
+      .stat .v.bad { color: var(--bad); }
+      .stat .v.good { color: var(--good); }
+      .stat .k { margin-top: 3px; }
+      .stat .n { font-size: 12px; color: var(--faint); margin-top: 5px; }
+
+      /* ---- sections ---------------------------------------------------- */
+      section { margin-top: 42px; }
+      h2 {
+        font-size: 19px; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em;
+        display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      }
+      h2 .n {
+        font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+        color: var(--amber); font-weight: 500;
+      }
+      .lede { color: var(--muted); max-width: 82ch; margin: 0 0 16px; }
+
+      /* ---- table ------------------------------------------------------- */
+      .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); }
+      table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 13px; }
+      thead th {
+        text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line-2);
+        background: var(--panel-2); position: sticky; top: 0;
+        font-family: ui-monospace, Menlo, monospace; font-size: 10.5px;
+        letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); font-weight: 500;
+        white-space: nowrap;
+      }
+      tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      tbody tr:last-child td { border-bottom: 0; }
+      tbody tr.ok td { background: transparent; }
+      td .route {
+        font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--faint);
+        display: block; margin-top: 2px; word-break: break-all;
+      }
+      td .page { font-weight: 600; white-space: nowrap; }
+      .was { color: var(--bad); }
+      .now { color: var(--good); }
+      .same { color: var(--faint); }
+
+      .tag {
+        display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10.5px;
+        font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.04em;
+        border: 1px solid var(--line-2); color: var(--faint); white-space: nowrap;
+      }
+      .tag.broke { border-color: var(--bad-line); background: var(--bad-soft); color: var(--bad); }
+      .tag.fixed { border-color: var(--good-line); background: var(--good-soft); color: var(--good); }
+      .tag.same { border-color: var(--line-2); }
+      .tag.keep { border-color: var(--amber-line); background: var(--amber-soft); color: var(--amber); }
+
+      /* ---- cause cards ------------------------------------------------- */
+      .causes { display: grid; gap: 12px; }
+      .cause {
+        border: 1px solid var(--line); border-left: 3px solid var(--bad); border-radius: 9px;
+        background: var(--panel); padding: 16px 18px;
+      }
+      .cause.champion { border-left-color: var(--amber); }
+      .cause h3 { margin: 0 0 4px; font-size: 15.5px; font-weight: 600; }
+      .cause .id { font-family: ui-monospace, Menlo, monospace; color: var(--faint); font-size: 11px; }
+      .cause p { margin: 8px 0 0; color: var(--muted); }
+      .cause dl { margin: 12px 0 0; display: grid; grid-template-columns: minmax(0, 92px) minmax(0, 1fr); gap: 5px 14px; font-size: 13px; }
+      .cause dt { color: var(--faint); font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; padding-top: 2px; }
+      .cause dd { margin: 0; color: var(--muted); }
+      .cause dd code, p code, li code, td code {
+        background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px;
+        padding: 0.5px 4px; font-size: 12px; color: var(--text); word-break: break-word;
+      }
+
+      /* ---- before/after wire ------------------------------------------- */
+      .wire { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
+      .wire figure { margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--ground); }
+      .wire figcaption {
+        padding: 7px 11px; border-bottom: 1px solid var(--line); background: var(--panel-2);
+        font-family: ui-monospace, Menlo, monospace; font-size: 10.5px;
+        letter-spacing: 0.08em; text-transform: uppercase;
+      }
+      .wire figcaption.b { color: var(--bad); }
+      .wire figcaption.a { color: var(--good); }
+      .wire pre {
+        margin: 0; padding: 12px; font-size: 11.5px; line-height: 1.6; overflow-x: auto;
+        color: var(--muted); font-family: ui-monospace, Menlo, monospace;
+      }
+      .wire pre em { color: var(--bad); font-style: normal; }
+      .wire pre b { color: var(--good); font-weight: 600; }
+
+      /* ---- flow -------------------------------------------------------- */
+      .flow { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 16px; overflow-x: auto; }
+      .flow svg { display: block; min-width: 760px; }
+
+      /* ---- lists ------------------------------------------------------- */
+      ul.plain { margin: 12px 0 0; padding-left: 18px; color: var(--muted); }
+      ul.plain li { margin-bottom: 7px; }
+      ul.plain li strong { color: var(--text); font-weight: 600; }
+
+      .callout {
+        border: 1px solid var(--amber-line); background: var(--amber-soft);
+        border-radius: 9px; padding: 14px 16px; margin-top: 16px;
+      }
+      .callout h3 { margin: 0 0 6px; font-size: 14px; color: var(--amber); font-weight: 600; }
+      .callout p { margin: 0; color: var(--muted); }
+
+      footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: 12.5px; }
+
+      @media (max-width: 620px) {
+        h1 { font-size: 24px; }
+        .wrap { padding: 20px 14px 72px; }
+        .cause dl { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="masthead">
+        <div class="brand">
+          <span class="cf">CF</span>
+          <span class="caps">ConvFinQA · deployment parity audit · 8 Sept 2026</span>
+        </div>
+        <h1>The demo was showing a fraction of what dev shows</h1>
+        <p class="standfirst">
+          Every page was walked in both deployments. The frontend is identical — prod runs the same
+          commit — so <strong>every difference was data the image never carried, plus one URL the API
+          answered instead of the page.</strong> Five causes, all fixed on
+          <code>ship-dev-data-to-prod</code> and verified against a locally built image.
+        </p>
+        <span class="verdict"><span class="dot"></span>ALL FIVE FIXED · SMOKE PASS ON THE REBUILT IMAGE</span>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="v bad">348 B</div>
+            <div class="k caps">/eval/campaigns in prod</div>
+            <div class="n">151,904 B in dev — the whole campaign record was absent</div>
+          </div>
+          <div class="stat">
+            <div class="v bad">404</div>
+            <div class="k caps">/eval/readiness in prod</div>
+            <div class="n">“no readiness scorecard committed at /app/evaluation/readiness.json”</div>
+          </div>
+          <div class="stat">
+            <div class="v bad">3</div>
+            <div class="k caps">traces in prod</div>
+            <div class="n">8,425 in dev — prod saw only what it had replayed itself</div>
+          </div>
+          <div class="stat">
+            <div class="v good">8,408</div>
+            <div class="k caps">traces after the fix</div>
+            <div class="n">shipped as a 6 MB committed export, timestamps intact</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">01</span> Every page, dev vs prod</h2>
+        <p class="lede">
+          Ten routes, walked in a browser in both deployments. “Prod before” is what the live App
+          Runner URL served at the start of this session; “prod after” is the rebuilt image running
+          locally on <code>:8080</code>, checked the same way.
+        </p>
+        <div class="scroller">
+          <table>
+            <thead>
+              <tr>
+                <th>Page</th>
+                <th>Reads</th>
+                <th>Prod before</th>
+                <th>Prod after</th>
+                <th>Cause</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="page">Overview</span>
+                  <span class="route">/</span>
+                </td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">
+                  healthz · campaigns · readiness · metrics · demo/reports
+                </td>
+                <td class="was">
+                  Headline “—, the single-session arm has not been scored”. No progression chart, no
+                  readiness strip, all four HUD tiles em-dash, judge tile empty. Champion lamp read
+                  <code>v8</code>.
+                </td>
+                <td class="now">
+                  Identical to dev: 90.5% headline, +8.9pp, five-bar chart, R1–R9 strip, gate and
+                  runtime tiles. Champion lamp now reads <code>sdk_v1</code>.
+                </td>
+                <td><span class="tag broke">C1</span> <span class="tag broke">C2</span> <span class="tag keep">C4</span></td>
+              </tr>
+              <tr>
+                <td><span class="page">Runtimes</span><span class="route">/admin/runtimes</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">campaigns</td>
+                <td class="was">
+                  <strong>Entirely empty.</strong> Recommendation “NOT YET RUN”; all five verdict
+                  tiles em-dash; both arms, the turn-type split, the model swap, the judge, the
+                  progression and the caveats each read “not yet run”.
+                </td>
+                <td class="now">
+                  “ADOPT · AGENT SDK”, +8.88pp, p = 2.9e−4, 95% CI +4.2…+13.7pp, 38 fixed / 7 broken,
+                  both arms with their full per-stage panels.
+                </td>
+                <td><span class="tag broke">C1</span></td>
+              </tr>
+              <tr>
+                <td><span class="page">Experiments</span><span class="route">/admin/experiments</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">
+                  admin/experiments · registry · campaigns
+                </td>
+                <td class="was">
+                  <strong>Raw JSON.</strong> Opening the URL directly returned the API payload, not
+                  the page. Campaign track and campaign list empty even from in-app navigation.
+                </td>
+                <td class="now">
+                  The page renders on a direct load, with the four-agent campaign track chart and all
+                  seven experiments.
+                </td>
+                <td><span class="tag broke">C3</span> <span class="tag broke">C1</span></td>
+              </tr>
+              <tr>
+                <td><span class="page">Readiness</span><span class="route">/admin/readiness</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">readiness</td>
+                <td class="was">
+                  “The readiness scorecard did not load — /eval/readiness returned nothing for this
+                  deployment.” Nine rows missing.
+                </td>
+                <td class="now">Nine rows, 6 / 9 shipped, rung 10, measured 2026-09-08.</td>
+                <td><span class="tag broke">C2</span></td>
+              </tr>
+              <tr>
+                <td><span class="page">Traces</span><span class="route">/admin/traces</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">traces · metrics/production</td>
+                <td class="was">
+                  3 turns, 1 filing. Serving and eval source cards both zero — the container had only
+                  its own replays.
+                </td>
+                <td class="now">
+                  8,408 turns, 442 filings. Serving 3.8s p50 / $0.0022; eval 8,343 turns, 7.8s p50,
+                  80.2% accuracy — the same three-source breakdown dev shows.
+                </td>
+                <td><span class="tag broke">C1</span></td>
+              </tr>
+              <tr>
+                <td><span class="page">Architecture</span><span class="route">/admin/system</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">readiness (§13)</td>
+                <td class="was">§13 rendered the same “scorecard did not load” state as the landing strip — one shared component.</td>
+                <td class="now">§13 populated.</td>
+                <td><span class="tag broke">C2</span></td>
+              </tr>
+              <tr class="ok">
+                <td><span class="page">Chat</span><span class="route">/chat</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">demo/reports · sessions</td>
+                <td class="same">Working — 8 recorded filings, replayed keyless.</td>
+                <td class="same">Unchanged.</td>
+                <td><span class="tag same">—</span></td>
+              </tr>
+              <tr class="ok">
+                <td><span class="page">Evaluations</span><span class="route">/admin/evaluations</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">loop-runs · versions · answers</td>
+                <td class="same">Working — byte-identical payloads to dev.</td>
+                <td class="same">Unchanged.</td>
+                <td><span class="tag same">—</span></td>
+              </tr>
+              <tr class="ok">
+                <td><span class="page">Dataset</span><span class="route">/admin/dataset</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">eval/dataset · splits</td>
+                <td class="same">Working — byte-identical payloads to dev.</td>
+                <td class="same">Unchanged.</td>
+                <td><span class="tag same">—</span></td>
+              </tr>
+              <tr class="ok">
+                <td><span class="page">Research</span><span class="route">/admin/research</span></td>
+                <td class="mono" style="font-size: 11.5px; color: var(--faint)">admin/rules</td>
+                <td class="same">Working (off-nav; linked from Architecture).</td>
+                <td class="same">Unchanged.</td>
+                <td><span class="tag same">—</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">02</span> Why it happened, and what changed</h2>
+        <p class="lede">
+          The first two causes share a shape worth naming: <strong>the read-only routes are written to
+          degrade rather than 500</strong>, which is correct — and which is exactly why an artifact
+          missing from the image failed nothing. No build broke, no route errored, no smoke test
+          complained. A page simply rendered its “not yet run” state on the deployment whose only job
+          is to show it.
+        </p>
+
+        <div class="causes">
+          <div class="cause">
+            <h3>C1 · The image never carried <code>story.json</code>, <code>readiness.json</code> or any traces <span class="id">Dockerfile</span></h3>
+            <p>
+              <code>COPY evaluation/mlflow_snapshot.json evaluation/registry.json</code> was the whole
+              list. <code>story.json</code> alone feeds the entire Runtimes page, the campaign track,
+              the progression chart, the judge panel and four landing tiles.
+              <code>.traces/traces.db</code> is 57 MB of gitignored dev state, so a cold container
+              browsed nothing.
+            </p>
+            <dl>
+              <dt>Fix</dt>
+              <dd>
+                <code>story.json</code>, <code>readiness.json</code>, <code>evaluation/judge/</code>
+                and a new <code>traces_snapshot.jsonl.gz</code> are copied in.
+              </dd>
+              <dt>Traces</dt>
+              <dd>
+                New <code>tracking/trace_snapshot.py</code> exports the store to gzipped JSONL —
+                6 MB for 8,408 turns — and seeds a store that has <em>no turns of its own</em>.
+                Emptiness is the guard, not the deployment mode, so a dev machine keeps what it
+                measured and a fresh checkout gets the record.
+              </dd>
+              <dt>Verbatim</dt>
+              <dd>
+                Rows are copied with their <code>trace_id</code> and <code>created_at</code> intact.
+                Re-recording them would stamp 8,000 historical turns with the image’s build time and
+                report a batch evaluation as a live traffic spike inside
+                <code>/metrics/production</code>’s 24-hour window.
+              </dd>
+              <dt>Command</dt>
+              <dd><code>uv run convfinqa-mlflow traces-snapshot</code></dd>
+            </dl>
+          </div>
+
+          <div class="cause">
+            <h3>C2 · The readiness scorecard, same cause <span class="id">Dockerfile</span></h3>
+            <p>
+              <code>evaluation/readiness.json</code> is committed and CI-checked, and was never copied
+              in. Three surfaces render it from one component, so all three went dark at once: the
+              landing strip, Architecture §13, and the Readiness page itself.
+            </p>
+            <dl>
+              <dt>Fix</dt><dd>Copied, and covered by the artifact contract below.</dd>
+            </dl>
+          </div>
+
+          <div class="cause">
+            <h3>C3 · <code>/admin/experiments</code> is both an API route and a page <span class="id">serving/app.py</span></h3>
+            <p>
+              <code>/admin</code> is an API prefix and a UI route prefix, and this one path is spelled
+              the same on both sides. FastAPI matches the API route first, so the SPA fallback never
+              ran: a bookmark, a refresh or a shared link returned raw JSON. <strong>Dev cannot catch
+              this</strong> — Vite’s proxy already hands document requests back to the client router,
+              so the collision is invisible until it is public.
+            </p>
+            <div class="wire">
+              <figure>
+                <figcaption class="b">before · GET /admin/experiments (browser)</figcaption>
+                <pre><em>{"source":"snapshot","runs":[{"run_id":
+"4edad254f7d04f5f8c1d31cd112c1113",
+"run_name":"sdk-evalloop-test100-sdk_v1…</em></pre>
+              </figure>
+              <figure>
+                <figcaption class="a">after · same request</figcaption>
+                <pre><b>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+  &lt;title&gt;ConvFinQA Agent&lt;/title&gt;</b></pre>
+              </figure>
+            </div>
+            <dl>
+              <dt>Fix</dt>
+              <dd>
+                The same rule Vite applies, applied on this side: a <code>GET</code>/<code>HEAD</code>
+                under <code>/admin</code> whose <code>sec-fetch-dest</code> is <code>document</code>
+                gets the SPA shell. <code>fetch()</code> sends <code>*/*</code> and the SSE client
+                sends <code>text/event-stream</code>, so no real API call is caught.
+              </dd>
+            </dl>
+          </div>
+
+          <div class="cause champion">
+            <h3>C4 · The board named the pipeline bundle, not the agent that answers <span class="id">the champion question</span></h3>
+            <p>
+              Serving was <em>already</em> <code>sdk_v1</code> — <code>SERVING_RUNTIME=agent_sdk</code>
+              is the default and <code>sdk_champion</code> is <code>sdk_v1</code> in the registry. What
+              was wrong is what the app said about it: the landing lamp read <strong>champion v8</strong>,
+              the four-agent pipeline bundle, which answers none of a visitor’s questions.
+            </p>
+            <p>
+              The registry keeps the two aliases apart on purpose, and that stays:
+              <code>registry.promote</code> refuses to point <code>champion</code> at an sdk version,
+              because serving builds four agents from it and an sdk version there is a champion nothing
+              can construct. So “the champion” is only well defined once you know the runtime.
+            </p>
+            <dl>
+              <dt>Fix</dt>
+              <dd>
+                <code>/healthz</code> now resolves it once and reports
+                <code>serving_champion: "sdk_v1"</code>. The top bar and the landing lamp read that
+                field instead of each re-deriving the rule — one of them had drifted.
+              </dd>
+              <dt>Result</dt>
+              <dd>The champion lamp reads <code>sdk_v1</code> and links to Runtimes, where the evidence for it is.</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">03</span> What now ships, and what stays dev-only</h2>
+        <p class="lede">
+          The rule: every committed artifact a read-only route opens goes in the image. Dev state —
+          the LM cache, the MLflow file store, the raw trace DB — stays out and ships as an export.
+        </p>
+        <div class="flow">
+          <svg viewBox="0 0 900 232" role="img" aria-label="Which dev artifacts reach the demo image, and how">
+            <defs>
+              <marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                <path d="M0,0 L7,3.5 L0,7 z" fill="#9ba1ab" />
+              </marker>
+            </defs>
+            <text x="8" y="16" fill="#9ba1ab" font-family="ui-monospace, Menlo, monospace" font-size="10.5" letter-spacing="1">DEV WORKING TREE</text>
+            <text x="380" y="16" fill="#9ba1ab" font-family="ui-monospace, Menlo, monospace" font-size="10.5" letter-spacing="1">COMMITTED EXPORT</text>
+            <text x="682" y="16" fill="#9ba1ab" font-family="ui-monospace, Menlo, monospace" font-size="10.5" letter-spacing="1">DEMO IMAGE</text>
+
+            <!-- committed straight through -->
+            <rect x="8" y="30" width="228" height="60" rx="6" fill="#212429" stroke="#32363d" />
+            <text x="22" y="52" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">story.json · readiness.json</text>
+            <text x="22" y="70" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">registry.json · judge/ · splits/</text>
+            <text x="22" y="84" fill="#4ecb9d" font-size="10.5" font-family="ui-monospace, Menlo, monospace">already in git — was simply not COPY'd</text>
+            <line x1="240" y1="60" x2="668" y2="60" stroke="#9ba1ab" stroke-width="1.2" marker-end="url(#ar)" />
+            <text x="392" y="54" fill="#9ba1ab" font-size="11">copied verbatim</text>
+
+            <!-- mlflow -->
+            <rect x="8" y="104" width="228" height="46" rx="6" fill="#212429" stroke="#32363d" />
+            <text x="22" y="126" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">mlruns/</text>
+            <text x="22" y="142" fill="#9ba1ab" font-size="10.5" font-family="ui-monospace, Menlo, monospace">gitignored dev state</text>
+            <line x1="240" y1="127" x2="374" y2="127" stroke="#9ba1ab" stroke-width="1.2" marker-end="url(#ar)" />
+            <rect x="384" y="104" width="256" height="46" rx="6" fill="#2a2e34" stroke="#434850" />
+            <text x="398" y="126" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">mlflow_snapshot.json</text>
+            <text x="398" y="142" fill="#9ba1ab" font-size="10.5" font-family="ui-monospace, Menlo, monospace">convfinqa-mlflow snapshot</text>
+            <line x1="644" y1="127" x2="668" y2="127" stroke="#9ba1ab" stroke-width="1.2" marker-end="url(#ar)" />
+
+            <!-- traces: the new one -->
+            <rect x="8" y="164" width="228" height="46" rx="6" fill="#212429" stroke="#f0a93f" stroke-opacity="0.45" />
+            <text x="22" y="186" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">.traces/traces.db · 57 MB</text>
+            <text x="22" y="202" fill="#9ba1ab" font-size="10.5" font-family="ui-monospace, Menlo, monospace">gitignored dev state</text>
+            <line x1="240" y1="187" x2="374" y2="187" stroke="#f0a93f" stroke-width="1.2" marker-end="url(#ar)" />
+            <rect x="384" y="164" width="256" height="46" rx="6" fill="rgba(240,169,63,0.13)" stroke="#f0a93f" stroke-opacity="0.45" />
+            <text x="398" y="186" fill="#f0a93f" font-size="12.5" font-family="ui-monospace, Menlo, monospace">traces_snapshot.jsonl.gz · 6 MB</text>
+            <text x="398" y="202" fill="#f0a93f" font-size="10.5" font-family="ui-monospace, Menlo, monospace">NEW · convfinqa-mlflow traces-snapshot</text>
+            <line x1="644" y1="187" x2="668" y2="187" stroke="#f0a93f" stroke-width="1.2" marker-end="url(#ar)" />
+
+            <rect x="676" y="30" width="216" height="180" rx="6" fill="#212429" stroke="#32363d" />
+            <text x="692" y="56" fill="#e8e9ea" font-size="12.5" font-family="ui-monospace, Menlo, monospace">DEMO_MODE=1</text>
+            <text x="692" y="80" fill="#9ba1ab" font-size="11.5">no API key, no tracking server</text>
+            <text x="692" y="104" fill="#9ba1ab" font-size="11.5">chat replays the recorded pack</text>
+            <text x="692" y="128" fill="#9ba1ab" font-size="11.5">every read-only surface is live</text>
+            <text x="692" y="160" fill="#4ecb9d" font-size="11.5">8,408 traces seeded on an</text>
+            <text x="692" y="176" fill="#4ecb9d" font-size="11.5">empty store, timestamps intact</text>
+          </svg>
+        </div>
+
+        <div class="callout">
+          <h3>Two differences that are deliberate and stay</h3>
+          <p>
+            <strong>8 filings, not 260.</strong> Chat can only answer what the recorded pack holds, and
+            the eyebrow says so honestly.
+            <strong>The three source groups are never summed.</strong> A turn recorded at 6.7s
+            and replayed in 2s is not a 2s turn, so <code>serving</code>, <code>demo</code> and
+            <code>eval</code> stay apart on every card — the demo board reads one of them and says
+            which, rather than averaging them into a number that is true of nothing.
+          </p>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">04</span> How this stops coming back</h2>
+        <p class="lede">
+          Both failures were silent by construction, so the guard has to assert the payload, not the
+          status code.
+        </p>
+        <ul class="plain">
+          <li>
+            <strong><code>tests/test_demo_image.py</code></strong> — one table,
+            <code>SHIPPED_ARTIFACTS</code>, mapping every committed artifact to the route that opens
+            it. It parses the Dockerfile’s <code>COPY</code> lines (including <code>\</code>
+            continuations) and fails when a listed artifact is not carried, and separately checks
+            <code>.dockerignore</code> does not exclude one. It also drives the app with a mounted
+            SPA bundle and asserts <code>/admin/experiments</code> answers HTML to a navigation and
+            JSON to a <code>fetch()</code>.
+          </li>
+          <li>
+            <strong><code>scripts/demo_smoke.sh</code></strong> — runs against the live URL on every
+            deploy. Four new assertions: <code>/eval/campaigns</code> carries an
+            <code>sdk_champion</code>, a <code>champion_track</code> and a
+            <code>runtime_comparison</code>; <code>/eval/readiness</code> returns nine rows;
+            <code>/traces/stats</code> reports more than a thousand turns; and
+            <code>/admin/experiments</code> returns a page to a browser. <strong>An empty state is a
+            legitimate answer in dev and a deployment bug in the container</strong> — the smoke test is
+            where that distinction is enforced.
+          </li>
+          <li>
+            <strong><code>tests/test_trace_snapshot.py</code></strong> — the export round-trips
+            verbatim, loading twice adds nothing, a store with its own history is never seeded, a
+            snapshot from a future build loads with unknown columns dropped, and an unchanged store
+            exports byte-identical bytes so it never shows up as a spurious git diff.
+          </li>
+        </ul>
+      </section>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">05</span> Verification</h2>
+        <p class="lede">Not argued — run.</p>
+        <div class="scroller">
+          <table style="min-width: 620px">
+            <thead>
+              <tr><th>Check</th><th>Result</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">uv run pytest</td><td class="now">396 passed</td></tr>
+              <tr><td class="mono">uv run mypy src/</td><td class="now">no issues in 119 source files</td></tr>
+              <tr><td class="mono">uv run ruff check src/ tests/</td><td class="now">all checks passed</td></tr>
+              <tr><td class="mono">npm run lint &amp; test:unit &amp; lint:design</td><td class="now">162 tests passed · design lint clean · ratchet unchanged at 110 / 30</td></tr>
+              <tr><td class="mono">docker build . &amp;&amp; ./scripts/demo_smoke.sh</td><td class="now">SMOKE PASS — 9 readiness rows, 8,408 traces, writes refused</td></tr>
+              <tr><td class="mono">browser walk, 10 routes in the container</td><td class="now">every page matches dev; demo landing now shows $0.0022 / 3.8s like dev</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <section>
+        <h2><span class="n">06</span> C5 · The 24-hour window <span class="n">now done</span></h2>
+        <p class="lede">
+          Your earlier ask — traces “over all time, not the last 24 hours, and over all models” — is
+          now closed too. What I found on opening it is worth stating plainly: <strong>the aggregates
+          were never windowed. Only the label was.</strong>
+        </p>
+
+        <div class="causes">
+          <div class="cause champion">
+            <h3>The numbers were all-time; the copy said “last 24 h” <span class="id">routes/metrics.py</span></h3>
+            <p>
+              Latency, cost, accuracy, tokens and counts were always computed over every turn the
+              store holds. The response advertised <code>window_hours: 24</code> and the UI printed
+              “last 24 h” above them — so a page showing 8,408 turns also said “no turns in the last
+              24 h”. The one thing genuinely windowed was the sparkline, and it ended at
+              <em>now</em>, which on a deployment whose history is committed rather than live is
+              twenty-four measured zeros for every source.
+            </p>
+            <dl>
+              <dt>Window</dt>
+              <dd>
+                The response now says <code>window: "all-time"</code>, because that is what the
+                figures are.
+              </dd>
+              <dt>Series</dt>
+              <dd>
+                Bucketed to the data, not windowed to the clock: 24 bars ending at
+                <em>that source’s newest turn</em>, widening
+                <code>hour → day → week</code> until they span its whole history. Each group carries
+                <code>series_bucket</code>, <code>first_turn_at</code> and <code>last_turn_at</code>,
+                so the card can label a bar instead of assuming one.
+              </dd>
+              <dt>Result</dt>
+              <dd>
+                The demo’s cards read <span class="now">turns per day · 29 Aug – 4 Sept</span> and
+                <span class="now">turns per day · 2 Sept – 6 Sept</span> over real curves, where
+                before they were flat.
+              </dd>
+            </dl>
+          </div>
+
+          <div class="cause champion">
+            <h3>And the landing tiles were reading the wrong source group <span class="id">useBoardData.ts</span></h3>
+            <p>
+              Widening the window alone would not have fixed the demo, which is the thing §06
+              promised. In replay mode the board read the <code>demo</code> group — this container’s
+              own replays: zero on a cold start, and never metered even when it isn’t, because the
+              recorded pack carries no timing at all. Those two tiles could never have shown a number.
+            </p>
+            <p>
+              The committed snapshot ships the <strong>development serving turns those recordings
+              were made from</strong>. That is the traffic the demo is a demo of, so that is the group
+              it now reads when its own replays carry nothing — labelled as recorded development
+              traffic, and still never summed with the replays: the two stay separate groups on the
+              Traces page, which is the rule that actually matters.
+            </p>
+            <div class="wire">
+              <figure>
+                <figcaption class="b">before · demo landing</figcaption>
+                <pre><em>COST PER TURN   —
+  no turns replayed in the last 24 h
+P50 LATENCY     —
+  no turns replayed in the last 24 h</em></pre>
+              </figure>
+              <figure>
+                <figcaption class="a">after · demo landing</figcaption>
+                <pre><b>COST PER TURN   $0.0022
+  all time · $0.1410 over 65 turns priced
+P50 LATENCY     3.8s
+  p95 10.4s · 65 turns measured · 65 served</b></pre>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <h3>“This should be based on MLflow, right?” — no, and here is why</h3>
+          <p>
+            They are two different things. The trace store is <strong>one row per answered turn</strong>
+            — its four stage captures, its gold answer, its cost — written by serving and by the eval
+            runner; that is what the Traces page, <code>/traces</code> and
+            <code>/metrics/production</code> read. MLflow tracing is <strong>one span per LLM call</strong>
+            inside an eval run, lives in <code>mlruns/</code>, and needs a tracking server the demo
+            container deliberately does not have. “Why did it answer that” is a turn-level question, so
+            it is answered by the turn-level store. What MLflow does contribute to the app is the
+            run and experiment history — exported to <code>mlflow_snapshot.json</code> and read by
+            the Experiments page. Both now ship.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        Branch <code class="mono">ship-dev-data-to-prod</code> · audited against
+        <code class="mono">https://vrpy25pewm.ap-southeast-1.awsapprunner.com</code> and
+        <code class="mono">http://localhost:5173</code>, fixes verified on a locally built image.
+        Design taken from the app’s own token set (<code class="mono">frontend/src/styles/tokens.css</code>).
+      </footer>
+    </div>
+  </body>
+</html>

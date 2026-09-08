@@ -1,11 +1,20 @@
 import { EmptyState } from './ui';
+import { versionLabel } from './lib';
 import { ARMS, PAPER_HUMAN } from './runtimeStory';
 import type { ProgressionPoint } from './runtimeStory';
 import { formatPercent } from '../landing/format';
 import { cn } from '@/lib/utils';
 
-/** One or two words per stage for the compact chart's five narrow columns. */
-const COMPACT_STAGE: Record<ProgressionPoint['key'], string> = {
+/**
+ * One or two words per stage, on both widths.
+ *
+ * The full chart used to print the whole stage name — `multi-agent, optimised`
+ * — and at five columns those labels touched their neighbours. They also
+ * repeated what the bracket underneath already says: which runtime each pair
+ * belongs to. The runtime is said once, under the bracket; the column says only
+ * what happened at that stage.
+ */
+const STAGE_LABEL: Record<ProgressionPoint['key'], string> = {
   pipeline_raw: 'raw',
   pipeline_optimised: 'after the loop',
   sdk_distilled: 'distilled',
@@ -74,7 +83,9 @@ export function ProgressionChart({
   const w = compact ? 600 : 940;
   const h = compact ? 300 : 340;
   const left = 52;
-  const right = compact ? 20 : 178;
+  // Wide enough for the longest reference caption — "measured on this gate
+  // split" was clipped to "…gate s" at 178.
+  const right = compact ? 20 : 226;
   const top = 24;
   const bottom = compact ? 64 : 78;
   const plotW = w - left - right;
@@ -124,7 +135,10 @@ export function ProgressionChart({
         </title>
         <desc id="progression-desc">
           {drawable
-            .map((p) => `${p.stage}${p.version ? ` (${p.version})` : ''} ${formatPercent(p.accuracy)}`)
+            .map(
+              (p) =>
+                `${p.stage}${p.version ? ` (${versionLabel(p.version)})` : ''} ${formatPercent(p.accuracy)}`,
+            )
             .join('; ')}
           . Reference lines: {references.map((r) => `${r.label} — ${r.sub}`).join('; ')}.
           {points.some((p) => !p.present)
@@ -284,20 +298,26 @@ export function ProgressionChart({
                     {p.runtime === 'pipeline' ? 'pipeline' : 'session'}
                   </text>
                   <text x={xOf(i)} y={h - bottom + 30} textAnchor="middle" fill="var(--text)" className="type-num type-meta">
-                    {COMPACT_STAGE[p.key]}
+                    {STAGE_LABEL[p.key]}
                   </text>
+                  {/*
+                    Head only — `sdk-v2 · rejected` and `sdk-v1 · haiku-4-5`
+                    are wider than a 120-unit slot and ran into each other. The
+                    hatched bar and the caption below already say "rejected",
+                    and the stage line above already says "model swap"; the two
+                    columns both reading `sdk-v1` is the point of that stage.
+                  */}
                   <text x={xOf(i)} y={h - bottom + 44} textAnchor="middle" fill="var(--faint)" className="type-num type-meta">
-                    {p.version ?? 'no version'}
-                    {rejected ? ' · rejected' : ''}
+                    {p.version ? versionLabel(p.version).split(' · ')[0] : 'no version'}
                   </text>
                 </>
               ) : (
                 <>
                   <text x={xOf(i)} y={h - bottom + 18} textAnchor="middle" fill="var(--text)" className="type-num type-meta">
-                    {p.stage}
+                    {STAGE_LABEL[p.key]}
                   </text>
                   <text x={xOf(i)} y={h - bottom + 32} textAnchor="middle" fill="var(--faint)" className="type-num type-meta">
-                    {p.version ?? 'no version'}
+                    {p.version ? versionLabel(p.version) : 'no version'}
                     {rejected ? ' · rejected' : ''}
                   </text>
                 </>

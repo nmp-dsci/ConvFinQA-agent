@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { BACKEND, enterChatFromBoard } from './enter';
+import { versionLabel } from '../../src/features/admin/lib';
 
 /**
  * The status board at `/`, and the chat empty state behind it.
@@ -49,6 +50,8 @@ async function openBoard(page: Page): Promise<void> {
 async function health(request: APIRequestContext): Promise<{
   mode: string;
   champion: string | null;
+  sdk_champion: string | null;
+  serving_champion: string | null;
 }> {
   const response = await request.get(`${BACKEND}/healthz`);
   expect(response.ok(), '/healthz must answer before the board can be judged').toBeTruthy();
@@ -64,7 +67,7 @@ test.describe('status board at /', () => {
     page,
     request,
   }) => {
-    const { champion } = await health(request);
+    const { champion, sdk_champion, serving_champion } = await health(request);
     await openBoard(page);
 
     // --- lamps ------------------------------------------------------------
@@ -81,9 +84,12 @@ test.describe('status board at /', () => {
       );
     }
 
-    // The champion lamp reports what /healthz reports — not a hardcoded name.
-    if (champion) {
-      await expect(page.getByTestId('lamp-champion')).toContainText(champion);
+    // The champion lamp reports what /healthz resolves for the serving
+    // runtime — sdk_champion under agent_sdk, the pipeline champion
+    // otherwise — rendered through the same versionLabel the lamp uses.
+    const resolvedChampion = serving_champion ?? sdk_champion ?? champion;
+    if (resolvedChampion) {
+      await expect(page.getByTestId('lamp-champion')).toContainText(versionLabel(resolvedChampion));
     }
 
     // --- the star: the five-stage progression on a zero baseline ----------

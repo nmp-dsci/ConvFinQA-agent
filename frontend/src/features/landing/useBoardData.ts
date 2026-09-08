@@ -108,7 +108,21 @@ async function loadRecordedConversations(limit: number): Promise<RecordedConvers
 export interface BoardData {
   health: Health | null;
   isDemo: boolean;
+  /** The `champion` alias — the four-agent pipeline bundle. */
   champion: string | null;
+  /**
+   * The version that actually answers a turn on this deployment.
+   *
+   * The registry keeps two aliases on purpose: `champion` is a four-agent
+   * bundle and `sdk_champion` a single-session prompt, and `registry.promote`
+   * refuses to point one at the other because serving builds four agents from
+   * `champion` and an sdk version there is a champion nothing can construct.
+   * The runtime decision (s11) moved serving to `agent_sdk`, so the alias the
+   * board should lead with is the one the runtime reads — otherwise the page
+   * names a bundle no visitor's question is answered by.
+   */
+  servingChampion: string | null;
+  servingRuntime: string | null;
 
   /**
    * `/eval/campaigns` — the optimisation loop's own evidence.
@@ -140,7 +154,7 @@ export interface BoardData {
   metricsSource: MetricsSource;
   metrics: SourceMetrics | null;
   metricsGeneratedAt: string | undefined;
-  metricsWindowHours: number | undefined;
+  metricsWindow: string | undefined;
   traceCaptureEnabled: boolean | undefined;
   metricsLoading: boolean;
 
@@ -161,6 +175,8 @@ export function useBoardData(recordedLimit = 3): BoardData {
   const health = useMode((s) => s.health);
   const isDemo = health?.mode === 'demo';
   const champion = health?.champion ?? null;
+  const servingRuntime = health?.runtime ?? null;
+  const servingChampion = health?.serving_champion ?? champion;
 
   const versionsQuery = useQuery({
     queryKey: qk.versions,
@@ -211,7 +227,25 @@ export function useBoardData(recordedLimit = 3): BoardData {
     staleTime: 60_000,
   });
 
-  const metricsSource: MetricsSource = isDemo ? 'demo' : 'serving';
+  /**
+   * Which source group the board's operational tiles describe.
+   *
+   * In dev that is `serving`: this process's own turns. In the replay
+   * deployment the obvious answer is `demo` — and it is the wrong one. The
+   * `demo` group is that container's own replays: zero on a cold start, and
+   * never metered even when it isn't, because the recorded pack carries no
+   * timing of its own. Reading it left the demo's cost and latency tiles as
+   * permanent em dashes.
+   *
+   * The committed trace snapshot ships the *development serving turns those
+   * recordings were made from*, so `serving` is the group the demo can honestly
+   * show: the traffic it is a demo of. It is labelled as recorded development
+   * traffic below, and it is still never summed with the replays — the two stay
+   * separate groups on the Traces page, which is the rule that matters.
+   */
+  const demoGroup = metricsQuery.data?.sources?.demo;
+  const metricsSource: MetricsSource =
+    isDemo && (demoGroup?.latency_ms.n_measured ?? 0) === 0 ? 'serving' : isDemo ? 'demo' : 'serving';
   const metrics = metricsQuery.data?.sources?.[metricsSource] ?? null;
 
   const championHoldout = experimentsQuery.data?.versions?.find(
@@ -225,6 +259,8 @@ export function useBoardData(recordedLimit = 3): BoardData {
     health,
     isDemo,
     champion,
+    servingChampion,
+    servingRuntime,
     campaigns: campaignsQuery.data,
     versions,
     championVersion,
@@ -234,7 +270,7 @@ export function useBoardData(recordedLimit = 3): BoardData {
     metricsSource,
     metrics,
     metricsGeneratedAt: metricsQuery.data?.generated_at,
-    metricsWindowHours: metricsQuery.data?.window_hours,
+    metricsWindow: metricsQuery.data?.window,
     traceCaptureEnabled: metricsQuery.data?.trace_capture_enabled,
     metricsLoading: metricsQuery.isLoading,
     gate: gateQuery.data,

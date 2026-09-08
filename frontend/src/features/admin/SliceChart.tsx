@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatPercent } from '../landing/format';
+import { versionLabel } from './lib';
 
 /**
  * Accuracy by slice, one bar per label, one colour per version.
@@ -124,7 +125,7 @@ export function SliceChart({
               className="size-2 rounded-[2px]"
               style={{ background: SERIES_COLOR[i % SERIES_COLOR.length] }}
             />
-            <span className="mono-caps">{s.version}</span>
+            <span className="mono-caps">{versionLabel(s.version)}</span>
           </span>
         ))}
       </div>
