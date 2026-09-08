@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { HudTile } from './HudTile';
-import { formatPp, judgeHeadline } from '../admin/runtimeStory';
+import { formatPp } from '../admin/runtimeStory';
 import { LampStrip } from './LampStrip';
 import { PipelineStrip } from './PipelineStrip';
 import { RecordedConversations } from './RecordedConversations';
@@ -203,7 +203,6 @@ export function RightPane({ board }: { board: BoardData }) {
   const sdkGate = campaigns?.runtime_comparison?.gate ?? null;
   const swap = campaigns?.sdk_model_comparison ?? null;
   const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
-  const judged = judgeHeadline(campaigns?.judge);
   const judgeVerdict = campaigns?.judge?.verdict ?? null;
   const swapPair = swap?.pairs?.[0] ?? null;
   const shortModel = (model: string | null | undefined) =>
