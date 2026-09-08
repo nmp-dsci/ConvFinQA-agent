@@ -615,11 +615,21 @@ export default function Experiments() {
 
       <Panel
         testId="experiments-campaign-track"
-        title="Campaign track"
+        title="Campaign track — four-agent pipeline only"
         endpoint="/eval/campaigns"
         note={campaignData?.rule || 'the promotion rule'}
         right={<span className="type-small text-faint">champion {campaignData?.champion ?? '—'}</span>}
       >
+        <p className="type-small mb-2 text-faint">
+          Every point here is a four-agent pipeline version, plotted with its per-subagent
+          accuracy — a single Claude session has no subagents, so it has nothing to plot on this
+          chart. Its own campaign (capped at 2 experiments, not 5) and the sdk_v1-vs-pipeline
+          comparison are on{' '}
+          <Link to="/admin/runtimes" className="text-amber underline underline-offset-4">
+            Runtimes
+          </Link>
+          .
+        </p>
         {campaignsQuery.isLoading ? (
           <LoadingRows rows={6} />
         ) : campaignsQuery.error ? (
@@ -635,8 +645,7 @@ export default function Experiments() {
             <ChampionChart track={campaignData.champion_track} />
             <Caveat>
               Only promoted experiments move this line. Each rewrites exactly one subagent's
-              prompt; a paired significance test on the fixed gate split decides promotion. The
-              single-session challenger runs a separate cap and gate — see Runtimes.
+              prompt; a paired significance test on the fixed gate split decides promotion.
             </Caveat>
           </>
         )}
