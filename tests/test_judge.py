@@ -108,7 +108,9 @@ def all_docs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(stage_scores, "report_documents", lambda: docs)
 
 
-def _number(report: str, turn: int, answer: str, gold: str, *, correct: bool) -> dict[str, Any]:
+def _number(
+    report: str, turn: int, answer: str, gold: str, *, correct: bool
+) -> dict[str, Any]:
     return _row(
         report, turn, f"what was revenue in 2020? ({report} q{turn})", gold, "",
         {"turn_type": "number", "conv_type": "Type I", "answer": answer,
@@ -117,7 +119,15 @@ def _number(report: str, turn: int, answer: str, gold: str, *, correct: bool) ->
     )  # fmt: skip
 
 
-def _program(report: str, turn: int, answer: str, gold: str, *, correct: bool, program: str = "subtract(A, B)") -> dict[str, Any]:
+def _program(
+    report: str,
+    turn: int,
+    answer: str,
+    gold: str,
+    *,
+    correct: bool,
+    program: str = "subtract(A, B)",
+) -> dict[str, Any]:
     return _row(
         report, turn, f"what was the change in revenue? ({report} q{turn})", gold, "subtract(200, 50)",
         {"turn_type": "program", "conv_type": "Type I",
@@ -218,9 +228,7 @@ def test_a_gold_key_reaching_the_payload_is_an_assertion(
 ) -> None:
     from convfinqa.evalloop import sdk_teacher
 
-    monkeypatch.setattr(
-        sdk_teacher, "sdk_flags", lambda row: {"gold_answer": "leak"}
-    )
+    monkeypatch.setattr(sdk_teacher, "sdk_flags", lambda row: {"gold_answer": "leak"})
     payload = judge.judge_payload(_number(REPORT_A, 0, "200", "200", correct=True))
     # `sdk_flags` is nested, so a leak there is not a top-level key — the
     # guard is on the payload's own keys and the trail's. Prove the guard fires
@@ -356,7 +364,9 @@ def test_selective_metrics_read_the_band_and_bound_the_unseen_error() -> None:
 
 
 def test_a_high_band_miss_breaks_the_target() -> None:
-    df = _scores([("A", True, "high", 0.9), ("A", False, "high", 0.8), ("B", False, "low", 0.1)])
+    df = _scores(
+        [("A", True, "high", 0.9), ("A", False, "high", 0.8), ("B", False, "low", 0.1)]
+    )
     m = judge.selective_metrics(df)
     assert m["meets_target"] is False
     assert m["n_failures_missed"] == 1 and m["failure_capture"] == 0.5
@@ -389,17 +399,25 @@ def test_an_unscored_turn_is_neither_released_nor_withheld() -> None:
 
 
 def test_a_gate_refuses_a_scores_file_with_unjudged_turns(tmp_path: Path) -> None:
-    df = _scores([("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "low", 0.1)])
+    df = _scores(
+        [("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "low", 0.1)]
+    )
     df["unscored"] = False
     partial = df.copy()
     partial.loc[[2], ["band", "p_correct", "unscored"]] = ["", None, True]
     full, half = tmp_path / "full.csv", tmp_path / "half.csv"
     df.to_csv(full, index=False)
     partial.to_csv(half, index=False)
-    with pytest.raises(judge.IncompleteJudgeScoresError, match="1 of 3 turns were never judged"):
-        judge.gate_judges(full, half, baseline_version="judge_j1", candidate_version="judge_j2")
+    with pytest.raises(
+        judge.IncompleteJudgeScoresError, match="1 of 3 turns were never judged"
+    ):
+        judge.gate_judges(
+            full, half, baseline_version="judge_j1", candidate_version="judge_j2"
+        )
     with pytest.raises(judge.IncompleteJudgeScoresError):
-        judge.gate_judges(half, full, baseline_version="judge_j1", candidate_version="judge_j2")
+        judge.gate_judges(
+            half, full, baseline_version="judge_j1", candidate_version="judge_j2"
+        )
     # A CSV written before the column existed still says so in `error`, and it
     # is exactly the file that must not read as a complete pass.
     legacy = df.drop(columns=["unscored"])
@@ -408,25 +426,39 @@ def test_a_gate_refuses_a_scores_file_with_unjudged_turns(tmp_path: Path) -> Non
     legacy.to_csv(old, index=False)
     assert judge.selective_metrics(legacy)["n_unscored"] == 1
     with pytest.raises(judge.IncompleteJudgeScoresError):
-        judge.gate_judges(full, old, baseline_version="judge_j1", candidate_version="judge_j2")
+        judge.gate_judges(
+            full, old, baseline_version="judge_j1", candidate_version="judge_j2"
+        )
 
 
 def test_gate_promotes_more_coverage_inside_the_bound_and_no_fewer_catches(
     tmp_path: Path,
 ) -> None:
-    base = _scores([("A", True, "low", 0.5), ("A", True, "high", 0.9), ("B", False, "low", 0.1)])
-    better = _scores([("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "low", 0.1)])
-    leaky = _scores([("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "high", 0.7)])
+    base = _scores(
+        [("A", True, "low", 0.5), ("A", True, "high", 0.9), ("B", False, "low", 0.1)]
+    )
+    better = _scores(
+        [("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "low", 0.1)]
+    )
+    leaky = _scores(
+        [("A", True, "high", 0.9), ("A", True, "high", 0.9), ("B", False, "high", 0.7)]
+    )
     b, c, k = tmp_path / "b.csv", tmp_path / "c.csv", tmp_path / "k.csv"
     base.to_csv(b, index=False)
     better.to_csv(c, index=False)
     leaky.to_csv(k, index=False)
-    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    verdict = judge.gate_judges(
+        b, c, baseline_version="judge_j1", candidate_version="judge_j2"
+    )
     assert verdict["promotable"] is True
     assert verdict["flips"]["released"] == ["A_q0"] and verdict["n_withheld"] == 0
-    refused = judge.gate_judges(b, k, baseline_version="judge_j1", candidate_version="judge_j2")
+    refused = judge.gate_judges(
+        b, k, baseline_version="judge_j1", candidate_version="judge_j2"
+    )
     assert refused["promotable"] is False
-    assert "exceeds" in refused["reason"] and "failure capture fell" in refused["reason"]
+    assert (
+        "exceeds" in refused["reason"] and "failure capture fell" in refused["reason"]
+    )
 
 
 def test_gate_rejects_lower_coverage_even_when_the_baseline_missed_target(
@@ -452,7 +484,9 @@ def test_gate_rejects_lower_coverage_even_when_the_baseline_missed_target(
     cm = judge.selective_metrics(candidate)
     assert bm["meets_target"] is False and cm["meets_target"] is True
     assert cm["coverage"] < bm["coverage"]
-    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    verdict = judge.gate_judges(
+        b, c, baseline_version="judge_j1", candidate_version="judge_j2"
+    )
     assert verdict["promotable"] is False
     assert "coverage did not rise" in verdict["reason"]
 
@@ -460,36 +494,57 @@ def test_gate_rejects_lower_coverage_even_when_the_baseline_missed_target(
 def test_gate_derives_split_from_the_scores_and_refuses_test_evidence(
     tmp_path: Path,
 ) -> None:
-    base_cal = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="calibrate")
-    cand_cal = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="calibrate")
-    cand_test = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test")
+    base_cal = _scores(
+        [("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="calibrate"
+    )
+    cand_cal = _scores(
+        [("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="calibrate"
+    )
+    cand_test = _scores(
+        [("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test"
+    )
     b, c, t = tmp_path / "b.csv", tmp_path / "c.csv", tmp_path / "t.csv"
     base_cal.to_csv(b, index=False)
     cand_cal.to_csv(c, index=False)
     cand_test.to_csv(t, index=False)
-    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    verdict = judge.gate_judges(
+        b, c, baseline_version="judge_j1", candidate_version="judge_j2"
+    )
     assert verdict["evidence_split"] == "calibrate"
     with pytest.raises(ValueError, match="same split"):
-        judge.gate_judges(b, t, baseline_version="judge_j1", candidate_version="judge_j2")
+        judge.gate_judges(
+            b, t, baseline_version="judge_j1", candidate_version="judge_j2"
+        )
     with pytest.raises(ValueError, match="never gated for promotion on the test split"):
-        judge.gate_judges(t, t, baseline_version="judge_j1", candidate_version="judge_j2")
+        judge.gate_judges(
+            t, t, baseline_version="judge_j1", candidate_version="judge_j2"
+        )
 
 
 def test_gate_falls_back_to_the_filename_split_for_a_legacy_scores_csv(
     tmp_path: Path,
 ) -> None:
-    base = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)]).drop(columns=["split"])
-    cand = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)]).drop(columns=["split"])
+    base = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)]).drop(
+        columns=["split"]
+    )
+    cand = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)]).drop(
+        columns=["split"]
+    )
     b = tmp_path / "judge-score-calibrate2-judge_j1·j1-20260101_000000.csv"
     c = tmp_path / "judge-score-calibrate2-judge_j2·j2-20260101_000000.csv"
     base.to_csv(b, index=False)
     cand.to_csv(c, index=False)
-    verdict = judge.gate_judges(b, c, baseline_version="judge_j1", candidate_version="judge_j2")
+    verdict = judge.gate_judges(
+        b, c, baseline_version="judge_j1", candidate_version="judge_j2"
+    )
     assert verdict["evidence_split"] == "calibrate"
 
 
 def test_cli_judge_gate_derives_evidence_split_and_refuses_the_test_split(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, judge_module: str, registry_tmp: Path
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    judge_module: str,
+    registry_tmp: Path,
 ) -> None:
     """`judge-gate --promote` must not default to calibrate regardless of the CSVs fed in.
 
@@ -502,8 +557,12 @@ def test_cli_judge_gate_derives_evidence_split_and_refuses_the_test_split(
     from convfinqa.tracking import registry
 
     registry.register(judge_module, source="test")
-    base_test = _scores([("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="test")
-    cand_test = _scores([("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test")
+    base_test = _scores(
+        [("A", True, "high", 0.9), ("B", False, "low", 0.1)], split="test"
+    )
+    cand_test = _scores(
+        [("A", True, "high", 0.9), ("B", False, "high", 0.7)], split="test"
+    )
     b, c = tmp_path / "b.csv", tmp_path / "c.csv"
     base_test.to_csv(b, index=False)
     cand_test.to_csv(c, index=False)
@@ -528,8 +587,12 @@ def test_cli_judge_gate_derives_evidence_split_and_refuses_the_test_split(
 
 def test_validate_judge_prompt_refuses_gold_and_wrong_headings() -> None:
     assert judge.validate_judge_prompt(GOOD_PROMPT) == []
-    with_gold = GOOD_PROMPT.replace("withhold.", "withhold. Compare to the gold answer.")
-    assert any("no reference answer" in p for p in judge.validate_judge_prompt(with_gold))
+    with_gold = GOOD_PROMPT.replace(
+        "withhold.", "withhold. Compare to the gold answer."
+    )
+    assert any(
+        "no reference answer" in p for p in judge.validate_judge_prompt(with_gold)
+    )
     reordered = GOOD_PROMPT.replace("## 7. Output contract", "## 7. Output")
     assert any("headings" in p for p in judge.validate_judge_prompt(reordered))
     no_check = GOOD_PROMPT.replace("unit_and_scale", "units")
@@ -591,7 +654,10 @@ async def test_distil_writes_the_module_registers_the_lineage_and_promotes_the_f
         new_version="judge_j902", base_version="judge_j901", diagnoses=diagnoses
     )
     assert out2["seq"] == "j2" and out2["promoted"] is False
-    assert "You are the confidence judge for a single-session" in fake_calls.calls[-1]["prompt"]
+    assert (
+        "You are the confidence judge for a single-session"
+        in fake_calls.calls[-1]["prompt"]
+    )
     assert registry.judge_champion() == "judge_j901"
 
     # A distillation is never redone in place.
@@ -606,12 +672,16 @@ async def test_a_draft_that_mentions_gold_is_refused_and_not_written(
     fake_calls: FakeSdkCalls,
 ) -> None:
     fake_calls.replies["JudgePromptDraft"] = {
-        "prompt": GOOD_PROMPT.replace("withhold.", "withhold. Compare to the gold answer."),
+        "prompt": GOOD_PROMPT.replace(
+            "withhold.", "withhold. Compare to the gold answer."
+        ),
         "sections": [],
         "notes": "",
     }
     with pytest.raises(SystemExit, match="failed its contract"):
-        await judge.distil_judge(new_version="judge_j903", diagnoses=[{"outcome": "CORRECT"}])
+        await judge.distil_judge(
+            new_version="judge_j903", diagnoses=[{"outcome": "CORRECT"}]
+        )
     assert not (judge.PROMPTS_DIR / "judge_j903.py").exists()
     assert "rejected_prompt.txt" in fake_mlflow.texts
 
@@ -656,7 +726,10 @@ async def test_score_split_fails_closed_and_records_the_pass(
     assert fake_mlflow.metrics["coverage"] == 0.5
     assert fake_mlflow.params["judge_version"] == judge_module
     assert fake_mlflow.params["runtime_version"] == "sdk_v1"
-    assert "metrics.json" in fake_mlflow.dicts and "risk_coverage.json" in fake_mlflow.dicts
+    assert (
+        "metrics.json" in fake_mlflow.dicts
+        and "risk_coverage.json" in fake_mlflow.dicts
+    )
     # Every judge call went out on the judge's model, not the teacher's.
     from convfinqa.llm import judge_model_name
 
@@ -710,7 +783,9 @@ async def test_round_two_diagnoses_only_the_misses_with_the_verdict_attached(
     # Round 1 diagnoses every case and attaches no verdict.
     out1 = await judge.diagnose_split(split="optimise")
     assert out1["round"] == 1 and out1["n_diagnosed"] == 2
-    assert all(r["judge_band"] == "" for r in judge.load_diagnoses("") if r["round"] == 1)
+    assert all(
+        r["judge_band"] == "" for r in judge.load_diagnoses("") if r["round"] == 1
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -735,7 +810,13 @@ async def test_run_structured_carries_the_model_it_is_given(
         return Reply(ok=True), {}
 
     monkeypatch.setattr(sdk, "_run_structured_once", once)
-    await sdk.run_structured("p", schema=Reply, system_prompt="s", refs=None, model="claude-haiku-4-5-20251001")
+    await sdk.run_structured(
+        "p",
+        schema=Reply,
+        system_prompt="s",
+        refs=None,
+        model="claude-haiku-4-5-20251001",
+    )
     assert seen["model"] == "claude-haiku-4-5-20251001"
     await sdk.run_structured("p", schema=Reply, system_prompt="s", refs=None)
     from convfinqa.llm import teacher_model_name

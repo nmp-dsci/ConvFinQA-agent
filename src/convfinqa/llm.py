@@ -75,6 +75,7 @@ def judge_model_name() -> str:
     """The model the confidence judge runs on: the setting, else the constant."""
     return settings.judge_model or LM_JUDGE_MODEL
 
+
 # DeepSeek v4 turned thinking mode *on by default*, and a thinking-mode request
 # rejects the `tool_choice` pydantic-ai sends for every structured `output_type`:
 #

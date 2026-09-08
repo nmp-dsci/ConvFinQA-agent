@@ -77,7 +77,12 @@ class FakeSdkSession:
                 question=question,
                 history_text=history_text,
                 trajectory=trajectory,
-                metrics={"num_turns": 2, "duration_ms": 900, "input_tokens": 10, "output_tokens": 5},
+                metrics={
+                    "num_turns": 2,
+                    "duration_ms": 900,
+                    "input_tokens": 10,
+                    "output_tokens": 5,
+                },
             )
         )
         return result, capture, {}
@@ -105,7 +110,9 @@ def sdk_serving(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     verdicts: dict[str, Any] = {"band": "high", "p_correct": 0.97}
     seen: list[dict[str, Any]] = []
 
-    async def fake_judge_turn(row: Any, *, version: str, **kw: Any) -> tuple[Any, dict[str, Any]]:
+    async def fake_judge_turn(
+        row: Any, *, version: str, **kw: Any
+    ) -> tuple[Any, dict[str, Any]]:
         seen.append({"row": dict(row), "version": version})
         if verdicts.get("raise"):
             raise RuntimeError("the SDK returned no content at all")
@@ -124,7 +131,9 @@ def sdk_serving(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
 
 def _client() -> TestClient:
-    return TestClient(api_app.create_app(session_ttl_seconds=1800, eviction_interval_seconds=3600))
+    return TestClient(
+        api_app.create_app(session_ttl_seconds=1800, eviction_interval_seconds=3600)
+    )
 
 
 def _stream(client: TestClient, session_id: str, question: str) -> list[dict[str, Any]]:
@@ -133,7 +142,9 @@ def _stream(client: TestClient, session_id: str, question: str) -> list[dict[str
     ) as response:
         assert response.status_code == 200
         body = "".join(response.iter_text())
-    return [json.loads(line[6:]) for line in body.splitlines() if line.startswith("data: ")]
+    return [
+        json.loads(line[6:]) for line in body.splitlines() if line.startswith("data: ")
+    ]
 
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
@@ -186,7 +197,9 @@ def test_a_low_band_turn_withholds_the_answer_but_records_it(
     sdk_serving["verdicts"].update({"band": "low", "p_correct": 0.3})
     with _client() as client:
         sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]
-        response = client.post(f"/sessions/{sid}/ask", json={"question": "what was the change?"})
+        response = client.post(
+            f"/sessions/{sid}/ask", json={"question": "what was the change?"}
+        )
         body = response.json()
         assert body["withheld"] is True and body["band"] == "low"
         assert body["answer"] == ""
@@ -205,7 +218,10 @@ def test_a_low_band_turn_withholds_the_answer_but_records_it(
         events = _stream(client, sid, "and doubled?")
         answer = next(e for e in events if e["event"] == "answer")
         assert answer["answer"] == "42" and answer["withheld"] is False
-        assert FakeSdkSession.instances[-1].asked == ["what was the change?", "and doubled?"]
+        assert FakeSdkSession.instances[-1].asked == [
+            "what was the change?",
+            "and doubled?",
+        ]
 
 
 @pytest.mark.skipif(not REPORT, reason="no reports loaded")
@@ -266,7 +282,10 @@ def test_deleting_a_session_closes_its_client_and_healthz_names_the_runtime(
     with _client() as client:
         health = client.get("/healthz").json()
         assert health["runtime"] == "agent_sdk"
-        assert health["sdk_champion"] == "sdk_v1" and health["judge_champion"] == "judge_j1"
+        assert (
+            health["sdk_champion"] == "sdk_v1"
+            and health["judge_champion"] == "judge_j1"
+        )
         sid = client.post("/sessions", json={"report_id": REPORT}).json()["session_id"]
         _stream(client, sid, "what was the change?")
         session = FakeSdkSession.instances[-1]
@@ -302,7 +321,13 @@ def test_stage_frames_mirror_the_pipeline_vocabulary() -> None:
     ]  # fmt: skip
     number: dict[str, Any] = {"history_text": ""}
     number.update(
-        result_to_capture(_result("7", program=False), question="q", history_text="", trajectory=[], metrics={})
+        result_to_capture(
+            _result("7", program=False),
+            question="q",
+            history_text="",
+            trajectory=[],
+            metrics={},
+        )
     )
     assert [f["stage"] for f in sdk_turn.stage_frames(number) if f["event"] == "stage_start"] == [
         "triage", "retriever",
