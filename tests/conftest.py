@@ -33,6 +33,9 @@ def _isolated_settings(
 
     monkeypatch.setattr(settings, "demo_mode", False, raising=False)
     monkeypatch.setattr(settings, "trace_capture_enabled", False, raising=False)
+    # A temp store is empty by definition, so without this every test that
+    # enables capture would load the committed 8k-turn snapshot into it.
+    monkeypatch.setattr(settings, "trace_seed_from_snapshot", False, raising=False)
     # The serving default is the agent_sdk runtime (s12); the API tests drive
     # the four pipeline agents with stub models, so they run on the pipeline
     # unless a test opts into the SDK path with its own fake session.

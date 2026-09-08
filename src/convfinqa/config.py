@@ -229,6 +229,13 @@ class Settings(BaseSettings):
     registered_model_name: str = "convfinqa-pipeline"
     # Persist per-stage IO for every serving turn. Off in tests.
     trace_capture_enabled: bool = True
+    # Seed an *empty* trace store from the committed
+    # `evaluation/traces_snapshot.jsonl.gz`, so a fresh checkout — and the demo
+    # container, which is one — browses the recorded runs rather than only the
+    # turns it has answered since it booted. A store with history of its own is
+    # never touched. Off in tests, where seeding 8k rows into every temp store
+    # would cost more than the tests do.
+    trace_seed_from_snapshot: bool = True
 
     def require_deepseek_api_key(self) -> str:
         """Return the DeepSeek key, raising a clear error when it is absent.

@@ -59,6 +59,8 @@ function boardWithVerdict(v: JudgeVerdict | null): BoardData {
     health: null,
     isDemo: false,
     champion: 'v11',
+    servingChampion: 'sdk_v1',
+    servingRuntime: 'agent_sdk',
     campaigns,
     versions: undefined,
     championVersion: undefined,

@@ -26,6 +26,15 @@ class HealthResponse(BaseModel):
     runtime: str = "pipeline"
     sdk_champion: str | None = None
     judge_champion: str | None = None
+    # Which of the two aliases above actually answers a turn on this
+    # deployment. The registry keeps them apart on purpose — `promote` refuses
+    # to point `champion` at an sdk version, because serving builds four agents
+    # from it and an sdk version there is a champion nothing can construct — so
+    # "the champion" is only well defined once you know the runtime. Resolved
+    # here rather than in each caller: the top bar, the landing lamp and the
+    # write-up were each re-deriving it, and one of them was still naming the
+    # pipeline bundle long after the runtime decision moved serving to the SDK.
+    serving_champion: str | None = None
 
 
 class ReportSummary(BaseModel):

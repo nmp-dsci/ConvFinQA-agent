@@ -108,7 +108,21 @@ async function loadRecordedConversations(limit: number): Promise<RecordedConvers
 export interface BoardData {
   health: Health | null;
   isDemo: boolean;
+  /** The `champion` alias — the four-agent pipeline bundle. */
   champion: string | null;
+  /**
+   * The version that actually answers a turn on this deployment.
+   *
+   * The registry keeps two aliases on purpose: `champion` is a four-agent
+   * bundle and `sdk_champion` a single-session prompt, and `registry.promote`
+   * refuses to point one at the other because serving builds four agents from
+   * `champion` and an sdk version there is a champion nothing can construct.
+   * The runtime decision (s11) moved serving to `agent_sdk`, so the alias the
+   * board should lead with is the one the runtime reads — otherwise the page
+   * names a bundle no visitor's question is answered by.
+   */
+  servingChampion: string | null;
+  servingRuntime: string | null;
 
   /**
    * `/eval/campaigns` — the optimisation loop's own evidence.
@@ -161,6 +175,8 @@ export function useBoardData(recordedLimit = 3): BoardData {
   const health = useMode((s) => s.health);
   const isDemo = health?.mode === 'demo';
   const champion = health?.champion ?? null;
+  const servingRuntime = health?.runtime ?? null;
+  const servingChampion = health?.serving_champion ?? champion;
 
   const versionsQuery = useQuery({
     queryKey: qk.versions,
@@ -225,6 +241,8 @@ export function useBoardData(recordedLimit = 3): BoardData {
     health,
     isDemo,
     champion,
+    servingChampion,
+    servingRuntime,
     campaigns: campaignsQuery.data,
     versions,
     championVersion,

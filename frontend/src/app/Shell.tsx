@@ -28,8 +28,7 @@ function BrandMark() {
 
 function TopBar() {
   const health = useMode((s) => s.health);
-  const serving =
-    health?.runtime === 'agent_sdk' ? (health.sdk_champion ?? health.champion) : health?.champion;
+  const serving = health?.serving_champion ?? health?.champion;
 
   return (
     <header

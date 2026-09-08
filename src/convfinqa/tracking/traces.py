@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -261,6 +261,65 @@ class TraceStore:
         record["bundle"] = _loads(record.get("bundle"), {})
         return record
 
+    def count(self) -> int:
+        """How many turns this store holds."""
+        row = self._conn.execute("SELECT COUNT(*) FROM turns").fetchone()
+        return int(row[0] or 0)
+
+    def columns(self) -> list[str]:
+        """The columns this build's `turns` table actually has."""
+        return [
+            str(row["name"])
+            for row in self._conn.execute("PRAGMA table_info(turns)").fetchall()
+        ]
+
+    def export_rows(
+        self, *, source: str | None = None, limit: int | None = None
+    ) -> list[dict[str, Any]]:
+        """Whole rows, JSON columns left as the stored text.
+
+        The committed snapshot is a verbatim copy, so `capture` and `bundle` are
+        deliberately *not* decoded here the way `get_turn` decodes them — a
+        round trip through a parse and a re-serialisation is a chance to change
+        the bytes, and this file exists to not change them.
+        """
+        where = "WHERE source = ?" if source else ""
+        params: list[Any] = [source] if source else []
+        # Newest first only so `limit` keeps the most recent turns; the caller
+        # sorts the result back into chronological order for the file.
+        order = "ORDER BY created_at DESC"
+        if limit is not None:
+            order += " LIMIT ?"
+            params.append(max(0, limit))
+        rows = self._conn.execute(
+            f"SELECT * FROM turns {where} {order}", params
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def import_rows(self, rows: Iterable[dict[str, Any]]) -> int:
+        """Insert exported rows verbatim; return how many were new.
+
+        Columns are matched by name against this build's table, so a snapshot
+        written by a different build loads: unknown columns are dropped and
+        missing ones default to NULL. `OR IGNORE` on the `trace_id` primary key
+        makes a second load a no-op rather than a conflict.
+        """
+        known = set(self.columns())
+        inserted = 0
+        with self._write() as conn:
+            for row in rows:
+                fields = {k: v for k, v in row.items() if k in known}
+                if not fields.get("trace_id"):
+                    continue
+                names = ", ".join(fields)
+                marks = ", ".join("?" for _ in fields)
+                cursor = conn.execute(
+                    f"INSERT OR IGNORE INTO turns ({names}) VALUES ({marks})",
+                    list(fields.values()),
+                )
+                inserted += cursor.rowcount or 0
+        return inserted
+
     def stats(self) -> dict[str, Any]:
         """Headline counts for the traces tab."""
         row = self._conn.execute(
@@ -360,6 +419,13 @@ def get_store() -> TraceStore | None:
         return None
     if _store is None:
         _store = TraceStore()
+        # A store with no history of its own reads the committed one. That is
+        # what makes the demo container's Traces page the same page as dev's:
+        # the deployment browses the recorded runs rather than only the turns
+        # it has replayed since it booted. See `trace_snapshot`.
+        from convfinqa.tracking.trace_snapshot import seed_if_empty
+
+        seed_if_empty(_store)
     return _store
 
 

@@ -44,7 +44,18 @@ COPY evaluation/diagnostics/ evaluation/diagnostics/
 # The eval-loop split manifest: /eval/dataset reads it, and without it that
 # route answered 500 on the public demo (2026-09-03).
 COPY evaluation/splits/ evaluation/splits/
-COPY evaluation/mlflow_snapshot.json evaluation/registry.json evaluation/
+# The judge's own record: its dataset manifest, its append-only diagnoses and
+# gate verdicts, and one scores CSV per version x split.
+COPY evaluation/judge/ evaluation/judge/
+# Every committed JSON a read-only route reads. Leaving one out does not fail
+# the build or the route — it empties a page: without `story.json` the whole
+# campaign record, the runtime comparison, the progression chart and the judge
+# panel served as "not yet run", and without `readiness.json` the scorecard
+# 404'd, on a deployment whose entire job is to show them. `tests/test_demo_image.py`
+# pins this list against the paths the routes actually open.
+COPY evaluation/mlflow_snapshot.json evaluation/registry.json \
+     evaluation/story.json evaluation/readiness.json \
+     evaluation/traces_snapshot.jsonl.gz evaluation/
 COPY runs/ runs/
 
 # The build's git SHA, passed in by the deploy workflow. The container has no
