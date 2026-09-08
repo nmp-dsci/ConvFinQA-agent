@@ -10,6 +10,7 @@ import {
   ObservabilitySection,
   OpenWorkSection,
 } from './SectionOperations';
+import { ReadinessSection } from './SectionReadiness';
 import { Lamp, Live, Mono } from './ui';
 import { useSystemData } from './useSystemData';
 
@@ -54,6 +55,7 @@ const TOC: TocEntry[] = [
   { id: 'deploy', label: 'Deploy' },
   { id: 'new-version', label: 'Make a new version' },
   { id: 'open-work', label: 'Open work' },
+  { id: 'readiness', label: 'Production readiness' },
 ];
 
 /**
@@ -231,6 +233,7 @@ export default function SystemRoute() {
             <DeploySection data={data} />
             <NewVersionSection />
             <OpenWorkSection data={data} />
+            <ReadinessSection />
             <NextFooter />
           </div>
         </div>

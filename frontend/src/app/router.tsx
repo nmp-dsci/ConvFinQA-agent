@@ -23,6 +23,7 @@ const TraceDetail = lazy(() => import('../features/admin/TraceDetail'));
 const Research = lazy(() => import('../features/admin/Research'));
 const DatasetReview = lazy(() => import('../features/admin/DatasetReview'));
 const SystemRoute = lazy(() => import('../features/system/SystemRoute'));
+const ReadinessRoute = lazy(() => import('../features/readiness/ReadinessRoute'));
 
 function RouteError() {
   const error = useRouteError();
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
           { path: 'traces/:traceId', element: <TraceDetail /> },
           { path: 'research', element: <Research /> },
           { path: 'system', element: <SystemRoute /> },
+          { path: 'readiness', element: <ReadinessRoute /> },
         ],
       },
       { path: 'debrief', element: <Navigate to="/admin/system" replace /> },

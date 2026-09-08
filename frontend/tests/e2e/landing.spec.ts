@@ -89,6 +89,11 @@ test.describe('status board at /', () => {
     // --- the star: the five-stage progression on a zero baseline ----------
     await expect(page.getByTestId('landing-star')).toBeVisible();
     await expect(page.getByTestId('progression-chart')).toBeVisible();
+    // The readiness strip: nine cells from the committed scorecard, each a
+    // link to the page that proves it.
+    const strip = page.getByTestId('readiness-strip');
+    await expect(strip).toBeVisible();
+    await expect(strip.locator('li a')).toHaveCount(9);
 
     // --- four tiles, each a link with somewhere to go ---------------------
     for (const testId of TILES) {

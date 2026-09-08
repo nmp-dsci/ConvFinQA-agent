@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '../../components/ui/tooltip';
 import { RightPane } from './LandingRoute';
 import type { BoardData } from './useBoardData';
@@ -80,12 +81,17 @@ function boardWithVerdict(v: JudgeVerdict | null): BoardData {
 }
 
 function renderJudgeTile(v: JudgeVerdict | null): string {
+  // The readiness strip inside the pane reads /eval/readiness through
+  // react-query; with no fetch it stays in its loading skeleton, which is fine.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return renderToStaticMarkup(
-    <MemoryRouter>
-      <TooltipProvider>
-        <RightPane board={boardWithVerdict(v)} />
-      </TooltipProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <TooltipProvider>
+          <RightPane board={boardWithVerdict(v)} />
+        </TooltipProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

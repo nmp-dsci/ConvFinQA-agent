@@ -11,6 +11,7 @@ import { judgeSentence, landingStory } from './landingStory';
 import { useBoardData } from './useBoardData';
 import type { BoardData } from './useBoardData';
 import { useStore } from '../../store';
+import { ReadinessStrip } from '../readiness/Readiness';
 
 /**
  * The front door at `/`.
@@ -222,6 +223,7 @@ export function RightPane({ board }: { board: BoardData }) {
             compact
           />
         </div>
+        <ReadinessStrip className="mt-4 border-t border-line pt-3" />
       </div>
 
       {/* --- Four numbers, each with its baseline ----------------------- */}

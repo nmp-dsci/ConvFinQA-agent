@@ -27,6 +27,7 @@ describe('the nav model', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toContain('/admin/system');
     expect(paths).toContain('/admin/runtimes');
+    expect(paths).toContain('/admin/readiness');
   });
 
   it('matches children of a route but never lets / or /admin swallow everything', () => {
@@ -46,7 +47,8 @@ describe('the nav model', () => {
   it('walks the story order forwards and back, with no dead end but the last', () => {
     expect(nextItem('/')?.label).toBe('Chat');
     expect(nextItem('/chat')?.label).toBe('Architecture');
-    expect(nextItem('/admin/system')?.label).toBe('Scoreboard');
+    expect(nextItem('/admin/system')?.label).toBe('Readiness');
+    expect(nextItem('/admin/readiness')?.label).toBe('Scoreboard');
     expect(prevItem('/')).toBeNull();
     expect(nextItem('/admin/research')).toBeNull();
     expect(prevItem('/admin/research')?.label).toBe('Traces');
