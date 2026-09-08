@@ -142,7 +142,7 @@ function LeftPane({ board }: { board: BoardData }) {
 // Right — does it work, how fast, how much
 // ---------------------------------------------------------------------------
 
-function RightPane({ board }: { board: BoardData }) {
+export function RightPane({ board }: { board: BoardData }) {
   const {
     health,
     isDemo,
@@ -359,7 +359,10 @@ function RightPane({ board }: { board: BoardData }) {
                 <span className="type-num">
                   {formatPercent(judgeVerdict.baseline_accuracy, 2)}
                 </span>{' '}
-                unjudged — not significant
+                unjudged —{' '}
+                {judgeVerdict.significant
+                  ? 'separates from it'
+                  : 'fails to separate from it'}
                 <br />
                 withholds {judgeVerdict.n_withheld} to remove {judgeVerdict.n_failures_caught} ·{' '}
                 {judgeVerdict.n_false_alarms} of them were right
