@@ -107,7 +107,7 @@ table.phases td strong{color:var(--text)}
   <a href="#why"><span class="n">04</span>Why it misses</a>
   <a href="#slice"><span class="n">05</span>The one slice that works</a>
   <a href="#loop"><span class="n">06</span>The loop as run</a>
-  <a href="#defect"><span class="n">07</span>A defect the round found</a>
+  <a href="#defect"><span class="n">07</span>Six defects, and who found them</a>
   <a href="#cost"><span class="n">08</span>Cost and latency</a>
   <a href="#next"><span class="n">09</span>What I would do next</a>
 </div>
@@ -122,7 +122,7 @@ table.phases td strong{color:var(--text)}
   </div>
   <div class="card">
     <h4>The judge in the turn</h4>
-    <p><code>serving/sdk_turn.py</code> replays the pipeline's four stage frames from the capture, then emits a <code>judge</code> frame and an <code>answer</code> frame carrying <code>band</code> and <code>withheld</code>. A <code>low</code> band sends an empty answer on the wire and into the visible history.</p>
+    <p><code>serving/sdk_turn.py</code> holds the pipeline's four stage frames until the judge has ruled, then emits them, a <code>judge</code> frame, and an <code>answer</code> frame carrying <code>band</code> and <code>withheld</code>. A <code>low</code> band sends an empty answer <em>and redacted stage output</em> on the wire and into the visible history — the retriever and calculator frames carry the answer too, which is how it leaked (§07).</p>
   </div>
   <div class="card">
     <h4>The record survives it</h4>
@@ -292,13 +292,37 @@ table.phases td strong{color:var(--text)}
   <strong>Neither version can be shown significant, and finishing the pass would not change that.</strong> The gate rule is deterministic — coverage must rise, capture must not fall, error must be inside 1% — and <code>j2</code> has coverage flat-to-down with error at 11.8%, so it cannot qualify at any sample size. Scoring the remaining 175 turns would change the <em>reason</em> recorded in the ledger, not the verdict. And a real difference of a couple of points could not be resolved on a split this size in any case: <code>j1</code>'s own +0.92pp over having no judge at all is not separable from zero on 349 turns, and the two judges disagree on 5% of turns and on none of the failures. <span class="muted">The pass was stopped there by decision on 2026-09-08; <code>j2</code>'s calibrate row is reported as the 129 turns it judged, marked incomplete, on the published page too.</span>
 </div>
 
-<h2 id="defect">07 · A defect the round found</h2>
+<h2 id="defect">07 · Two defects the round found, and four the review did</h2>
 <div class="callout bad">
   <p>The first <code>j2</code> calibrate pass hit the subscription session limit on turn 129 of 304. Every call after it raised a rate-limit refusal, the scorer <em>failed each one closed to <code>low</code></em> — correct behaviour for a served turn, wrong for a measurement — and the pass reported <strong>coverage 36.2% with failure capture 56.7%</strong>. Read naively that is a judge that got dramatically more cautious and much better at catching failures. It is a spent session. The gate then compared those numbers against <code>j1</code> on equal terms.</p>
-  <p>This is the rule s10 already established for the eval runner — <em>a rate-limited turn is unscored, never wrong</em> — which judge scoring did not inherit. Fixed in <code>01a3be7</code>: <code>score_split</code> catches the rate limit separately from a genuine judge failure and writes <code>unscored=True</code> with no band; once the session is spent the remaining turns short-circuit rather than paying wall clock for the same refusal 175 more times; <code>scored_only</code> is the single door every consumer of <code>band</code> comes through, so an unscored turn is absent from the numerator <em>and</em> the denominator; and <code>gate_judges</code> now refuses such a file outright, naming it and the count, with no override. Serving is unchanged — a served answer with no verdict must still be withheld.</p>
+  <p>This is the rule s10 already established for the eval runner — <em>a rate-limited turn is unscored, never wrong</em> — which judge scoring did not inherit. Fixed in <code>01a3be7</code>: <code>score_split</code> catches the rate limit separately from a genuine judge failure and writes <code>unscored=True</code> with no band; once the session is spent the remaining turns short-circuit rather than paying for the same refusal 175 more times; <code>scored_only</code> is the single door every consumer of <code>band</code> comes through, so an unscored turn is absent from the numerator <em>and</em> the denominator; and <code>gate_judges</code> now refuses such a file outright, naming it and the count, with no override. Serving is unchanged — a served answer with no verdict must still be withheld.</p>
   <p class="muted">The verdict itself survived: paired properly (§06), <code>j2</code> is indistinguishable from <code>j1</code>, so "rejected" was right. But a gate deciding on a number that describes the billing account rather than the model only stays harmless by luck.</p>
-  <p><strong>The fix then proved itself twice.</strong> Both re-scoring attempts hit the limit again — 235 of 304 unjudged, then 69 judged before the reset window closed — and both times the pass recorded <code>unscored</code> rows with no band, returned <code>complete: false</code>, short-circuited instead of paying for 235 more refusals, and produced a file the gate refuses. The marker is also read out of <code>error</code>, so the original 2026-09-07 file — the one that caused this — is refused too, despite predating the column.</p>
+  <p><strong>The recording half of the fix then proved itself twice.</strong> Both re-scoring attempts hit the limit again — 235 of 304 unjudged, then 69 judged before the reset window closed — and both times the pass recorded <code>unscored</code> rows with no band, returned <code>complete: false</code>, and produced a file the gate refuses. The marker is also read out of <code>error</code>, so the original 2026-09-07 file — the one that caused this — is refused too, despite predating the column.</p>
+  <div class="callout bad" style="margin-left:0">
+    <strong>The short-circuit half did not work, and the review caught it.</strong> The check on the shared <code>spent</code> flag sat <em>before</em> the concurrency semaphore, and <code>asyncio.gather</code> runs every task's synchronous prefix before any task can complete — so all 304 rows had already passed the check by the time the first refusal came back, and every one of them still made its call. It looked like it was working only because a refusal returns fast: the 304-turn pass that judged 69 finished in seven minutes, which reads like a short-circuit and is really 235 quick rejections. Moved inside the semaphore so a task that waited for a permit re-checks after the session is known spent. <span class="muted">Found by the <code>no-mistakes</code> review gate, not by me, and not by any test — the recorded output is identical either way, which is exactly why it went unnoticed.</span>
+  </div>
 </div>
+
+<h3>What the review gate then found</h3>
+<p>The finished branch went through the <code>no-mistakes</code> pipeline on Sonnet 5. It raised five findings; all five were real, and two were holes in the feature's own contract rather than tidiness. They are listed here because a write-up that reported only the parts I found myself would be the wrong record.</p>
+<div class="scroll-x">
+<table>
+  <thead><tr><th>Finding</th><th>What was actually wrong</th></tr></thead>
+  <tbody>
+    <tr><td><strong>The withheld answer reached the browser</strong> <span class="chip bad">contract</span></td>
+      <td>The streaming endpoint forwarded every frame verbatim, and the retriever and calculator <code>stage_output</code> frames <em>contain the final answer</em> — emitted before the judge had ruled. So on a withheld turn the answer had already arrived. My abstention test used the non-streaming route and the streaming test checked only the <code>answer</code> frame, so nothing caught it. <strong>The withholding did not hold on the path the chat UI actually uses.</strong></td></tr>
+    <tr><td><strong>The coverage rule was inert</strong> <span class="chip bad">contract</span></td>
+      <td>"Coverage must not fall" was conditioned on the <em>baseline</em> meeting the error target. Neither judge meets 1% on this data, so the check never fired — <code>j2</code> was rejected on the error-target check alone. The rule was weaker than it is documented to be.</td></tr>
+    <tr><td>"Never promoted on the test split" was a convention</td>
+      <td>The refusal only fired if the caller volunteered <code>evidence_split="test"</code>, and no call site did. The gate now <em>derives</em> the split from the scores CSV — a new trailing <code>split</code> column, with the filename as the fallback for the three already-committed files — refuses a test-split gate outright, and passes the derived value on to promotion.</td></tr>
+    <tr><td>The pipeline champion could be set to a judge prompt</td>
+      <td><code>registry.promote</code> refused an sdk version but not a judge one, so <code>convfinqa-mlflow promote judge_j1</code> would have pointed <code>champion</code> at a prompt serving cannot build four agents from.</td></tr>
+    <tr><td>The rate-limit short-circuit never engaged</td>
+      <td>Described above — the check sat outside the semaphore.</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="muted">Three of the five are cases where an invariant this project states plainly in <code>CLAUDE.md</code> was enforced by discipline rather than by code. That is the pattern worth taking away: the judge's own guard-rails needed guard-rails.</p>
 
 <h2 id="cost">08 · Cost and latency</h2>
 <div class="metrics">
@@ -329,7 +353,7 @@ table.phases td strong{color:var(--text)}
 
 <div class="verdict" style="background:linear-gradient(180deg,rgba(240,169,63,.10),rgba(240,169,63,.03));border-color:rgba(240,169,63,.4)">
   <p class="h">The honest summary</p>
-  <p>The feature is complete, tested and serving: the runtime, the judge, the training loop, the registry lineage, the gate, the record, and the UI all exist and are covered by 351 passing backend tests and 135 frontend ones. What it does not do is hit 99/99. <strong>The high band's +0.92pp over having no judge is not statistically significant</strong> — the cluster-bootstrap interval on high-band accuracy, 87.3–95.1%, contains the 90.5% no-judge baseline — and the one round of optimisation moved seven bands, none of them a wrong answer. The measurement says the ceiling here is set by the answer key, not the prompt: <strong>6 of 23</strong> released-wrong answers are cases any judge without the key could have caught. So the conclusion is the one you drew — <em>as a gate it is not worth it</em>. I would ship the band as advice, split the policy by turn type, and fix the labels before spending another round on the prompt.</p>
+  <p>The feature is complete, tested and serving: the runtime, the judge, the training loop, the registry lineage, the gate, the record, and the UI all exist and are covered by 356 passing backend tests and 135 frontend ones. What it does not do is hit 99/99. <strong>The high band's +0.92pp over having no judge is not statistically significant</strong> — the cluster-bootstrap interval on high-band accuracy, 87.3–95.1%, contains the 90.5% no-judge baseline — and the one round of optimisation moved seven bands, none of them a wrong answer. The measurement says the ceiling here is set by the answer key, not the prompt: <strong>6 of 23</strong> released-wrong answers are cases any judge without the key could have caught. So the conclusion is the one you drew — <em>as a gate it is not worth it</em>. I would ship the band as advice, split the policy by turn type, and fix the labels before spending another round on the prompt.</p>
 </div>
 
 <div class="footer">
