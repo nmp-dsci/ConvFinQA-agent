@@ -70,7 +70,7 @@ function boardWithVerdict(v: JudgeVerdict | null): BoardData {
     metricsSource: 'serving',
     metrics: null,
     metricsGeneratedAt: undefined,
-    metricsWindowHours: undefined,
+    metricsWindow: undefined,
     traceCaptureEnabled: undefined,
     metricsLoading: false,
     gate: undefined,

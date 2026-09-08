@@ -152,18 +152,26 @@ function LeftPane({ board }: { board: BoardData }) {
 // ---------------------------------------------------------------------------
 
 export function RightPane({ board }: { board: BoardData }) {
-  const { health, isDemo, campaigns, metrics, metricsLoading, metricsWindowHours, traceCaptureEnabled } =
+  const { health, isDemo, metricsSource, campaigns, metrics, metricsLoading, traceCaptureEnabled } =
     board;
 
-  const window = metricsWindowHours ?? 24;
-  const sourceWord = isDemo ? 'replayed' : 'served';
+  // `served` even in the demo when the board is reading the recorded development
+  // serving turns rather than this container's own replays — see `metricsSource`.
+  const sourceWord = isDemo && metricsSource === 'demo' ? 'replayed' : 'served';
   const noMetrics = !metrics;
   const noTurns = Boolean(metrics && metrics.n_turns === 0);
 
-  /** Why a metrics tile is empty — never the same sentence for two reasons. */
+  /**
+   * Why a metrics tile is empty — never the same sentence for two reasons.
+   *
+   * These figures are all-time, over every turn the store holds, so an empty
+   * tile means this source has never carried one. It used to say "in the last
+   * 24 h", which was a window the numbers above it were never computed over and
+   * which read as "quiet lately" when the truth was "never".
+   */
   function metricsReason(what: string): string {
     if (noMetrics) return '/metrics/production returned nothing for this deployment';
-    if (noTurns) return `no turns ${sourceWord} in the last ${window} h`;
+    if (noTurns) return `no turns ${sourceWord} on this deployment yet`;
     return `${what} not yet measured — awaiting a metered eval run`;
   }
 
@@ -294,7 +302,7 @@ export function RightPane({ board }: { board: BoardData }) {
           meta={
             metrics && (
               <>
-                last {window} h · <span className="type-num">{formatUsd(metrics.cost_usd.total)}</span>{' '}
+                all time · <span className="type-num">{formatUsd(metrics.cost_usd.total)}</span>{' '}
                 over <span className="type-num">{metrics.cost_usd.n_measured}</span> turns priced
               </>
             )
@@ -378,8 +386,7 @@ export function RightPane({ board }: { board: BoardData }) {
  * Neither has ever seen production load.
  */
 function SourceNote({ board }: { board: BoardData }) {
-  const { isDemo, metricsSource, metricsGeneratedAt, metricsWindowHours, health } = board;
-  const window = metricsWindowHours ?? 24;
+  const { isDemo, metricsSource, metricsGeneratedAt, health } = board;
 
   return (
     <div className="mt-2 space-y-2">
@@ -392,9 +399,11 @@ function SourceNote({ board }: { board: BoardData }) {
       </p>
       <p className="type-small text-muted">
         <span className="text-text">latency and cost</span> —{' '}
-        {isDemo
+        {isDemo && metricsSource === 'demo'
           ? 'turns this deployment replayed from conversations recorded in development. Replay timing is not production latency, so recorded and served turns are counted in separate source groups and never summed.'
-          : `turns this development process has served in the last ${window} h. Development traffic on one machine — not production load, and not a benchmark.`}{' '}
+          : isDemo
+            ? 'the development turns these conversations were recorded from, shipped with the image and read all-time. Not this deployment’s own replays — those carry no timing at all, and the two are separate source groups that are never summed.'
+            : 'every turn this development process has served, all time. Development traffic on one machine — not production load, and not a benchmark.'}{' '}
         Source group “<span className="type-num">{metricsSource}</span>”
         {metricsGeneratedAt && (
           <>

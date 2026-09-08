@@ -203,10 +203,10 @@
         <p class="standfirst">
           Every page was walked in both deployments. The frontend is identical — prod runs the same
           commit — so <strong>every difference was data the image never carried, plus one URL the API
-          answered instead of the page.</strong> Four causes, all fixed on
+          answered instead of the page.</strong> Five causes, all fixed on
           <code>ship-dev-data-to-prod</code> and verified against a locally built image.
         </p>
-        <span class="verdict"><span class="dot"></span>ALL FOUR FIXED · SMOKE PASS ON THE REBUILT IMAGE</span>
+        <span class="verdict"><span class="dot"></span>ALL FIVE FIXED · SMOKE PASS ON THE REBUILT IMAGE</span>
 
         <div class="stats">
           <div class="stat">
@@ -544,10 +544,10 @@
           <p>
             <strong>8 filings, not 260.</strong> Chat can only answer what the recorded pack holds, and
             the eyebrow says so honestly.
-            <strong>Cost / latency tiles read “—”.</strong> The landing reads the <code>demo</code>
-            source group, which carries no timing of its own — a turn recorded at 6.7s and replayed in
-            2s is not a 2s turn, and the app refuses to blend the groups. The real numbers are now on
-            the Traces page under <code>serving</code> and <code>eval</code>, where they belong.
+            <strong>The three source groups are never summed.</strong> A turn recorded at 6.7s
+            and replayed in 2s is not a 2s turn, so <code>serving</code>, <code>demo</code> and
+            <code>eval</code> stay apart on every card — the demo board reads one of them and says
+            which, rather than averaging them into a number that is true of nothing.
           </p>
         </div>
       </section>
@@ -598,12 +598,12 @@
               <tr><th>Check</th><th>Result</th></tr>
             </thead>
             <tbody>
-              <tr><td class="mono">uv run pytest</td><td class="now">392 passed</td></tr>
+              <tr><td class="mono">uv run pytest</td><td class="now">396 passed</td></tr>
               <tr><td class="mono">uv run mypy src/</td><td class="now">no issues in 119 source files</td></tr>
               <tr><td class="mono">uv run ruff check src/ tests/</td><td class="now">all checks passed</td></tr>
               <tr><td class="mono">npm run lint &amp; test:unit &amp; lint:design</td><td class="now">162 tests passed · design lint clean · ratchet unchanged at 110 / 30</td></tr>
               <tr><td class="mono">docker build . &amp;&amp; ./scripts/demo_smoke.sh</td><td class="now">SMOKE PASS — 9 readiness rows, 8,408 traces, writes refused</td></tr>
-              <tr><td class="mono">browser walk, 10 routes on :8080</td><td class="now">every page matches dev bar the two deliberate differences above</td></tr>
+              <tr><td class="mono">browser walk, 10 routes in the container</td><td class="now">every page matches dev; demo landing now shows $0.0022 / 3.8s like dev</td></tr>
             </tbody>
           </table>
         </div>
@@ -611,20 +611,93 @@
 
       <!-- =============================================================== -->
       <section>
-        <h2><span class="n">06</span> One thing I did not change</h2>
+        <h2><span class="n">06</span> C5 · The 24-hour window <span class="n">now done</span></h2>
         <p class="lede">
-          It is a real gap and it belongs to your earlier feedback rather than to this task, so it is
-          flagged rather than done.
+          Your earlier ask — traces “over all time, not the last 24 hours, and over all models” — is
+          now closed too. What I found on opening it is worth stating plainly: <strong>the aggregates
+          were never windowed. Only the label was.</strong>
         </p>
+
+        <div class="causes">
+          <div class="cause champion">
+            <h3>The numbers were all-time; the copy said “last 24 h” <span class="id">routes/metrics.py</span></h3>
+            <p>
+              Latency, cost, accuracy, tokens and counts were always computed over every turn the
+              store holds. The response advertised <code>window_hours: 24</code> and the UI printed
+              “last 24 h” above them — so a page showing 8,408 turns also said “no turns in the last
+              24 h”. The one thing genuinely windowed was the sparkline, and it ended at
+              <em>now</em>, which on a deployment whose history is committed rather than live is
+              twenty-four measured zeros for every source.
+            </p>
+            <dl>
+              <dt>Window</dt>
+              <dd>
+                The response now says <code>window: "all-time"</code>, because that is what the
+                figures are.
+              </dd>
+              <dt>Series</dt>
+              <dd>
+                Bucketed to the data, not windowed to the clock: 24 bars ending at
+                <em>that source’s newest turn</em>, widening
+                <code>hour → day → week</code> until they span its whole history. Each group carries
+                <code>series_bucket</code>, <code>first_turn_at</code> and <code>last_turn_at</code>,
+                so the card can label a bar instead of assuming one.
+              </dd>
+              <dt>Result</dt>
+              <dd>
+                The demo’s cards read <span class="now">turns per day · 29 Aug – 4 Sept</span> and
+                <span class="now">turns per day · 2 Sept – 6 Sept</span> over real curves, where
+                before they were flat.
+              </dd>
+            </dl>
+          </div>
+
+          <div class="cause champion">
+            <h3>And the landing tiles were reading the wrong source group <span class="id">useBoardData.ts</span></h3>
+            <p>
+              Widening the window alone would not have fixed the demo, which is the thing §06
+              promised. In replay mode the board read the <code>demo</code> group — this container’s
+              own replays: zero on a cold start, and never metered even when it isn’t, because the
+              recorded pack carries no timing at all. Those two tiles could never have shown a number.
+            </p>
+            <p>
+              The committed snapshot ships the <strong>development serving turns those recordings
+              were made from</strong>. That is the traffic the demo is a demo of, so that is the group
+              it now reads when its own replays carry nothing — labelled as recorded development
+              traffic, and still never summed with the replays: the two stay separate groups on the
+              Traces page, which is the rule that actually matters.
+            </p>
+            <div class="wire">
+              <figure>
+                <figcaption class="b">before · demo landing</figcaption>
+                <pre><em>COST PER TURN   —
+  no turns replayed in the last 24 h
+P50 LATENCY     —
+  no turns replayed in the last 24 h</em></pre>
+              </figure>
+              <figure>
+                <figcaption class="a">after · demo landing</figcaption>
+                <pre><b>COST PER TURN   $0.0022
+  all time · $0.1410 over 65 turns priced
+P50 LATENCY     3.8s
+  p95 10.4s · 65 turns measured · 65 served</b></pre>
+              </figure>
+            </div>
+          </div>
+        </div>
+
         <div class="callout">
-          <h3>The production-metrics window is still 24 hours</h3>
+          <h3>“This should be based on MLflow, right?” — no, and here is why</h3>
           <p>
-            You asked earlier for traces “over all time, not the last 24 hours, and over all models”.
-            The traces <em>table</em> is already all-time and now carries all 8,408 turns in prod. The
-            <em>metric cards</em> above it are not: they aggregate a 24-hour window, so in prod every
-            seeded turn falls outside it and the cost and latency cards read “—”. Widening that window
-            is the same one-line question in dev and prod, and it would make those cards mean something
-            on the demo. Say the word and it goes in this branch.
+            They are two different things. The trace store is <strong>one row per answered turn</strong>
+            — its four stage captures, its gold answer, its cost — written by serving and by the eval
+            runner; that is what the Traces page, <code>/traces</code> and
+            <code>/metrics/production</code> read. MLflow tracing is <strong>one span per LLM call</strong>
+            inside an eval run, lives in <code>mlruns/</code>, and needs a tracking server the demo
+            container deliberately does not have. “Why did it answer that” is a turn-level question, so
+            it is answered by the turn-level store. What MLflow does contribute to the app is the
+            run and experiment history — exported to <code>mlflow_snapshot.json</code> and read by
+            the Experiments page. Both now ship.
           </p>
         </div>
       </section>

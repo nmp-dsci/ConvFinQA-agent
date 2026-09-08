@@ -58,6 +58,24 @@ const SOURCE_BLURB: Record<MetricsSource, string> = {
   eval: 'turns scored by a batch evaluation run, not user traffic',
 };
 
+/**
+ * `3 Sept – 8 Sept`, or `all time` when a source holds a single day or none.
+ *
+ * The sparkline is bucketed, not windowed: a reader needs to know which days
+ * the bars cover, and no fixed phrase can say it for three sources whose
+ * histories are days, hours and months long.
+ */
+function seriesSpan(metrics: SourceMetrics | undefined): string {
+  const first = metrics?.first_turn_at;
+  const last = metrics?.last_turn_at;
+  if (!first || !last) return 'all time';
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  const from = fmt(first);
+  const to = fmt(last);
+  return from === to ? from : `${from} – ${to}`;
+}
+
 function SourceCard({
   source,
   metrics,
@@ -128,7 +146,15 @@ function SourceCard({
       </div>
 
       <div className="mt-auto pt-2">
-        <div className="mono-caps mb-0.5">turns per hour · 24 h</div>
+        {/*
+          The bucket is chosen by the backend from this source's own span — 24
+          bars of whatever width covers its whole history — so the label has to
+          come from the payload. It read "24 h" for everything, which was wrong
+          about both the bars and the figures above them.
+        */}
+        <div className="mono-caps mb-0.5">
+          turns per {metrics?.series_bucket ?? 'hour'} · {seriesSpan(metrics)}
+        </div>
         {/*
           A source that has served nothing gets the label, not a flat line at
           the floor. Twenty-four measured zeros are a real observation, but on
@@ -138,7 +164,7 @@ function SourceCard({
         <Sparkline
           values={metrics && metrics.n_turns > 0 ? series.map((s) => s.n_turns) : []}
           tone="amber"
-          emptyLabel="nothing served in this window"
+          emptyLabel="nothing served on this deployment"
         />
       </div>
 

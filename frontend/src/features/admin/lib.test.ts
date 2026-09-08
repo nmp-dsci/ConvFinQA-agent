@@ -213,6 +213,9 @@ describe('absenceReason', () => {
     accuracy: { accuracy: null, n_correct: 0, n_scored: 0 },
     errors: { n_errors: 0, error_rate: null, by_code: {} },
     series: [],
+    series_bucket: 'hour',
+    first_turn_at: null,
+    last_turn_at: null,
   };
 
   it('distinguishes "nothing happened" from "happened but was never metered"', () => {

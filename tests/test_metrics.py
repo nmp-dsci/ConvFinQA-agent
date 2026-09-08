@@ -381,3 +381,90 @@ def test_demo_pack_events_forward_the_recorded_metrics() -> None:
     }
     assert outputs["triage"]["latency_ms"] == 1200.0
     assert outputs["retriever"]["latency_ms"] == 800.0
+
+
+# ---------------------------------------------------------------------------
+# All-time, and a series that spans the data (2026-09-08)
+# ---------------------------------------------------------------------------
+#
+# The aggregates were always computed over the whole store; the response
+# advertised `window_hours: 24` and the UI printed "last 24 h" above them. The
+# demo made the mismatch visible — its committed traces are days old, so a page
+# showing eight thousand turns also said "no turns in the last 24 h", and the
+# sparkline was twenty-four measured zeros for every source. These pin the fix.
+
+
+def _at(store: TraceStore, stamp: str, *, source: str = "eval") -> None:
+    """Record one turn and backdate it, the way a committed trace arrives."""
+    trace_id = store.record(
+        report_id="r1",
+        turn_index=0,
+        question="q",
+        capture=_capture(1000.0, 10, 5),
+        source=source,
+    )
+    with store._write() as conn:  # noqa: SLF001 - the store has no backdating API
+        conn.execute(
+            "UPDATE turns SET created_at = ? WHERE trace_id = ?", (stamp, trace_id)
+        )
+
+
+def test_window_is_all_time_not_a_rolling_day(store: TraceStore) -> None:
+    """A turn from last week counts. That is the whole point of the change."""
+    _at(store, "2026-09-01T10:00:00+00:00")
+    _at(store, "2026-09-05T10:00:00+00:00")
+    with _client() as client:
+        body = client.get("/metrics/production").json()
+
+    assert body["window"] == "all-time"
+    assert "window_hours" not in body
+    group = body["sources"]["eval"]
+    assert group["n_turns"] == 2
+    assert group["latency_ms"]["p50"] == 1000.0
+    assert group["first_turn_at"].startswith("2026-09-01")
+    assert group["last_turn_at"].startswith("2026-09-05")
+
+
+def test_series_ends_at_the_newest_turn_not_at_now(store: TraceStore) -> None:
+    """Days-old traces must draw a series, not twenty-four measured zeros."""
+    _at(store, "2026-09-05T10:00:00+00:00")
+    _at(store, "2026-09-05T10:30:00+00:00")
+    with _client() as client:
+        group = client.get("/metrics/production").json()["sources"]["eval"]
+
+    assert group["series_bucket"] == "hour"
+    assert sum(bucket["n_turns"] for bucket in group["series"]) == 2
+    # Both turns fall in the same hour, and that hour is the last bucket.
+    assert group["series"][-1]["n_turns"] == 2
+    assert group["series"][-1]["hour"].startswith("2026-09-05T10")
+
+
+def test_bucket_widens_so_the_series_always_spans_the_history(
+    store: TraceStore,
+) -> None:
+    """A month of runs reads day by day, in the same twenty-four bars."""
+    _at(store, "2026-08-20T10:00:00+00:00")
+    _at(store, "2026-09-05T10:00:00+00:00")
+    with _client() as client:
+        group = client.get("/metrics/production").json()["sources"]["eval"]
+
+    assert group["series_bucket"] == "day"
+    assert len(group["series"]) == 24
+    # Widening is what keeps the oldest turn inside the series rather than
+    # silently off the left-hand edge.
+    assert sum(bucket["n_turns"] for bucket in group["series"]) == 2
+
+
+def test_a_source_that_never_served_still_has_the_same_shape(
+    store: TraceStore,
+) -> None:
+    """One layout for every case: empty buckets, and no first/last turn."""
+    _at(store, "2026-09-05T10:00:00+00:00", source="eval")
+    with _client() as client:
+        group = client.get("/metrics/production").json()["sources"]["serving"]
+
+    assert group["n_turns"] == 0
+    assert group["first_turn_at"] is None and group["last_turn_at"] is None
+    assert group["series_bucket"] == "hour"
+    assert len(group["series"]) == 24
+    assert all(bucket["n_turns"] == 0 for bucket in group["series"])

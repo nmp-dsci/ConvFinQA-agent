@@ -240,8 +240,9 @@ export function absenceReason(
   what: 'latency' | 'cost' | 'tokens' | 'accuracy',
 ): string {
   if (!metrics) return 'no metrics endpoint on this deployment';
-  if (metrics.n_turns === 0) return 'no turns in the last 24 h';
-  if (what === 'accuracy') return 'no turn in this window carried a gold answer';
+  // All-time, so an empty source has never carried a turn — not "not lately".
+  if (metrics.n_turns === 0) return 'no turns on this deployment yet';
+  if (what === 'accuracy') return 'no turn from this source carried a gold answer';
   return 'turns served but never metered — awaiting a metered eval run';
 }
 
@@ -254,7 +255,7 @@ export function sourceNote(source: string, generatedAt: string | undefined): str
   if (source === 'eval') {
     return `source: batch evaluation runs, not user traffic${stamp}`;
   }
-  return `source: live serving turns from this process, last 24 h${stamp}`;
+  return `source: live serving turns from this process, all time${stamp}`;
 }
 
 // ---------------------------------------------------------------------------

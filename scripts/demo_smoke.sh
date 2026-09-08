@@ -120,9 +120,20 @@ for name in ("serving", "demo", "eval"):
     for key in ("n_turns", "latency_ms", "cost_usd", "accuracy", "errors", "series"):
         if key not in group:
             sys.exit(f"source {name} is missing {key}")
+    for key in ("series_bucket", "first_turn_at", "last_turn_at"):
+        if key not in group:
+            sys.exit(f"source {name} is missing {key}")
     buckets = group["series"]
     if len(buckets) != 24:
-        sys.exit(f"source {name} has {len(buckets)} series buckets, expected 24 hourly")
+        sys.exit(f"source {name} has {len(buckets)} series buckets, expected 24")
+window = body.get("window")
+if window != "all-time":
+    sys.exit(f"window is {window!r}, expected all-time")
+# The seeded eval history is days old, so a series windowed to the last 24 hours
+# would be twenty-four measured zeros here while the count above it reads 8,343.
+evaluation = sources["eval"]
+if evaluation["n_turns"] and not any(b["n_turns"] for b in evaluation["series"]):
+    sys.exit("the eval series is empty despite eval turns — it is still windowed to now")
 ' || fail "/metrics/production payload is not the three-source shape: $metrics"
 
 # 6. The gate holds: an admin write is refused.
