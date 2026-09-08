@@ -575,7 +575,8 @@ figure{margin:0}figcaption{font-size:12px;color:var(--faint);margin-top:8px}
 <!-- ============================ 10 · DECIDE ============================ -->
 <section id="decide">
   <div class="secno"><span class="eyebrow">10 · decide</span></div>
-  <h2>Decided 8 Sep 2026 — building now</h2>
+  <h2>Decided 8 Sep 2026 — P0, P1, P2, P3, P5 delivered on <code>design-upgrade</code></h2>
+  <div class="call" style="margin-bottom:14px"><span class="eyebrow">delivered · five commits</span><b>e30c688</b> P0 brief, tokens, dead code, lint · <b>d4f59e1</b> P1 nav, header, footers · <b>2851665</b> P2 landing · <b>380dfb5</b> P3 chat · <b>e5dfc43</b> P5 readiness (backend + three surfaces). Raw px sizes 203 → 149, none left in the shell, landing, chat or readiness features. Remaining: <b>P4</b> evidence pages (Runtimes reorder + TOC, Campaigns loop diagram and gate ledger, Scoreboard, Evaluations, Dataset, Experiments, Traces, Research) and <b>P6</b> the re-score, Lighthouse/axe pass and the no-mistakes gate.</div>
   <div class="call good" style="margin-bottom:18px"><span class="eyebrow">recorded answers</span><b>Direction:</b> A+ Console, evolved · <b>First session:</b> P0, P1, P2, P3, P5, one commit per phase on <code>design-upgrade</code> (P4 evidence pages and P6 QA/gate follow) · <b>R2:</b> partial — tried, measured, not adopted · <b>Theme:</b> dark default, light kept, toggle stays. The forms below stay live for changes of mind.</div>
   <div class="grid g3">
     <form class="q" data-lavish-question="direction" onsubmit="event.preventDefault();const v=new FormData(this).get('direction');if(!v)return;window.lavish&&window.lavish.queuePrompt('Build the design upgrade with direction: '+v,{tag:'choice',text:'Direction: '+v,element:this,data:{question:'direction',answer:v}});this.querySelector('.queued').textContent='queued ✓'">
