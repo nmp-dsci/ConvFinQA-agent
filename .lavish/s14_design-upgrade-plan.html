@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design upgrade plan · ConvFinQA console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ---- The Console's own tokens (frontend/src/tokens.css), so every mock below is the product, not a sketch ---- */
+:root{
+  --ground:#191b1f;--panel:#212429;--panel-2:#2a2e34;--line:#32363d;--line-2:#434850;
+  --text:#e8e9ea;--muted:#b6bbc2;--faint:#9ba1ab;
+  --amber:#f0a93f;--amber-ink:#1d1405;--amber-soft:rgba(240,169,63,.13);--amber-line:rgba(240,169,63,.45);
+  --good:#4ecb9d;--bad:#ef8282;--info:#74adf2;--violet:#ab92f2;
+  --good-soft:rgba(78,203,157,.12);--bad-soft:rgba(239,130,130,.12);--info-soft:rgba(116,173,242,.12);--violet-soft:rgba(171,146,242,.12);
+  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r:6px;--dur:220ms;
+}
+*{box-sizing:border-box;min-width:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--ground);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--amber);text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
+code,kbd,.mono{font-family:var(--mono);font-size:.92em;overflow-wrap:anywhere}
+li,p,td,.call,.stat small,.m-tile small{overflow-wrap:anywhere}
+h1,h2,h3,h4{margin:0;font-weight:500;letter-spacing:-.012em;text-wrap:balance;line-height:1.2}
+h1{font-size:clamp(28px,3.4vw,40px);letter-spacing:-.022em;line-height:1.12}
+h2{font-size:26px}h3{font-size:18px}h4{font-size:15px;font-weight:600}
+p{margin:0 0 12px;max-width:72ch;text-wrap:pretty}
+p.lede{font-size:17px;color:var(--muted);max-width:64ch}
+ul,ol{margin:0 0 12px;padding-left:20px}li{margin:4px 0}li::marker{color:var(--faint)}
+strong{font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.k{color:var(--amber)}.g{color:var(--good)}.b{color:var(--bad)}.i{color:var(--info)}.v{color:var(--violet)}.m{color:var(--muted)}.f{color:var(--faint)}
+/* chrome */
+.nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--ground) 82%,transparent);border-bottom:1px solid var(--line)}
+.nav .in{max-width:1180px;margin:0 auto;padding:10px 24px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.nav .brand{display:flex;gap:8px;align-items:center;font-weight:500;color:var(--text)}
+.nav .brand i{display:grid;place-items:center;width:22px;height:22px;border:1px solid var(--amber-line);background:var(--amber-soft);border-radius:4px;font:600 10px var(--mono);color:var(--amber);font-style:normal}
+.nav a.l{color:var(--muted);font-size:13px;position:relative;padding:4px 0}
+.nav a.l::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:var(--amber);transition:right var(--dur) ease-out}
+.nav a.l:hover{text-decoration:none;color:var(--text)}.nav a.l:hover::after{right:0}
+main{max-width:1180px;margin:0 auto;padding:40px 24px 120px}
+section{padding:56px 0;border-top:1px solid var(--line)}section:first-of-type{border-top:0;padding-top:16px}
+.secno{display:flex;gap:12px;align-items:baseline;margin-bottom:6px}.secno .eyebrow{color:var(--amber)}
+.sub{color:var(--muted);margin-bottom:24px;max-width:78ch}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
+.card.quiet{background:transparent;border-style:dashed}
+.card h4{margin-bottom:6px}
+.stat{display:flex;flex-direction:column;gap:2px}.stat b{font:500 32px/1 var(--mono);letter-spacing:-.02em;overflow-wrap:anywhere}.stat .eyebrow{margin-bottom:6px}.stat small{color:var(--muted);font-size:13px}
+.band{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);border-radius:4px;padding:2px 8px;font:500 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.band.ship{color:var(--good);border-color:var(--good);background:var(--good-soft)}
+.band.polish{color:var(--amber);border-color:var(--amber-line);background:var(--amber-soft)}
+.band.rebuild{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.band.na{color:var(--faint)}
+.pill{display:inline-block;border:1px solid var(--line-2);border-radius:999px;padding:1px 9px;font:11px var(--mono);color:var(--muted)}
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}
+.tw th:last-child,.tw td:last-child{min-width:240px}
+th{text-align:left;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}
+td.n{font-family:var(--mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:color-mix(in srgb,var(--panel-2) 60%,transparent)}
+.score{font:600 13px var(--mono)}.s0,.s1{color:var(--bad)}.s2{color:var(--bad)}.s3{color:var(--amber)}.s4{color:var(--good)}.s5{color:var(--good)}
+.bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}.bar i{display:block;height:100%;background:var(--amber)}
+/* callouts */
+.call{border:1px dashed var(--line-2);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--muted)}
+.call.warn{border-color:var(--amber-line);background:var(--amber-soft);color:var(--text)}
+.call.good{border-color:var(--good);background:var(--good-soft);color:var(--text)}
+.call .eyebrow{display:block;margin-bottom:4px}
+/* page scorecards */
+.page{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);margin-bottom:14px;overflow:hidden}
+.page .hd{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--panel-2) 45%,var(--panel))}
+.page .hd .route{font:500 14px var(--mono)}.page .hd .role{color:var(--muted);font-size:13px;flex:1 1 260px}
+.page .hd .sc{font:600 22px var(--mono);letter-spacing:-.02em;margin-left:auto}
+.page .bd{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:0}
+.page .bd>div{padding:14px 18px;border-right:1px solid var(--line)}.page .bd>div:last-child{border-right:0}
+.page .bd h5{margin:0 0 6px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.page ul{padding-left:18px;font-size:13.5px;color:var(--muted)}.page ul li{margin:3px 0}.page ul li b{color:var(--text);font-weight:500}
+.fact{display:flex;flex-wrap:wrap;gap:6px}.fact span{font:11px var(--mono);border:1px solid var(--line-2);border-radius:4px;padding:2px 7px;color:var(--muted)}
+/* mocks */
+.mock{border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--ground);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.mock .cap{font:11px var(--mono);color:var(--faint);padding:8px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.m-shell{display:grid;grid-template-columns:168px minmax(0,1fr)}
+.m-rail{border-right:1px solid var(--line);padding:12px 10px;font-size:12px}
+.m-rail .g{color:var(--faint);font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 4px 8px}
+.m-rail .g:first-child{margin-top:0}
+.m-rail a{display:flex;gap:8px;align-items:center;padding:5px 8px;border-radius:4px;color:var(--muted)}.m-rail a.on{background:var(--amber-soft);color:var(--amber);box-shadow:inset 2px 0 0 var(--amber)}
+.m-rail a i{width:12px;height:12px;border:1.5px solid currentColor;border-radius:3px;display:inline-block;opacity:.75}
+.m-top{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px}
+.m-body{padding:22px 24px;display:grid;gap:22px}
+.m-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:28px;align-items:start}
+.m-hero h1{font-size:30px}.m-hero .lede{font-size:14px}
+.m-proof{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 16px}
+.m-proof div b{display:block;font:500 22px/1 var(--mono);letter-spacing:-.02em}.m-proof div small{font-size:11px;color:var(--faint)}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:5px;padding:8px 14px;font-size:13px;font-weight:500;border:1px solid var(--line-2);color:var(--text);background:var(--panel-2);transition:transform var(--dur) ease-out,box-shadow var(--dur) ease-out}
+.btn.p{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.25);text-decoration:none}
+.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.m-star{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.m-star .eyebrow{margin-bottom:8px;display:block}
+.prog{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;align-items:end;height:150px;position:relative;padding-top:18px}
+.prog .col{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.prog .col b{font:500 11px var(--mono)}.prog .col i{width:100%;border-radius:3px 3px 0 0;background:var(--panel-2);border:1px solid var(--line-2);border-bottom:0}
+.prog .col small{font:10px var(--mono);color:var(--faint);text-align:center;line-height:1.2}
+.prog .human{position:absolute;left:0;right:0;border-top:1px dashed var(--violet);bottom:calc(26px + 107px);pointer-events:none}
+.prog .human small{display:none}
+.prog-legend{font:10.5px var(--mono);color:var(--violet);margin-top:6px}
+.rr{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;margin-top:10px}
+.rr div{border:1px solid var(--line);border-radius:4px;padding:6px 4px;text-align:center;font:10px var(--mono);line-height:1.3;color:var(--muted)}
+.rr div b{display:block;font-size:12px;margin-bottom:2px}
+.rr .sh{border-color:var(--good);color:var(--good);background:var(--good-soft)}.rr .pa{border-color:var(--amber-line);color:var(--amber);background:var(--amber-soft)}.rr .de{border-style:dashed}
+.m-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.m-tile{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.m-tile b{display:block;font:500 24px/1 var(--mono);letter-spacing:-.02em;margin:6px 0 4px}.m-tile small{font-size:11px;color:var(--muted);display:block}
+.phone{width:min(100%,390px);margin:0 auto}
+.phone .m-body{padding:16px}
+.phone .m-hero{grid-template-columns:minmax(0,1fr)}.phone .m-hero h1{font-size:24px}
+.phone .m-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+.phone .rr{grid-template-columns:repeat(9,minmax(0,1fr))}.phone .rr div{padding:5px 2px;font-size:9px}.phone .rr div b{font-size:10px}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding:8px 4px;font:10px var(--mono);color:var(--faint)}.tabbar span.on{color:var(--amber)}
+/* chat mock */
+.turn{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--panel)}
+.turn .q{display:flex;justify-content:flex-end;margin-bottom:10px}.turn .q span{background:var(--panel-2);border-radius:8px 8px 2px 8px;padding:8px 12px;font-size:14px;max-width:80%}
+.turn .ans{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.turn .ans b{font:500 30px/1 var(--mono);letter-spacing:-.02em}
+.turn .how{margin-top:10px;font-size:13px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chips span{font:11px var(--mono);border:1px solid var(--line-2);border-radius:4px;padding:3px 8px;color:var(--muted)}.chips span.on{border-color:var(--amber-line);color:var(--amber);background:var(--amber-soft)}.chips span.skip{text-decoration:line-through;color:var(--faint)}
+/* code */
+pre{margin:0;background:var(--ground);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;font:12.5px/1.55 var(--mono);color:var(--muted);overflow-x:auto;white-space:pre}
+pre b{color:var(--text);font-weight:500}pre .k{color:var(--amber)}
+/* phases */
+.phase{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:18px;padding:18px 0;border-top:1px solid var(--line)}
+.phase:first-child{border-top:0}
+.phase .id{font:500 15px var(--mono)}.phase .id small{display:block;font-size:11px;color:var(--faint);margin-top:4px}
+.phase h4{margin-bottom:6px}.phase ul{font-size:14px;color:var(--muted)}.phase .acc{font-size:13px;color:var(--good);margin-top:6px}
+/* decide */
+form.q{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:16px 18px}
+form.q h4{margin-bottom:8px}form.q label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:14px;color:var(--muted);cursor:pointer}
+form.q label b{color:var(--text);font-weight:500}form.q input[type=radio],form.q input[type=checkbox]{accent-color:var(--amber);margin-top:4px}
+form.q textarea,form.q input[type=text]{width:100%;background:var(--ground);border:1px solid var(--line-2);color:var(--text);border-radius:4px;padding:8px 10px;font:14px var(--sans)}
+form.q button{margin-top:10px}
+.queued{font:11px var(--mono);color:var(--good);margin-left:8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0 16px}
+.toc{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 0}.toc a{font:12px var(--mono);border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;color:var(--muted)}.toc a:hover{color:var(--text);border-color:var(--amber-line);text-decoration:none}
+figure{margin:0}figcaption{font-size:12px;color:var(--faint);margin-top:8px}
+.shot{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.shot img{display:block;width:100%;height:auto}
+@media (max-width:760px){.m-shell{grid-template-columns:minmax(0,1fr)}.m-rail{display:none}.m-hero{grid-template-columns:minmax(0,1fr)}.m-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.phase{grid-template-columns:minmax(0,1fr)}h2{font-size:22px}}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="in">
+  <span class="brand"><i>CF</i> ConvFinQA console · design upgrade</span>
+  <a class="l" href="#verdict">Verdict</a><a class="l" href="#story">The story</a><a class="l" href="#audit">Audit</a><a class="l" href="#rubric">Rubric</a><a class="l" href="#pages">Pages</a><a class="l" href="#readiness">Prod rubric</a><a class="l" href="#mocks">Mocks</a><a class="l" href="#tokens">Tokens</a><a class="l" href="#plan">Plan</a><a class="l" href="#decide">Decide</a>
+</div></nav>
+
+<main>
+
+<!-- ============================ 0 · VERDICT ============================ -->
+<section id="verdict">
+  <div class="eyebrow">s14 · design upgrade · branch <code>design-upgrade</code> · measured 8 Sep 2026 against the dev app at <code>localhost:5173</code></div>
+  <h1 style="margin:14px 0 16px">The evidence is the best thing in this app, and the design hides it behind eleven unlabelled icons and 85 identical panels.</h1>
+  <p class="lede">Every number on every page carries its denominator, its p-value and its provenance. But a first-time visitor lands on nine equal tiles, has to guess which of eleven icons means “how it was built”, reads most of the app at 10–11px, and is never told the one sentence the whole record supports: <em>the loop took a four-agent pipeline from 77.1% to 81.7%, then a single Claude session reached 90.5% on the same sealed split — above the paper's 89.4% human figure — and the confidence judge tried afterwards made no measurable difference.</em> The redesign is a presentation layer over the same data: a labelled story-shaped navigation, one type scale, one “star” per page, and the production gen-AI rubric shown in the product it is grading.</p>
+
+  <div class="grid g3" style="margin:28px 0 18px">
+    <div class="card stat"><span class="eyebrow">Current · weighted rubric</span><b class="num">82 <span class="f" style="font-size:16px">/ 145</span></b><small>57% · twelve dimensions, same rubric as the portfolio site plan (s05)</small><div class="bar" style="margin-top:10px"><i style="width:57%"></i></div></div>
+    <div class="card stat"><span class="eyebrow">Target · after P0–P6</span><b class="num">≥ 130 <span class="f" style="font-size:16px">/ 145</span></b><small>90% · every dimension ≥ 4; ship bar for the gate PR</small><div class="bar" style="margin-top:10px"><i style="width:90%;background:var(--good)"></i></div></div>
+    <div class="card stat"><span class="eyebrow">Pages · today</span><b class="num">2 <span class="f" style="font-size:16px">/ 13 at 7+</span></b><small>Runtimes and System carry the story; Shell, Overview, Experiments and Research score ≤ 4</small><div class="bar" style="margin-top:10px"><i style="width:15%;background:var(--bad)"></i></div></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="call good"><span class="eyebrow">Recommendation</span><b>Option A+ — “Console, evolved”.</b> Keep the instrument-panel identity, IBM Plex and the tokens (they are good and both themes already pass AA). Rebuild the information architecture around the story, collapse the type scale from 18 sizes to 8, give every page one main character and one verdict sentence, and add a production-readiness scorecard fed from a committed file. Six to seven build sessions; nothing in the backend changes except one new committed JSON.</div>
+    <div class="call"><span class="eyebrow">What does not change</span>Dark-first Console palette and both themes · Plex Sans / Plex Mono · elevation rule (ground → panel → panel-2) · lamps as shape + colour · every data contract, endpoint and test · the honesty rules (“not yet run”, never zero; contamination and confound caveats; the judge verdict phrase <code>story_check</code> enforces).</div>
+  </div>
+
+  <div class="toc"><a href="#story">what the app must say</a><a href="#audit">measured audit</a><a href="#rubric">D1–D12 scored</a><a href="#pages">13 page scorecards</a><a href="#readiness">R1–R9 in the product</a><a href="#mocks">mocks 1200 / 390</a><a href="#tokens">token sheet</a><a href="#plan">P0–P6</a><a href="#decide">3 decisions</a></div>
+</section>
+
+<!-- ============================ 1 · THE STORY ============================ -->
+<section id="story">
+  <div class="secno"><span class="eyebrow">01 · substance before style</span></div>
+  <h2>Who this is for, and the one thing they must leave knowing</h2>
+  <p class="sub">The corpus rule (s20, stage 01): answer who / what action / objections / vibe before touching a layout. The app is a portfolio piece and a working tool at once, and the two audiences want the same spine in a different order.</p>
+
+  <div class="grid g3">
+    <div class="card"><h4>Visitor · a technical reviewer, 90 seconds</h4><p style="font-size:14px;color:var(--muted)">Arrives from the portfolio's R1–R9 matrix or a CV link. Wants: what was built, how it was measured, whether the numbers are honest, and proof it runs. Objection: “a chatbot with a dashboard is not production engineering.” The answer is the loop, the gate and the scorecard — shown, not described.</p></div>
+    <div class="card"><h4>Operator · you, in dev</h4><p style="font-size:14px;color:var(--muted)">Runs live turns on the Agent SDK against a filing, reads the trace, promotes or refuses a version, opens the judge's caution. Needs density and keyboard reach — the instrument-panel identity is right for this person and must survive the redesign.</p></div>
+    <div class="card"><h4>Demo · the public URL</h4><p style="font-size:14px;color:var(--muted)">No key, replays eight recorded conversations, every write answers 403. The visitor must understand within one screen that the chat is a faithful replay of real traces and the admin pages are live against committed evidence — today that is a small dashed lamp and a banner most people will not parse.</p></div>
+  </div>
+
+  <h3 style="margin:32px 0 10px">The spine — six beats, in order, each with its proof page</h3>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Beat</th><th>The sentence the page must state</th><th>Proof lives at</th><th>Today it is</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td><b>Architecture</b></td><td>Four typed agents behind one choke point; a triage string decides whether two or four run; arithmetic only ever happens in six calculator tools.</td><td><code>/admin/system</code> §03–04</td><td>Excellent, but buried in a 16,482px document behind an icon nobody clicks</td></tr>
+      <tr><td class="n">2</td><td><b>The loop</b></td><td>A teacher blames one agent per first-wrong turn; the challenger rewrites only that prompt; a paired, cluster-corrected test on a sealed split decides. Seven experiments, one promotion, three rollbacks.</td><td><code>/admin/campaigns</code></td><td>A five-line chart with two x-points and a list of rejections — the mechanism is nowhere on the page</td></tr>
+      <tr><td class="n">3</td><td><b>Evals</b></td><td>Committed manifest, committed CSVs, gold beside every answer, per-agent metrics derived from gold with zero model calls.</td><td><code>/admin/evaluations</code>, <code>/admin/dataset</code></td><td>Evaluations opens with a paragraph explaining it is the <em>legacy</em> scoring; Dataset is a reference table with no framing</td></tr>
+      <tr><td class="n">4</td><td><b>Human level, with the caveat attached</b></td><td>90.5% on 349 unseen questions vs the paper's 89.4% human figure — a different question set, contamination not excluded, model and architecture changed at once.</td><td><code>/admin/runtimes</code></td><td>Stated correctly on Runtimes; on the landing it is a tile labelled “single-session runtime”</td></tr>
+      <tr><td class="n">5</td><td><b>Working Q/A (dev) · recorded replay (prod)</b></td><td>Ask any of 442 filings a chain of dependent questions and watch each stage resolve; in public, the same traces replay at their real pacing.</td><td><code>/chat</code></td><td>Works; the mode difference is a 10px lamp and the trace inspector is the densest text in the app</td></tr>
+      <tr><td class="n">6</td><td><b>Tried last: LLM-as-judge</b></td><td>A cheaper model banded every answer; high band 91.46% vs 90.54% releasing everything, CI contains the baseline; withholding cost 27 right answers to stop 6 wrong. Shipped as advisory, not a gate.</td><td><code>/admin/runtimes</code> judge panel, chat caution</td><td>Stated correctly; the landing tile reads “no effect” with no verb</td></tr>
+    </tbody></table></div>
+  <p style="margin-top:14px;font-size:14px;color:var(--muted)">The IA proposal in §07 is this table turned into navigation: <b>Product</b> (Overview, Chat) · <b>How it was built</b> (Architecture, Readiness) · <b>Evidence</b> (Evaluations, Dataset, Campaigns, Runtimes, Experiments) · <b>Operations</b> (Traces, Research). Same eleven routes, four labelled groups, one story order.</p>
+</section>
+
+<!-- ============================ 2 · AUDIT ============================ -->
+<section id="audit">
+  <div class="secno"><span class="eyebrow">02 · what was measured</span></div>
+  <h2>The audit: DOM probes, code reads and screenshots of every route in both themes and at 390px</h2>
+  <p class="sub">Numbers come from a text-node walker run in Chrome against the dev app (distinct computed text styles, size histogram, page height), a full read of <code>frontend/src</code> (521 size-bearing class references mapped to px through <code>tokens.css</code>), and screenshots at 1440 and 390. Nothing below is an impression.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Route</th><th>Text styles</th><th>px sizes used</th><th>Text ≤ 11px</th><th>Smallest</th><th>Height</th><th>Panels</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td class="n">18</td><td class="mono">10 · 11 · 13 · 15 · 27 · 34</td><td class="n b">89%</td><td class="n">10</td><td class="n">1,302</td><td class="n">23</td><td>Headline is right; nine equal tiles + a 120-word “sources” box below the fold; 89% of text nodes are 10–11px meta</td></tr>
+      <tr><td><code>/chat</code></td><td class="n">23</td><td class="mono">9.5 · 10 · 10.5 · 11 · 11.5 · 12 · 13 · 14 · 18 · 24</td><td class="n b">88%</td><td class="n b">9.5</td><td class="n">viewport</td><td class="n">29</td><td>Answer figure (24px) is a real focal point; everything else — chips, inspector, sessions, bundle footer — is 9.5–11px mono; no <code>.type-*</code> class used at all</td></tr>
+      <tr><td><code>/admin</code></td><td class="n">28</td><td class="mono">10 · 10.5 · 11 · 11.5 · 12 · 12.5 · 13 · 19 · 27</td><td class="n b">89%</td><td class="n">10</td><td class="n">viewport</td><td class="n">24</td><td>Four tiles, six lamps, four panels, all the same weight; the runtime-decision sentence is the smallest text on the page</td></tr>
+      <tr><td><code>/admin/runtimes</code></td><td class="n">31</td><td class="mono">9 · 10 · 11 · 12 · 12.5 · 13 · 14 · 15 · 16 · 19 · 27</td><td class="n">49%</td><td class="n b">9</td><td class="n">3,336</td><td class="n">41</td><td>Best page: verdict banner leads, CIs everywhere, honest caveats. Then ten more equal panels and three bespoke tables with 10–11 columns</td></tr>
+      <tr><td><code>/admin/campaigns</code></td><td class="n">17</td><td class="mono">9 · 10 · 11 · 12 · 13 · 19</td><td class="n">58%</td><td class="n b">9</td><td class="n">1,178</td><td class="n">15</td><td>Chart has two x-points; six hard-coded hex colours are theme-blind; the selected filter renders in the panel colour (invisible)</td></tr>
+      <tr><td><code>/admin/system</code></td><td class="n b">49</td><td class="mono">7 · 7.5 · 8 · 8.5 · 9 · 9.5 · 10 · 10.5 · 11 · 12 · 13 · 15 · 16 · 19 · 27 · 34</td><td class="n">55%</td><td class="n b">7</td><td class="n b">16,482</td><td class="n b">85</td><td>The strongest content in the app (7,117 words, 12 sections, TOC, diagrams, provenance badges) rendered as 85 same-weight panels; SVG labels at 7–8.5px</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card"><h4>Type</h4><ul style="font-size:13.5px;color:var(--muted)"><li><b>18 distinct px sizes</b> in live code against 8 tokens; four half-pixel sizes (9.5 / 10.5 / 11.5 / 12.5) exist in no token</li><li><b>323 of 521</b> size references (61%) are ≤ 11px; raw <code>text-[Npx]</code> appears 232 times</li><li><code>.type-display</code> is used on exactly two pages; every admin page's H1 is the 19px <code>type-h2</code></li><li>Body prose is 13px; the reference threshold is 16 (18 on reading pages)</li></ul></div>
+    <div class="card"><h4>Structure</h4><ul style="font-size:13.5px;color:var(--muted)"><li><b>Four UI-primitive modules</b> that do not import each other: <code>components/ui.tsx</code>, <code>admin/ui.tsx</code>, <code>system/ui.tsx</code>, plus a private <code>Lamp</code> in the landing</li><li><b>2,214 lines of dead components</b> (<code>DataPanel</code>, <code>EvalPanel</code>, …) hold every legacy alias use; the alias block in <code>tokens.css</code> exists only for them</li><li>11 of 14 vendored shadcn files are unused; three bespoke <code>&lt;table&gt;</code>s in Runtimes duplicate <code>InstrumentTable</code></li><li>Nav rail: 11 icon-only entries, no labels, no grouping, never collapses on a phone</li></ul></div>
+    <div class="card"><h4>Colour · motion · a11y · responsive</h4><ul style="font-size:13.5px;color:var(--muted)"><li>Tokens pass AA in both themes (faint 4.65:1 / 4.72:1) — the one thing already at 10/10</li><li><b>6 hex colours</b> outside tokens (Campaigns); <code>text-accent</code> resolves to <code>--panel-2</code> on two pages</li><li><code>transition-colors</code> only; no reduced-motion guard; <code>focus-visible</code> missing on the rail, table links, chips; inspector resize is pointer-only</li><li>390px: no body overflow, but 9–15 internal overflow elements on Chat/Runtimes, the rail eats 52px, SVG labels shrink to ≈4px</li></ul></div>
+  </div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="call"><span class="eyebrow">Already right — keep</span>Honest empty states everywhere (“not yet run”, em dash + reason, never zero) · provenance badges on the System page · CI and p on every verdict · lamps as shape+colour · self-hosted fonts, three weights · lazy admin routes · URL-param state on Evaluations · the <code>WriteGate</code> fieldset that shows why a write is refused · the judge caution copy.</div>
+    <div class="call warn"><span class="eyebrow">Visible bugs found while auditing</span>Selected split / campaign filter is invisible (<code>border-accent text-accent</code> → panel colour) in <code>DatasetReview.tsx:201</code> and <code>Campaigns.tsx:286</code> · the champion-track chart draws five series through two points · Campaigns SVG palette does not follow the light theme · the theme toggle's third state reads as “still dark” with no indication it is following the OS.</div>
+  </div>
+</section>
+
+<!-- ============================ 3 · RUBRIC ============================ -->
+<section id="rubric">
+  <div class="secno"><span class="eyebrow">03 · the rubric</span></div>
+  <h2>Twelve dimensions, weighted, scored 0–5 — the same rubric the portfolio site was scored on</h2>
+  <p class="sub">Reused from <code>nmp-dsci.github.io/.lavish/s05</code> so the two scores are comparable. 5 exemplary · 4 meets every threshold · 3 mostly · 2 visible failures · 1 systemic · 0 absent, × weight 1–3. Maximum 145. Thresholds are the pass mark for a 4.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Dimension</th><th>W</th><th>Pass threshold (4)</th><th>Now</th><th>Evidence</th><th>After</th></tr></thead>
+    <tbody>
+      <tr><td class="n">D1</td><td><b>First-screen clarity</b></td><td class="n">3</td><td>Who / what / for whom / next step in the first viewport; ≥ 1 proof number with its baseline; one solid CTA + ≤ 1 secondary</td><td class="score s3">3</td><td>Headline says what; not for whom, not the outcome; nine tiles and three CTAs compete; “out-of-sample accuracy” tile is a permanent em dash</td><td class="score s5">5</td></tr>
+      <tr><td class="n">D2</td><td><b>Visual hierarchy</b></td><td class="n">3</td><td>One star per surface; no adjacent elements at equal weight; panels nested ≤ 1 level</td><td class="score s2">2</td><td>23–85 bordered panels per page; admin H1s at 19px; Panel-in-Panel on Trace detail and System</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D3</td><td><b>Typographic system</b></td><td class="n">3</td><td>≤ 2 families; named scale; ≤ 10 text styles per page; body ≥ 16 (14 in a dense console is the agreed floor); no running text &lt; 13</td><td class="score s2">2</td><td>Scale exists, is bypassed: 18 sizes, 17–49 styles per page, 61% of references ≤ 11px, half-pixel sizes</td><td class="score s5">5</td></tr>
+      <tr><td class="n">D4</td><td><b>Colour &amp; contrast</b></td><td class="n">3</td><td>60/30/10; accent for action + status; every pair ≥ 4.5:1 both themes; status never colour-only</td><td class="score s4">4</td><td>Tokens verified AA; lamps shape+colour; but 6 raw hex, the accent-alias bug, and amber used for both emphasis and action</td><td class="score s5">5</td></tr>
+      <tr><td class="n">D5</td><td><b>Spacing &amp; rhythm</b></td><td class="n">2</td><td>One 4/8 ladder; one section rhythm per breakpoint; one job per section</td><td class="score s3">3</td><td>Tailwind's ladder is used consistently; sections have no rhythm — every page is a stack of equal cards with 16px gaps</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D6</td><td><b>Scan-ability</b></td><td class="n">3</td><td>Summary line per section; TOC on pages &gt; 1,200 words; paragraphs ≤ 80 words; lists/tables for enumerables; depth behind disclosure</td><td class="score s3">3</td><td>System has a TOC and numbered sections; Runtimes is 1,853 words in 10 panels with no map; landing “sources” box is three 60-word paragraphs at 11px</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D7</td><td><b>Evidence presentation</b></td><td class="n">3</td><td>Every metric has baseline/denominator; proof adjacent to claim; captions state the takeaway; code links within reach</td><td class="score s4">4</td><td>The strongest dimension: CIs, p, n, provenance, route links on tiles. Landing tiles lack CIs; the progression chart's caption is 11px</td><td class="score s5">5</td></tr>
+      <tr><td class="n">D8</td><td><b>CTA &amp; wayfinding</b></td><td class="n">2</td><td>Solid primary, no ghost; every page ends in a next step; nav ≤ 5 groups + utility; breadcrumb</td><td class="score s2">2</td><td>11 unlabelled icons, flat; no page ends in a next step; two ghost buttons beside the solid one; eyebrow breadcrumbs only</td><td class="score s5">5</td></tr>
+      <tr><td class="n">D9</td><td><b>Component consistency</b></td><td class="n">2</td><td>One card/button/table definition with variants; four interactive states; one radius; bespoke assets</td><td class="score s2">2</td><td>Four primitive modules, three bespoke tables, dead code, unused shadcn; the SVG diagrams are a genuine bespoke asset</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D10</td><td><b>Responsive</b></td><td class="n">2</td><td>Re-layout not scale-down; tables/diagrams have a narrow strategy; 24×24 targets; scale swaps per range</td><td class="score s2">2</td><td>No body overflow (good); rail never collapses; 10-column tables side-scroll; SVG labels ≈ 4px at 390; six-control filter rows wrap to three lines</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D11</td><td><b>Motion &amp; feel</b></td><td class="n">1</td><td>Hover/focus/reveal ≤ 300ms ease-out; reduced-motion honoured; no layout shift</td><td class="score s2">2</td><td>Colour transitions only; one smooth scroll with no reduced-motion guard; nothing lifts, nothing reveals</td><td class="score s4">4</td></tr>
+      <tr><td class="n">D12</td><td><b>Performance &amp; a11y</b></td><td class="n">2</td><td>Self-hosted subset ≤ 4 weights; one H1; landmarks; visible focus; keyboard everywhere</td><td class="score s4">4</td><td>Fonts, lazy chunks, landmarks, one H1 all present; focus rings inconsistent; drag handle keyboard-inaccessible; tooltips-only nav labels</td><td class="score s5">5</td></tr>
+      <tr style="background:color-mix(in srgb,var(--panel-2) 50%,var(--panel))"><td></td><td><b>Weighted total</b></td><td class="n">29</td><td></td><td class="score s2">82 / 145</td><td class="m">57% — where the portfolio site sat before its redesign (it was 74)</td><td class="score s5">≥ 132</td></tr>
+    </tbody></table></div>
+</section>
+
+<!-- ============================ 4 · PAGES ============================ -->
+<section id="pages">
+  <div class="secno"><span class="eyebrow">04 · every surface, scored</span></div>
+  <h2>Thirteen surfaces on a 0–10 scale, banded, with what gets each one to 10</h2>
+  <p class="sub">Bands are the decision: <span class="band ship">ship</span> 8–10, keep and polish in the global passes · <span class="band polish">polish</span> 5–7, a focused session or less · <span class="band rebuild">rebuild</span> ≤ 4, the page's shape changes. The score is the six page-varying dimensions (D1 D2 D3 D6 D7 D8) averaged and doubled; the global ones (D4 D5 D9–D12) are scored once in §03.</p>
+  <div class="legend"><span>Order follows the proposed IA, not the current rail.</span></div>
+
+  <!-- Shell -->
+  <div class="page"><div class="hd"><span class="route">Shell · nav rail · top bar</span><span class="role">The wayfinding for everything else</span><span class="band rebuild">rebuild</span><span class="sc s2">4 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>11 icon-only items</span><span>tooltip labels only</span><span>no groups</span><span>52px at 390</span><span>no focus ring</span><span>champion id hidden &lt; lg</span></div><ul style="margin-top:8px"><li>Overview, Admin, Evaluations, Dataset, Campaigns, Runtimes, Experiments, Traces, Research, System, Chat — one flat list in an order that is neither story nor frequency</li><li>Route fallback is a bare “loading…”; 404 and error pages use ad-hoc sizes</li></ul></div>
+    <div><h5>To 10</h5><ul><li><b>Labelled rail</b> at ≥ 1024px (168px, text + icon), icon rail 52px between 640–1024, bottom tab bar + sheet below 640 — the same items, four groups: <b>Product · Built · Evidence · Operations</b></li><li>Group headers in mono-caps; active = amber bar + tint (already the pattern); <code>focus-visible</code> ring with offset on every item</li><li>Top bar: mode lamp becomes a labelled chip (“dev · live model”, “demo · recorded replay”) with a one-line tooltip explaining what that means for what you see</li><li>Route fallback = skeleton of the page header; one <code>PageHeader</code> used by every route (eyebrow group · display H1 · verdict sentence · right-side chips)</li></ul></div>
+  </div></div>
+
+  <!-- Landing -->
+  <div class="page"><div class="hd"><span class="route">/ · Overview (landing)</span><span class="role">Beat 4 + the whole spine in one screen</span><span class="band polish">polish</span><span class="sc s3">6 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>18 styles</span><span>89% ≤ 11px</span><span>9 tiles</span><span>3 CTAs</span><span>headline ✓ display</span><span>no CI on tiles</span></div><ul style="margin-top:8px"><li>Headline is plain and true but states no outcome; the human-level result is a tile titled “single-session runtime”</li><li>Right pane: nine equal tiles, one permanently empty by design, then a three-paragraph 11px sources box, then the pipeline strip</li><li>Recorded conversations (the demo's front door) sit under the fold on a laptop</li></ul></div>
+    <div><h5>To 10</h5><ul><li><b>Headline states the outcome</b>: “Answers dependent questions about SEC filings at human-expert accuracy — and shows every step.” Proof line under it with three numbers <em>and their baselines</em>: 90.5% vs 89.4% human (paper) · +13.4pp over the raw pipeline · 349 unseen questions</li><li><b>The star</b> is the progression chart (v2 → v8 → sdk_v1 → judge) with the human line — moved up from Runtimes — beside a 9-cell readiness strip (§05). Both link to their proof page</li><li>Tiles cut from 9 to 4 (gate accuracy, human-level, cost/turn, latency); the other five move to <code>/admin</code>. Every tile carries baseline or CI, never a dash</li><li>One solid CTA “Open a conversation” + one quiet “How it was built”; the mode explanation is one sentence under the CTA, not a lamp</li><li>Sources box → a single <code>&lt;details&gt;</code> “where these numbers come from”</li></ul></div>
+  </div></div>
+
+  <!-- Chat -->
+  <div class="page"><div class="hd"><span class="route">/chat · conversation</span><span class="role">Beat 5 · working Q/A in dev, replay in prod</span><span class="band polish">polish</span><span class="sc s3">6 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>23 styles</span><span>88% ≤ 11px</span><span>min 9.5px</span><span>no type-* classes</span><span>4 hand-rolled dialogs</span><span>drag pointer-only</span></div><ul style="margin-top:8px"><li>The answer figure and the gold check are exactly right; everything around them — stage chips, gold program, inspector rows, session list, bundle footer — is 9.5–11px mono</li><li>Empty state is good copy in small type; “replayed” banner does the honest thing at 11px</li><li>Sessions pane names conversations by ticker/year/page only; no hint which are recorded</li></ul></div>
+    <div><h5>To 10</h5><ul><li><b>Turn card hierarchy</b>: question (14px) · answer (30px mono) + gold verdict (13px) · one plain-English “how” line generated from the stages (“program turn · preprocess split it into two sub-questions · retriever found 868 and 641 · calculator ran subtract”) · stage chips at 12px · latency right-aligned. The judge caution keeps its copy at 13px</li><li>Inspector: stage names 14px, numbers 13px tabular; a header that explains what a trace is in one line; keyboard resize (arrow keys on the separator) and a “dock/undock” button</li><li>Composer: the dataset chips are the fastest way in — label them “the dataset's next questions” and size them 12px; “Run all gold (7)” gets a tooltip that says what it proves</li><li>Sessions: two labelled groups (“yours” / “recorded”), 13px titles, 12px meta; the “+ new” becomes a solid button</li><li>Mode banner in demo: one persistent 13px line above the thread — “Replaying a recorded run at its real pacing. No model is called.” — replacing the dashed lamp as the explanation</li><li>Replace the four hand-rolled overlays with the vendored <code>Dialog</code>/<code>Sheet</code> (focus trap, escape, animation, reduced-motion for free)</li></ul></div>
+  </div></div>
+
+  <!-- System -->
+  <div class="page"><div class="hd"><span class="route">/admin/system → “Architecture”</span><span class="role">Beat 1 · how it was built and how to operate it</span><span class="band polish">polish</span><span class="sc s3">7 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>49 styles</span><span>16 sizes</span><span>85 panels</span><span>16,482px</span><span>7,117 words</span><span>TOC ✓</span><span>diagrams ✓</span><span>provenance ✓</span></div><ul style="margin-top:8px"><li>The best-written page in the app: 12 numbered sections, display H1, live fields with reasons, SVG diagrams that follow the theme, citations to paper tables</li><li>Presented as 85 equal panels and 14 dashed callouts; prose at 13px in a 640px measure; SVG labels 7–8.5px; the TOC disappears below xl</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Rename in nav to <b>Architecture</b> and put it second in the rail — it is the page a reviewer should open after the landing</li><li>Reading type: 16px / 1.6 in a 68ch measure; H2 26px; the corpus tables and DSL table keep 13px mono. Panels lose borders on the reading column; callouts keep theirs (they are the only things that should look like boxes)</li><li>Add a one-line summary under every H2 (the section already has a lede — surface it as the TOC's second line); reading time in the masthead; TOC as a sticky top strip below xl</li><li>Diagram text ≥ 11px at 390 (re-layout the two flow diagrams vertically on narrow); every diagram gets a one-sentence caption stating the takeaway</li><li>New §13 <b>Production readiness</b>: the R1–R9 scorecard (§05) with each row's proof linking within the app, and “Open work” becomes the honest tail of it</li></ul></div>
+  </div></div>
+
+  <!-- Overview -->
+  <div class="page"><div class="hd"><span class="route">/admin · Overview → “Scoreboard”</span><span class="role">Operator's first screen: what serves, what production did</span><span class="band rebuild">rebuild</span><span class="sc s2">4 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>28 styles</span><span>89% ≤ 11px</span><span>4 tiles + 6 lamps + 4 panels</span><span>H1 19px</span></div><ul style="margin-top:8px"><li>Duplicates the landing (same tiles, same runtime cells) with a legacy v1–v3_1 table whose caveat admits the champion is not in it</li><li>The one sentence that matters (“the recommendation on /admin/runtimes is to move the runtime”) is 11px faint</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Becomes the operator scoreboard: <b>what serves now</b> (runtime, champion, sdk_champion, judge mode, bundle) as one labelled row; <b>last 24h</b> (turns, errors, p50/p95, cost) as four tiles with sparklines; <b>the five tiles removed from the landing</b> live here</li><li>Drop the legacy v1–v3_1 table (it stays on Evaluations, labelled legacy); replace with “recent verdicts” — the last five gate rows from <code>gates.jsonl</code> with their p and delta</li><li>Verdict sentence in the header: “Serving sdk_v1 on the Agent SDK; judge advisory; last gate refused c03-e02 at p=0.55.” — generated from the same data the tiles read</li></ul></div>
+  </div></div>
+
+  <!-- Evaluations -->
+  <div class="page"><div class="hd"><span class="route">/admin/evaluations</span><span class="role">Beat 3 · what was measured, on which questions</span><span class="band polish">polish</span><span class="sc s3">5 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>9 sizes</span><span>69% ≤ 11px</span><span>5 panels</span><span>URL state ✓</span><span>flips drawer ✓</span><span>legacy disclaimer</span></div><ul style="margin-top:8px"><li>Opens with a paragraph explaining that everything on it is the legacy 770-question scoring — a page-long apology</li><li>Splits cards, slice chart and the promotion contract are good instruments in the wrong order; the comparison defaults to v3_1 vs v2</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Reframe as <b>“Evals: two eras, one rule”</b>: header verdict “Every version is scored on committed CSVs with gold beside each answer; from v4 the split is the sealed 349-question gate.” The legacy set becomes a labelled second tab, not the page</li><li>Lead with the current gate split (349 q / 100 conv, seed 2026) and the champion's slice chart by turn position — the paper's own finding — then the promotion contract with a real pair (v8 vs sdk_v1) preselected</li><li>“Every answer beside its gold” keeps its table; the filter row moves into the panel header; the disagree checkbox becomes a chip</li><li>Type: all table text ≥ 12px; headers 11px mono-caps stay</li></ul></div>
+  </div></div>
+
+  <!-- Dataset -->
+  <div class="page"><div class="hd"><span class="route">/admin/dataset</span><span class="role">Beat 3 · the questions, gold and derived-gold</span><span class="band polish">polish</span><span class="sc s3">5 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>8 sizes</span><span>60% ≤ 11px</span><span>1 panel</span><span>selected split invisible (bug)</span><span>no framing</span></div><ul style="margin-top:8px"><li>A single 7-column table with a filter; it is the place gold_suspect labels get settled, and nothing on the page says so</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Header verdict: “Three splits cut by conversation. Train is redrawn every cycle; the gate split is fixed and sealed; the holdout has never been opened.” with three stat cells (q · conversations · last drawn)</li><li>Fix the selected-split colour (bug); add a “derived gold” legend explaining skeleton/retrieve/triage in one line each; add a gold_suspect filter chip and a count, because that is the human job this page exists for</li><li>Row density is right for an operator; raise question text to 13px, ids 12px mono</li></ul></div>
+  </div></div>
+
+  <!-- Campaigns -->
+  <div class="page"><div class="hd"><span class="route">/admin/campaigns</span><span class="role">Beat 2 · the loop, and what it moved</span><span class="band polish">polish</span><span class="sc s3">5 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>17 styles</span><span>min 9px SVG</span><span>2 x-points, 5 series</span><span>6 hex colours</span><span>filter invisible (bug)</span><span>CI ✓ in accordion</span></div><ul style="margin-top:8px"><li>The chart is honest (only promotions move it) and nearly empty; the mechanism — diagnose → rewrite one prompt → gate — is not on the page</li><li>Experiment cards carry the right numbers (Δpp, p, fixed/broken, 95% CI) hidden behind an accordion with no hover or focus state</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Header verdict: “Seven experiments, one promotion: c01-e03 rewrote the retriever for +4.58pp at p=0.040. Every other challenger was net-positive-but-not-significant, and the gate refused them.”</li><li><b>The loop diagram</b> (from System §07/08, Mermaid or SVG) at the top: one figure, four nodes, the gate rule as its caption. This is the beat's missing sentence</li><li>Chart becomes a gate ledger: every experiment as a dot at its Δ with its CI as a whisker, promoted dots filled, rejected hollow — the two-point line chart cannot say what seven CIs say</li><li>Colours to tokens (info/violet/amber/good already exist for the four agents); filter bug fixed; accordion rows get hover/focus and a right-aligned “open diff” link</li></ul></div>
+  </div></div>
+
+  <!-- Runtimes -->
+  <div class="page"><div class="hd"><span class="route">/admin/runtimes</span><span class="role">Beats 4 + 6 · human-level, and the judge tried after</span><span class="band polish">polish</span><span class="sc s4">7 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>31 styles</span><span>49% ≤ 11px</span><span>10 panels</span><span>3,336px</span><span>verdict banner ✓</span><span>CIs ✓</span><span>caveats ✓</span><span>judge verdict ✓</span></div><ul style="margin-top:8px"><li>Verdict-first and honest: the recommendation, the paired delta with CI, the contamination caveat, the judge's “not statistically significant” all stated in words</li><li>Then ten equal panels, three bespoke tables of 10–11 columns, and the most important chart (the progression with the human line) two screens down</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Reorder to the story: verdict → <b>progression chart</b> (the star, moved up) → the two arms → where the difference is → model swap → <b>the judge</b> as its own titled section with its verdict banner → caveats. Add a sticky in-page TOC (six anchors) because the page is 1,850 words</li><li>The three bespoke tables become <code>InstrumentTable</code> with 12px minimum and a narrow strategy: the judge table collapses to five columns below 1024 with the rest in a row disclosure</li><li>Type: panel titles 16px, body 14px, the verdict lede stays 17px; captions 12px not 11</li><li>Judge section links to the s13 write-up and to a live chat turn with a caution, so the reader can see what “advisory” looks like</li></ul></div>
+  </div></div>
+
+  <!-- Experiments -->
+  <div class="page"><div class="hd"><span class="route">/admin/experiments</span><span class="role">Registry, runs, promotion history — the operator's ledger</span><span class="band rebuild">rebuild</span><span class="sc s2">4 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>8 sizes</span><span>70% ≤ 11px</span><span>5 panels</span><span>WriteGate ✓</span><span>GEPA rows broken (noted)</span></div><ul style="margin-top:8px"><li>Promote form first (refused in demo, rarely used in dev), then a runs table mixing five kinds, then versions, then history — four tables, no verdict</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Reshape around <b>the registry</b>: header verdict “16 versions in three lineages; aliases decide what serves; 9 promotions, append-only.” Lineage view first (pipeline v1→v12 · sdk_v1–v2 · judge_j1–j2) as three rows of version chips with champion/sdk_champion/judge_champion marked</li><li>Promotion history second, as the same gate-ledger rows Campaigns uses; runs table third, filtered to evalloop by default with the legacy kinds behind the chip row; promote form last, still gated</li><li>Kill the 11px table text; mono ids at 12px</li></ul></div>
+  </div></div>
+
+  <!-- Traces -->
+  <div class="page"><div class="hd"><span class="route">/admin/traces</span><span class="role">R6 · every served turn, by source, never blended</span><span class="band polish">polish</span><span class="sc s3">5 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>8 sizes</span><span>75% ≤ 11px</span><span>3 source cards</span><span>10-col table</span><span>6 filter controls</span><span>null≠zero copy ✓</span></div><ul style="margin-top:8px"><li>The source split (serving / demo / eval) is a genuinely good idea rendered as three cards of eight tiny cells each; the demo card is mostly em dashes with a 25-word reason repeated four times</li><li>Six filter controls wrap to three lines under 1024px</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Header verdict from the data: “65 live turns in 24h at p50 3.8s and $0.0022; the demo replays carry no timing by design.” The demo card's four identical reasons become one line</li><li>Filters collapse to one row: source segmented control + result chip + one search box with a type-ahead over report/session/text</li><li>Table at 12px minimum; the question column truncates to two lines with the full text on hover; “fetch more” becomes a sentinel row</li></ul></div>
+  </div></div>
+
+  <!-- Trace detail -->
+  <div class="page"><div class="hd"><span class="route">/admin/traces/:id</span><span class="role">R6 · one turn, every stage, what it cost</span><span class="band polish">polish</span><span class="sc s3">6 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>8 sizes</span><span>64% ≤ 11px</span><span>panel-in-panel</span><span>pre at 10.5px</span><span>no stage collapse</span></div><ul style="margin-top:8px"><li>Right content, right order (question → verdict → cost → stages); the stage input/output JSON is the only place the app shows raw prompts, at 10.5px in a 256px-tall box</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Stages become a vertical timeline (the shape the chat inspector already implies) with each stage a disclosure: closed = name · latency · tokens · one-line summary; open = input / output / reasoning at 12.5px mono with copy buttons and a “raw JSON” toggle</li><li>Header gets a “open in chat” action when the session still exists and a prev/next turn link within the conversation</li></ul></div>
+  </div></div>
+
+  <!-- Research -->
+  <div class="page"><div class="hd"><span class="route">/admin/research</span><span class="role">The retired s7 harness — an appendix</span><span class="band rebuild">rebuild</span><span class="sc s2">4 / 10</span></div><div class="bd">
+    <div><h5>Now</h5><div class="fact"><span>8 sizes</span><span>75% ≤ 11px</span><span>39 rules · 101 attempts</span><span>launch refused</span></div><ul style="margin-top:8px"><li>Shows the s7 per-case rule stores for v3_1 as if they were current; nothing says the loop replaced this in s04 and the campaigns superseded the rules</li></ul></div>
+    <div><h5>To 10</h5><ul><li>Rename “Prompt research (s7, retired)” and move to Operations, last. Header verdict: “The per-case harness that wrote v3_1's 39 rules; superseded by the eval loop. Kept because the stores are committed and the harness still runs.”</li><li>One panel, one table, the console behind a disclosure; the rules table gets a 13px rule column with the full text on expand instead of a 70-character truncation</li></ul></div>
+  </div></div>
+
+  <!-- Readiness (new) -->
+  <div class="page"><div class="hd"><span class="route">/admin/readiness · new</span><span class="role">The production gen-AI rubric, in the product it grades</span><span class="band na">not built</span><span class="sc f">— / 10</span></div><div class="bd">
+    <div><h5>Why a page</h5><ul><li>The portfolio site scores this system 6/9 on R1–R9 with proof paths into this repository. Nothing in the app shows that grid, so the reviewer who arrived from the matrix cannot check it against the running thing</li><li>Also the natural home for the R2 correction: the judge <em>was</em> tried (s12/s13), which changes that cell from “n/a” to “partial — measured, not adopted”</li></ul></div>
+    <div><h5>Shape</h5><ul><li>Nine rows (R1–R9) in the two halves the rubric defines (learning R1–R4 / operating R5–R9): status glyph + word · how (≤ 40 words) · proof as in-app links first, file paths second · the number that proves it, read live where one exists (R1 → 349 q; R3 → last gate p; R7 → $/turn)</li><li>Fed from a committed <code>evaluation/readiness.json</code> — the same nine entries as the portfolio front matter — and served at <code>GET /eval/readiness</code>; a test asserts every proof path exists in the repo, and <code>story_check</code> asserts the page's 6/9 matches the file</li><li>The compact 9-cell strip on the landing and the §13 block on Architecture are the same component in two sizes</li></ul></div>
+  </div></div>
+</section>
+
+<!-- ============================ 5 · READINESS ============================ -->
+<section id="readiness">
+  <div class="secno"><span class="eyebrow">05 · the production gen-ai rubric</span></div>
+  <h2>R1–R9: how this agent scores, and where each cell will be visible in the app</h2>
+  <p class="sub">Source of truth is <code>nmp-dsci.github.io/_data/rubric.yml</code> and the ConvFinQA case-study front matter (<code>score: 6 / 9</code>, rung 10). The “proposed” column is the one change the s12/s13 work justifies; it is queued as a decision in §10 rather than assumed.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Dimension</th><th>The question</th><th>Portfolio status</th><th>Proposed</th><th>Evidence in this repo</th><th>Where the app will show it</th></tr></thead>
+    <tbody>
+      <tr><td class="n">R1</td><td><b>Evals &amp; golden set</b></td><td>Versioned golden set; anyone can reproduce the score offline?</td><td><span class="band ship">shipped</span></td><td><span class="band ship">shipped</span></td><td>Committed manifest train 100 / gate 100 reports (368 / 349 q), seed 2026, drawn from conversations GEPA never saw; committed CSVs for every run of both runtimes</td><td>Readiness row → <code>/admin/dataset</code> (splits) and <code>/admin/evaluations</code> (every answer beside gold)</td></tr>
+      <tr><td class="n">R2</td><td><b>LLM-as-judge</b></td><td>Who grades open-ended answers; is the judge independent?</td><td><span class="band na">n/a</span> by task framing</td><td><span class="band polish">partial</span> — tried, measured, not adopted</td><td>s12/s13: Haiku 4.5 judge never sees gold; six named checks; scored once on the sealed split: high band 91.46% vs 90.54% baseline, CI 87.9–95.2 contains it; ships advisory (<code>JUDGE_MODE</code>)</td><td>Readiness row → <code>/admin/runtimes#judge</code>; the caution on a low-band chat turn is the live artefact</td></tr>
+      <tr><td class="n">R3</td><td><b>Regression gate</b></td><td>What stops a worse version shipping?</td><td><span class="band ship">shipped</span> <span class="f">(open defect noted)</span></td><td><span class="band ship">shipped</span></td><td>Net positive AND one-sided cluster-corrected McNemar p &lt; 0.05 with bootstrap CI; <code>--promote</code> refused on train evidence; three promotions rolled back; CI re-scores the champion CSV on every PR — but v8's registry metrics are empty so that floor cannot fail</td><td>Readiness row → <code>/admin/campaigns</code> gate ledger; the open defect stays in Architecture §12 “Open work”</td></tr>
+      <tr><td class="n">R4</td><td><b>Learning loop</b></td><td>How does it get better; is each change traceable to one lever?</td><td><span class="band ship">shipped</span></td><td><span class="band ship">shipped</span></td><td>Teacher on Opus 5 blames one agent per first-wrong turn; challenger rewrites only that prompt; campaigns capped at 5 / 2 experiments; 3 campaigns, 7 experiments, 1 promotion; SDK arm promoted sdk_v1, rejected sdk_v2; holdout release gate built, never opened</td><td>Readiness row → <code>/admin/campaigns</code> (loop diagram + ledger) and <code>/admin/experiments</code> (lineages)</td></tr>
+      <tr><td class="n">R5</td><td><b>Guardrails &amp; security</b></td><td>What sits between the model and data / tools / money / users?</td><td><span class="band polish">partial</span></td><td><span class="band polish">partial</span></td><td>One LLM choke point owns the demo gate, retries, 120s ceiling; in-flight cap 4, per-IP 30/60s; admin writes need owner token AND a non-demo build; no per-user auth, no row-level policy, no red-team suite</td><td>Readiness row → Architecture §04 (choke point) and §10 (three-layer demo gate)</td></tr>
+      <tr><td class="n">R6</td><td><b>Observability &amp; tracing</b></td><td>Replay one request exactly; see fleet health on one screen?</td><td><span class="band ship">shipped</span></td><td><span class="band ship">shipped</span></td><td>Every pipeline LLM call an MLflow span; SDK spans opened by hand at one chokepoint; every served turn a row with per-stage IO, tokens, latency, bundle; <code>/metrics/production</code> splits by source, never blends</td><td>Readiness row → <code>/admin/traces</code> and a turn detail</td></tr>
+      <tr><td class="n">R7</td><td><b>Cost tracking &amp; control</b></td><td>What does one answer cost; what caps the worst day?</td><td><span class="band ship">shipped</span></td><td><span class="band ship">shipped</span></td><td>Per-turn cost from the runner's own metrics, prices in code; a gate pass ≈ $1–2 on the pipeline, $27.62 on the Sonnet 5 session, $17.14 on Haiku; the public deployment performs no inference</td><td>Readiness row → the cost tile (landing) and the model-swap table on Runtimes</td></tr>
+      <tr><td class="n">R8</td><td><b>Deploy &amp; release</b></td><td>Is a merge a deploy; does the deploy prove the live URL is what it claims?</td><td><span class="band ship">shipped</span></td><td><span class="band ship">shipped</span></td><td>Merge → CI → OIDC deploy to ECR / App Runner, no stored keys; smoke test asserts <code>mode=demo</code>, served bundle == champion, a 403 on a write; rollback = retag a <code>:sha</code></td><td>Readiness row → Architecture §10 deployment diagram + the live <code>/healthz</code> fields</td></tr>
+      <tr><td class="n">R9</td><td><b>Scale path</b></td><td>Topology today; measured under load; what changes at 100 / 1,000?</td><td><span class="band na" style="border-style:dashed">designed</span></td><td><span class="band na" style="border-style:dashed">designed</span></td><td>Rung 10: one instance, <code>--workers 1</code>, sessions and rate-limit state in process memory, named as the seam; no load test; rungs 100 / 1,000 design only</td><td>Readiness row → Architecture §12 “Open work”, stated as designed-not-built</td></tr>
+      <tr style="background:color-mix(in srgb,var(--panel-2) 50%,var(--panel))"><td></td><td><b>Score</b></td><td></td><td class="score">6 / 9 shipped</td><td class="score">6 / 9 shipped · 2 partial · 1 designed</td><td class="m" colspan="2">R2 moves from n/a to partial: it is now a measured negative result, which the rubric's own “documented cycles including the failed ones” wording under R4 says is worth showing, not hiding.</td></tr>
+    </tbody></table></div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h4>The scorecard component, three sizes</h4><ul style="font-size:13.5px;color:var(--muted)"><li><b>Strip</b> (landing star, 9 cells): ref + glyph + one word, each cell a link — see the mock</li><li><b>Block</b> (Architecture §13): two columns by half, status word + the 40-word “how” + proof links</li><li><b>Page</b> (<code>/admin/readiness</code>): the block plus the live number per row and the proof paths as a <code>&lt;details&gt;</code></li></ul><pre style="margin-top:8px"><b>evaluation/readiness.json</b>
+{ "score": "6 / 9", "rung": 10, "measured": "2026-09-08",
+  "rows": [ { "ref": "R1", "key": "evals", "status": "shipped",
+              "how": "…", "proof": ["evaluation/splits/eval_loop_v2.json", …],
+              "app": ["/admin/dataset", "/admin/evaluations"],
+              "live": { "endpoint": "/eval/splits", "field": "test.n_questions" } }, … ] }</pre></div>
+    <div class="card"><h4>Keeping it honest</h4><ul style="font-size:13.5px;color:var(--muted)"><li><code>tests/test_readiness.py</code>: every <code>proof</code> path exists; every <code>app</code> route is in the router; statuses ∈ {shipped, partial, designed, na}; anything not shipped has a non-empty <code>how</code></li><li><code>story_check</code> gains one line: the landing's embedded score equals the file's</li><li>The file is hand-maintained on purpose — the rubric is a judgement, not a metric — and the portfolio's front matter is the second copy; a scratch script diffs the two so they cannot drift silently</li><li>Status words render as text, never colour-only (the portfolio rule), and the glyphs ● ◐ ○ — survive greyscale</li></ul></div>
+  </div>
+</section>
+
+<!-- ============================ 6 · MOCKS ============================ -->
+<section id="mocks">
+  <div class="secno"><span class="eyebrow">06 · mocks, in the console's own tokens</span></div>
+  <h2>What the landing and a chat turn become</h2>
+  <p class="sub">Rendered with <code>tokens.css</code> values so what you see is the product. Numbers are the real record as of 8 Sep 2026. Annotate any element directly.</p>
+
+  <figure class="mock">
+    <div class="cap"><span>/ · Overview · 1200px · dark</span><span>labelled rail ≥ 1024 · star = progression + readiness strip · 4 tiles · 1 solid CTA</span></div>
+    <div class="m-shell">
+      <aside class="m-rail">
+        <div class="g">Product</div><a class="on"><i></i>Overview</a><a><i></i>Chat</a>
+        <div class="g">Built</div><a><i></i>Architecture</a><a><i></i>Readiness</a>
+        <div class="g">Evidence</div><a><i></i>Evaluations</a><a><i></i>Dataset</a><a><i></i>Campaigns</a><a><i></i>Runtimes</a><a><i></i>Experiments</a>
+        <div class="g">Operations</div><a><i></i>Traces</a><a><i></i>Research</a>
+      </aside>
+      <div>
+        <div class="m-top"><span style="font-weight:500">CF ConvFinQA</span><span class="mono f">serving sdk_v1 · agent sdk &nbsp;·&nbsp; <span class="pill" style="color:var(--good);border-color:var(--good)">● dev · live model</span> &nbsp; ☾</span></div>
+        <div class="m-body">
+          <div class="m-hero">
+            <div>
+              <div class="eyebrow">multi-turn financial qa · the convfinqa benchmark · 442 filings</div>
+              <h1 style="margin:10px 0 10px">Answers dependent questions about SEC filings at <span class="k">human-expert</span> accuracy — and shows every step.</h1>
+              <p class="lede">One Claude Agent SDK session per conversation, six calculator tools, a prompt distilled from four optimised agents. Every turn streams its stages, with the dataset's gold answer beside its own.</p>
+              <div class="m-proof">
+                <div><b class="num">90.5%</b><small>349 unseen questions · gate split</small></div>
+                <div><b class="num v">89.4%</b><small>human expert · paper, 200-q sample</small></div>
+                <div><b class="num g">+13.4pp</b><small>over the raw pipeline · p=3e-4</small></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="btn p">Open a conversation →</span><a class="btn" style="background:transparent">How it was built</a></div>
+              <p class="f" style="font-size:11.5px;margin-top:12px">Different question set from the paper, contamination not excluded, model and architecture changed together — the caveats are on the Runtimes page, beside the number.</p>
+            </div>
+            <div class="m-star">
+              <span class="eyebrow">the record · five stages, one sealed split</span>
+              <div class="prog">
+                <div class="human"><small>human 89.4% (paper)</small></div>
+                <div class="col"><b>77.1%</b><i style="height:93px"></i><small>pipeline<br>raw · v2</small></div>
+                <div class="col"><b>81.7%</b><i style="height:98px;background:var(--amber-soft);border-color:var(--amber-line)"></i><small>pipeline<br>loop · v8</small></div>
+                <div class="col"><b class="i">90.5%</b><i style="height:109px;background:var(--info-soft);border-color:var(--info)"></i><small>one session<br>sdk_v1</small></div>
+                <div class="col"><b class="f">87.7%</b><i style="height:105px;border-style:dashed"></i><small>loop attempt<br>rejected</small></div>
+                <div class="col"><b class="f">91.5%</b><i style="height:110px;border-style:dashed;border-color:var(--amber-line)"></i><small>judge high band<br>no effect</small></div>
+              </div>
+              <div class="prog-legend">- - - human expert 89.4% · paper, 200-q sample, different questions</div>
+              <span class="eyebrow" style="margin-top:14px">production readiness · 6 / 9 shipped · rung 10</span>
+              <div class="rr">
+                <div class="sh"><b>●</b>R1</div><div class="pa"><b>◐</b>R2</div><div class="sh"><b>●</b>R3</div><div class="sh"><b>●</b>R4</div><div class="pa"><b>◐</b>R5</div><div class="sh"><b>●</b>R6</div><div class="sh"><b>●</b>R7</div><div class="sh"><b>●</b>R8</div><div class="de"><b>○</b>R9</div>
+              </div>
+              <div class="f" style="font:11px var(--mono);margin-top:6px">evals · judge · gate · loop · guardrails · tracing · cost · deploy · scale → each cell opens its proof</div>
+            </div>
+          </div>
+          <div class="m-tiles">
+            <div class="m-tile"><span class="eyebrow">gate accuracy · pipeline</span><b class="num">81.7%</b><small>v8 · +4.6pp over v2 · 1 promotion in 7 tries</small></div>
+            <div class="m-tile"><span class="eyebrow">gate accuracy · runtime</span><b class="num">90.5%</b><small>sdk_v1 · CI +4.2 … +13.7pp vs v8</small></div>
+            <div class="m-tile"><span class="eyebrow">cost per turn · 24h</span><b class="num">$0.0022</b><small>65 turns · $0.14 total</small></div>
+            <div class="m-tile"><span class="eyebrow">p50 latency · 24h</span><b class="num">3.8s</b><small>p95 10.4s · 65 measured</small></div>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+            <div class="m-tile" style="padding:14px 16px"><span class="eyebrow">open a recorded conversation</span><div style="font-size:13px;margin-top:8px;display:grid;gap:6px"><span><span class="mono f">MAR · 2010 · p.55</span> &nbsp;what is the net change in cash from operations from 2008 to 2009? <span class="g mono" style="font-size:11px">7 / 7 ✓</span></span><span><span class="mono f">MRO · 2011 · p.37</span> &nbsp;what is the net change in the wti crude oil benchmark from 2009 to 2011? <span class="g mono" style="font-size:11px">7 / 7 ✓</span></span><span class="k" style="font-size:12px">or start from any of 442 filings →</span></div></div>
+            <div class="m-tile" style="padding:14px 16px"><span class="eyebrow">tried last · llm-as-judge</span><div style="font-size:13px;margin-top:8px;color:var(--muted)">A cheaper model banded every answer. High band <span class="num" style="color:var(--text)">91.46%</span> vs <span class="num" style="color:var(--text)">90.54%</span> releasing everything; the interval contains the baseline. Withholding cost 27 right answers to stop 6 wrong. <strong style="color:var(--text)">Shipped as a caution, not a gate.</strong> <span class="k">read the measurement →</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+  <figcaption>The star is the progression chart and the readiness strip — a reviewer sees the outcome, its baseline, its caveat pointer and the nine-dimension score in the first viewport. The nine tiles become four with baselines; the mode is a labelled chip in the top bar.</figcaption>
+
+  <div class="grid g2" style="margin-top:28px;align-items:start">
+    <figure>
+      <div class="mock phone">
+        <div class="cap"><span>/ · 390px</span><span>tab bar · one column</span></div>
+        <div class="m-top"><span style="font-weight:500">CF ConvFinQA</span><span class="pill" style="color:var(--amber);border-color:var(--amber-line)">◌ demo · replay</span></div>
+        <div class="m-body">
+          <div class="m-hero"><div>
+            <div class="eyebrow">multi-turn financial qa</div>
+            <h1 style="margin:8px 0">Answers dependent questions about SEC filings at <span class="k">human-expert</span> accuracy.</h1>
+            <div class="m-proof" style="gap:14px"><div><b class="num" style="font-size:20px">90.5%</b><small>349 unseen q</small></div><div><b class="num v" style="font-size:20px">89.4%</b><small>human · paper</small></div><div><b class="num g" style="font-size:20px">+13.4pp</b><small>vs raw pipeline</small></div></div>
+            <span class="btn p" style="width:100%;justify-content:center">Open a conversation →</span>
+            <p class="f" style="font-size:12px;margin-top:10px">Public demo: replays eight recorded runs at their real pacing. No model is called.</p>
+          </div></div>
+          <div class="m-star"><span class="eyebrow">readiness · 6 / 9</span><div class="rr"><div class="sh"><b>●</b>R1</div><div class="pa"><b>◐</b>R2</div><div class="sh"><b>●</b>R3</div><div class="sh"><b>●</b>R4</div><div class="pa"><b>◐</b>R5</div><div class="sh"><b>●</b>R6</div><div class="sh"><b>●</b>R7</div><div class="sh"><b>●</b>R8</div><div class="de"><b>○</b>R9</div></div></div>
+          <div class="m-tiles"><div class="m-tile"><span class="eyebrow">pipeline</span><b class="num">81.7%</b><small>v8 · +4.6pp</small></div><div class="m-tile"><span class="eyebrow">runtime</span><b class="num">90.5%</b><small>sdk_v1</small></div></div>
+        </div>
+        <div class="tabbar"><span class="on">overview</span><span>chat</span><span>built</span><span>evidence</span><span>more</span></div>
+      </div>
+      <figcaption>Below 640px the rail becomes a five-item tab bar (the fifth opens the full grouped list as a sheet). The strip abbreviates to glyph + ref; the progression chart becomes a four-row bar list.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="mock">
+        <div class="cap"><span>/chat · one turn · dev, live model</span><span>question 14 · answer 30 · “how” line · chips 12</span></div>
+        <div style="padding:16px">
+          <div class="turn">
+            <div class="q"><span>what percentage change does this represent?</span></div>
+            <div class="ans"><b class="num">35.4%</b><span class="g mono" style="font-size:13px">✓ gold 35%</span><span class="pill" style="margin-left:auto;color:var(--good);border-color:var(--good)">high · p 0.99</span></div>
+            <div class="how">Program turn. Preprocess resolved “this” to the change from turn 1 over the 2008 base; the retriever reused <span class="mono">-227</span> and <span class="mono">641</span> from history; the calculator ran <span class="mono">divide(#0, 641)</span> then <span class="mono">multiply(#1, 100)</span> in four calls.</div>
+            <div class="chips"><span class="on">triage · program · Type I</span><span class="on">preprocess · 2 sub-questions</span><span class="on">retriever · 2 values</span><span class="on">calculator · 4 calls</span><span style="margin-left:auto;border:0">10.7s · $0.0067</span></div>
+          </div>
+          <div class="turn" style="margin-top:12px;border-color:var(--amber-line)">
+            <div class="q"><span>and the cash from operations in 2008?</span></div>
+            <div class="ans"><b class="num">641.0</b><span class="g mono" style="font-size:13px">✓ gold 641</span><span class="pill" style="margin-left:auto;color:var(--amber);border-color:var(--amber-line)">low · p 0.61</span></div>
+            <div class="call warn" style="margin-top:10px;font-size:13px"><b>Check this one.</b> The confidence judge could not verify it against the filing: <span class="mono" style="font-size:12px">operand_in_source: fail</span>. Shown anyway — the band is advisory; withholding was measured and destroyed four right answers per wrong one it stopped.</div>
+            <div class="chips"><span class="on">triage · number · Type II</span><span class="skip">preprocess</span><span class="on">retriever · 1 value</span><span class="skip">calculator</span><span style="margin-left:auto;border:0">3.6s · $0.0011</span></div>
+          </div>
+        </div>
+      </div>
+      <figcaption>The turn card gains a generated “how” sentence between the answer and the stage chips — the trace, in words — and the judge band sits where the reader's eye already is. Skipped stages stay struck through: the routing decision is visible per turn.</figcaption>
+    </figure>
+  </div>
+
+  <div class="card" style="margin-top:24px"><h4>Page header pattern — every admin route</h4>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start;margin-top:8px;padding:16px;border:1px solid var(--line);border-radius:6px;background:var(--ground)">
+      <div><div class="eyebrow">evidence · 02 of 05</div><h2 style="font-size:26px;margin:6px 0">Campaigns</h2><p style="font-size:15px;color:var(--muted);margin:0;max-width:70ch">Seven experiments, one promotion: c01-e03 rewrote the retriever for <span class="num g">+4.58pp</span> at <span class="num">p=0.040</span>. Every other challenger was net-positive but not significant, and the gate refused them.</p></div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="pill">champion v8</span><span class="pill">3 campaigns · 7 / 15 used</span><span class="pill mono">/eval/campaigns</span></div>
+    </div>
+    <p style="font-size:13.5px;color:var(--muted);margin-top:10px">Eyebrow names the group and position; the H1 is the display step; the sentence is generated from the same query the page renders, so it cannot go stale; chips carry identity and the endpoint. Every page ends with a <b>Next</b> footer (“Runtimes → the challenger that ran the same gate”) — the story order as a rail you can walk.</p>
+  </div>
+</section>
+
+<!-- ============================ 7 · TOKENS ============================ -->
+<section id="tokens">
+  <div class="secno"><span class="eyebrow">07 · token sheet</span></div>
+  <h2>One type scale, motion tokens, a focus ring, and the aliases deleted</h2>
+  <p class="sub">Colour tokens do not change — they are measured and correct. The type scale is redefined as eight steps applied through <code>.type-*</code> classes only, and <code>text-[Npx]</code> is banned by a probe in CI.</p>
+  <div class="grid g2">
+    <pre><b>frontend/src/tokens.css</b>  (delta)
+:root {
+  /* type — 8 steps, no half pixels. Dense console floor is 12. */
+  --fs-micro:   11px;  /* mono-caps labels; was 10 */
+  --fs-meta:    12px;  /* table meta, captions; was 11 */
+  --fs-small:   13px;  /* dense secondary; was 12 */
+  --fs-body:    14px;  /* default UI reading; was 13 */
+  --fs-read:    16px;  /* Architecture prose, 68ch, lh 1.6 (new) */
+  --fs-lede:    17px;  /* the sentence under a headline; was 15 */
+  --fs-h2:      26px;  /* panel + section headings; was 19 */
+  --fs-hud:     30px;  /* the number on a tile; was 27 */
+  --fs-display: clamp(28px, 3.4vw, 40px);  /* was 25–34 */
+
+  /* motion */
+  --dur: 220ms; --ease: cubic-bezier(.2,.7,.2,1);
+  --lift: 0 6px 18px rgba(0,0,0,.25);
+}
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0ms } }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px }
+
+/* deleted: the 11 legacy aliases (--color-bg, --color-textMuted,
+   --color-accent …) once components/{Data,Eval,…}Panel.tsx are gone */</pre>
+    <div class="grid" style="gap:12px">
+      <div class="card"><h4>Rules the probe enforces (<code>scripts/design_probe.mjs</code>, Playwright, runs in CI)</h4><ul style="font-size:13.5px;color:var(--muted)"><li>≤ 12 distinct text styles per route (chat and dataset tables ≤ 16)</li><li>No rendered text under 11px; running text ≥ 13px</li><li>No <code>text-[Npx]</code> in <code>src/</code> (grep) — sizes come from <code>.type-*</code></li><li>No hex outside <code>tokens.css</code>; no <code>bg-accent</code>/<code>text-accent</code></li><li>Both themes: every text/surface pair ≥ 4.5:1 (already true — the probe keeps it true)</li><li>390 / 768 / 1280 / 1600: no element wider than its scroll container except inside <code>ScrollX</code>; nav visible and reachable</li><li>Every route: exactly one H1, one <code>main</code>, a focus-visible ring on the first tabbable</li></ul></div>
+      <div class="card"><h4>Component set after consolidation</h4><ul style="font-size:13.5px;color:var(--muted)"><li>One <code>components/console/</code> module: <code>PageHeader · Panel · Tile · StatCells · Lamp · Verdict · Caveat · InstrumentTable · ScrollX · EmptyState · ErrorNote · LoadingRows · WriteGate · NextFooter · Readiness{Strip,Block}</code></li><li><code>features/system/ui.tsx</code> keeps only <code>Section · Callout · Cite · Provenance · Live</code>; <code>features/admin/ui.tsx</code> and <code>components/ui.tsx</code> are deleted with the 2,214 dead lines</li><li>shadcn: keep <code>tooltip · sheet · dialog · command · select</code>; delete the other nine</li><li>Charts: recharts stays for slices; Campaigns' SVG becomes a small <code>GateLedger</code> component; the progression chart moves to <code>components/console/Progression.tsx</code> so landing and Runtimes share it</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 8 · PLAN ============================ -->
+<section id="plan">
+  <div class="secno"><span class="eyebrow">08 · the plan</span></div>
+  <h2>Seven phases on <code>design-upgrade</code>, structure before polish, each with an acceptance check</h2>
+  <p class="sub">Corpus order (s20, stages 02 → 06): tokens and brief first, chrome second, the hero third, the polish passes last — so nothing is redone when a section moves. Every phase ends green on <code>npm run typecheck</code>, <code>vitest</code>, the Playwright specs and the design probe. The whole branch ships through <code>no-mistakes</code> as one PR with the before/after rubric in its description.</p>
+
+  <div class="phase"><div class="id">P0<small>½ session</small></div><div><h4>Brief, tokens, dead code, bugs</h4><ul><li><code>frontend/DESIGN.md</code>: the three audiences, the six-beat spine, the never-do list (no text &lt; 11, no raw px sizes, no hex, no ghost primary, no icon-only nav, no colour-only status, no unlabelled em dash)</li><li>Type scale and motion tokens as in §07; <code>focus-visible</code> global; reduced-motion</li><li>Delete <code>components/{DataPanel,EvalPanel,ExperimentsPanel,ResearchPanel,TracesPanel,StageTimeline,ui}.tsx</code> and the legacy alias block; delete the nine unused shadcn files</li><li>Fix the two accent-alias bugs and the six Campaigns hex colours</li><li><code>scripts/design_probe.mjs</code> + CI job</li></ul><div class="acc">Accept: probe runs and reports current failures as a baseline · bundle smaller · all tests green</div></div></div>
+
+  <div class="phase"><div class="id">P1<small>1 session</small></div><div><h4>Shell, IA, shared components</h4><ul><li>Grouped, labelled rail with the three breakpoints; tab bar + sheet on phones; mode chip in the top bar</li><li><code>components/console/</code> consolidated set; <code>PageHeader</code> with the verdict slot; <code>NextFooter</code>; every admin route re-pointed with no visual change yet</li><li>Route order in the rail = story order; “System” renamed Architecture, “Research” renamed and moved last</li><li>Update Playwright <code>nav-*</code> test ids and the e2e specs</li></ul><div class="acc">Accept: every route reachable by keyboard with a visible ring · nav labelled at 1280, tab bar at 390 · D8 ≥ 4</div></div></div>
+
+  <div class="phase"><div class="id">P2<small>1 session</small></div><div><h4>Landing</h4><ul><li>Hero copy and proof line from <code>useBoardData</code> (the numbers already exist; the human figure comes from <code>system/paper.ts</code>)</li><li><code>Progression</code> extracted from Runtimes and shared; <code>ReadinessStrip</code> reading <code>/eval/readiness</code></li><li>Four tiles with baselines; recorded conversations + judge card; sources into a disclosure</li><li><code>LandingRoute.test.tsx</code> extended: headline states the outcome; tile meta branches on significance (the rule the s13 review enforced)</li></ul><div class="acc">Accept: outcome + baseline + caveat pointer in the first viewport at 1280 and 390 · ≤ 12 text styles · D1 = 5</div></div></div>
+
+  <div class="phase"><div class="id">P3<small>1 session</small></div><div><h4>Chat</h4><ul><li>Turn card hierarchy and the generated “how” line (<code>features/chat/how.ts</code>, pure function over <code>stageViews</code>, unit-tested against the recorded pack)</li><li>Inspector type lift, keyboard resize, dock button; sessions grouping; composer chip labels; demo banner</li><li>Hand-rolled overlays → vendored Dialog/Sheet</li></ul><div class="acc">Accept: no text &lt; 11px in the thread · e2e smoke/concurrent/reset/unread green · the judge caution test still passes · 390px: no internal overflow</div></div></div>
+
+  <div class="phase"><div class="id">P4<small>1½ sessions</small></div><div><h4>Evidence pages</h4><ul><li>Runtimes: reorder, in-page TOC, tables to <code>InstrumentTable</code> with narrow strategy, judge as a titled section</li><li>Campaigns: loop diagram, <code>GateLedger</code> chart, header verdict from data</li><li>Overview → Scoreboard; Evaluations reframed with the gate split first; Dataset framing + gold_suspect chip; Experiments around the registry lineages</li><li>Each page: header verdict + Next footer</li></ul><div class="acc">Accept: every evidence page states its verdict in the header · Runtimes ≤ 14 styles · Campaigns chart shows seven CIs · D2 D6 ≥ 4</div></div></div>
+
+  <div class="phase"><div class="id">P5<small>1 session</small></div><div><h4>Architecture + Readiness</h4><ul><li><code>evaluation/readiness.json</code>, <code>GET /eval/readiness</code>, <code>tests/test_readiness.py</code>, <code>story_check</code> line</li><li><code>/admin/readiness</code> page; §13 block on Architecture; strip on landing wired to the same file</li><li>Architecture reading type (16/1.6/68ch), borderless reading panels, section summaries in the TOC, diagram captions, narrow diagram layouts, mobile TOC strip</li><li>Traces / Trace detail / Research polish items from §04</li></ul><div class="acc">Accept: readiness 6/9 renders in three sizes from one file · Architecture ≤ 16 styles, no text &lt; 11 in SVG at 390 · reading time shown</div></div></div>
+
+  <div class="phase"><div class="id">P6<small>½–1 session</small></div><div><h4>QA, re-score, gate</h4><ul><li>Re-run the §02 probes and re-score §03 and §04; publish the before/after table in this artifact and the PR</li><li>Lighthouse mobile ≥ 95 / 100 a11y; axe clean both themes; keyboard walk of every route; reduced-motion check; demo-mode walk against <code>DEMO_MODE=1</code></li><li><code>no-mistakes axi run --intent "Design upgrade: story-shaped IA, one type scale, verdict-first pages, readiness scorecard; rubric ≥ 130/145"</code>; merge; <code>scripts/demo_smoke.sh</code> against the deployed URL</li></ul><div class="acc">Accept: weighted ≥ 130 · every page ≥ 7 · all 357 backend + frontend tests + e2e green · smoke passes on the live URL</div></div></div>
+
+  <div class="grid g2" style="margin-top:24px">
+    <div class="card"><h4>Cost</h4><ul style="font-size:13.5px;color:var(--muted)"><li>6–7 build sessions; P0 and P1 are the only ones that touch every file</li><li>Backend: one new endpoint and one committed JSON; no change to any contract the demo pack or tests depend on</li><li>Fonts unchanged (Plex Sans variable + Mono 400/500/600 already self-hosted)</li><li>Copy: ~14 verdict sentences and ~12 section summaries — the only content work, and the highest-leverage item on D6</li></ul></div>
+    <div class="card"><h4>Risks and how the plan de-risks them</h4><ul style="font-size:13.5px;color:var(--muted)"><li><b>Operator density lost</b> → the floor is 12px in tables and 13px in prose, not 14; the chat thread and inspector keep their instrument feel; P3 is reviewed against a live session</li><li><b>Generated verdict sentences say something false</b> → each is a pure function with a unit test per branch, the pattern the s13 review forced on the landing tile</li><li><b>Readiness file drifts from the portfolio</b> → diff script + <code>story_check</code>; the file is the app's claim, the portfolio quotes it</li><li><b>Playwright specs break on nav changes</b> → P1 updates ids and specs in the same commit; e2e runs in every phase</li><li><b>Demo container regressions</b> → P6 walks <code>DEMO_MODE=1</code>; no phase adds a route that calls a model</li></ul></div>
+  </div>
+</section>
+
+<!-- ============================ 9 · OPTIONS (brief) ============================ -->
+<section id="options">
+  <div class="secno"><span class="eyebrow">09 · the direction not taken</span></div>
+  <h2>Two directions were considered; A+ is the plan above</h2>
+  <div class="grid g2">
+    <div class="card"><h4>A+ · Console, evolved <span class="band ship" style="margin-left:8px">recommended</span></h4><p style="font-size:14px;color:var(--muted)">Keep the instrument-panel identity and both themes; rebuild IA, scale and hierarchy; add the readiness scorecard. Reaches ≥ 130 in 6–7 sessions. The operator surface stays an operator surface. Borrows one thing from B: the story order as navigation and the generated verdict sentence on every page.</p><p style="font-size:13px" class="f">Cost: 6–7 sessions · no new fonts · one endpoint</p></div>
+    <div class="card"><h4>B · Case study first</h4><p style="font-size:14px;color:var(--muted)">An editorial front (the six beats as a scrolling narrative with the chat embedded as a figure) and the admin pages as an appendix behind one “console” link. The stronger object for a hiring manager; it moves the working tool one click further away, needs a display serif and a second layout system, and the demo container's e2e story changes. 8–9 sessions.</p><p style="font-size:13px" class="f">Cost: 8–9 sessions · Plex Serif · two layout systems · e2e rewrite</p></div>
+  </div>
+</section>
+
+<!-- ============================ 10 · DECIDE ============================ -->
+<section id="decide">
+  <div class="secno"><span class="eyebrow">10 · decide</span></div>
+  <h2>Decided 8 Sep 2026 — building now</h2>
+  <div class="call good" style="margin-bottom:18px"><span class="eyebrow">recorded answers</span><b>Direction:</b> A+ Console, evolved · <b>First session:</b> P0, P1, P2, P3, P5, one commit per phase on <code>design-upgrade</code> (P4 evidence pages and P6 QA/gate follow) · <b>R2:</b> partial — tried, measured, not adopted · <b>Theme:</b> dark default, light kept, toggle stays. The forms below stay live for changes of mind.</div>
+  <div class="grid g3">
+    <form class="q" data-lavish-question="direction" onsubmit="event.preventDefault();const v=new FormData(this).get('direction');if(!v)return;window.lavish&&window.lavish.queuePrompt('Build the design upgrade with direction: '+v,{tag:'choice',text:'Direction: '+v,element:this,data:{question:'direction',answer:v}});this.querySelector('.queued').textContent='queued ✓'">
+      <h4>1 · Direction</h4>
+      <label><input type="radio" name="direction" value="A+ Console evolved (recommended)" checked><span><b>A+ · Console, evolved</b> — keep the identity, rebuild IA and scale, add readiness</span></label>
+      <label><input type="radio" name="direction" value="B Case study first"><span><b>B · Case study first</b> — editorial front, console as appendix</span></label>
+      <label><input type="radio" name="direction" value="A+ but keep the current 11-item flat rail"><span><b>A+ without the IA change</b> — labels and groups only, same order</span></label>
+      <button class="btn p" type="submit">Queue this answer</button><span class="queued"></span>
+    </form>
+    <form class="q" data-lavish-question="first-pr" onsubmit="event.preventDefault();const v=[...this.querySelectorAll('input:checked')].map(i=>i.value);if(!v.length)return;window.lavish&&window.lavish.queuePrompt('Start the design upgrade with these phases in the first session, in order: '+v.join(', ')+'. Commit each phase separately on design-upgrade.',{tag:'tracked-batch',text:'First session: '+v.join(', '),element:this,data:{items:v.map(x=>({id:x,label:x,disposition:'build'}))}});this.querySelector('.queued').textContent='queued ✓'">
+      <h4>2 · What goes in the first session?</h4>
+      <label><input type="checkbox" name="p" value="P0" checked><span><b>P0</b> tokens, dead code, bugs, probe</span></label>
+      <label><input type="checkbox" name="p" value="P1" checked><span><b>P1</b> shell, IA, shared components</span></label>
+      <label><input type="checkbox" name="p" value="P2"><span><b>P2</b> landing</span></label>
+      <label><input type="checkbox" name="p" value="P3"><span><b>P3</b> chat</span></label>
+      <label><input type="checkbox" name="p" value="P5"><span><b>P5</b> readiness scorecard first (it is independent of P1–P4)</span></label>
+      <button class="btn p" type="submit">Queue selected phases</button><span class="queued"></span>
+    </form>
+    <form class="q" data-lavish-question="constraints" onsubmit="event.preventDefault();const r2=new FormData(this).get('r2');const th=new FormData(this).get('theme');const note=new FormData(this).get('note');const msg='Constraints for the design upgrade: R2 status = '+r2+'; theme policy = '+th+(note?'; notes: '+note:'');window.lavish&&window.lavish.queuePrompt(msg,{tag:'choice',text:'Constraints',element:this,data:{r2,theme:th,note}});this.querySelector('.queued').textContent='queued ✓'">
+      <h4>3 · Constraints</h4>
+      <div class="eyebrow" style="margin:6px 0 2px">R2 · LLM-as-judge on the scorecard</div>
+      <label><input type="radio" name="r2" value="partial — tried, measured, not adopted (recommended)" checked><span><b>partial</b> — tried, measured, not adopted; the s13 numbers as proof</span></label>
+      <label><input type="radio" name="r2" value="n/a — keep the portfolio's framing"><span><b>n/a</b> — keep “deterministic matching, judge not needed”</span></label>
+      <div class="eyebrow" style="margin:10px 0 2px">Theme</div>
+      <label><input type="radio" name="theme" value="dark default, light kept, toggle stays" checked><span>Dark default, light kept, toggle stays (as now)</span></label>
+      <label><input type="radio" name="theme" value="follow the OS, toggle stays"><span>Follow the OS by default; toggle stays</span></label>
+      <label><input type="radio" name="theme" value="dark only"><span>Dark only — drop the light theme</span></label>
+      <div class="eyebrow" style="margin:10px 0 4px">Anything off-limits or to keep?</div>
+      <input type="text" name="note" placeholder="e.g. keep the 52px icon rail in dev; keep Research where it is">
+      <button class="btn p" type="submit">Queue this answer</button><span class="queued"></span>
+    </form>
+  </div>
+</section>
+
+</main>
+<footer style="border-top:1px solid var(--line);padding:24px;text-align:center;font:11px var(--mono);color:var(--faint)">s14 · design upgrade plan · ConvFinQA console · measured 2026-09-08 · rubric shared with nmp-dsci.github.io s05 · corpus rules from transcript-rag-agent s20</footer>
+</body>
+</html>

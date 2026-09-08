@@ -21,11 +21,17 @@ import { AdminPage, Caveat, EmptyState, ErrorNote, LoadingRows, Panel, Verdict }
 const AGENTS = ['triage', 'preprocess', 'retriever', 'calculator'] as const;
 type Agent = (typeof AGENTS)[number];
 
+/**
+ * One token per agent, so the chart follows the theme instead of carrying its
+ * own palette. The mapping is shared with the per-agent metric panel: info for
+ * triage, violet for preprocess, amber for the retriever, good for the
+ * calculator. Overall is the text colour; an unknown agent is faint.
+ */
 const AGENT_COLOR: Record<Agent, string> = {
-  triage: '#7aa2f7',
-  preprocess: '#bb9af7',
-  retriever: '#e0af68',
-  calculator: '#73daca',
+  triage: 'var(--info)',
+  preprocess: 'var(--violet)',
+  retriever: 'var(--amber)',
+  calculator: 'var(--good)',
 };
 
 function pct(value: number | null | undefined, digits = 1) {
@@ -50,7 +56,7 @@ function ChampionChart({ track }: { track: ChampionPoint[] }) {
   const h = 300;
   const [left, right, top, bottom] = [58, 132, 24, 48];
   const series: Array<{ name: string; colour: string; width: number; values: Array<number | null> }> = [
-    { name: 'overall', colour: '#dbe3ee', width: 2.4, values: points.map((p) => p.accuracy ?? null) },
+    { name: 'overall', colour: 'var(--text)', width: 2.4, values: points.map((p) => p.accuracy ?? null) },
     ...AGENTS.map((a) => ({
       name: a,
       colour: AGENT_COLOR[a],
@@ -92,7 +98,7 @@ function ChampionChart({ track }: { track: ChampionPoint[] }) {
                 y={h - 12}
                 textAnchor="middle"
                 className="font-mono text-[9px]"
-                fill={AGENT_COLOR[p.target_agent as Agent] ?? '#6b7a90'}
+                fill={AGENT_COLOR[p.target_agent as Agent] ?? 'var(--faint)'}
               >
                 ↑ {p.target_agent}
               </text>
@@ -192,7 +198,7 @@ function ExperimentCard({ exp }: { exp: CampaignExperiment }) {
             95% CI [{pp(exp.delta_ci_lo)}, {pp(exp.delta_ci_hi)}]
           </div>
           {exp.diff && (
-            <pre className="mt-2 max-h-80 overflow-auto rounded-[4px] border border-line bg-bg p-2.5 font-mono text-[11px] leading-relaxed">
+            <pre className="mt-2 max-h-80 overflow-auto rounded-[4px] border border-line bg-ground p-2.5 font-mono text-[11px] leading-relaxed">
               {exp.diff.split('\n').map((line, i) => (
                 <div
                   key={i}
@@ -283,7 +289,9 @@ export default function Campaigns() {
                 onClick={() => setOnly(name)}
                 className={cn(
                   'rounded-[4px] border px-2.5 py-1 mono-caps transition-colors',
-                  name === only ? 'border-accent text-accent' : 'border-line text-muted hover:border-line-2',
+                  name === only
+                    ? 'border-amber-line bg-amber-soft text-amber'
+                    : 'border-line text-muted hover:border-line-2',
                 )}
               >
                 {name || 'all'}
