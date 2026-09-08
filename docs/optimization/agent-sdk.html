@@ -171,6 +171,7 @@ wrong, what it got right, and a rule a judge without gold could run), one distil
 judge's prompt, and the prompt was scored at natural prevalence on a disjoint calibrate split,
 then once on the gate split by the frozen champion. Operating target: high-band error
 ≤&nbsp;1%.</p>
+<div class="note"><strong>Tried, measured, and not adopted as a gate.</strong><p>The band only earns its place if it beats the policy it replaces — releasing everything — and on the gate split it does not, to any measurable degree. High band 91.46% against a no-judge baseline of 90.54% on the same turns: <strong>+0.91pp</strong>, 95% CI 87.9%–95.2% and the interval does <strong>not</strong> separate them. It withholds 33 answers to remove 6 wrong ones, and 27 of those withheld were correct. <strong>Advisory only — do not gate on it.</strong></p></div>
 <div class="scroll"><table><thead><tr><th>judge</th><th>split</th><th class="num">turns</th>
 <th class="num">runtime acc.</th><th class="num">coverage</th><th class="num">high band correct</th>
 <th class="num">wrong / released</th><th class="num">unseen error (95%)</th>
@@ -271,10 +272,10 @@ both arms.</p></div>
 
 </div></details>
 
-<footer>Generated 2026-09-07T23:14:10+00:00 from
+<footer>Generated 2026-09-08T03:54:37+00:00 from
 <code>evaluation/registry.json</code>, the three ledgers under
 <code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-07T23:14:10+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-08T03:54:37+00:00"}</script>
 </footer>
 </div></body></html>

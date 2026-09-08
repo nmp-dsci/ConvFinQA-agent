@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-07T23:14:10+00:00",
+ "generated_at": "2026-09-08T03:54:37+00:00",
  "champion": "v8",
  "sdk_champion": "sdk_v1",
  "champion_accuracy": 0.816619,
@@ -826,6 +826,27 @@
     }
    }
   ],
+  "verdict": {
+   "split": "test",
+   "version": "judge_j1",
+   "baseline_accuracy": 0.9054441260744985,
+   "high_band_accuracy": 0.9145569620253164,
+   "delta_pp": 0.911283595081791,
+   "high_band_accuracy_ci": [
+    0.8786885245901639,
+    0.9522184300341296
+   ],
+   "significant": false,
+   "meets_target": false,
+   "coverage": 0.9054441260744985,
+   "failure_capture": 0.18181818181818182,
+   "n_withheld": 33,
+   "n_false_alarms": 27,
+   "n_failures_caught": 6,
+   "n_wrong": 33,
+   "error_target": 0.01,
+   "recommendation": "advisory only \u2014 do not gate on it"
+  },
   "gates": [
    {
     "gate_id": "jg-20260907060119-066d10ee",

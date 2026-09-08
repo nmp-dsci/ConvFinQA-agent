@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { HudTile } from './HudTile';
-import { judgeHeadline } from '../admin/runtimeStory';
+import { formatPp, judgeHeadline } from '../admin/runtimeStory';
 import { LampStrip } from './LampStrip';
 import { PipelineStrip } from './PipelineStrip';
 import { RecordedConversations } from './RecordedConversations';
@@ -204,6 +204,7 @@ function RightPane({ board }: { board: BoardData }) {
   const swap = campaigns?.sdk_model_comparison ?? null;
   const swapArm = swap?.models?.find((m) => m.model !== swap.reference_model) ?? null;
   const judged = judgeHeadline(campaigns?.judge);
+  const judgeVerdict = campaigns?.judge?.verdict ?? null;
   const swapPair = swap?.pairs?.[0] ?? null;
   const shortModel = (model: string | null | undefined) =>
     (model ?? '')
@@ -334,26 +335,34 @@ function RightPane({ board }: { board: BoardData }) {
         />
 
         <HudTile
-          label="released answers, judged"
+          label="confidence judge, tried"
           value={
-            judged?.highBandAccuracy == null
+            judgeVerdict == null
               ? NO_VALUE
-              : `${(judged.highBandAccuracy * 100).toFixed(1)}%`
+              : judgeVerdict.significant
+                ? `${formatPp(judgeVerdict.delta_pp)}`
+                : 'no effect'
           }
           loading={!campaigns && board.loading}
           reason="no confidence judge has been scored on the gate split yet"
-          tone={judged?.meetsTarget ? 'good' : 'plain'}
+          tone={judgeVerdict?.significant ? 'good' : 'plain'}
           to="/admin/runtimes"
           drill="/admin/runtimes"
           meta={
-            judged && (
+            judgeVerdict && (
               <>
-                <span className="type-num">{formatPercent(judged.coverage)}</span> of turns
-                released · {judged.nHighWrong} wrong of {judged.nHigh}
+                high band{' '}
+                <span className="type-num">
+                  {formatPercent(judgeVerdict.high_band_accuracy, 2)}
+                </span>{' '}
+                vs{' '}
+                <span className="type-num">
+                  {formatPercent(judgeVerdict.baseline_accuracy, 2)}
+                </span>{' '}
+                unjudged — not significant
                 <br />
-                <span className="type-num">{formatPercent(judged.failureCapture)}</span> of
-                failures withheld ({judged.nCaught}/{judged.nWrong}) · {judged.version} on{' '}
-                {campaigns?.judge?.runtime_version ?? 'the sdk champion'}
+                withholds {judgeVerdict.n_withheld} to remove {judgeVerdict.n_failures_caught} ·{' '}
+                {judgeVerdict.n_false_alarms} of them were right
               </>
             )
           }

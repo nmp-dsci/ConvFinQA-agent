@@ -721,6 +721,12 @@ def _sdk_experiment(exp: dict[str, Any]) -> str:
 </div></details>"""
 
 
+def _sentence(text: Any) -> str:
+    """A phrase written to stand on its own after a full stop."""
+    s = str(text or "")
+    return s[:1].upper() + s[1:]
+
+
 def _judge_section(summary: dict[str, Any] | None) -> str:
     """The confidence judge (s12): selective accuracy per judge version and split.
 
@@ -791,6 +797,41 @@ def _judge_section(summary: dict[str, Any] | None) -> str:
         else ""
     )
     n_diag = summary.get("n_diagnoses") or 0
+    verdict = summary.get("verdict") or {}
+    if verdict:
+        lo, hi = (verdict.get("high_band_accuracy_ci") or [None, None])[:2]
+        sig = (
+            "and the interval separates them"
+            if verdict.get("significant")
+            else "and the interval does <strong>not</strong> separate them"
+        )
+        adopted = bool(verdict.get("significant") and verdict.get("meets_target"))
+        headline = (
+            "Tried, measured, and adopted as a gate."
+            if adopted
+            else "Tried, measured, and not adopted as a gate."
+        )
+        against = (
+            "and on the gate split it does, measurably."
+            if adopted
+            else "and on the gate split it does not, to any measurable degree."
+        )
+        verdict_block = (
+            f'<div class="note"><strong>{headline}</strong>'
+            f"<p>The band only earns its place if it beats the policy it replaces — "
+            f"releasing everything — {against} High band {_pct(verdict.get('high_band_accuracy'), 2)} "
+            f"against a no-judge baseline of "
+            f"{_pct(verdict.get('baseline_accuracy'), 2)} on the same turns: "
+            f"<strong>{verdict.get('delta_pp', 0):+.2f}pp</strong>, 95% CI "
+            f"{_pct(lo, 1)}–{_pct(hi, 1)} {sig}. It withholds "
+            f"{verdict.get('n_withheld', '—')} answers to remove "
+            f"{verdict.get('n_failures_caught', '—')} wrong ones, and "
+            f"{verdict.get('n_false_alarms', '—')} of those withheld were correct. "
+            f"<strong>{_e(_sentence(verdict.get('recommendation')))}.</strong>"
+            "</p></div>"
+        )
+    else:
+        verdict_block = ""
     opt = stats.get("optimise") or {}
     cal = stats.get("calibrate") or {}
     tst = stats.get("test") or {}
@@ -805,6 +846,7 @@ wrong, what it got right, and a rule a judge without gold could run), one distil
 judge's prompt, and the prompt was scored at natural prevalence on a disjoint calibrate split,
 then once on the gate split by the frozen champion. Operating target: high-band error
 ≤&nbsp;{target:.0%}.</p>
+{verdict_block}
 <div class="scroll"><table><thead><tr><th>judge</th><th>split</th><th class="num">turns</th>
 <th class="num">runtime acc.</th><th class="num">coverage</th><th class="num">high band correct</th>
 <th class="num">wrong / released</th><th class="num">unseen error (95%)</th>

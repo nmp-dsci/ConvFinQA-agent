@@ -278,6 +278,33 @@ export interface JudgeGate {
   champion_after: string;
 }
 
+/**
+ * What the champion's test pass settles — computed once in `judge.summary()`
+ * so the published page, this panel and the landing HUD cannot disagree.
+ *
+ * The comparison that matters is against the policy the band replaces:
+ * releasing every answer. `significant` is false when the interval on the
+ * high band contains that baseline.
+ */
+export interface JudgeVerdict {
+  split: string;
+  version: string;
+  baseline_accuracy: number;
+  high_band_accuracy: number;
+  delta_pp: number;
+  high_band_accuracy_ci?: [number | null, number | null];
+  significant: boolean;
+  meets_target: boolean;
+  coverage: number | null;
+  failure_capture: number | null;
+  n_withheld: number;
+  n_false_alarms: number;
+  n_failures_caught: number;
+  n_wrong: number;
+  error_target: number;
+  recommendation: string;
+}
+
 export interface JudgeSummary {
   dataset: {
     name?: string;
@@ -289,6 +316,7 @@ export interface JudgeSummary {
   error_target?: number;
   versions: JudgeVersionSummary[];
   gates: JudgeGate[];
+  verdict?: JudgeVerdict | null;
   n_diagnoses?: number;
 }
 

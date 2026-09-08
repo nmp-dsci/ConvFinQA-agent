@@ -104,8 +104,10 @@ def problems() -> list[str]:
             )
 
         # Once a judge champion exists, the SDK page must carry its selective
-        # figures: the runtime decision is only shippable with the judge, so a
-        # page that shows the accuracy without the band is the wrong story.
+        # figures *and* what they settled. A high-band accuracy shown on its
+        # own reads as a pass mark; the judge was tried last and did not clear
+        # the bar, so a page that omits the verdict tells the wrong story even
+        # while every number on it is right.
         judge_champion = registry.judge_champion()
         judge_scored = any(
             v.get("splits") for v in (story.get("judge") or {}).get("versions") or []
@@ -115,6 +117,24 @@ def problems() -> list[str]:
                 f"{sdk_page.name} does not show the confidence judge "
                 f"({judge_champion!r} is judge_champion) — rebuild with "
                 "`convfinqa-evalloop story`"
+            )
+        judge_verdict = (story.get("judge") or {}).get("verdict") or {}
+        adopted = bool(
+            judge_verdict.get("significant") and judge_verdict.get("meets_target")
+        )
+        # Distinct phrases, not substrings of each other: "adopted as a gate"
+        # occurs inside "not adopted as a gate", so a positive verdict would
+        # pass against a page saying the opposite.
+        settled = (
+            "tried, measured, and adopted as a gate"
+            if adopted
+            else "tried, measured, and not adopted as a gate"
+        )
+        if judge_verdict and settled not in lowered:
+            out.append(
+                f"{sdk_page.name} shows the judge's figures without the verdict "
+                f"they settle ({judge_verdict.get('recommendation')!r}) — rebuild "
+                "with `convfinqa-evalloop story`"
             )
         if (story.get("judge") or {}).get("champion", None) != judge_champion:
             out.append(

@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { getCampaigns } from './api';
-import type { CampaignExperiment, CampaignSummary, RuntimeArm } from './api';
+import type {
+  CampaignExperiment,
+  CampaignSummary,
+  JudgeVerdict as JudgeVerdictSummary,
+  RuntimeArm,
+} from './api';
 import {
   AdminPage,
   Caveat,
@@ -275,6 +280,56 @@ export function ArmCard({
  * "Unseen error" is the one-sided 95% bound on the high band's true error
  * rate — zero misses among n released proves ≤ ~3/n, never 0%.
  */
+/**
+ * What the judge experiment settled, in the terms the decision needs.
+ *
+ * The band is only worth acting on if it beats the policy it replaces —
+ * releasing every answer — so this leads with that comparison and with
+ * whether the interval separates them, not with the high-band accuracy on
+ * its own, which reads as a pass mark when it is not one.
+ */
+export function JudgeVerdictBanner({ verdict }: { verdict: JudgeVerdictSummary }) {
+  const adopt = verdict.significant && verdict.meets_target;
+  const [lo, hi] = verdict.high_band_accuracy_ci ?? [null, null];
+  return (
+    <section
+      data-testid="judge-verdict"
+      data-significant={verdict.significant ? 'true' : 'false'}
+      className={cn(
+        'mb-3 min-w-0 rounded-md border bg-panel p-3',
+        adopt ? 'border-good-line' : 'border-amber-line',
+      )}
+    >
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="mono-caps">recommendation</span>
+        <Verdict ok={adopt}>{adopt ? 'adopt as a gate' : 'advisory only'}</Verdict>
+        <span className="font-mono text-[10px] text-faint">
+          {verdict.version} on {verdict.split}
+        </span>
+      </div>
+      <p className="type-lede max-w-[80ch] text-text">
+        Tried at the end of the SDK work, and{' '}
+        {verdict.significant ? 'it beats' : <strong>not statistically significant</strong>}
+        {verdict.significant ? '' : ' against the policy it replaces'}: releasing everything
+        scores <span className="type-num">{formatPercent(verdict.baseline_accuracy, 2)}</span> on
+        the same turns, the high band{' '}
+        <span className="type-num">{formatPercent(verdict.high_band_accuracy, 2)}</span> —{' '}
+        <span className="type-num">{formatPp(verdict.delta_pp)}</span>, and the 95% interval{' '}
+        {lo === null || hi === null
+          ? 'is unavailable'
+          : `${formatPercent(lo, 1)}–${formatPercent(hi, 1)}`}{' '}
+        {verdict.significant ? 'excludes' : 'contains'} that baseline.
+      </p>
+      <p className="type-small mt-1 max-w-[92ch] text-muted">
+        It withholds {formatCount(verdict.n_withheld)} answers to remove{' '}
+        {formatCount(verdict.n_failures_caught)} wrong ones, and{' '}
+        {formatCount(verdict.n_false_alarms)} of those withheld were correct. The band is
+        recorded and shown; it is not evidence to gate on.
+      </p>
+    </section>
+  );
+}
+
 export function JudgeTable({ rows, target }: { rows: JudgeRow[]; target: number }) {
   if (!rows.length) {
     return (
@@ -1072,7 +1127,7 @@ export default function Runtimes() {
       <Panel
         title="the confidence judge: answer when the trace can be verified"
         endpoint="/eval/campaigns"
-        note="A Haiku 4.5 judge reads each finished turn — question, filing, sub-questions, retrieved cells with their cited sources, program, calculator trajectory, answer — and returns a band. high releases the answer; low withholds it. It never sees the gold answer. Trained the way sdk_v1 was: a teacher diagnosed every case of a balanced optimise split with gold, one distil call wrote the prompt; scored at natural prevalence on a disjoint calibrate split, then once on the gate split by the frozen champion."
+        note="Tried last, after the runtime decision. A Haiku 4.5 judge reads each finished turn — question, filing, sub-questions, retrieved cells with their cited sources, program, calculator trajectory, answer — and returns a band. high releases the answer; low withholds it. It never sees the gold answer. Trained the way sdk_v1 was: a teacher diagnosed every case of a balanced optimise split with gold, one distil call wrote the prompt; scored at natural prevalence on a disjoint calibrate split, then once on the gate split by the frozen champion. The result did not clear the bar — see the recommendation."
         right={
           <span className="type-small text-faint">
             judge_champion {data?.judge?.champion ?? NO_VALUE} · calibrated to{' '}
@@ -1080,6 +1135,7 @@ export default function Runtimes() {
           </span>
         }
       >
+        {data?.judge?.verdict && <JudgeVerdictBanner verdict={data.judge.verdict} />}
         <JudgeTable rows={judgeTable} target={judgeTarget} />
         {judgeTable.length > 0 && (
           <Caveat>

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { JudgeTable } from './Runtimes';
+import { JudgeTable, JudgeVerdictBanner } from './Runtimes';
 import { judgeHeadline, judgeRows } from './runtimeStory';
-import type { JudgeSplitMetrics, JudgeSummary } from './api';
+import type { JudgeSplitMetrics, JudgeSummary, JudgeVerdict } from './api';
 
 /**
  * s12: the judge's rows are read from `story.json → judge`; the champion's
@@ -84,5 +84,70 @@ describe('JudgeTable', () => {
   it('says not yet run when nothing has been scored', () => {
     const html = renderToStaticMarkup(<JudgeTable rows={[]} target={0.01} />);
     expect(html).toContain('not yet run');
+  });
+});
+
+/**
+ * s13: the verdict banner. The judge was tried last and did not clear the
+ * bar, and the panel has to say so — a high-band accuracy shown on its own
+ * reads as a pass mark. The comparison that decides it is against releasing
+ * every answer, so the banner leads with that and with whether the interval
+ * separates the two.
+ */
+
+function verdict(over: Partial<JudgeVerdict> = {}): JudgeVerdict {
+  return {
+    split: 'test',
+    version: 'judge_j1',
+    baseline_accuracy: 0.9054,
+    high_band_accuracy: 0.9146,
+    delta_pp: 0.91,
+    high_band_accuracy_ci: [0.8787, 0.9522],
+    significant: false,
+    meets_target: false,
+    coverage: 0.9054,
+    failure_capture: 0.1818,
+    n_withheld: 33,
+    n_false_alarms: 27,
+    n_failures_caught: 6,
+    n_wrong: 33,
+    error_target: 0.01,
+    recommendation: 'advisory only — do not gate on it',
+    ...over,
+  };
+}
+
+describe('the judge verdict banner', () => {
+  it('says the band is not significant against releasing everything', () => {
+    const html = renderToStaticMarkup(<JudgeVerdictBanner verdict={verdict()} />);
+    expect(html).toContain('data-testid="judge-verdict"');
+    expect(html).toContain('data-significant="false"');
+    expect(html).toContain('advisory only');
+    expect(html).toContain('not statistically significant');
+    // Both sides of the comparison, and the interval that fails to separate them.
+    expect(html).toContain('91.46%');
+    expect(html).toContain('90.54%');
+    expect(html).toContain('contains');
+    expect(html).not.toContain('excludes');
+    // The trade, in answers rather than rates.
+    expect(html).toContain('withholds 33');
+    expect(html).toContain('27 of those withheld were correct');
+  });
+
+  it('recommends adopting only when the interval separates them and the target is met', () => {
+    const html = renderToStaticMarkup(
+      <JudgeVerdictBanner verdict={verdict({ significant: true, meets_target: true })} />
+    );
+    expect(html).toContain('data-significant="true"');
+    expect(html).toContain('adopt as a gate');
+    expect(html).toContain('excludes');
+    expect(html).not.toContain('not statistically significant');
+  });
+
+  it('does not recommend adopting on significance alone when the target is missed', () => {
+    const html = renderToStaticMarkup(
+      <JudgeVerdictBanner verdict={verdict({ significant: true, meets_target: false })} />
+    );
+    expect(html).toContain('advisory only');
   });
 });

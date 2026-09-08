@@ -1941,6 +1941,62 @@ def latest_scores(version: str, split: str) -> Path | None:
     return matches[-1] if matches else None
 
 
+def _verdict(
+    versions: list[dict[str, Any]],
+    champion: str | None,
+    *,
+    error_target: float,
+) -> dict[str, Any] | None:
+    """What the champion's test pass settles, in the terms the decision needs.
+
+    The band is only worth acting on if it beats the policy it replaces, and
+    that policy is *release everything* — whose accuracy on the same split is
+    the runtime's own. So the number that matters is not the high-band accuracy
+    but its distance from that baseline, and whether the interval separates
+    them. Computed here, once, so the published page, the admin UI and the
+    landing HUD cannot tell three different stories.
+    """
+    if not champion:
+        return None
+    entry = next((v for v in versions if v.get("version") == champion), None)
+    test = (entry or {}).get("splits", {}).get("test")
+    if not test:
+        return None
+    band = test.get("high_band_accuracy")
+    baseline = test.get("accuracy")
+    if band is None or baseline is None:
+        return None
+    lo, hi = (test.get("high_band_accuracy_ci") or [None, None])[:2]
+    # The interval straddling the baseline is the whole finding: the guard-rail
+    # cannot be shown to release a more accurate set than no guard-rail at all.
+    significant = bool(
+        lo is not None and hi is not None and not (float(lo) <= baseline <= float(hi))
+    )
+    return {
+        "split": "test",
+        "version": champion,
+        "baseline_accuracy": float(baseline),
+        "high_band_accuracy": float(band),
+        "delta_pp": (float(band) - float(baseline)) * 100.0,
+        "high_band_accuracy_ci": [lo, hi],
+        "significant": significant,
+        "meets_target": bool(test.get("meets_target")),
+        "coverage": test.get("coverage"),
+        "failure_capture": test.get("failure_capture"),
+        "n_withheld": (test.get("n") or 0) - (test.get("n_high") or 0),
+        "n_false_alarms": test.get("n_false_alarms"),
+        "n_failures_caught": test.get("n_failures_caught"),
+        "n_wrong": test.get("n_wrong"),
+        "error_target": error_target,
+        # The recommendation the numbers support, not a description of them.
+        "recommendation": (
+            "adopt as a gate"
+            if significant and bool(test.get("meets_target"))
+            else "advisory only — do not gate on it"
+        ),
+    }
+
+
 def summary(*, error_target: float = DEFAULT_ERROR_TARGET) -> dict[str, Any]:
     """Everything the story and the campaigns API need, from committed files only."""
     import convfinqa.prompts as prompts_pkg
@@ -1967,12 +2023,14 @@ def summary(*, error_target: float = DEFAULT_ERROR_TARGET) -> dict[str, Any]:
             }
         versions.append(entry)
     diagnoses = load_diagnoses()
+    champion = registry.judge_champion()
     return {
         "dataset": {k: v for k, v in manifest.items() if k != "splits"},
-        "champion": registry.judge_champion(),
+        "champion": champion,
         "runtime_version": manifest.get("runtime_version"),
         "error_target": error_target,
         "versions": versions,
+        "verdict": _verdict(versions, champion, error_target=error_target),
         "gates": load_gates(),
         "n_diagnoses": len(diagnoses),
         "n_diagnoses_by_round": {
