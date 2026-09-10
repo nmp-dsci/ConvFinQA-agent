@@ -330,6 +330,10 @@ def teacher_options(
     CLAUDE.md, settings or skills. It is being asked to judge a pipeline, not to
     behave like a contributor to the project, and an inherited instruction file
     would silently become part of its prompt.
+
+    `effort="low"`: left unset, the SDK defaults every call here to `"high"`
+    (2026-09-10 decision) — every Agent SDK call in this project, chosen
+    explicitly rather than inherited from the SDK's own default.
     """
     guard_llm_call()
     from claude_agent_sdk import ClaudeAgentOptions
@@ -342,6 +346,7 @@ def teacher_options(
         "permission_mode": "bypassPermissions",
         "setting_sources": [],
         "allowed_tools": allowed_tools or [],
+        "effort": "low",
     }
     if output_schema is not None:
         kwargs["output_format"] = {"type": "json_schema", "schema": output_schema}
@@ -539,4 +544,5 @@ def pipeline_sdk_options(
         allowed_tools=list(SDK_ALLOWED_TOOLS),
         mcp_servers={SDK_MCP_SERVER: mcp_server},
         output_format={"type": "json_schema", "schema": output_schema},
+        effort="low",
     )
