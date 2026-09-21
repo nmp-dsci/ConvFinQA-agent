@@ -40,6 +40,15 @@ def _isolated_settings(
     # the four pipeline agents with stub models, so they run on the pipeline
     # unless a test opts into the SDK path with its own fake session.
     monkeypatch.setattr(settings, "serving_runtime", "pipeline", raising=False)
+    # Tracking defaults to the central server (../nmp-central-ai); the evalloop
+    # preflights it and refuses to run when it is down. A unit test must neither
+    # need that server nor write to it, so each test gets a throwaway store.
+    monkeypatch.setattr(
+        settings,
+        "mlflow_tracking_uri",
+        f"sqlite:///{tmp_path / 'mlflow.db'}",
+        raising=False,
+    )
     monkeypatch.setenv("DEEPSEEK_API_KEY", TEST_API_KEY)
 
     from pydantic import SecretStr
