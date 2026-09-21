@@ -21,7 +21,7 @@ A multi-agent system that answers multi-turn questions about financial reports (
 5. **Eval loop (M1/M2/M2.5) & campaigns** — `src/convfinqa/evalloop/`. A second, self-improving promotion path over the committed train/test/holdout splits: `runner.py` (traced eval runs), `teacher.py` (first-wrong diagnosis + one-subagent challenger proposal, running on the Claude Agent SDK via `sdk.py`), `gate.py` (net-positive and significance-gated targeted gates), `stage_scores.py` (per-agent gold-derived metrics, gold-derived attribution via `evaluation/program_exec.py::bind_and_execute`), `ledger.py` (pooled fault history, Wilson-bound targeting), `campaign.py`/`cycle.py` (bounded multi-experiment campaigns), `prompt_refs.py` (trace prompt references, not raw text), `story.py`/`story_page.py`/`story_check.py` (the published write-up), `kappa.py` (teacher-vs-human agreement), `release.py` (sealed M3 holdout gate), `splits.py`, `cli.py` (`convfinqa-evalloop`).
 6. **FastAPI server** — `convfinqa.serving.app:create_app`, routed through `serving/routes/` (`chat`, `evaluation` incl. `/eval/dataset`, `traces`, `admin`), backed by `serving/sessions.py` (in-memory session store), `serving/limits.py` (rate limiting), `serving/research.py` (s7/GEPA launch), and `serving/demo_pack/` (recorded replay for `DEMO_MODE`).
 7. **React frontend** — `frontend/`. A status-board landing at `/`, a sessions/thread-inspector chat at `/chat`, and an instrument-style admin section at `/admin` (Evaluations, Dataset, Experiments, Traces + detail, Research, System, Runtimes, Readiness) — all eight admin pages are visible read-only in the public demo, gated by a route filter, a real `<fieldset disabled>`, and a server 501/403. Navigation is data-driven (`frontend/src/app/nav.ts`, nine routes in four story-ordered groups); see `frontend/DESIGN.md` for the type scale, token, and lint-ratchet rules that govern the console.
-8. **Container & infra** — `Dockerfile` (serves API + built SPA from one origin), `docker-compose.yml` (`demo` / `dev` toggle, plus an always-on `mlflow` tracking-server service), `infra/terraform/` (`bootstrap/` OIDC role, `demo/` ECR + App Runner + alarm), `.github/workflows/deploy-aws.yml` (keyless deploy chained on CI).
+8. **Container & infra** — `Dockerfile` (serves API + built SPA from one origin), `docker-compose.yml` (`demo` / `dev` toggle; `dev` joins the central platform's `nmp-central` network for MLflow), `infra/terraform/` (`bootstrap/` OIDC role, `demo/` ECR + App Runner + alarm), `.github/workflows/deploy-aws.yml` (keyless deploy chained on CI).
 
 ## File Layout
 
@@ -71,11 +71,11 @@ A multi-agent system that answers multi-turn questions about financial reports (
 | `runs/` | GEPA optimization artifacts — the optimized prompt (`optimized_runner.json` / `dspy_optimized_runner.json`), `config.json`, stats/summary. **Tracked in git** so prior optimization results are usable on any clone. Iteration logs and `gepa_state.bin` are archived. |
 | `archive/` | Retired experiment by-products (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round). Nothing reads it; `archive/README.md` lists what moved and what stayed. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
-| `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshot/registry is what ships. |
+| `mlruns/`, `.mlflow/`, `.traces/` | Archived pre-2026-09-21 MLflow stores (read-only, not migrated; tracking now goes to the central server in `../nmp-central-ai`) and the local trace DB. Gitignored — the committed snapshot/registry is what ships. |
 | `evaluation/traces_snapshot.jsonl.gz` | The trace store, exported verbatim (8.4k turns, 6 MB gz) by `convfinqa-mlflow traces-snapshot`. **Tracked in git**; seeds a store with no turns of its own, so the demo container's Traces page and production metrics show the recorded runs rather than only what it has replayed. |
 | `infra/terraform/bootstrap/` | Run once by hand: the GitHub OIDC deploy role. Not applied by CI. |
 | `infra/terraform/demo/` | ECR + App Runner + a 5xx alarm. Reconciled by `deploy-aws.yml` after each push to `main`. |
-| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), the local `demo`/`dev` toggle, and an always-on `mlflow` tracking-server service (`docker compose up -d mlflow`). Every committed artifact a read-only route opens must be `COPY`d — a missing one empties a page rather than failing anything; `tests/test_demo_image.py` pins the list and `scripts/demo_smoke.sh` asserts the payloads are not their empty states. |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | The demo image (`DEMO_MODE` baked in, not set via Terraform), and the local `demo`/`dev` toggle (`dev` reaches the central MLflow over the external `nmp-central` network; `make -C ../nmp-central-ai up`). Every committed artifact a read-only route opens must be `COPY`d — a missing one empties a page rather than failing anything; `tests/test_demo_image.py` pins the list and `scripts/demo_smoke.sh` asserts the payloads are not their empty states. |
 | `.github/workflows/ci.yml`, `.github/workflows/deploy-aws.yml` | CI (lint, mypy, pytest, frontend checks, eval-regression gate, Docker build, `terraform fmt`/`validate`) and the keyless AWS deploy chained on CI passing. |
 | `frontend/` | Vite + React + Zustand + Tailwind operator console ("The Console"): landing status board at `/`, chat at `/chat`, admin section at `/admin` (Evaluations, Dataset, Experiments, Traces, Research, System, Runtimes, Readiness), IBM Plex type, terminal-amber accent, dark-first with a light variant. |
 | `docs/optimization/` | The published campaign write-up (`index.html` + `story.json`) and the Agent SDK experiment page (`agent-sdk.html`, linked from the index), both built by `convfinqa-evalloop story` from the tracking store, the ledgers and `evaluation/registry.json`; `evalloop/story_check.py` fails CI when either has gone stale. |
@@ -142,6 +142,7 @@ PROMPTS_VERSION=v2 uv run convfinqa-eval-api
 Tracking, registry and promotion:
 
 ```bash
+make -C ../nmp-central-ai up              # central MLflow server; UI at http://localhost:5000
 uv run convfinqa-mlflow status
 uv run convfinqa-mlflow compare v2 v3_1   # exit 1 if not promotable
 uv run convfinqa-mlflow promote v3_1      # refused unless the comparator passes
@@ -239,8 +240,7 @@ uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk 
   --resume-from evaluation/predictions/evalloop/<partial>.csv
 
 # One SDK experiment: draw -> diagnose -> rank classes -> rewrite -> gate -> decide
-EVAL_MANIFEST=eval_loop_v2 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
-  uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
+EVAL_MANIFEST=eval_loop_v2 uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
 uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk --baseline-gate-csv <sdk_test.csv>
 uv run convfinqa-evalloop campaign-status --campaign s01        # runtime, targets (failure classes), single_area_mode
 
@@ -331,7 +331,7 @@ The repo treats cached evaluation outputs as first-class artifacts, not throwawa
 - **`runs/<gepa_name>/`** — committed. Holds the optimized prompt (`optimized_runner.json` / `dspy_optimized_runner.json`), `config.json` and stats from each GEPA optimization. Lets anyone re-score a prior run with `RUN_GEPA=1 GEPA_NAME=<name> uv run convfinqa-optimize`. The per-iteration logs and `gepa_state.bin` are under `archive/runs/<gepa_name>/`; restore `gepa_state.bin` with `git mv` before using `RESUME_GEPA` on a run.
 - **`evaluation/registry.json`, `evaluation/mlflow_snapshot.json`** — committed. Bundle registry (promotion history) and exported MLflow run/experiment history, regenerated with `convfinqa-mlflow backfill` / `snapshot`. Baked into the demo image so the Experiments tab works with no tracking server.
 - **`.dspy_cache/`** — gitignored (~366 MB). Local LM response cache. Sync between machines via `rsync -av .dspy_cache/ user@host:~/ConvFinQA-agent/.dspy_cache/` rather than committing.
-- **`mlruns/`, `.traces/`** — gitignored. Local MLflow store and trace DB; dev state, not shipped. The trace store's committed export is `evaluation/traces_snapshot.jsonl.gz` (`convfinqa-mlflow traces-snapshot`), which seeds an empty store — a dev machine with its own history is never touched.
+- **`mlruns/`, `.mlflow/`, `.traces/`** — gitignored. The first two are the archived pre-2026-09-21 MLflow stores (read-only, not migrated; new runs go to the central server in `../nmp-central-ai`), the third the local trace DB; dev state, not shipped. The trace store's committed export is `evaluation/traces_snapshot.jsonl.gz` (`convfinqa-mlflow traces-snapshot`), which seeds an empty store — a dev machine with its own history is never touched.
 
 Rule of thumb: if regenerating it costs an API call, commit it. If it can be rebuilt locally without network, leave it ignored.
 
@@ -369,7 +369,7 @@ If a new backend route prefix is added, add it to `BACKEND_PREFIXES` or the brow
 | `MAX_INFLIGHT_TURNS` | No | Global in-flight turn cap; rejects rather than queues. Default `4`. |
 | `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` | No | Per-IP rate limit. Default `30` requests / `60` seconds. |
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_ATTEMPTS` | No | Per-call timeout and retry cap, enforced in `llm.py`. Default `120.0` / `4`. |
-| `MLFLOW_TRACKING_URI` | No | `file:` store in dev; unset in the demo image, which reads the committed snapshot instead. |
+| `MLFLOW_TRACKING_URI` | No | Default `http://localhost:5000`, the central platform server (`make -C ../nmp-central-ai up`; `http://mlflow:5000` from inside compose). The demo image never contacts it and reads the committed snapshot instead. Point it at `sqlite:///mlruns/mlflow.db` only to read the archived pre-2026-09-21 store. |
 | `MLFLOW_EXPERIMENT` / `REGISTERED_MODEL_NAME` | No | Default `"convfinqa"` / `"convfinqa-pipeline"`. |
 | `MLFLOW_TRACING` | No | Opt serving into per-call MLflow trace spans via `tracking/tracing.py`. The evalloop runner always traces regardless of this flag. Default `false`. |
 | `TRACE_CAPTURE_ENABLED` | No | Persist per-stage IO for every serving turn. Default `true`; off in tests. |

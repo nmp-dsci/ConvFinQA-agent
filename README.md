@@ -166,8 +166,13 @@ uv run convfinqa-mlflow promote v3_1              # refused unless it passes
 uv run convfinqa-mlflow backfill                  # rebuild history from git
 uv run convfinqa-mlflow snapshot                  # export for the demo image
 uv run convfinqa-mlflow traces-snapshot           # export the trace store the demo image seeds from
-uv run mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db
+make -C ../nmp-central-ai up                     # central MLflow server; UI at http://localhost:5000
 ```
+
+Tracking goes to the portfolio's central MLflow server (`../nmp-central-ai`,
+`http://localhost:5000`, Postgres-backed, server-proxied artifacts). It is the
+default; `MLFLOW_TRACKING_URI` overrides it, and the evalloop runner refuses to
+start when the server does not answer `/health`. The pre-2026-09-21 local stores (`mlruns/mlflow.db`, `.mlflow/`) are archived read-only, not migrated; set `MLFLOW_TRACKING_URI=sqlite:///mlruns/mlflow.db` to read old runs, never to log new ones.
 
 Logging lives *inside* the eval/GEPA/s7 runners rather than beside them, so a
 run cannot happen without being recorded — an experiment history with silent
@@ -214,8 +219,7 @@ train/test/holdout) rather than the full 770-question corpus:
 
 ```bash
 uv run convfinqa-evalloop make-splits
-MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
-  uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
+uv run convfinqa-evalloop run --split train --version v4 --n-reports 10
 uv run convfinqa-evalloop run --split train --version v4 --n-questions 50
 uv run convfinqa-evalloop gate --baseline-csv A.csv --candidate-csv B.csv \
   --baseline-version v3_1 --candidate-version v4 --promote
@@ -267,8 +271,7 @@ experiment runs the M2/M2.5 loop above end to end — train draw, diagnose,
 propose, targeted gate, promote-or-reject — for exactly one subagent's prompt.
 
 ```bash
-EVAL_MANIFEST=eval_loop_v2 MLFLOW_TRACKING_URI=http://127.0.0.1:5000 \
-  uv run convfinqa-evalloop cycle --campaign c01
+EVAL_MANIFEST=eval_loop_v2 uv run convfinqa-evalloop cycle --campaign c01
 uv run convfinqa-evalloop campaign-status --campaign c01   # used / promoted / blocked
 uv run convfinqa-evalloop story                            # evaluation/story.json + docs/optimization/index.html
 ```
@@ -339,7 +342,7 @@ number would be the worst failure a system about numerical accuracy could have.
 ```bash
 docker compose up demo     # exactly what ships: no keys, replayed chat
 docker compose up dev      # same image, live model, your key
-docker compose up -d mlflow  # always-on local tracking server (registry, experiments, traces)
+make -C ../nmp-central-ai up  # the tracking server (registry, experiments, traces) is the central platform
 ./scripts/demo_smoke.sh http://localhost:8080
 ```
 
@@ -388,9 +391,9 @@ The repository uses a `src/convfinqa/` package layout. No Python modules remain 
 | `evaluation/traces_snapshot.jsonl.gz` | The trace store exported verbatim (8.4k turns, 6 MB gz). Tracked, and baked in: it seeds a store with no turns of its own, so the demo browses the recorded runs rather than only what it has replayed. |
 | `archive/` | Retired experiment by-products (GEPA iteration logs, DSPy/API parity CSVs, the abandoned s7 `v3_2` round). Nothing reads it; `archive/README.md` lists what moved. |
 | `infra/terraform/` | `bootstrap/` (run once: the OIDC deploy role) and `demo/` (ECR + App Runner + alarm). |
-| `Dockerfile`, `docker-compose.yml` | The demo image, the local dev/demo toggle, and an always-on `mlflow` tracking-server service. |
+| `Dockerfile`, `docker-compose.yml` | The demo image and the local dev/demo toggle; `dev` joins the central platform's `nmp-central` network to reach MLflow. |
 | `.dspy_cache/` | DSPy LM response cache (~366 MB). Gitignored; rsync between machines for warm scoring. |
-| `mlruns/`, `.traces/` | Local MLflow store and trace DB. Gitignored — the committed snapshots are what ship (`convfinqa-mlflow snapshot`, `convfinqa-mlflow traces-snapshot`). |
+| `mlruns/`, `.mlflow/`, `.traces/` | Archived pre-2026-09-21 MLflow stores (read-only, not migrated — tracking now goes to the central server) and the local trace DB. Gitignored — the committed snapshots are what ship (`convfinqa-mlflow snapshot`, `convfinqa-mlflow traces-snapshot`). |
 
 ## Pipeline
 

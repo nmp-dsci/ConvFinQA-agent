@@ -164,6 +164,150 @@ def test_empty_comparison_is_not_promotable() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Central tracking server — the preflight
+# ---------------------------------------------------------------------------
+
+
+class _FakeResponse:
+    def __init__(self, status: int) -> None:
+        self.status = status
+
+    def __enter__(self) -> _FakeResponse:
+        return self
+
+    def __exit__(self, *a: object) -> None:
+        return None
+
+
+def test_assert_reachable_passes_on_a_healthy_server(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 200 from `<uri>/health` is the whole contract; nothing else is probed."""
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    probed: list[str] = []
+
+    def fake_urlopen(url: str, timeout: float = 0.0) -> _FakeResponse:
+        probed.append(url)
+        assert timeout == 2.0
+        return _FakeResponse(200)
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "http://mlflow.test:5000/")
+    mlflow_log.assert_reachable()
+    assert probed == ["http://mlflow.test:5000/health"]
+
+
+def test_assert_reachable_names_the_uri_and_the_fix_when_the_server_is_down(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The message must say where it looked and what to run — an operator
+    reading it cold should not need the docs."""
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    def fake_urlopen(url: str, timeout: float = 0.0) -> _FakeResponse:
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "http://localhost:5000")
+    with pytest.raises(mlflow_log.TrackingUnreachableError) as excinfo:
+        mlflow_log.assert_reachable()
+    assert str(excinfo.value) == (
+        "central MLflow unreachable at http://localhost:5000; "
+        "run: make -C ../nmp-central-ai up"
+    )
+
+
+def test_assert_reachable_treats_a_non_2xx_health_as_down(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A server that answers but is unhealthy is as good as absent."""
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    monkeypatch.setattr(
+        urllib.request, "urlopen", lambda url, timeout=0.0: _FakeResponse(503)
+    )
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "http://localhost:5000")
+    with pytest.raises(mlflow_log.TrackingUnreachableError):
+        mlflow_log.assert_reachable()
+
+
+def test_assert_reachable_does_not_probe_the_archived_local_store(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A `sqlite:` URI is the read-only archive; there is no server to check
+    and the preflight must not invent one."""
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    def fake_urlopen(url: str, timeout: float = 0.0) -> _FakeResponse:
+        raise AssertionError("a local store must never be probed")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "sqlite:///x/mlflow.db")
+    mlflow_log.assert_reachable()
+    assert not mlflow_log.is_remote()
+
+
+def test_a_down_server_degrades_in_two_seconds_not_four_minutes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`_mlflow()` must probe `/health` before touching the REST client.
+
+    Measured without the probe: `available()` against a dead port took 247s,
+    MLflow's retry ladder — which the demo container's /admin/experiments and
+    every dev call while the platform is stopped would have paid. With it the
+    module never even imports mlflow."""
+    import sys
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    def fake_urlopen(url: str, timeout: float = 0.0) -> _FakeResponse:
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "http://localhost:5000")
+    monkeypatch.delitem(sys.modules, "mlflow", raising=False)
+    monkeypatch.setitem(sys.modules, "mlflow", None)  # an import would now fail loudly
+    with pytest.raises(mlflow_log.TrackingUnreachableError):
+        mlflow_log._mlflow()
+    assert mlflow_log.available() is False
+
+
+def test_env_summary_reports_reachable_for_a_server_and_store_exists_for_a_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """One key per kind of backend: `store_exists` is meaningless for a server
+    and `reachable` is meaningless for a file."""
+    import urllib.request
+
+    from convfinqa.tracking import mlflow_log
+
+    monkeypatch.setattr(mlflow_log, "available", lambda: True)
+    monkeypatch.setattr(
+        urllib.request, "urlopen", lambda url, timeout=0.0: _FakeResponse(200)
+    )
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "http://localhost:5000")
+    remote = mlflow_log.env_summary()
+    assert remote["reachable"] is True
+    assert "store_exists" not in remote
+
+    monkeypatch.setattr(mlflow_log, "tracking_uri", lambda: "sqlite:///x/mlflow.db")
+    monkeypatch.setattr(mlflow_log, "artifacts_root", lambda: tmp_path / "missing")
+    local = mlflow_log.env_summary()
+    assert local["store_exists"] is False
+    assert "reachable" not in local
+
+
+# ---------------------------------------------------------------------------
 # MLflow write failures
 # ---------------------------------------------------------------------------
 

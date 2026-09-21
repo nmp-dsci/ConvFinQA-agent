@@ -48,7 +48,9 @@ DIAGNOSTICS_DIR = EVAL_ROOT / "diagnostics"
 # resolve the same files regardless of which directory the process started in.
 DATA_DIR = REPO_ROOT / "data"
 RUNS_DIR = REPO_ROOT / "runs"
-# MLflow file store (dev) and the committed export the demo reads instead.
+# Archived pre-central MLflow store (read-only since 2026-09-21; tracking now
+# goes to the central server, see `tracking/mlflow_log.py`) and the committed
+# export the demo reads instead.
 MLRUNS_DIR = REPO_ROOT / "mlruns"
 MLFLOW_SNAPSHOT_PATH = EVAL_ROOT / "mlflow_snapshot.json"
 # Run-trace store: per-turn stage IO for every serving and eval turn.
@@ -223,8 +225,11 @@ class Settings(BaseSettings):
     llm_max_attempts: int = 4
 
     # ---- Tracking ---------------------------------------------------------
-    # `file:` store in dev; the demo reads the committed snapshot instead.
-    mlflow_tracking_uri: str = ""
+    # The central platform server (nmp-central-ai) by default; the env var
+    # MLFLOW_TRACKING_URI overrides it. The demo image never contacts it — it
+    # reads the committed snapshot instead. A `sqlite:`/`file:` value still
+    # works for reading the archived local store, but nothing new logs there.
+    mlflow_tracking_uri: str = "http://localhost:5000"
     mlflow_experiment: str = "convfinqa"
     registered_model_name: str = "convfinqa-pipeline"
     # Persist per-stage IO for every serving turn. Off in tests.

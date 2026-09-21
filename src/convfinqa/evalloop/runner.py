@@ -633,6 +633,12 @@ async def run_split(
             f"{len(reused)} conversations ({n_reused_questions} questions) reused "
             f"whole, {len(to_run)} run again from turn 0"
         )
+    # Preflight the central server before spending a single model call: every
+    # MLflow write below degrades to a no-op when the store is away, which is
+    # right for serving and wrong here — an eval with no record is money burnt.
+    # Only a server URI is probed; the archived local store needs no health.
+    if mlflow_log.is_remote():
+        mlflow_log.assert_reachable()
     # Autolog before any conversation runs; conversations run *inside* the
     # MLflow run so every trace links to it in the Traces tab.
     tracing.enable()

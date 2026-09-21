@@ -20,7 +20,7 @@ dependencies = [
   "logfire[fastapi,httpx,pydantic-ai]>=3.0.0",
   "tenacity>=8.0.0",
   "dspy>=2.5",
-  "mlflow>=3.11.1",
+  "mlflow>=3.12,<4",
   "uvicorn>=0.41,<0.42",
   "claude-agent-sdk>=0.2.152",
 ]

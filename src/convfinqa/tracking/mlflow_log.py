@@ -7,8 +7,12 @@ worse than none — you cannot tell a gap from a failure. So `evaluation.runner`
 `optimization.gepa` and `diagnosis.harness` each open a run themselves, and every
 future run is captured by construction.
 
-Backend is a local `file:` store. No server to run, secure, or pay for, and the
-demo reads a committed export of it instead (see `snapshot.py`).
+Backend is the portfolio's central MLflow server (`nmp-central-ai`, Postgres +
+server-proxied artifacts), reached through `settings.mlflow_tracking_uri` and
+overridable with `MLFLOW_TRACKING_URI`. The demo never talks to it — it reads a
+committed export instead (see `snapshot.py`). The pre-2026-09-21 local stores
+(`mlruns/mlflow.db`, `.mlflow/`) are archived read-only, not migrated: point the
+URI at one to read old artifacts, never to log new runs.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ import contextlib
 import json
 import logging
 import os
+import urllib.request
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -28,17 +33,54 @@ log = logging.getLogger("convfinqa.tracking")
 
 
 def tracking_uri() -> str:
-    """Resolve the tracking URI: explicit setting, else the repo-local SQLite store.
+    """Resolve the tracking URI: the setting, which defaults to the central server.
 
-    SQLite rather than the older `file:./mlruns` layout, which MLflow deprecated
-    in February 2026. It is still a single local file with no server to run,
-    secure, or pay for — the property that mattered about the file store is kept,
-    without building on something already announced as going away.
+    `MLFLOW_TRACKING_URI` overrides it. Only an explicitly *empty* value falls
+    back to the archived repo-local SQLite store — kept so the old history can
+    still be opened, and the one case where the local directory is created.
     """
     if settings.mlflow_tracking_uri:
         return settings.mlflow_tracking_uri
     MLRUNS_DIR.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{MLRUNS_DIR / 'mlflow.db'}"
+
+
+def is_remote(uri: str | None = None) -> bool:
+    """Whether the (given or configured) URI is a tracking *server*, not a file."""
+    return (uri or tracking_uri()).startswith(("http://", "https://"))
+
+
+def reachable(uri: str | None = None, *, timeout: float = 2.0) -> bool:
+    """GET `<uri>/health` with a short timeout. False on any failure."""
+    target = (uri or tracking_uri()).rstrip("/") + "/health"
+    try:
+        with urllib.request.urlopen(target, timeout=timeout) as response:
+            return 200 <= int(response.status) < 300
+    except Exception:  # noqa: BLE001 — a probe; any failure means "no"
+        return False
+
+
+class TrackingUnreachableError(RuntimeError):
+    """The configured tracking server did not answer its health check."""
+
+
+def _unreachable_message(uri: str) -> str:
+    return f"central MLflow unreachable at {uri}; run: make -C ../nmp-central-ai up"
+
+
+def assert_reachable(uri: str | None = None) -> None:
+    """Fail loud before a run that would otherwise be silently unrecorded.
+
+    Every write in this module degrades to a no-op when the store is away, which
+    is right for serving (the demo has no server by design) and wrong for an
+    eval: a run that costs real model calls must not complete with no record.
+    A non-server URI (the archived local store) is not probed.
+    """
+    target = uri or tracking_uri()
+    if not is_remote(target):
+        return
+    if not reachable(target):
+        raise TrackingUnreachableError(_unreachable_message(target))
 
 
 def artifacts_dir() -> Path:
@@ -51,10 +93,17 @@ def _mlflow() -> Any:
 
     Lazy because importing mlflow costs ~2s and pulls in a large dependency tree;
     the API process should not pay that at startup just to serve /reports.
+
+    A server URI is health-probed first (2s bound). Without that, a server that
+    is down costs every caller MLflow's REST retry ladder — measured at ~4
+    minutes per call — before the usual degrade-to-no-op; with it, the demo
+    container and a dev box whose platform is stopped answer in two seconds.
     """
+    uri = tracking_uri()
+    if is_remote(uri) and not reachable(uri):
+        raise TrackingUnreachableError(_unreachable_message(uri))
     import mlflow
 
-    uri = tracking_uri()
     mlflow.set_tracking_uri(uri)
     if mlflow.get_experiment_by_name(settings.mlflow_experiment) is None:
         mlflow.create_experiment(
@@ -337,19 +386,29 @@ def search_runs(limit: int = 200) -> list[dict[str, Any]]:
 
 
 def artifacts_root() -> Path:
-    """Filesystem root of the local store, for backfill and export."""
+    """Filesystem root of the archived local store, for backfill and export."""
     return MLRUNS_DIR
 
 
 def env_summary() -> dict[str, Any]:
-    """Where tracking is pointing, for /admin/experiments to report honestly."""
-    return {
-        "tracking_uri": tracking_uri(),
+    """Where tracking is pointing, for /admin/experiments to report honestly.
+
+    A server URI reports `reachable` (its health endpoint answered); a local
+    store URI reports `store_exists` — the one question that is meaningful for
+    each kind of backend.
+    """
+    uri = tracking_uri()
+    summary: dict[str, Any] = {
+        "tracking_uri": uri,
         "experiment": settings.mlflow_experiment,
         "registered_model": settings.registered_model_name,
         "available": available(),
-        "store_exists": artifacts_root().exists(),
     }
+    if is_remote(uri):
+        summary["reachable"] = reachable(uri)
+    else:
+        summary["store_exists"] = artifacts_root().exists()
+    return summary
 
 
 def dumps(payload: Any) -> str:
