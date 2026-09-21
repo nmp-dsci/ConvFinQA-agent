@@ -44,7 +44,10 @@ def _isolated_settings(
     # preflights it and refuses to run when it is down. A unit test must neither
     # need that server nor write to it, so each test gets a throwaway store.
     monkeypatch.setattr(
-        settings, "mlflow_tracking_uri", f"sqlite:///{tmp_path / 'mlflow.db'}", raising=False
+        settings,
+        "mlflow_tracking_uri",
+        f"sqlite:///{tmp_path / 'mlflow.db'}",
+        raising=False,
     )
     monkeypatch.setenv("DEEPSEEK_API_KEY", TEST_API_KEY)
 
