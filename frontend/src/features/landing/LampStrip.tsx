@@ -58,11 +58,12 @@ export function LampStrip({ board }: { board: BoardData }) {
       dashed: false,
       tooltip: (
         <>
-          <div className="mb-1 font-medium">The gate is working, not broken.</div>
+          <strong>The gate is working, not broken.</strong>
+          <br />
           {latest.candidate_version} rewrote {latest.target_agent} and moved the gate split by{' '}
           {delta} — {latest.fixed ?? 0} questions fixed against {latest.broken ?? 0} broken — but at
           p = {pText} that is not distinguishable from noise at α = 0.05. Promotion needs net
-          positive <em>and</em> significance; net positive alone promoted three versions whose
+          positive <b>and</b> significance; net positive alone promoted three versions whose
           confidence intervals contained zero.
         </>
       ),
@@ -70,7 +71,7 @@ export function LampStrip({ board }: { board: BoardData }) {
   })();
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="lamps">
       <Lamp
         label="mode"
         value={isDemo ? 'replay · keyless' : 'live'}

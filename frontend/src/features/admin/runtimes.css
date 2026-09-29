@@ -1,0 +1,50 @@
+/* Optimise › Runtimes, and the confidence-judge blocks Scoring borrows (features/admin/judge.tsx).
+   Tokens only: `npm run lint:design` fails on a hex or a size under --t-2 here. */
+
+/* ── the claim-bearing verdict: a card with a status rule on its left ───────────────────────── */
+.rt-verdict{margin-top:var(--s6);border-left:3px solid var(--line-3);border-radius:0 var(--r) var(--r) 0}
+.rt-verdict[data-tone=ok]{border-left-color:var(--ok)}
+.rt-verdict[data-tone=err]{border-left-color:var(--red)}
+.rt-verdict[data-tone=warn]{border-left-color:var(--amber)}
+.rt-verdict[data-tone=no]{border-left-style:dashed}
+.rt-verdict-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3)}
+.rt-verdict .lead{margin-top:var(--s3);color:var(--ink)}
+.rt-verdict .num{color:var(--ink)}
+.rt-cells{grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));margin-top:var(--s4)}
+.rt-cells .stat .why,.rt-cells .stat .label{white-space:normal;overflow:visible}
+
+/* ── sections: `N · label — claim` ──────────────────────────────────────────────────────────── */
+.rt-sec>h2{max-width:46ch}
+.rt-sec>p{margin-top:var(--s3)}
+
+/* ── the two arms ───────────────────────────────────────────────────────────────────────────── */
+.rt-arms{margin-top:var(--s4)}
+.rt-arm-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s2)}
+.rt-arm h3{margin-top:var(--s2)}
+.rt-arm-acc{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s2) var(--s3);margin-top:var(--s4)}
+.rt-big{font:500 var(--t3)/1.1 var(--mono);color:var(--ink)}
+.rt-arm .kv dd.num{text-align:right}
+.rt-strong{color:var(--ink)}
+.rt-absent{color:var(--faint)}
+.rt-why{display:block;font:400 var(--t-2)/1.4 var(--sans);color:var(--faint);white-space:normal}
+.rt-stages{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:var(--s4)}
+
+/* ── tables ─────────────────────────────────────────────────────────────────────────────────── */
+.rt-table td.sub.rt-wrap{white-space:normal;min-width:18ch}
+.rt-table .path.rt-sans{font-family:var(--sans);max-width:36ch}
+.rt-table td.num .path{text-align:right}
+.rt-table td.num.v-ok,.rt-table td.num.v-fail{font-weight:500}
+
+/* ── the loop's experiments ─────────────────────────────────────────────────────────────────── */
+.rt-exps{list-style:none;padding:0;margin:var(--s4) 0 0;display:grid;gap:var(--s3)}
+.rt-exp{padding:var(--s4) var(--s5)}
+.rt-exp p{margin-top:var(--s2);max-width:none}
+.rt-exp-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3)}
+.rt-exp-delta{margin-left:auto;color:var(--ink-2)}
+
+/* ── caveats and the pointer onward ─────────────────────────────────────────────────────────── */
+.rt-caveats>.callout:first-child{margin-top:0}
+.rt-sec .grid2{margin-top:var(--s4)}
+.rt-sec .grid2 .card p:first-of-type{margin-top:var(--s2)}
+.rt-next{margin-top:var(--s7);font-weight:500}
+.rt-table .status,.rt-verdict-head .status,.rt-exp-head .status{white-space:nowrap}

@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
 import * as api from '../../api';
 import { qk } from '../../lib/queryClient';
 import type { Message } from '../../types';
@@ -74,24 +72,16 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
   }
 
   return (
-    <div
-      data-testid="document-viewer"
-      className="absolute inset-0 z-20 flex min-h-0 flex-col bg-panel"
-    >
-      <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-line px-3">
+    <div data-testid="document-viewer" className="ch-drawer">
+      <div className="ch-head">
         {/* The thread header already names the filing; repeating it here would
             spend the only line this bar has on a fact already on screen. */}
-        <span className="mono-caps">source document</span>
-        <span className="min-w-0 flex-1 truncate text-[10.5px] text-faint">
+        <span className="label">source document</span>
+        <span className="ch-fill ch-trunc small muted">
           what the retriever reads: the page’s text and its table
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close the filing"
-          className="shrink-0 rounded-[4px] border border-line-2 p-1 text-muted transition-colors hover:border-amber-line hover:text-amber"
-        >
-          <X className="size-3" aria-hidden />
+        <button type="button" onClick={onClose} aria-label="Close the filing" className="tog">
+          ✕ close
         </button>
       </div>
 
@@ -103,50 +93,36 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
         `scrollable-region-focusable`, and it only fires at narrow widths —
         where it matters most.
       */}
-      <div
-        role="region"
-        aria-label="Filing text and table"
-        tabIndex={0}
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3"
-      >
-        {doc.isPending && <p className="text-[12px] text-faint">Loading the filing…</p>}
+      <div role="region" aria-label="Filing text and table" tabIndex={0} className="ch-drawer-body">
+        {doc.isPending && <p className="small muted">Loading the filing…</p>}
         {doc.isError && (
-          <p className="text-[12px] text-bad">
-            Could not load this filing: {String(doc.error)}
-          </p>
+          <p className="callout err">Could not load this filing: {String(doc.error)}</p>
         )}
 
         {doc.data && (
-          <div className="space-y-3">
+          <>
             {doc.data.pre_text && (
               <section>
-                <div className="mono-caps mb-1">pre-text</div>
-                <p className="text-[12px] leading-relaxed whitespace-pre-wrap text-muted">
-                  {doc.data.pre_text}
-                </p>
+                <p className="label">pre-text</p>
+                <p className="ch-doc-text">{doc.data.pre_text}</p>
               </section>
             )}
 
             <section>
-              <div className="mb-1 flex flex-wrap items-baseline gap-2">
-                <span className="mono-caps">table</span>
+              <div className="ch-legend">
+                <span className="label">table</span>
                 {highlighted.size > 0 && (
-                  <span className="text-[10.5px] text-faint">
-                    <span className="mr-1 inline-block size-2 translate-y-px rounded-[2px] border border-amber-line bg-amber-soft" />
+                  <span className="small muted">
+                    <span className="ch-swatch" aria-hidden />
                     {hits > 0
-                      ? `${hits} cell${hits === 1 ? '' : 's'} carrying a value this turn's retriever returned`
-                      : 'the retriever’s values for this turn are not in the table — it read them from the text'}
+                      ? `retrieved — ${hits} cell${hits === 1 ? '' : 's'} carrying a value this turn's retriever returned`
+                      : 'retrieved — none: the retriever’s values for this turn are not in the table, it read them from the text'}
                   </span>
                 )}
               </div>
 
-              <div
-                role="region"
-                aria-label="Filing table"
-                tabIndex={0}
-                className="overflow-x-auto rounded-md border border-line"
-              >
-                <table className="min-w-full border-collapse text-[11px]">
+              <div role="region" aria-label="Filing table" tabIndex={0} className="tw ch-filing-tw">
+                <table className="ch-filing">
                   <thead>
                     <tr>
                       {/*
@@ -155,19 +131,12 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                         empty <th> is announced as an unnamed column header, so
                         it carries a name only a screen reader hears.
                       */}
-                      <th
-                        scope="col"
-                        className="sticky left-0 z-10 border-b border-line bg-panel-2 px-2 py-1 text-left font-medium"
-                      >
+                      <th scope="col" className="rowh">
                         <span className="sr-only">Row label</span>
                         <span aria-hidden>&nbsp;</span>
                       </th>
                       {colKeys.map((col) => (
-                        <th
-                          key={col}
-                          scope="col"
-                          className="border-b border-l border-line bg-panel-2 px-2 py-1 text-left font-medium whitespace-nowrap"
-                        >
+                        <th key={col} scope="col" className="num">
                           {col}
                         </th>
                       ))}
@@ -176,10 +145,7 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                   <tbody>
                     {rowKeys.map((row) => (
                       <tr key={row}>
-                        <th
-                          scope="row"
-                          className="sticky left-0 z-10 border-b border-line bg-panel px-2 py-1 text-left font-medium text-muted"
-                        >
+                        <th scope="row" className="rowh">
                           {row}
                         </th>
                         {colKeys.map((col) => {
@@ -191,12 +157,7 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                               key={col}
                               data-retrieved={hit ? 'true' : undefined}
                               title={hit ? 'Returned by the retriever on this turn' : undefined}
-                              className={cn(
-                                'border-b border-l border-line px-2 py-1 text-right font-mono whitespace-nowrap',
-                                hit
-                                  ? 'bg-amber-soft text-amber shadow-[inset_0_0_0_1px_var(--accent-line)]'
-                                  : 'text-muted'
-                              )}
+                              className={hit ? 'num ch-hit' : 'num'}
                             >
                               {fmtCell(raw)}
                             </td>
@@ -209,7 +170,7 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
               </div>
 
               {highlighted.size > 0 && (
-                <p className="mt-1.5 text-[10px] leading-relaxed text-faint">
+                <p className="small muted">
                   Highlighted by value: the retriever names the number it found, not the cell it
                   came from, so a coincidental equal value elsewhere in the table lights up too.
                 </p>
@@ -218,13 +179,11 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
 
             {doc.data.post_text && (
               <section>
-                <div className="mono-caps mb-1">post-text</div>
-                <p className="text-[12px] leading-relaxed whitespace-pre-wrap text-muted">
-                  {doc.data.post_text}
-                </p>
+                <p className="label">post-text</p>
+                <p className="ch-doc-text">{doc.data.post_text}</p>
               </section>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

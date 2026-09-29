@@ -143,6 +143,10 @@ export const DSL_OPS: Array<{ op: string; args: string; out: string; meaning: st
 
 export interface BaselineRow {
   system: string;
+  /** A label short enough for the leaderboard figure's row. */
+  short: string;
+  /** What kind of system it is — the paradigm the caveat under the figure is about. */
+  family: 'human' | 'fine-tuned' | 'prompted';
   /** What it was trained or tuned on. */
   trained: string;
   /** `null` where the paper does not report the figure. */
@@ -154,17 +158,20 @@ export interface BaselineRow {
   ceiling?: boolean;
 }
 
+const FINETUNED = '3,037 conversations · full fine-tune';
+
 /**
- * The paper's leaderboard, in the order the debrief prints it: best first.
+ * The paper's leaderboard, one row per system, best first.
  *
- * This system's own row is NOT in this list. It is spliced in at render time
- * from the live backend read, so a promoted challenger moves the row without a
- * code change — and so that no figure describing this system can ever be a
- * literal in a source file.
+ * This system's own rows are NOT in this list. They are spliced in at render time from the live
+ * backend read, so a promoted challenger moves the row without a code change — and so that no
+ * figure describing this system can ever be a literal in a source file.
  */
 export const BASELINES: BaselineRow[] = [
   {
     system: 'Human expert',
+    short: 'Human expert',
+    family: 'human',
     trained: '—',
     exe: '89.44',
     prog: '86.34',
@@ -174,7 +181,9 @@ export const BASELINES: BaselineRow[] = [
   },
   {
     system: 'FinQANet-Gold (RoBERTa-large, gold retrieval given)',
-    trained: '3,037 conversations · full fine-tune',
+    short: 'FinQANet-Gold · RoBERTa-large, gold facts',
+    family: 'fine-tuned',
+    trained: FINETUNED,
     exe: '77.32',
     prog: '76.46',
     evaluatedOn: '434-conversation test set',
@@ -182,30 +191,68 @@ export const BASELINES: BaselineRow[] = [
   },
   {
     system: 'FinQANet (RoBERTa-large) — the paper’s best real system',
-    trained: '3,037 conversations · full fine-tune',
+    short: 'FinQANet · RoBERTa-large',
+    family: 'fine-tuned',
+    trained: FINETUNED,
     exe: '68.90',
     prog: '68.24',
     evaluatedOn: 'test set',
     source: 'Table 5',
   },
   {
-    system: 'FinQANet (RoBERTa-base / BERT-large / BERT-base)',
-    trained: '3,037 conversations · full fine-tune',
-    exe: '64.95 / 61.14 / 55.03',
-    prog: '64.16 / 60.55 / 54.57',
+    system: 'FinQANet (RoBERTa-base)',
+    short: 'FinQANet · RoBERTa-base',
+    family: 'fine-tuned',
+    trained: FINETUNED,
+    exe: '64.95',
+    prog: '64.16',
     evaluatedOn: 'test set',
     source: 'Table 5',
   },
   {
-    system: 'T5-large / GPT-2-medium (generative)',
-    trained: '3,037 conversations · full fine-tune',
-    exe: '58.66 / 58.19',
-    prog: '57.05 / 57.00',
+    system: 'FinQANet (BERT-large)',
+    short: 'FinQANet · BERT-large',
+    family: 'fine-tuned',
+    trained: FINETUNED,
+    exe: '61.14',
+    prog: '60.55',
+    evaluatedOn: 'test set',
+    source: 'Table 5',
+  },
+  {
+    system: 'T5-large (generative)',
+    short: 'T5-large',
+    family: 'fine-tuned',
+    trained: FINETUNED,
+    exe: '58.66',
+    prog: '57.05',
+    evaluatedOn: 'test set',
+    source: 'Table 5',
+  },
+  {
+    system: 'GPT-2-medium (generative)',
+    short: 'GPT-2-medium',
+    family: 'fine-tuned',
+    trained: FINETUNED,
+    exe: '58.19',
+    prog: '57.00',
+    evaluatedOn: 'test set',
+    source: 'Table 5',
+  },
+  {
+    system: 'FinQANet (BERT-base)',
+    short: 'FinQANet · BERT-base',
+    family: 'fine-tuned',
+    trained: FINETUNED,
+    exe: '55.03',
+    prog: '54.57',
     evaluatedOn: 'test set',
     source: 'Table 5',
   },
   {
     system: 'GPT-3 175B few-shot — best setting (Program-normal, 20 exemplars, gold retrieval)',
+    short: 'GPT-3 · program, 20 exemplars',
+    family: 'prompted',
     trained: '20 exemplars',
     exe: '50.30',
     prog: '45.10',
@@ -213,20 +260,44 @@ export const BASELINES: BaselineRow[] = [
     source: 'Table 6',
   },
   {
-    system: 'GPT-3 175B few-shot — Program-normal 10 / chain-of-thought / answer-only',
+    system: 'GPT-3 175B few-shot — Program-normal, 10 exemplars',
+    short: 'GPT-3 · program, 10 exemplars',
+    family: 'prompted',
     trained: '10 exemplars',
-    exe: '48.85 / 40.63 / 24.09',
-    prog: '42.14 / 33.84 / —',
+    exe: '48.85',
+    prog: '42.14',
     evaluatedOn: 'test set',
     source: 'Table 6',
   },
   {
     system: 'General crowd (MTurk)',
+    short: 'General crowd · MTurk',
+    family: 'human',
     trained: '—',
     exe: '46.90',
     prog: '45.52',
     evaluatedOn: '200-question sample',
     source: 'Table 9',
+  },
+  {
+    system: 'GPT-3 175B few-shot — chain-of-thought, 10 exemplars',
+    short: 'GPT-3 · chain-of-thought',
+    family: 'prompted',
+    trained: '10 exemplars',
+    exe: '40.63',
+    prog: '33.84',
+    evaluatedOn: 'test set',
+    source: 'Table 6',
+  },
+  {
+    system: 'GPT-3 175B few-shot — answer-only, 10 exemplars',
+    short: 'GPT-3 · answer only',
+    family: 'prompted',
+    trained: '10 exemplars',
+    exe: '24.09',
+    prog: null,
+    evaluatedOn: 'test set',
+    source: 'Table 6',
   },
 ];
 
@@ -240,7 +311,7 @@ export const BENCHMARK_CAVEATS: Array<{ title: string; body: string }> = [
   {
     title: 'Different questions',
     body:
-      'The paper scores the 434-conversation test set, whose gold answers were never released. Our 200 conversations are sampled from the public train/dev files. The two sets do not overlap and are not the same difficulty draw.',
+      'The paper scores the 434-conversation test set, whose gold answers were never released. Ours are sampled from the public train/dev files. The two sets do not overlap and are not the same difficulty draw.',
   },
   {
     title: 'A kinder tolerance',
@@ -317,7 +388,7 @@ export const FINDINGS: Finding[] = [
     response:
       'Triage sends a look-up down a two-stage path — triage → retriever — that skips planning and calculation entirely.',
     evidence: 'The inspector shows the skipped stages on any number turn.',
-    to: '/chat',
+    to: '/agent/chat',
   },
   {
     paper:
@@ -333,7 +404,7 @@ export const FINDINGS: Finding[] = [
     response:
       'History is threaded as the system’s own prior answers, so a later turn depends on what was actually said rather than on gold it never saw. Per-turn accuracy is a first-class slice, not a summary statistic.',
     evidence: 'The per-turn curve on this page, against the paper’s Figure 5.',
-    to: '/admin/evaluations',
+    to: '/runs',
   },
   {
     paper:
@@ -341,7 +412,7 @@ export const FINDINGS: Finding[] = [
     response:
       'A dedicated preprocess stage rewrites “this / that / the sum of both” into explicit sub-questions before anything is retrieved.',
     evidence: 'The preprocess stage output on any dependent turn, beside the question that produced it.',
-    to: '/chat',
+    to: '/agent/chat',
   },
   {
     paper: 'GPT-3 “performs better for its familiar program format” — a1 + a2 beats the original DSL.',
@@ -356,6 +427,6 @@ export const FINDINGS: Finding[] = [
     response:
       'No exemplars at all. Instructions are optimised against 120 conversations and measured on the conversations no optimizer ever saw.',
     evidence: 'The never-seen figure reported beside — never inside — the overall figure.',
-    to: '/admin/experiments',
+    to: '/scoring',
   },
 ];

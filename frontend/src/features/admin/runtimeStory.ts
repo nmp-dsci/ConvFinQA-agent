@@ -125,6 +125,7 @@ export interface RuntimeVerdict {
   promoted: boolean | null;
   deltaPp: number | null;
   pValue: number | null;
+  /** the cluster bootstrap interval on Δ, as a *fraction* (−0.069 = −6.9pp), unlike deltaPp */
   ciLo: number | null;
   ciHi: number | null;
   fixed: number | null;
@@ -519,6 +520,7 @@ export interface ModelRow {
   isReference: boolean;
   deltaPp: number | null;
   pValue: number | null;
+  /** the cluster bootstrap interval on Δ, as a *fraction* (−0.069 = −6.9pp), unlike deltaPp */
   ciLo: number | null;
   ciHi: number | null;
   fixed: number | null;

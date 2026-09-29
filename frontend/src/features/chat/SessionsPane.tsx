@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
 import { looseNumericMatch } from '../../numericMatch';
 import { useStore } from '../../store';
 import type { Conversation } from '../../types';
@@ -20,19 +19,12 @@ function tally(conv: Conversation): { turns: number; correct: number; scored: nu
   return { turns, correct, scored };
 }
 
+/** A turning glyph, not a colour: the row also says "answering…" in words. */
 function Spinner() {
   return (
-    <svg className="size-3 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeDasharray="40 60"
-        strokeLinecap="round"
-      />
-    </svg>
+    <span className="ch-spin" aria-hidden>
+      ◐
+    </span>
   );
 }
 
@@ -57,29 +49,22 @@ function Row({ rid, meta, active, streaming, unread, example, onSelect }: RowPro
         data-rid={rid}
         data-active={active ? 'true' : 'false'}
         data-example={example ? 'true' : 'false'}
-        className={cn(
-          'w-full border-l-2 px-2.5 py-2 text-left transition-colors',
-          active
-            ? 'border-l-amber bg-panel-2 text-text'
-            : 'border-l-transparent text-muted hover:bg-panel-2/60 hover:text-text'
-        )}
+        className={active ? 'ch-row on' : 'ch-row'}
       >
-        <div className="flex min-w-0 items-center gap-1.5">
+        <span className="ch-row-top">
           {streaming && <Spinner />}
-          <span className="type-num type-small min-w-0 flex-1 truncate leading-tight">
-            {shortRid(rid)}
-          </span>
+          <span className="ch-row-id ch-trunc">{shortRid(rid)}</span>
           {!!unread && unread > 0 && (
             <span
               data-testid="unread-badge"
               title={`${unread} new answer${unread === 1 ? '' : 's'}`}
-              className="type-num type-meta inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber px-1 font-semibold text-amber-ink"
+              className="ch-unread"
             >
-              {unread === 1 ? '' : unread}
+              {unread} new
             </span>
           )}
-        </div>
-        <div className="type-num type-meta mt-0.5 truncate text-faint">{meta}</div>
+        </span>
+        <span className="ch-meta ch-trunc">{meta}</span>
       </button>
     </li>
   );
@@ -118,37 +103,32 @@ export function SessionsPane({ onNew }: { onNew: () => void }) {
 
   return (
     <>
-      <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-line px-2.5">
-        <span className="mono-caps">sessions</span>
-        <button
-          type="button"
-          onClick={onNew}
-          data-testid="sidebar-new-conversation"
-          className="type-meta rounded-[4px] bg-amber px-2 py-0.5 font-medium text-amber-ink transition-opacity hover:opacity-90"
-        >
+      <div className="ch-head">
+        <span className="label ch-fill">sessions</span>
+        <button type="button" onClick={onNew} data-testid="sidebar-new-conversation" className="tog">
           + new
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3">
+      <div className="ch-scroll-y">
         {groups.length === 0 && (
-          <p className="type-small px-2.5 py-3 text-faint">
-            Your conversations will appear here. Start one with <em>+ new</em>, or open a
-            recorded example below.
+          <p className="ch-note">
+            Your conversations will appear here. Start one with <b>+ new</b>, or open a recorded
+            example below.
           </p>
         )}
 
         {groups.map((group) => (
           <section key={group.label}>
-            <div className="sticky top-0 z-10 bg-ground px-2.5 pt-3 pb-1">
-              <span className="mono-caps">{group.label}</span>
+            <div className="ch-group">
+              <span className="label">{group.label}</span>
             </div>
-            <ul>
+            <ul className="ch-list">
               {group.items.map((conv) => {
                 const { turns, correct, scored } = tally(conv);
                 const meta = [
                   `${turns} turn${turns === 1 ? '' : 's'}`,
-                  scored > 0 ? `${correct} ✓` : null,
+                  scored > 0 ? `${correct}/${scored} ✓ gold` : null,
                   fmtRelative(conv.lastUsedAt),
                 ]
                   .filter(Boolean)
@@ -171,10 +151,10 @@ export function SessionsPane({ onNew }: { onNew: () => void }) {
 
         {unopened.length > 0 && (
           <section>
-            <div className="sticky top-0 z-10 bg-ground px-2.5 pt-3 pb-1">
-              <span className="mono-caps">recorded · replayable without a key</span>
+            <div className="ch-group">
+              <span className="label">recorded · replayable without a key</span>
             </div>
-            <ul>
+            <ul className="ch-list">
               {unopened.map((example) => (
                 <Row
                   key={example.reportId}

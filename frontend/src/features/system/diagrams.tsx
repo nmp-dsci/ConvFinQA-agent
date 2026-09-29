@@ -1,156 +1,113 @@
 import type { ReactNode } from 'react';
+import { Figure } from '@/kit/ui';
 
 /**
- * Four hand-authored diagrams.
+ * Four hand-authored diagrams, on the kit's `.dia` vocabulary.
  *
- * All of them are inline SVG with a 420-unit viewBox and a 600px cap, so at a
- * 420px phone they render close to 1:1 and on a wide column they scale up
- * rather than stranding a fixed-width picture in white space. No diagramming
- * dependency and no raster export: a diagram that cannot follow the theme is a
- * diagram that is wrong half the time, and every colour below is a token.
+ * Every one is inline SVG on an 1100-unit viewBox — the width of the page column — so at desktop
+ * width a `.tx` label renders at its 13px and never below the house floor of 12.8px. On a narrower
+ * screen the figure keeps that minimum width and scrolls inside its own wrapper rather than shrinking
+ * its text (`Dia`). No colour is written here: `.nd`, `.ed`, `.tx` read the tokens.
  *
- * The shared vocabulary, kept consistent across all four:
- *   solid outline   — real, running, reachable
- *   dashed outline  — real code that reaches nothing, or a deliberate refusal
- *   amber fill      — the choke point / the thing the section is about
+ *   `.nd`       — real, running, reachable
+ *   `.nd.ext`   — real code that reaches nothing, or a stage that never starts
+ *   `.nd.hi`    — the choke point: the thing the section is about
  */
 
-const UI = 'var(--font-ui)';
-const MONO = 'var(--font-mono)';
+/** The narrowest a figure may render, so a 13-unit label never lands under 12.8px. */
+function minWidthFor(w: number): number {
+  return Math.ceil((w * 12.8) / 13);
+}
 
-function Figure({
-  children,
-  caption,
+/** A `.dia` SVG in its own scroll wrapper, with a per-figure arrow marker. */
+export function Dia({
+  id,
+  w,
+  h,
   label,
-  height,
+  children,
 }: {
-  children: ReactNode;
-  caption: ReactNode;
+  id: string;
+  w: number;
+  h: number;
   label: string;
-  height: number;
+  children: ReactNode;
 }) {
   return (
-    <figure className="m-0 min-w-0">
+    <div className="figscroll">
       <svg
-        viewBox={`0 0 420 ${height}`}
+        className="dia"
+        viewBox={`0 0 ${w} ${h}`}
         role="img"
         aria-label={label}
-        className="block h-auto w-full max-w-[600px]"
+        style={{ minWidth: minWidthFor(w) }}
       >
         <defs>
           <marker
-            id="sysArrow"
+            id={`arr-${id}`}
             viewBox="0 0 10 10"
             refX="9"
             refY="5"
-            markerWidth="6"
-            markerHeight="6"
+            markerWidth="7"
+            markerHeight="7"
             orient="auto-start-reverse"
           >
-            <path d="M0 0 L10 5 L0 10 z" fill="var(--faint)" />
+            <path d="M0 0L10 5L0 10z" fill="currentColor" />
           </marker>
         </defs>
         {children}
       </svg>
-      <figcaption className="type-meta mt-2 max-w-[62ch]">{caption}</figcaption>
-    </figure>
+    </div>
   );
 }
 
-function Box({
+/** A node: the box, then its lines — the first as the title, the rest as `s` (sans) or `k` (mono). */
+function Node({
   x,
   y,
   w,
   h,
-  dashed = false,
-  accent = false,
+  tone,
+  title,
+  lines = [],
 }: {
   x: number;
   y: number;
   w: number;
   h: number;
-  dashed?: boolean;
-  accent?: boolean;
+  tone?: 'hi' | 'ext';
+  title?: ReactNode;
+  lines?: Array<[string, ReactNode]>;
 }) {
+  const start = title ? y + 28 : y + h / 2 + 5 - ((lines.length - 1) * 21) / 2;
   return (
-    <rect
-      x={x}
-      y={y}
-      width={w}
-      height={h}
-      rx="4"
-      fill={accent ? 'var(--accent-soft)' : 'var(--panel)'}
-      stroke={accent ? 'var(--accent-line)' : 'var(--line-2)'}
-      strokeWidth="1"
-      strokeDasharray={dashed ? '4 3' : undefined}
-      opacity={dashed ? 0.75 : 1}
-    />
+    <g>
+      <rect className={`nd${tone ? ` ${tone}` : ''}`} x={x} y={y} width={w} height={h} rx="8" />
+      {title && (
+        <text className={`tx${tone === 'ext' ? ' s' : ''}`} x={x + 16} y={start}>
+          {title}
+        </text>
+      )}
+      {lines.map(([kind, text], i) => (
+        <text
+          key={i}
+          className={`tx ${kind}`}
+          x={x + 16}
+          y={title ? start + 23 + i * 21 : start + i * 21}
+        >
+          {text}
+        </text>
+      ))}
+    </g>
   );
 }
 
-function T({
-  x,
-  y,
-  children,
-  size = 10.5,
-  fill = 'var(--text)',
-  anchor = 'middle',
-  mono = false,
-  weight = 400,
-  opacity = 1,
-}: {
-  x: number;
-  y: number;
-  children: ReactNode;
-  size?: number;
-  fill?: string;
-  anchor?: 'start' | 'middle' | 'end';
-  mono?: boolean;
-  weight?: number;
-  opacity?: number;
-}) {
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor={anchor}
-      fontSize={size}
-      fontWeight={weight}
-      fill={fill}
-      fontFamily={mono ? MONO : UI}
-      opacity={opacity}
-    >
-      {children}
-    </text>
-  );
+function Edge({ id, d, dash = false }: { id: string; d: string; dash?: boolean }) {
+  return <path className={`ed${dash ? ' dash' : ''}`} d={d} markerEnd={`url(#arr-${id})`} />;
 }
 
-function Arrow({
-  x1,
-  y1,
-  x2,
-  y2,
-  dashed = false,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  dashed?: boolean;
-}) {
-  return (
-    <line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-      stroke="var(--faint)"
-      strokeWidth="1"
-      strokeDasharray={dashed ? '4 3' : undefined}
-      markerEnd="url(#sysArrow)"
-      opacity={dashed ? 0.6 : 0.9}
-    />
-  );
+function Line({ d }: { d: string }) {
+  return <path className="ed" d={d} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,115 +115,123 @@ function Arrow({
 // ---------------------------------------------------------------------------
 
 export function PipelineDiagram() {
+  const id = 'pipeline';
   return (
     <Figure
-      height={286}
-      label="The four-agent pipeline. A turn enters as a question plus the conversation's own prior answers. Triage classifies it as a number look-up or a program. A number turn runs two stages, triage then retriever, and returns the retrieved value with an empty program. A program turn runs four, adding preprocess before the retriever and a calculator afterwards that reaches the answer through a loop over six arithmetic tools."
+      testId="pipeline-figure"
+      title="fig 1 · one turn, routed by one string"
       caption={
         <>
-          Two paths, chosen by one string. Everything below the branch is skipped on a look-up —
-          that is where the 87.7% on number questions comes from, and it is visible in the
-          inspector as stages that never started.
+          Two paths, chosen by triage&rsquo;s <code className="lit">turn_type</code>. A look-up runs
+          two stages and a computation four; on a number turn the inspector shows preprocess and the
+          calculator as stages that never started.
         </>
       }
+      source={<code className="lit">src/convfinqa/pipeline/runner.py :: turn_events()</code>}
     >
-      <Box x={8} y={8} w={404} h={30} />
-      <T x={210} y={22} weight={500}>
-        one turn
-      </T>
-      <T x={210} y={33} size={8.5} fill="var(--muted)">
-        the question · the document · the conversation’s own prior answers
-      </T>
+      <Dia
+        id={id}
+        w={1100}
+        h={364}
+        label="The four-agent pipeline. A turn enters as a question plus the conversation's own prior answers. Triage classifies it as a number look-up or a program. A number turn runs two stages, triage then retriever, and returns the retrieved value with an empty program. A program turn runs four, adding preprocess before the retriever and a calculator afterwards that reaches the answer through a loop over six arithmetic tools. Both paths end in one recorded turn: the answer and the reconstructed program."
+      >
+        <Node
+          x={16}
+          y={94}
+          w={170}
+          h={96}
+          title="one turn"
+          lines={[
+            ['s', 'question · filing'],
+            ['s', '+ its prior answers'],
+          ]}
+        />
+        <Edge id={id} d="M186 142 L208 142" />
+        <Node
+          x={210}
+          y={94}
+          w={160}
+          h={96}
+          tone="hi"
+          title="triage"
+          lines={[
+            ['k', 'turn_type ∈'],
+            ['k', '{number,program}'],
+          ]}
+        />
 
-      <Arrow x1={210} y1={38} x2={210} y2={54} />
+        {/* The branch: one string comparison, two rows. */}
+        <Line d="M370 142 L404 142 M404 64 L404 220" />
+        <Edge id={id} d="M404 64 L428 64" />
+        <Edge id={id} d="M404 220 L428 220" />
+        <text className="tx k" x={430} y={26}>
+          number · 2 stages
+        </text>
+        <text className="tx k" x={430} y={162}>
+          program · 4 stages
+        </text>
 
-      <Box x={116} y={56} w={188} h={32} accent />
-      <T x={210} y={70} weight={500}>
-        triage
-      </T>
-      <T x={210} y={82} size={8.5} mono fill="var(--muted)">
-        turn_type ∈ &#123;number, program&#125;
-      </T>
+        {/* Number row: the retriever, then straight to the answer. */}
+        <Node
+          x={430}
+          y={36}
+          w={240}
+          h={56}
+          title="retriever"
+          lines={[['s', '{question, answer} pairs']]}
+        />
+        <text className="tx s" x={700} y={56}>
+          preprocess and calculator never start
+        </text>
+        <Edge id={id} d="M670 64 L1092 64 L1092 324 L1086 324" />
 
-      {/* Branch */}
-      <path
-        d="M210 88 L210 98 M210 98 L102 98 L102 110 M210 98 L318 98 L318 110"
-        fill="none"
-        stroke="var(--faint)"
-        strokeWidth="1"
-        opacity="0.9"
-      />
-      {/* Beside the drop lines, not on them — a label centred on x=102 would
-          have the connector running straight through its middle. */}
-      <T x={96} y={108} size={8.5} mono fill="var(--good)" anchor="end">
-        number · 2 stages
-      </T>
-      <T x={324} y={108} size={8.5} mono fill="var(--info)" anchor="start">
-        program · 4 stages
-      </T>
+        {/* Program row: four stages. */}
+        <Node
+          x={430}
+          y={172}
+          w={200}
+          h={96}
+          title="preprocess"
+          lines={[
+            ['s', '“this” → an explicit'],
+            ['s', 'sub-question'],
+          ]}
+        />
+        <Edge id={id} d="M630 220 L652 220" />
+        <Node
+          x={654}
+          y={172}
+          w={180}
+          h={96}
+          title="retriever"
+          lines={[
+            ['s', 'one lookup per'],
+            ['s', 'sub-question'],
+          ]}
+        />
+        <Edge id={id} d="M834 220 L856 220" />
+        <Node
+          x={858}
+          y={172}
+          w={220}
+          h={96}
+          tone="hi"
+          title="calculator"
+          lines={[
+            ['k', 'add subtract multiply'],
+            ['k', 'divide exp greater'],
+          ]}
+        />
+        <Edge id={id} d="M968 268 L968 298" />
 
-      {/* Left path */}
-      <Box x={12} y={114} w={180} h={32} />
-      <T x={102} y={128} weight={500}>
-        retriever
-      </T>
-      <T x={102} y={139} size={8.5} fill="var(--muted)">
-        returns &#123;question, answer&#125; pairs
-      </T>
-
-      <Box x={12} y={158} w={180} h={44} dashed />
-      <T x={102} y={176} size={9.5} fill="var(--faint)">
-        preprocess and calculator
-      </T>
-      <T x={102} y={190} size={9.5} fill="var(--faint)">
-        never run
-      </T>
-
-      {/* Right path */}
-      <Box x={228} y={114} w={180} h={32} />
-      <T x={318} y={128} weight={500}>
-        preprocess
-      </T>
-      <T x={318} y={139} size={8.5} fill="var(--muted)">
-        “this” → an explicit sub-question
-      </T>
-
-      <Arrow x1={318} y1={146} x2={318} y2={156} />
-
-      <Box x={228} y={158} w={180} h={30} />
-      <T x={318} y={172} weight={500}>
-        retriever
-      </T>
-      <T x={318} y={183} size={8.5} fill="var(--muted)">
-        one lookup per sub-question
-      </T>
-
-      <Arrow x1={318} y1={188} x2={318} y2={198} />
-
-      <Box x={228} y={200} w={180} h={44} accent />
-      <T x={318} y={214} weight={500}>
-        calculator
-      </T>
-      <T x={318} y={226} size={8.5} mono fill="var(--muted)">
-        add subtract multiply
-      </T>
-      <T x={318} y={237} size={8.5} mono fill="var(--muted)">
-        divide exp greater
-      </T>
-
-      <path
-        d="M102 202 L102 256 M318 244 L318 256 M102 256 L318 256"
-        fill="none"
-        stroke="var(--faint)"
-        strokeWidth="1"
-        opacity="0.9"
-      />
-      <Arrow x1={210} y1={256} x2={210} y2={264} />
-
-      <Box x={80} y={266} w={260} h={16} />
-      <T x={210} y={277} size={9.5} fill="var(--muted)">
-        answer + reconstructed program, recorded as one turn
-      </T>
+        <Node
+          x={430}
+          y={300}
+          w={654}
+          h={48}
+          lines={[['s', 'answer + reconstructed program, recorded as one turn']]}
+        />
+      </Dia>
     </Figure>
   );
 }
@@ -285,58 +250,59 @@ const BUNDLE_FIELDS = [
 ];
 
 export function BundleDiagram({ bundleId }: { bundleId?: string }) {
+  const id = 'bundle';
   return (
     <Figure
-      height={168}
-      label="The bundle fingerprint: six fields — prompts version, GEPA overlay, both model ids, dataset hash and code SHA — are serialised as canonical JSON, hashed with SHA-256, and truncated to twelve hex characters to form the bundle id that every recorded turn carries."
+      testId="bundle-figure"
+      title="fig 2 · six fields in, twelve hex characters out"
       caption={
         <>
-          Six fields in, twelve hex characters out. Every recorded turn, every eval row and every
-          registry entry carries this id, which is what makes “which version answered that?” a
-          question with an answer when the model is somebody else’s API.
+          Every recorded turn, every eval row and every registry entry carries this id, which is what
+          makes &ldquo;which version answered that?&rdquo; a question with an answer when the model
+          is somebody else&rsquo;s API.
         </>
       }
+      source={<code className="lit">src/convfinqa/tracking/bundle.py</code>}
     >
-      {BUNDLE_FIELDS.map((field, i) => {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const x = 8 + col * 132;
-        const y = 8 + row * 26;
-        return (
-          <g key={field}>
-            <Box x={x} y={y} w={124} h={20} />
-            <T x={x + 62} y={y + 14} size={9} mono fill="var(--muted)">
-              {field}
-            </T>
-          </g>
-        );
-      })}
-
-      <path
-        d="M272 44 L296 44 L296 84"
-        fill="none"
-        stroke="var(--faint)"
-        strokeWidth="1"
-        opacity="0.9"
-      />
-      <Arrow x1={296} y1={80} x2={296} y2={92} />
-      <T x={330} y={40} size={8.5} mono fill="var(--faint)" anchor="start">
-        sorted keys,
-      </T>
-      <T x={330} y={51} size={8.5} mono fill="var(--faint)" anchor="start">
-        no whitespace
-      </T>
-
-      <Box x={206} y={94} w={180} h={26} />
-      <T x={296} y={110} size={9.5} mono fill="var(--muted)">
-        sha256(json)[:12]
-      </T>
-
-      <Arrow x1={296} y1={120} x2={296} y2={130} />
-      <Box x={206} y={132} w={180} h={28} accent />
-      <T x={296} y={150} size={11} mono weight={500} fill="var(--accent)">
-        {bundleId ?? 'bundle_id'}
-      </T>
+      <Dia
+        id={id}
+        w={1100}
+        h={180}
+        label="The bundle fingerprint: six fields — prompts version, GEPA overlay, both model ids, dataset hash and code SHA — are serialised as canonical JSON, hashed with SHA-256, and truncated to twelve hex characters to form the bundle id that every recorded turn carries."
+      >
+        {BUNDLE_FIELDS.map((field, i) => {
+          const x = 16 + (i % 3) * 216;
+          const y = 28 + Math.floor(i / 3) * 64;
+          return (
+            <g key={field}>
+              <rect className="nd" x={x} y={y} width={200} height={44} rx="8" />
+              <text className="tx k" x={x + 16} y={y + 27}>
+                {field}
+              </text>
+            </g>
+          );
+        })}
+        <text className="tx s" x={16} y={166}>
+          serialised as canonical JSON — sorted keys, no whitespace
+        </text>
+        <Edge id={id} d="M648 82 L698 82" />
+        <Node
+          x={700}
+          y={50}
+          w={190}
+          h={64}
+          title="hash"
+          lines={[['k', 'sha256(json)[:12]']]}
+        />
+        <Edge id={id} d="M890 82 L916 82" />
+        <rect className="nd hi" x={918} y={50} width={166} height={64} rx="8" />
+        <text className="tx" x={934} y={78}>
+          bundle_id
+        </text>
+        <text className="tx k hi" x={934} y={101}>
+          {bundleId ?? 'not read'}
+        </text>
+      </Dia>
     </Figure>
   );
 }
@@ -346,83 +312,90 @@ export function BundleDiagram({ bundleId }: { bundleId?: string }) {
 // ---------------------------------------------------------------------------
 
 export function ObservabilityDiagram() {
+  const id = 'obs';
   return (
     <Figure
-      height={210}
-      label="Two paths leave every turn. The upper path constructs OpenTelemetry spans through the Logfire SDK on every request, agent run, model call and tool call; they are exported only when a Logfire token is present, and no token exists locally or in the demo image, so they are dropped. The lower path records one row per turn into a SQLite trace store, which the traces routes and the production metrics endpoint read, and which is what this console shows."
+      testId="observability-figure"
+      title="fig 3 · two paths leave every turn, and one reaches nothing"
       caption={
         <>
-          The dashed path is real code that reaches nothing. It is drawn dashed rather than left
-          out because it is the recovery path: the spans already exist in this process, and
-          setting <code>LOGFIRE_TOKEN</code> in a dev shell turns the whole tree on with no code
-          change.
+          The dashed path is real code that reaches nothing. It is drawn rather than left out because
+          it is the recovery path: the spans already exist in this process, and setting{' '}
+          <code className="lit">LOGFIRE_TOKEN</code> in a dev shell turns the whole tree on with no
+          code change.
+        </>
+      }
+      source={
+        <>
+          <code className="lit">serving/app.py</code>, <code className="lit">tracking/traces.py</code>
         </>
       }
     >
-      <Box x={8} y={82} w={104} h={46} />
-      <T x={60} y={100} weight={500}>
-        one turn
-      </T>
-      <T x={60} y={112} size={8.5} fill="var(--muted)">
-        4 agents · ≤ 8 model
-      </T>
-      <T x={60} y={122} size={8.5} fill="var(--muted)">
-        calls · 1 HTTP request
-      </T>
+      <Dia
+        id={id}
+        w={1100}
+        h={260}
+        label="Two paths leave every turn. The upper path constructs OpenTelemetry spans through the Logfire SDK on every request, agent run, model call and tool call; they are exported only when a Logfire token is present, and no token exists locally or in the demo image, so they are dropped. The lower path records one row per turn into a SQLite trace store, which the traces routes and the production metrics endpoint read, and which is what this app shows."
+      >
+        <Node
+          x={16}
+          y={82}
+          w={200}
+          h={96}
+          title="one turn"
+          lines={[
+            ['s', '4 agents · ≤ 8 model'],
+            ['s', 'calls · 1 HTTP request'],
+          ]}
+        />
+        <Edge id={id} dash d="M216 110 L246 110 L246 60 L278 60" />
+        <Edge id={id} d="M216 150 L246 150 L246 200 L278 200" />
 
-      <Arrow x1={112} y1={96} x2={148} y2={48} dashed />
-      <Arrow x1={112} y1={114} x2={148} y2={158} />
+        <Node
+          x={280}
+          y={16}
+          w={340}
+          h={88}
+          tone="ext"
+          title="Logfire SDK spans"
+          lines={[
+            ['s', 'request · agent run · model call · tool'],
+            ['k', 'constructed every turn'],
+          ]}
+        />
+        <Edge id={id} dash d="M620 60 L698 60" />
+        <Node
+          x={700}
+          y={16}
+          w={384}
+          h={88}
+          tone="ext"
+          title="Logfire cloud"
+          lines={[['k', 'no token — dropped']]}
+        />
 
-      {/* Span path — dashed, goes nowhere */}
-      <Box x={150} y={16} w={148} h={52} dashed />
-      <T x={224} y={32} size={10} fill="var(--muted)" weight={500}>
-        Logfire SDK spans
-      </T>
-      <T x={224} y={44} size={8.5} fill="var(--faint)">
-        request · agent run
-      </T>
-      <T x={224} y={55} size={8.5} fill="var(--faint)">
-        model call · tool call
-      </T>
-      <T x={224} y={65} size={8} mono fill="var(--faint)">
-        constructed every turn
-      </T>
-
-      <Arrow x1={298} y1={42} x2={330} y2={42} dashed />
-      <Box x={332} y={22} w={80} h={40} dashed />
-      <T x={372} y={38} size={9} fill="var(--faint)">
-        Logfire cloud
-      </T>
-      <T x={372} y={50} size={8} mono fill="var(--bad)">
-        no token — dropped
-      </T>
-
-      {/* Trace store path — solid */}
-      <Box x={150} y={140} w={148} h={52} />
-      <T x={224} y={156} size={10} weight={500}>
-        TraceStore · SQLite
-      </T>
-      <T x={224} y={168} size={8.5} fill="var(--muted)">
-        one row per turn: stages,
-      </T>
-      <T x={224} y={179} size={8.5} fill="var(--muted)">
-        latency, tokens, gold, error
-      </T>
-      <T x={224} y={189} size={7.5} mono fill="var(--faint)">
-        source ∈ serving | demo | eval
-      </T>
-
-      <Arrow x1={298} y1={166} x2={310} y2={166} />
-      <Box x={312} y={140} w={100} h={52} accent />
-      <T x={362} y={158} size={9} weight={500}>
-        this console
-      </T>
-      <T x={362} y={170} size={8} mono fill="var(--muted)">
-        /traces
-      </T>
-      <T x={362} y={181} size={7.5} mono fill="var(--muted)">
-        /metrics/production
-      </T>
+        <Node
+          x={280}
+          y={156}
+          w={340}
+          h={88}
+          title="TraceStore · SQLite"
+          lines={[
+            ['s', 'one row per turn: stages, latency, gold'],
+            ['k', 'source ∈ serving | demo | eval'],
+          ]}
+        />
+        <Edge id={id} d="M620 200 L698 200" />
+        <Node
+          x={700}
+          y={156}
+          w={384}
+          h={88}
+          tone="hi"
+          title="this app"
+          lines={[['k', '/traces · /metrics/production']]}
+        />
+      </Dia>
     </Figure>
   );
 }
@@ -431,51 +404,58 @@ export function ObservabilityDiagram() {
 // 4 · Deploy
 // ---------------------------------------------------------------------------
 
+const STOPS: Array<{ title: string; sub: string[] }> = [
+  { title: 'push to main', sub: ['GitHub'] },
+  { title: 'CI + eval gate', sub: ['tests · re-score', 'every committed CSV'] },
+  { title: 'docker buildx', sub: ['linux/amd64 ·', 'CODE_SHA baked in'] },
+  { title: 'push to registry', sub: ['tagged :latest', 'and :<sha>'] },
+  { title: 'terraform apply', sub: ['App Runner ·', 'health on /healthz'] },
+  { title: 'smoke the URL', sub: ['6 assertions · a', 'write is refused'] },
+];
+
 export function DeployDiagram() {
-  // A straight vertical chain rather than a wrapped grid: a two-row layout
-  // needs a connector from the end of one row back to the start of the next,
-  // and at this width that line spans the whole figure and reads as a stray
-  // rule under the first row rather than as a step.
-  const stops: Array<[string, string]> = [
-    ['push to main', 'GitHub'],
-    ['CI, including the eval gate', 'tests · re-score every committed CSV'],
-    ['docker buildx · linux/amd64', 'the commit SHA baked in as CODE_SHA'],
-    ['push to the private registry', 'tagged :latest and :<sha>'],
-    ['terraform apply', 'App Runner · health check on /healthz'],
-    ['smoke the live URL', '6 assertions · a write must be refused'],
-  ];
+  const id = 'deploy';
   return (
     <Figure
-      height={286}
-      label="Deployment: a push to main runs CI including the eval regression gate, then a linux/amd64 image is built with the code SHA baked in, pushed to ECR under both a latest and a commit tag, applied to App Runner by Terraform, and finally checked by a six-assertion smoke script against the live URL."
+      testId="deploy-figure"
+      title="fig 4 · commit to public URL in six stops"
       caption={
         <>
-          The credential story is the point: GitHub assumes an AWS role over OIDC, so there is no
-          stored access key anywhere in the repository, and <code>DEMO_MODE=1</code> is an{' '}
-          <code>ENV</code> line in the Dockerfile rather than a Terraform variable — infrastructure
-          is not able to turn the public URL into a billable one.
+          GitHub assumes an AWS role over OIDC, so no access key is stored anywhere, and{' '}
+          <code className="lit">DEMO_MODE=1</code> is an <code className="lit">ENV</code> line in the
+          Dockerfile rather than a Terraform variable: infrastructure cannot turn the public URL into
+          a billable one.
         </>
       }
+      source={<code className="lit">.github/workflows/deploy-aws.yml</code>}
     >
-      {stops.map(([title, sub], i) => {
-        const y = 8 + i * 44;
-        return (
-          <g key={title}>
-            <Box x={40} y={y} w={340} h={34} accent={i === 1} />
-            <T x={210} y={y + 15} size={10} weight={500}>
-              {title}
-            </T>
-            <T x={210} y={y + 27} size={8.5} mono fill="var(--muted)">
-              {sub}
-            </T>
-            {i < stops.length - 1 && <Arrow x1={210} y1={y + 34} x2={210} y2={y + 43} />}
-          </g>
-        );
-      })}
-
-      <T x={210} y={278} size={8.5} mono fill="var(--faint)">
-        no stored AWS keys · OIDC role assumption · DEMO_MODE baked into the image
-      </T>
+      <Dia
+        id={id}
+        w={1100}
+        h={170}
+        label="Deployment: a push to main runs CI including the eval regression gate, then a linux/amd64 image is built with the code SHA baked in, pushed to ECR under both a latest and a commit tag, applied to App Runner by Terraform, and finally checked by a six-assertion smoke script against the live URL."
+      >
+        {STOPS.map((stop, i) => {
+          const x = 18 + i * 180;
+          return (
+            <g key={stop.title}>
+              <Node
+                x={x}
+                y={20}
+                w={164}
+                h={100}
+                tone={i === 1 ? 'hi' : undefined}
+                title={stop.title}
+                lines={stop.sub.map((s) => ['s', s] as [string, string])}
+              />
+              {i < STOPS.length - 1 && <Edge id={id} d={`M${x + 164} 70 L${x + 178} 70`} />}
+            </g>
+          );
+        })}
+        <text className="tx k" x={18} y={154}>
+          no stored AWS keys · OIDC role assumption · DEMO_MODE baked into the image
+        </text>
+      </Dia>
     </Figure>
   );
 }

@@ -1,0 +1,17 @@
+/* Slot 2 · Filings & questions (/filings): only what the kit and app.css lack.
+   Tokens only — `npm run lint:design` fails on a hex here. */
+
+/* ── the questions table ──────────────────────────────────────────────────────────────────── */
+.fl-table td .rid{display:block;font:500 var(--t-1)/1.4 var(--mono);color:var(--ink);overflow-wrap:anywhere}
+.fl-table td .path a{color:var(--accent)}
+/* A gold program wraps at word boundaries, never mid-token: `divide(#0, 15704)` must not read as
+   `1` then `5704` on the one page whose whole job is reading operands. */
+.fl-table code.prog{display:block;font:400 var(--t-2)/1.5 var(--mono);color:var(--ink);background:var(--band);border-radius:var(--r-sm);padding:var(--s1) var(--s2);white-space:pre-wrap;overflow-wrap:break-word;word-break:normal}
+.fl-table code.prog.sel{color:var(--muted)}
+.fl-table .ans{font:500 var(--t-1)/1.4 var(--mono);color:var(--ink);overflow-wrap:anywhere}
+.fl-table .derived{display:flex;flex-direction:column;gap:var(--s1);min-width:0}
+.fl-table .derived .k{font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);margin-right:var(--s1)}
+.fl-table .derived code{font-size:var(--t-2);color:var(--ink-2);overflow-wrap:break-word}
+.fl-table .derived .none{font-size:var(--t-2);color:var(--faint)}
+.fl-table td .chip{display:inline-block}
+.fl-source{font-size:var(--t-1);color:var(--muted);margin-top:var(--s3)}

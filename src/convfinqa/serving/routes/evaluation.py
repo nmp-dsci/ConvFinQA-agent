@@ -23,6 +23,9 @@ from convfinqa.serving.models import (
     ChampionPoint,
     DatasetRow,
     EvalSummary,
+    GoldReviewCase,
+    GoldReviewResponse,
+    GoldReviewSummary,
     LoopRunSummary,
     ModelAccuracy,
     PredRow,
@@ -456,3 +459,154 @@ async def get_readiness() -> dict[str, Any]:
             detail=f"no readiness scorecard committed at {READINESS_PATH}",
         )
     return load_readiness()
+
+
+# ---------------------------------------------------------------------------
+# Gold review — the diagnoses a human should settle by hand
+# ---------------------------------------------------------------------------
+
+
+@router.get("/gold-review")
+async def get_gold_review() -> GoldReviewResponse:
+    """Every diagnosis whose gold was doubted or whose attribution needed a ruling.
+
+    Reads the committed, append-only ``diagnoses.jsonl`` ledger and keeps the
+    rows where the teacher flagged the gold (``gold_suspect``), where the
+    attribution rule returned ``gold_suspect`` or ``ambiguous``, or where the
+    binary adjudication (``teacher.resolve_ambiguous``) settled the case. No
+    model is called, so the route stays live in the demo; a missing ledger is an
+    empty payload with its ``reason``, never a 500.
+    """
+    from convfinqa.evalloop import ledgers
+
+    target = ledgers.path("diagnoses")
+    stamp = target.stat().st_mtime_ns if target.exists() else 0
+    return _gold_review(str(target), stamp)
+
+
+def _flag(value: Any) -> bool:
+    """A ledger boolean, tolerant of the string spellings an old line may carry."""
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes"}
+    return bool(value) if value is not None else False
+
+
+def _text(value: Any) -> str:
+    return "" if value is None else str(value)
+
+
+def _operands(value: Any) -> list[str]:
+    """``missing_gold_operands`` is a JSON-list cell; tolerate a decoded list."""
+    import json
+
+    if isinstance(value, list):
+        return [str(v) for v in value]
+    if isinstance(value, str) and value.strip():
+        try:
+            decoded = json.loads(value)
+        except ValueError:
+            return []
+        if isinstance(decoded, list):
+            return [str(v) for v in decoded]
+    return []
+
+
+def _number(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if number != number else number  # NaN is absent, not a value
+
+
+def _index(value: Any) -> int | None:
+    number = _number(value)
+    return None if number is None else int(number)
+
+
+@lru_cache(maxsize=2)
+def _gold_review(target_path: str, _stamp: int) -> GoldReviewResponse:
+    import json
+    from pathlib import Path
+
+    from convfinqa.config import REPO_ROOT
+
+    target = Path(target_path)
+    try:
+        source = str(target.relative_to(REPO_ROOT))
+    except ValueError:
+        source = str(target)
+    if not target.exists():
+        return GoldReviewResponse(
+            source=source,
+            reason=f"no diagnoses ledger at {source} — run `convfinqa-evalloop diagnose`",
+        )
+
+    lines: list[dict[str, Any]] = []
+    for raw in target.read_text(encoding="utf-8").splitlines():
+        if not raw.strip():
+            continue
+        try:
+            loaded = json.loads(raw)
+        except ValueError:
+            continue  # one torn line must not take the whole review down
+        if isinstance(loaded, dict):
+            lines.append(loaded)
+
+    summary = GoldReviewSummary(n_diagnoses=len(lines))
+    cases: list[GoldReviewCase] = []
+    for line in lines:
+        suspect = _flag(line.get("gold_suspect"))
+        derived = _text(line.get("derived_agent"))
+        adjudicated = _flag(line.get("adjudicated"))
+        disputed = _flag(line.get("attribution_disputed"))
+        summary.n_gold_suspect_flags += int(suspect)
+        summary.n_derived_gold_suspect += int(derived == "gold_suspect")
+        summary.n_ambiguous += int(derived == "ambiguous")
+        summary.n_adjudicated += int(adjudicated)
+        summary.n_disputed += int(disputed)
+
+        reasons = [
+            name
+            for name, hit in (
+                ("gold_suspect_flag", suspect),
+                ("derived_gold_suspect", derived == "gold_suspect"),
+                ("ambiguous", derived == "ambiguous"),
+                ("adjudicated", adjudicated),
+            )
+            if hit
+        ]
+        if not reasons:
+            continue
+        cases.append(
+            GoldReviewCase(
+                diagnosis_id=_text(line.get("diagnosis_id")),
+                diagnosed_at=_text(line.get("diagnosed_at")),
+                runtime=_text(line.get("runtime")),
+                version=_text(line.get("version")),
+                split=_text(line.get("split")),
+                report_id=_text(line.get("report_id")),
+                question_id=_text(line.get("question_id")),
+                turn_index=_index(line.get("turn_index")),
+                question=_text(line.get("question")),
+                gold_answer=_text(line.get("gold_answer")),
+                gold_program=_text(line.get("gold_program")),
+                pred_answer=_text(line.get("pred_answer")),
+                pred_program=_text(line.get("pred_program")),
+                derived_agent=derived,
+                stage=_text(line.get("stage")),
+                label=_text(line.get("label")),
+                missing_gold_operands=_operands(line.get("missing_gold_operands")),
+                gold_suspect=suspect,
+                attribution_disputed=disputed,
+                adjudicated=adjudicated,
+                adjudication_reason=_text(line.get("adjudication_reason")),
+                attribution_reason=_text(line.get("attribution_reason")),
+                what_went_wrong=_text(line.get("what_went_wrong")),
+                confidence=_number(line.get("confidence")),
+                reasons=reasons,
+            )
+        )
+    summary.n_review_rows = len(cases)
+    summary.n_review_questions = len({c.question_id for c in cases})
+    return GoldReviewResponse(source=source, summary=summary, cases=cases)

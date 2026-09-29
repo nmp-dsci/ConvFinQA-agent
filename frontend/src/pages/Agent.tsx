@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import { PageHead } from '@/kit/ui';
+import { PipelineDiagram } from '@/features/system/diagrams';
 import { BundleSection, LlmSection, PipelineSection } from '@/features/system/SectionArchitecture';
 import {
   DeploySection,
@@ -7,8 +9,13 @@ import {
   OpenWorkSection,
 } from '@/features/system/SectionOperations';
 import { useSystemData } from '@/features/system/useSystemData';
+import '@/features/system/system.css';
 
-/** Slot 7 · what the agent is. Assembled from the System page's sections (s16 C1); C4 rebuilds it. */
+/**
+ * Slot 7 · what the agent is. The pipeline figure leads; the sections under it are the mechanism
+ * (routing, the one place a model is built, the version fingerprint) and then the operation
+ * (what is observed, how it ships, how a version is made, what is still broken).
+ */
 export default function Agent() {
   const data = useSystemData();
   return (
@@ -21,7 +28,14 @@ export default function Agent() {
           </>
         }
         lead="The pipeline and the single string that routes it, the one place a model is built, the fingerprint that makes a version mean something, what is observed, how it ships, and what is still broken."
-      />
+      >
+        <p className="sys-action">
+          <Link to="/agent/chat" className="btn">
+            Ask a filing a chain of questions →
+          </Link>
+        </p>
+      </PageHead>
+      <PipelineDiagram />
       <PipelineSection />
       <LlmSection data={data} />
       <BundleSection data={data} />

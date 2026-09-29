@@ -1,160 +1,136 @@
-import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Figure, Status } from '@/kit/ui';
 import { HudTile } from './HudTile';
 import { LampStrip } from './LampStrip';
 import { RecordedConversations } from './RecordedConversations';
 import { ProgressionChart } from '../admin/ProgressionChart';
 import { versionLabel } from '../admin/lib';
-import { progression } from '../admin/runtimeStory';
+import { progression, runtimeVerdict } from '../admin/runtimeStory';
 import { NO_VALUE, formatLatency, formatPercent, formatPointsDelta, formatUsd } from './format';
 import { judgeSentence, landingStory } from './landingStory';
+import type { ProofStat } from './landingStory';
 import { useBoardData } from './useBoardData';
 import type { BoardData } from './useBoardData';
 import { useStore } from '../../store';
 import { ReadinessStrip } from '../readiness/Readiness';
+import { shippedCount, useReadiness } from '../readiness/api';
+import './landing.css';
 
 /**
- * The front door at `/`.
+ * The front door at `/`, as the house Overview: one slide flow down a single column.
  *
- * Two panes, and the split is the argument. On the left, the outcome in one
- * sentence with its baseline and its caveat, and the doors into the product.
- * On the right, the record: the five-stage progression on a zero baseline —
- * the star — then four tiles with a baseline on every number, and the judge
- * tried last.
+ * Eyebrow → the outcome as a claim with its baseline and its caveat → the lead → the one way in →
+ * four tiles with a baseline on every number → the lamps → then numbered sections, each headed by a
+ * claim computed from the data it shows: the progression, the readiness scorecard, the recorded
+ * conversations, and the judge tried last.
  *
  * Three rules this file must not break:
  *
- *  1. **No number is written here.** Every figure comes from a query in
- *     `useBoardData`; every sentence comes from `landingStory`, a pure
- *     function with a test per branch. If a read fails or has nothing, the
- *     tile says so.
- *  2. **`null` is not `0`.** `/metrics/production` returns `null` with
- *     `n_measured: 0` for latency and cost until someone pays for a metered
- *     eval run. An empty tile prints an em dash and the reason; it never
- *     prints a zero and it never draws a flat line.
- *  3. **Every figure is the gate split, and the page says so.** The holdout
- *     has never been opened; the sentence under the tiles states it, rather
- *     than an empty tile implying it.
+ *  1. **No number is written here.** Every figure comes from a query in `useBoardData`; every
+ *     sentence comes from `landingStory`, a pure function with a test per branch. If a read fails
+ *     or has nothing, the tile says so.
+ *  2. **`null` is not `0`.** `/metrics/production` returns `null` with `n_measured: 0` for latency
+ *     and cost until someone pays for a metered eval run. An empty tile prints an em dash and the
+ *     reason; it never prints a zero and it never draws a flat line.
+ *  3. **Every figure is the gate split, and the page says so.** The holdout has never been opened;
+ *     the sentence under the tiles states it, rather than an empty tile implying it.
  */
 export function LandingRoute() {
   const board = useBoardData(3);
+  return <LandingBoard board={board} />;
+}
 
+/** The whole page for a board read — split from the route so a test can render it from a fixture. */
+export function LandingBoard({ board }: { board: BoardData }) {
   return (
-    <div data-testid="landing-board" className="h-full overflow-y-auto overflow-x-hidden bg-ground">
-      <div
-        className={cn(
-          'mx-auto grid w-full max-w-[1200px] gap-8 px-4 py-8',
-          'lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-10 lg:px-8 lg:py-12',
-        )}
-      >
-        <LeftPane board={board} />
-        <RightPane board={board} />
-      </div>
+    <div data-testid="landing-board" className="landing">
+      <Opening board={board} />
+      <TheRecord board={board} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Left — the outcome, its baseline, its caveat, and the way in
+// The opening slide — the outcome, its baseline, its caveat, and the way in
 // ---------------------------------------------------------------------------
 
-const PROOF_TONE = {
-  text: 'text-text',
-  violet: 'text-violet',
-  good: 'text-good',
-  bad: 'text-bad',
-  faint: 'text-faint',
-} as const;
+/** A proof figure's colour: passed/failed only where the figure is a verdict; the baseline is ink. */
+const PROOF_TONE: Record<ProofStat['tone'], string> = {
+  text: '',
+  violet: 'base',
+  good: 'ok',
+  bad: 'fail',
+  faint: 'absent',
+};
 
-function LeftPane({ board }: { board: BoardData }) {
-  const { isDemo, recorded, recordedLoading, campaigns } = board;
+function Opening({ board }: { board: BoardData }) {
+  const { isDemo, campaigns } = board;
   const nReports = useStore((s) => s.reports.length);
   const story = landingStory(campaigns, isDemo);
 
   return (
-    <section className="min-w-0">
-      <p className="mono-caps">
+    <header className="page-head">
+      <p className="label">
         multi-turn financial QA · the ConvFinQA benchmark
         {nReports > 0 ? ` · ${nReports} filings` : ''}
       </p>
 
-      <h1 className="type-display mt-3" data-testid="landing-headline">
+      <h1 data-testid="landing-headline">
         {story.headline.before}
-        {story.headline.emphasis && (
-          <span className="text-amber">{story.headline.emphasis}</span>
-        )}
+        {story.headline.emphasis && <em>{story.headline.emphasis}</em>}
         {story.headline.after}
       </h1>
 
-      <p className="type-lede mt-4 max-w-[56ch]">{story.lede}</p>
-
-      <dl data-testid="landing-proof" className="mt-5 flex flex-wrap gap-x-7 gap-y-3">
-        {story.proof.map((p) => (
-          <div key={p.key} className="min-w-0" data-proof={p.key}>
-            <dd className={cn('type-hud', PROOF_TONE[p.tone])}>{p.value}</dd>
-            <dt className="type-meta mt-1 max-w-[22ch]">{p.label}</dt>
-          </div>
-        ))}
-      </dl>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Link
-          to="/agent/chat"
-          data-testid="landing-enter"
-          className="type-body inline-flex items-center gap-1.5 rounded-md bg-amber px-4 py-2 font-medium text-amber-ink transition-[transform,box-shadow,opacity] duration-[var(--dur)] hover:-translate-y-px hover:opacity-95 hover:shadow-[var(--lift)]"
-        >
-          Open a conversation
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
-        <Link
-          to="/agent"
-          className="type-body rounded-md border border-line-2 px-4 py-2 text-text transition-colors hover:border-amber-line hover:bg-panel-2"
-        >
-          How it was built
-        </Link>
-      </div>
-
       {story.caveat && (
-        <p data-testid="landing-caveat" className="type-meta mt-3 max-w-[60ch] text-faint">
+        <p data-testid="landing-caveat" className="caveat">
           {story.caveat}
         </p>
       )}
 
-      <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="mono-caps">
-          {isDemo ? 'replay a recorded conversation' : 'open a recorded conversation'}
-        </span>
-        <Link
-          to="/agent/chat"
-          data-testid="landing-cta"
-          className="type-meta whitespace-nowrap text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
-        >
-          or start from any filing →
-        </Link>
-      </div>
+      <p className="lead">{story.lede}</p>
 
-      <div className="mt-2">
-        <RecordedConversations conversations={recorded} loading={recordedLoading} isDemo={isDemo} />
+      <dl data-testid="landing-proof" className="proof">
+        {story.proof.map((p) => (
+          <div key={p.key} data-proof={p.key}>
+            <dd className={PROOF_TONE[p.tone]}>{p.value}</dd>
+            <dt>{p.label}</dt>
+          </div>
+        ))}
+      </dl>
+
+      <div className="row cta">
+        <Link to="/agent/chat" data-testid="landing-enter" className="btn">
+          Ask a filing →
+        </Link>
+        <Link to="/agent">How it was built</Link>
       </div>
 
       {board.error && (
-        <p className="type-meta mt-5 rounded-md border border-dashed border-bad/50 bg-panel p-2.5 text-bad">
+        <p className="callout err">
           A board read failed: {board.error}. The tiles show what did load; nothing has been
           substituted.
         </p>
       )}
-    </section>
+    </header>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Right — the record
+// The record — tiles, lamps, then the numbered claims
 // ---------------------------------------------------------------------------
 
-export function RightPane({ board }: { board: BoardData }) {
-  const { health, isDemo, metricsSource, campaigns, metrics, metricsLoading, traceCaptureEnabled } =
-    board;
+function TheRecord({ board }: { board: BoardData }) {
+  const {
+    health,
+    isDemo,
+    metricsSource,
+    campaigns,
+    metrics,
+    metricsLoading,
+    traceCaptureEnabled,
+    recorded,
+    recordedLoading,
+  } = board;
 
   // `served` even in the demo when the board is reading the recorded development
   // serving turns rather than this container's own replays — see `metricsSource`.
@@ -166,9 +142,7 @@ export function RightPane({ board }: { board: BoardData }) {
    * Why a metrics tile is empty — never the same sentence for two reasons.
    *
    * These figures are all-time, over every turn the store holds, so an empty
-   * tile means this source has never carried one. It used to say "in the last
-   * 24 h", which was a window the numbers above it were never computed over and
-   * which read as "quiet lately" when the truth was "never".
+   * tile means this source has never carried one.
    */
   function metricsReason(what: string): string {
     if (noMetrics) return '/metrics/production returned nothing for this deployment';
@@ -187,6 +161,7 @@ export function RightPane({ board }: { board: BoardData }) {
   const gate = comparison?.gate ?? null;
   const story = landingStory(campaigns, isDemo);
   const judge = judgeSentence(campaigns);
+  const { gateQuestions } = runtimeVerdict(comparison, campaigns?.split);
 
   /**
    * How far the champion has moved across the campaign, on the gate split.
@@ -208,41 +183,9 @@ export function RightPane({ board }: { board: BoardData }) {
   })();
 
   return (
-    <section className="min-w-0">
-      <LampStrip board={board} />
-
-      {/* --- The star: the record as one figure ------------------------- */}
-      <div
-        data-testid="landing-star"
-        className="mt-3 rounded-md border border-line bg-panel p-3.5 sm:p-4"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="mono-caps">
-            optimising the ConvFinQA agent · accuracy on the unseen gate split
-          </span>
-          <Link
-            to="/optimise/runtimes"
-            className="type-meta text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
-          >
-            read the comparison →
-          </Link>
-        </div>
-        <p className="type-small mt-1.5 text-muted">
-          Every version scored on the same 349 held-back questions, in the order the work happened —
-          from the raw four-agent pipeline to the single-session agent serving today.
-        </p>
-        <div className="mt-3">
-          <ProgressionChart
-            points={stages}
-            pipelineBaseline={comparison?.pipeline?.accuracy ?? null}
-            compact
-          />
-        </div>
-        <ReadinessStrip className="mt-4 border-t border-line pt-3" />
-      </div>
-
+    <>
       {/* --- Four numbers, each with its baseline ----------------------- */}
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      <div className="kpis">
         <HudTile
           label="gate accuracy"
           value={formatPercent(campaigns?.champion_accuracy)}
@@ -250,16 +193,15 @@ export function RightPane({ board }: { board: BoardData }) {
           reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
           to="/optimise"
-          drill="/optimise"
+          drill="optimise · the campaigns"
           meta={
             campaigns?.champion_accuracy != null && (
               <>
-                four-agent pipeline ·{' '}
-                <span className="type-num">{versionLabel(campaigns.champion)}</span>
+                four-agent pipeline · <span className="num">{versionLabel(campaigns.champion)}</span>
                 {campaignMove && (
                   <>
                     <br />
-                    <span className={cn('type-num', campaignMove.delta >= 0 ? 'text-good' : 'text-bad')}>
+                    <span className={`num ${campaignMove.delta >= 0 ? 'v-ok' : 'v-fail'}`}>
                       {formatPointsDelta(campaignMove.delta)}
                     </span>{' '}
                     vs {versionLabel(campaignMove.from)} · {campaignMove.nPromoted} promotion
@@ -279,20 +221,24 @@ export function RightPane({ board }: { board: BoardData }) {
           reason="the Claude Agent SDK arm has no run on the gate split yet"
           tone={gate?.promoted ? 'good' : 'plain'}
           to="/optimise/runtimes"
-          drill="/optimise/runtimes"
+          drill="optimise · runtimes"
           meta={
             sdkArm?.accuracy != null && (
               <>
                 one Claude session ·{' '}
-                <span className="type-num">{sdkArm.version ? versionLabel(sdkArm.version) : '—'}</span>
+                <span className="num">{sdkArm.version ? versionLabel(sdkArm.version) : NO_VALUE}</span>
                 {gate?.ci?.[0] != null && gate?.ci?.[1] != null && (
                   <>
                     <br />
                     95% CI{' '}
-                    <span className="type-num">
+                    <span className="num">
                       {formatPointsDelta(gate.ci[0])} … {formatPointsDelta(gate.ci[1])}
                     </span>{' '}
-                    vs {comparison?.pipeline?.version ? versionLabel(comparison.pipeline.version) : 'the pipeline'}, paired
+                    vs{' '}
+                    {comparison?.pipeline?.version
+                      ? versionLabel(comparison.pipeline.version)
+                      : 'the pipeline'}
+                    , paired
                   </>
                 )}
               </>
@@ -307,12 +253,12 @@ export function RightPane({ board }: { board: BoardData }) {
           reason={metricsReason('token cost')}
           tone="amber"
           to="/runs/traces"
-          drill="/runs/traces"
+          drill="runs · traces"
           meta={
             metrics && (
               <>
-                all time · <span className="type-num">{formatUsd(metrics.cost_usd.total)}</span>{' '}
-                over <span className="type-num">{metrics.cost_usd.n_measured}</span> turns priced
+                all time · <span className="num">{formatUsd(metrics.cost_usd.total)}</span> over{' '}
+                <span className="num">{metrics.cost_usd.n_measured}</span> turns priced
               </>
             )
           }
@@ -325,16 +271,16 @@ export function RightPane({ board }: { board: BoardData }) {
           reason={metricsReason('latency')}
           tone="info"
           to="/runs/traces"
-          drill="/runs/traces"
+          drill="runs · traces"
           meta={
             metrics && (
               <>
-                p95 <span className="type-num">{formatLatency(metrics.latency_ms.p95)}</span> ·{' '}
-                <span className="type-num">{metrics.latency_ms.n_measured}</span> turns measured
+                p95 <span className="num">{formatLatency(metrics.latency_ms.p95)}</span> ·{' '}
+                <span className="num">{metrics.latency_ms.n_measured}</span> turns measured
                 {metrics.n_turns > 0 && (
                   <>
                     {' '}
-                    · <span className="type-num">{metrics.n_turns}</span> {sourceWord}
+                    · <span className="num">{metrics.n_turns}</span> {sourceWord}
                   </>
                 )}
               </>
@@ -343,49 +289,162 @@ export function RightPane({ board }: { board: BoardData }) {
         />
       </div>
 
-      <p data-testid="landing-holdout" className="type-meta mt-2.5 text-faint">
+      <p data-testid="landing-holdout" className="holdout">
         {story.holdout}
       </p>
 
-      {/* --- Tried last -------------------------------------------------- */}
-      <Link
-        to="/optimise/runtimes"
-        data-testid="landing-judge"
-        data-significant={judge ? String(judge.significant) : 'none'}
-        className="group mt-3 block rounded-md border border-line bg-panel p-3.5 transition-colors hover:border-amber-line hover:bg-panel-2"
-      >
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="mono-caps">tried last · llm-as-judge</span>
-          <span className={cn('type-hud', judge?.significant ? 'text-good' : 'text-text')}>
-            {judge ? judge.headline : NO_VALUE}
-          </span>
-        </div>
-        <p className="type-small mt-2 text-muted">
-          {judge
-            ? judge.body
-            : 'No confidence judge has been scored on the gate split yet.'}
-          <span className="type-meta ml-1 text-amber group-hover:underline">read the measurement →</span>
-        </p>
-      </Link>
+      <LampStrip board={board} />
 
-      <details className="mt-3 rounded-md border border-dashed border-line-2 bg-panel/60 p-3">
-        <summary className="mono-caps cursor-pointer select-none">where these numbers come from</summary>
+      {/* --- 01 · the star: the record as one figure -------------------- */}
+      <section className="doc-section" data-testid="landing-star">
+        <p className="label">01 · progression</p>
+        <h2>{progressionClaim(stages, gateQuestions)}</h2>
+        <Figure
+          title="accuracy on the unseen gate split, in the order the work happened"
+          caption={
+            <>
+              Every version scored on the same {gateQuestions ?? 'fixed'} held-back questions, from
+              the raw four-agent pipeline to the single-session agent serving today.{' '}
+              <Link to="/optimise/runtimes">Read the comparison →</Link>
+            </>
+          }
+          source={<code>evaluation/story.json</code>}
+        >
+          <ProgressionChart
+            points={stages}
+            pipelineBaseline={comparison?.pipeline?.accuracy ?? null}
+            compact
+          />
+        </Figure>
+      </section>
+
+      {/* --- 02 · readiness ---------------------------------------------- */}
+      <section className="doc-section">
+        <p className="label">02 · readiness</p>
+        <h2>
+          <ReadinessClaim />
+        </h2>
+        <div className="body">
+          <ReadinessStrip />
+        </div>
+      </section>
+
+      {/* --- 03 · recorded conversations --------------------------------- */}
+      <section className="doc-section">
+        <p className="label">03 · recorded conversations</p>
+        <h2>{recordedClaim(recorded, isDemo)}</h2>
+        <p>
+          {isDemo
+            ? 'Each row replays a whole conversation recorded in development, through the same events a live turn emits.'
+            : 'Each row opens a whole conversation on its filing, with the gold answer beside every turn.'}{' '}
+          <Link to="/agent/chat" data-testid="landing-cta">
+            Or start from any filing →
+          </Link>
+        </p>
+        <RecordedConversations conversations={recorded} loading={recordedLoading} isDemo={isDemo} />
+      </section>
+
+      {/* --- Tried last -------------------------------------------------- */}
+      <section className="doc-section">
+        <p className="label">04 · tried last</p>
+        <h2>
+          {judge
+            ? judge.significant
+              ? 'An LLM judge separates right answers from wrong ones on the gate split'
+              : 'An LLM judge was measured and did not earn the right to gate'
+            : 'The confidence judge has not been measured yet'}
+        </h2>
+        <Link
+          to="/scoring"
+          data-testid="landing-judge"
+          data-significant={judge ? String(judge.significant) : 'none'}
+          className="card link judge"
+        >
+          <div className="judge-head">
+            <span className="label">tried last · llm-as-judge</span>
+            <span className="verdict">
+              {judge ? (
+                <Status tone={judge.significant ? 'ok' : 'no'}>{judge.headline}</Status>
+              ) : (
+                NO_VALUE
+              )}
+            </span>
+          </div>
+          <p>
+            {judge ? judge.body : 'No confidence judge has been scored on the gate split yet.'}{' '}
+            <span className="go">read the measurement →</span>
+          </p>
+        </Link>
+      </section>
+
+      <details className="sources">
+        <summary>Where these numbers come from</summary>
         <SourceNote board={board} />
       </details>
 
-      {traceCaptureEnabled === false && (
-        <p className="type-meta mt-3 text-faint">
-          Trace capture is off on this deployment, so the cost and latency tiles will not move.
-        </p>
-      )}
-      {health && health.runtime !== 'agent_sdk' && (
-        <p className="type-meta mt-3 text-faint">
-          This deployment still serves the four-agent pipeline; the runtime accuracy above is the
-          challenger’s.
-        </p>
-      )}
-    </section>
+      <div className="notes">
+        {traceCaptureEnabled === false && (
+          <p>Trace capture is off on this deployment, so the cost and latency tiles will not move.</p>
+        )}
+        {health && health.runtime !== 'agent_sdk' && (
+          <p>
+            This deployment still serves the four-agent pipeline; the runtime accuracy above is the
+            challenger’s.
+          </p>
+        )}
+      </div>
+    </>
   );
+}
+
+/** Section 01's claim: the move from the first scored stage to the last, on its denominator. */
+function progressionClaim(
+  stages: ReturnType<typeof progression>,
+  gateQuestions: number | null,
+): string {
+  const scored = stages.filter((s) => s.present && s.accuracy != null);
+  const on = gateQuestions != null ? ` on the same ${gateQuestions} questions` : '';
+  if (scored.length < 2) {
+    return scored.length === 1
+      ? `One version scored on the gate split so far, at ${formatPercent(scored[0].accuracy)}${on}`
+      : 'No version has been scored on the gate split yet';
+  }
+  const first = scored[0];
+  const last = scored[scored.length - 1];
+  const best = scored.reduce((a, b) => ((b.accuracy ?? 0) > (a.accuracy ?? 0) ? b : a));
+  return `From ${formatPercent(first.accuracy)} to ${formatPercent(best.accuracy)}${on}, across ${scored.length} scored stages${
+    best !== last ? `; the last, ${last.stage}, reads ${formatPercent(last.accuracy)}` : ''
+  }`;
+}
+
+/** Section 02's claim, from the same committed scorecard the strip renders. */
+function ReadinessClaim() {
+  const data = useReadiness().data;
+  if (!data) return <>Production readiness, scored against the portfolio’s nine dimensions</>;
+  const { shipped, total } = shippedCount(data.rows);
+  return (
+    <>
+      {shipped} of {total} production-readiness dimensions shipped, each linked to its proof
+    </>
+  );
+}
+
+/** Section 03's claim: how the recorded run did on the conversations it offers. */
+function recordedClaim(
+  conversations: BoardData['recorded'],
+  isDemo: boolean,
+): string {
+  if (!conversations || conversations.length === 0) {
+    return 'Open any conversation and watch every stage of the answer';
+  }
+  const scored = conversations.filter((c) => c.nCorrect !== null);
+  const n = conversations.length;
+  if (scored.length === 0) {
+    return `${n} conversation${n === 1 ? '' : 's'} to open, each a door into the chat`;
+  }
+  const right = scored.reduce((a, c) => a + (c.nCorrect ?? 0), 0);
+  const turns = scored.reduce((a, c) => a + c.nTurns, 0);
+  return `${n} conversation${n === 1 ? '' : 's'} ${isDemo ? 'to replay' : 'to open'}: ${right} of ${turns} turns right in the recorded run`;
 }
 
 /**
@@ -398,42 +457,39 @@ function SourceNote({ board }: { board: BoardData }) {
   const { isDemo, metricsSource, metricsGeneratedAt, health } = board;
 
   return (
-    <div className="mt-2 space-y-2">
-      <p className="type-small text-muted">
-        <span className="text-text">accuracy</span> — both arms on the fixed gate split of the
-        committed split manifest, read from <span className="type-num">evaluation/story.json</span>,
-        which the optimisation loop builds from its own runs. No API calls, no cached figure to
-        drift. The legacy 770-question corpus is a different population under a retired protocol
-        and lives on <span className="type-num">/admin/evaluations</span>, labelled as such.
+    <>
+      <p>
+        <b>accuracy</b> — both arms on the fixed gate split of the committed split manifest, read
+        from <code>evaluation/story.json</code>, which the optimisation loop builds from its own
+        runs. No API calls, no cached figure to drift. The legacy 770-question corpus is a different
+        population under a retired protocol and lives on <code>/admin/evaluations</code>, labelled
+        as such.
       </p>
-      <p className="type-small text-muted">
-        <span className="text-text">latency and cost</span> —{' '}
+      <p>
+        <b>latency and cost</b> —{' '}
         {isDemo && metricsSource === 'demo'
           ? 'turns this deployment replayed from conversations recorded in development. Replay timing is not production latency, so recorded and served turns are counted in separate source groups and never summed.'
           : isDemo
             ? 'the development turns these conversations were recorded from, shipped with the image and read all-time. Not this deployment’s own replays — those carry no timing at all, and the two are separate source groups that are never summed.'
             : 'every turn this development process has served, all time. Development traffic on one machine — not production load, and not a benchmark.'}{' '}
-        Source group “<span className="type-num">{metricsSource}</span>”
+        Source group “<code>{metricsSource}</code>”
         {metricsGeneratedAt && (
           <>
             {' '}
-            · read <span className="type-num">{new Date(metricsGeneratedAt).toLocaleString()}</span>
+            · read <span className="num">{new Date(metricsGeneratedAt).toLocaleString()}</span>
           </>
         )}
         .
       </p>
       {health && (
-        <p className="type-small break-words text-muted">
-          <span className="text-text">bundle</span> — every figure is attributable to{' '}
-          <span className="type-num">{health.bundle_id}</span>: prompts{' '}
-          <span className="type-num">{health.bundle.prompts_version}</span>, models{' '}
-          <span className="type-num">{health.bundle.lm_mini}</span> /{' '}
-          <span className="type-num">{health.bundle.lm_max}</span>, dataset{' '}
-          <span className="type-num">{health.bundle.dataset_hash}</span>, code{' '}
-          <span className="type-num">{health.bundle.code_sha}</span>.
+        <p className="wrap-any">
+          <b>bundle</b> — every figure is attributable to <code>{health.bundle_id}</code>: prompts{' '}
+          <code>{health.bundle.prompts_version}</code>, models <code>{health.bundle.lm_mini}</code> /{' '}
+          <code>{health.bundle.lm_max}</code>, dataset <code>{health.bundle.dataset_hash}</code>, code{' '}
+          <code>{health.bundle.code_sha}</code>.
         </p>
       )}
-    </div>
+    </>
   );
 }
 

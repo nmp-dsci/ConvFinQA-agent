@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import * as api from '../../api';
 import { useMode } from '../../modeStore';
 import { qk } from '../../lib/queryClient';
@@ -58,11 +57,9 @@ function fromTrajectory(trajectory: Array<Record<string, unknown>>): ToolLine[] 
 function Block({ label, value }: { label: string; value: string }) {
   if (!value.trim()) return null;
   return (
-    <div className="mt-1.5">
-      <div className="mono-caps">{label}</div>
-      <pre className="type-num type-meta mt-0.5 max-h-52 overflow-auto rounded-[4px] border border-line bg-panel px-2 py-1.5 leading-relaxed whitespace-pre-wrap break-words text-muted">
-        {value}
-      </pre>
+    <div className="ch-block">
+      <p className="label">{label}</p>
+      <pre className="ch-pre">{value}</pre>
     </div>
   );
 }
@@ -70,21 +67,13 @@ function Block({ label, value }: { label: string; value: string }) {
 function ToolLoop({ lines }: { lines: ToolLine[] }) {
   if (lines.length === 0) return null;
   return (
-    <div className="mt-1.5">
-      <div className="mono-caps">tool loop · {lines.length} calls</div>
-      <ol className="type-num type-meta mt-0.5 space-y-0.5 leading-relaxed">
+    <div className="ch-block">
+      <p className="label">tool loop · {lines.length} calls</p>
+      <ol className="ch-tools">
         {lines.map((line, i) => (
-          <li key={i} className="break-words">
-            <span className="text-amber">→</span>{' '}
-            <span className="text-text">
-              {line.tool}({line.args})
-            </span>
-            {line.result !== undefined && (
-              <>
-                {'  '}
-                <span className="text-good">←</span> <span className="text-muted">{line.result}</span>
-              </>
-            )}
+          <li key={i}>
+            → {line.tool}({line.args})
+            {line.result !== undefined && <span className="r">{'  '}← {line.result}</span>}
           </li>
         ))}
       </ol>
@@ -116,56 +105,45 @@ function StageRow({ view, message, capture, traceLoaded, expanded, onToggle }: S
       : [];
 
   const skipped = view.state === 'skipped';
+  const nameClass =
+    view.state === 'active' ? 'ch-stage-name active' : skipped ? 'ch-stage-name skip' : 'ch-stage-name';
 
   return (
-    <div className="border-b border-line px-2.5 py-2" data-stage={view.stage} data-state={view.state}>
+    <div className="ch-stage" data-stage={view.stage} data-state={view.state}>
       <button
         type="button"
         onClick={onToggle}
         disabled={skipped}
-        className="flex w-full items-baseline gap-1.5 text-left disabled:cursor-default"
+        aria-expanded={skipped ? undefined : expanded}
+        className={expanded ? 'ch-stage-btn on' : 'ch-stage-btn'}
       >
-        <ChevronRight
-          aria-hidden
-          className={cn(
-            'size-3 shrink-0 translate-y-0.5 text-faint transition-transform',
-            expanded && 'rotate-90',
-            skipped && 'opacity-0'
-          )}
-        />
-        <span
-          className={cn(
-            'type-num type-body',
-            skipped ? 'text-faint line-through' : 'text-text',
-            view.state === 'active' && 'text-amber'
-          )}
-        >
-          {view.stage}
+        <span className="ch-glyph" aria-hidden>
+          {skipped ? '–' : expanded ? '▾' : '▸'}
         </span>
-        <span className="type-num type-meta ml-auto shrink-0 text-muted">
+        <span className={nameClass}>{view.stage}</span>
+        <span className="ch-meta ch-push">
           {skipped ? 'skipped' : `${fmtMs(metrics?.latency_ms)} · ${fmtTokens(metrics?.total_tokens)} tok`}
         </span>
       </button>
 
-      {!skipped && view.detail && (
-        <div className="type-num type-meta mt-0.5 pl-4.5 break-words text-faint">
-          {view.detail}
-        </div>
-      )}
-
-      {expanded && !skipped && (
-        <div className="pl-4.5">
-          <Block label="input" value={asText(capture?.input)} />
-          {!capture?.input && (
-            <p className="type-meta mt-1.5 text-faint">
-              {traceLoaded
-                ? 'This turn’s stored trace records outputs only — a replayed turn is rebuilt from its recorded event stream, which never carried the stage inputs.'
-                : 'Stage inputs live in the trace store, not on the live stream, and no stored trace was found for this turn.'}
-            </p>
+      {!skipped && (view.detail || expanded) && (
+        <div className="ch-stage-in">
+          {view.detail && <p className="ch-meta">{view.detail}</p>}
+          {expanded && (
+            <>
+              <Block label="input" value={asText(capture?.input)} />
+              {!capture?.input && (
+                <p className="small muted">
+                  {traceLoaded
+                    ? 'This turn’s stored trace records outputs only — a replayed turn is rebuilt from its recorded event stream, which never carried the stage inputs.'
+                    : 'Stage inputs live in the trace store, not on the live stream, and no stored trace was found for this turn.'}
+                </p>
+              )}
+              <Block label="reasoning" value={reasoning} />
+              <Block label="output" value={asText(output)} />
+              <ToolLoop lines={toolLines} />
+            </>
           )}
-          <Block label="reasoning" value={reasoning} />
-          <Block label="output" value={asText(output)} />
-          <ToolLoop lines={toolLines} />
         </div>
       )}
     </div>
@@ -173,51 +151,35 @@ function StageRow({ view, message, capture, traceLoaded, expanded, onToggle }: S
 }
 
 function Total({ label, value, reason }: { label: string; value: string; reason?: string }) {
+  const absent = value === EM_DASH;
   return (
-    <div title={value === EM_DASH ? reason : undefined}>
-      <div className="type-num type-body text-text">{value}</div>
-      <div className="mono-caps">{label}</div>
+    <div className="stat" title={absent ? reason : undefined}>
+      <div className={absent ? 'n absent' : 'n'}>{value}</div>
+      <span className="label">{label}</span>
     </div>
   );
 }
 
-/**
- * The docked trace inspector.
- *
- * Docked, never a modal: the argument the whole console makes is that an
- * agentic system's reasoning is the product, so hiding it behind a click would
- * undo the design. It sits at `--ground` beside the lit thread.
- */
 /** s12: the confidence judge's six checks, after the four stages. */
 function JudgeRow({ verdict, withheld }: { verdict: JudgeVerdict; withheld: boolean }) {
+  const low = verdict.band !== 'high';
   return (
-    <div className="border-b border-line px-2.5 py-2" data-stage="judge" data-band={verdict.band}>
-      <div className="flex items-baseline gap-2">
-        <span className="type-num type-body text-text">judge</span>
-        <span
-          className={
-            verdict.band === 'high'
-              ? 'type-num type-meta text-good'
-              : 'type-num type-meta text-amber'
-          }
-        >
+    <div className="ch-stage ch-judge" data-stage="judge" data-band={verdict.band}>
+      <div className="ch-judge-top">
+        <span className="ch-stage-name">judge</span>
+        <span className={low ? 'tag warn' : 'tag ok'}>
+          <span aria-hidden>{low ? '◐ ' : '● '}</span>
           {verdict.band} · p {verdict.p_correct.toFixed(2)}
           {withheld ? ' · withheld' : ''}
         </span>
-        {verdict.version && (
-          <span className="type-num type-meta ml-auto text-faint">{verdict.version}</span>
-        )}
+        {verdict.version && <span className="ch-meta ch-push">{verdict.version}</span>}
       </div>
-      <p className="type-small mt-1 text-muted">{verdict.reason}</p>
-      <ul className="type-num type-meta mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+      <p>{verdict.reason}</p>
+      <ul className="ch-checks">
         {Object.entries(verdict.checks ?? {}).map(([name, value]) => (
-          <li key={name} data-check={name} data-verdict={value} className="flex justify-between">
-            <span className="text-faint">{name}</span>
-            <span
-              className={
-                value === 'pass' ? 'text-good' : value === 'fail' ? 'text-bad' : 'text-amber'
-              }
-            >
+          <li key={name} data-check={name} data-verdict={value}>
+            <span className="k">{name}</span>
+            <span className={value === 'pass' ? 'status ok' : value === 'fail' ? 'status err' : 'status warn'}>
               {value}
             </span>
           </li>
@@ -227,6 +189,14 @@ function JudgeRow({ verdict, withheld }: { verdict: JudgeVerdict; withheld: bool
   );
 }
 
+/**
+ * The docked trace inspector.
+ *
+ * Docked, never a modal: the argument the whole console makes is that an
+ * agentic system's reasoning is the product, so hiding it behind a click would
+ * undo the design. It is `--panel` chrome beside the thread, one row per stage,
+ * each opened in place; "open trace" goes to the full record on the Runs page.
+ */
 export function Inspector({ message, turnNumber }: { message: Message | null; turnNumber: number }) {
   const [expanded, setExpanded] = useState<StageName | null>(null);
   const bundleId = useMode((s) => s.health?.bundle_id);
@@ -255,24 +225,31 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
 
   return (
     <>
-      <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-line px-2.5">
-        <span className="mono-caps" title="What each stage was given, what it returned, and what it cost — the record behind the answer">
+      <div className="ch-head">
+        <span
+          className="label ch-fill"
+          title="What each stage was given, what it returned, and what it cost — the record behind the answer"
+        >
           {message ? `trace · turn ${turnNumber}` : 'trace'}
         </span>
-        {message?.traceId && (
-          <span className="type-num type-meta truncate text-faint" title={message.traceId}>
-            {message.traceId.slice(0, 8)}
-          </span>
+        {traceId && (
+          <Link
+            to={`/runs/traces/${encodeURIComponent(traceId)}`}
+            className="ch-meta"
+            title={`Open trace ${traceId} on the Runs page`}
+          >
+            {traceId.slice(0, 8)} · open trace ↗
+          </Link>
         )}
       </div>
 
       <div
         data-testid="stage-output-panel"
         data-stage={expanded ?? 'all'}
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+        className="ch-scroll-y"
       >
         {!message ? (
-          <p className="type-small px-2.5 py-4 text-faint">
+          <p className="ch-note">
             Ask a question, or click any answer in the thread, to see the four stages that
             produced it — what each one was given, what it decided, and what it cost.
           </p>
@@ -294,7 +271,7 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
 
             {message.judge && <JudgeRow verdict={message.judge} withheld={!!message.withheld} />}
 
-            <div className="grid grid-cols-3 gap-2 border-b border-line px-2.5 py-2.5">
+            <div className="stats ch-totals">
               <Total
                 label="latency"
                 value={fmtMs(latency)}
@@ -313,7 +290,7 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
             </div>
 
             {(latency === null || tokens === null) && (
-              <p className="type-meta px-2.5 py-2 text-faint">
+              <p className="ch-note">
                 {EM_DASH} means not measured, not zero. Recorded turns in the demo pack carry no
                 latency or token figures yet; populating them needs a metered eval run.
               </p>
@@ -323,13 +300,13 @@ export function Inspector({ message, turnNumber }: { message: Message | null; tu
       </div>
 
       {bundle && (
-        <div
-          className="type-num type-meta shrink-0 border-t border-line px-2.5 py-2 break-words text-faint"
+        <p
+          className="ch-meta ch-foot"
           title="The fingerprint this answer is attributable to — prompts, both models, the dataset and the code that ran them"
         >
           bundle {bundleId} · prompts {bundle.prompts_version} · {bundle.lm_mini} · dataset{' '}
           {bundle.dataset_hash} · code {bundle.code_sha}
-        </div>
+        </p>
       )}
     </>
   );

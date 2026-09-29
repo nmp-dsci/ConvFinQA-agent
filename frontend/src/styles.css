@@ -1,20 +1,9 @@
 /*
  * Stylesheet entry point. Order matters:
- *   kit tokens → this project's accent → kit components → (bridge + Tailwind, until C5) → app.css
- *
- * During the migration Tailwind is still loaded for pages not yet ported. The kit's element and
- * component rules sit in their own cascade layer *below* Tailwind's utilities, so a utility on an
- * unported page still wins, while a kit class on a ported page applies in full.
+ *   kit tokens → this project's accent → kit components → this project's components.
+ * Every page's own CSS file is imported by its module and loads after this one.
  */
-@layer theme, base, kit, components, utilities, app;
-
 @import './kit/tokens.base.css';
 @import './theme.css';
-@import './kit/kit.css' layer(kit);
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import './tokens.css';
-@import './app.css' layer(app);
-
-@source './**/*.{ts,tsx}';
-@source '../index.html';
+@import './kit/kit.css';
+@import './app.css';

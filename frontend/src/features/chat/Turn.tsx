@@ -1,11 +1,24 @@
-import { AlertTriangle, Check, ShieldAlert, ShieldCheck, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { looseNumericMatch } from '../../numericMatch';
 import type { Message } from '../../types';
 import { errorCopy } from './errors';
 import { fmtMs } from './format';
 import { howLine } from './how';
-import { stageViews, totalLatency } from './stages';
+import { type StageState, stageViews, totalLatency } from './stages';
+
+/** Status is never colour alone: each stage state carries its glyph. */
+const STAGE_GLYPH: Record<StageState, string> = {
+  done: '●',
+  active: '◐',
+  pending: '○',
+  skipped: '–',
+};
+
+const STAGE_CHIP: Record<StageState, string> = {
+  done: 'chip',
+  active: 'chip acc',
+  pending: 'chip no',
+  skipped: 'chip no skip',
+};
 
 /**
  * The banner that says the demo answered a different question than the one
@@ -18,15 +31,12 @@ import { stageViews, totalLatency } from './stages';
 function MatchedBanner({ message }: { message: Message }) {
   if (!message.matchedQuestion) return null;
   return (
-    <div
-      data-testid="matched-banner"
-      className="type-small mb-2 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2 text-text"
-    >
-      <span className="mono-caps mr-1.5 text-amber">replayed</span>
+    <div data-testid="matched-banner" className="callout">
+      <b className="ch-kicker">◐ replayed</b>
       No recording for what you asked — playing the closest recorded question:{' '}
-      <span className="font-medium">“{message.matchedQuestion}”</span>
+      <b>“{message.matchedQuestion}”</b>
       {typeof message.matchScore === 'number' && (
-        <span className="type-num ml-1 text-faint">(match {message.matchScore.toFixed(2)})</span>
+        <span className="ch-meta"> (match {message.matchScore.toFixed(2)})</span>
       )}
     </div>
   );
@@ -37,29 +47,23 @@ function StageStrip({ message }: { message: Message }) {
   const latency = totalLatency(message);
 
   return (
-    <div className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+    <div className="ch-stages">
       {views.map((view) => (
         <span
           key={view.stage}
           data-stage={view.stage}
           data-state={view.state}
-          title={view.detail ? `${view.stage} — ${view.detail}` : view.stage}
-          className={cn(
-            'type-num type-meta rounded-[4px] border px-1.5 py-0.5 leading-tight',
-            view.state === 'done' && 'border-line-2 bg-panel-2 text-muted',
-            view.state === 'active' && 'border-amber-line bg-amber-soft text-amber',
-            view.state === 'pending' && 'border-line bg-transparent text-faint',
-            view.state === 'skipped' && 'border-line bg-transparent text-faint line-through',
-          )}
+          title={view.detail ? `${view.stage} — ${view.detail}` : `${view.stage} — ${view.state}`}
+          className={STAGE_CHIP[view.state]}
         >
+          <span aria-hidden>{STAGE_GLYPH[view.state]}</span>
           {view.stage}
-          {view.state === 'done' && view.detail ? (
-            <span className="text-faint"> · {view.detail}</span>
-          ) : null}
+          {view.state === 'done' && view.detail ? <span className="d"> · {view.detail}</span> : null}
+          {view.state === 'active' ? <span className="d"> · running</span> : null}
         </span>
       ))}
       <span
-        className="type-num type-meta ml-auto text-faint"
+        className="ch-meta ch-push"
         title={
           latency === null
             ? 'No per-stage timings were recorded for this turn'
@@ -84,19 +88,15 @@ function JudgeBadge({ message }: { message: Message }) {
   const verdict = message.judge;
   if (!verdict || message.withheld) return null;
   const low = verdict.band === 'low';
-  const Icon = low ? ShieldAlert : ShieldCheck;
   return (
     <span
       data-testid="judge-badge"
       data-band={verdict.band}
-      className={cn(
-        'type-num type-meta inline-flex items-center gap-1 rounded-[4px] border px-1.5 py-0.5',
-        low ? 'border-amber-line bg-amber-soft text-amber' : 'border-good/40 bg-good/10 text-good',
-      )}
+      className={low ? 'tag warn' : 'tag ok'}
       title={`Confidence judge (${verdict.version ?? 'judge'}): ${verdict.reason}`}
     >
-      <Icon className="size-3" aria-hidden />
-      {verdict.band} · p {verdict.p_correct.toFixed(2)}
+      <span aria-hidden>{low ? '◐ ' : '● '}</span>
+      judge {verdict.band} · p {verdict.p_correct.toFixed(2)}
     </span>
   );
 }
@@ -115,18 +115,13 @@ function CautionNote({ message }: { message: Message }) {
   if (!verdict || verdict.band !== 'low' || message.withheld) return null;
   const failed = Object.entries(verdict.checks ?? {}).filter(([, v]) => v !== 'pass');
   return (
-    <div
-      data-testid="judge-caution"
-      className="mt-2 rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
-    >
-      <p className="type-small text-muted">
-        <span className="font-medium text-text">Check this one.</span> The confidence judge could
-        not verify it against the filing.{verdict.reason ? ` ${verdict.reason}` : ''}
+    <div data-testid="judge-caution" className="callout">
+      <p>
+        <b>◐ Check this one.</b> The confidence judge could not verify it against the
+        filing.{verdict.reason ? ` ${verdict.reason}` : ''}
       </p>
       {failed.length > 0 && (
-        <p className="type-num type-meta mt-1 text-faint">
-          {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
-        </p>
+        <p className="ch-meta">{failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}</p>
       )}
     </div>
   );
@@ -145,28 +140,17 @@ function WithheldBlock({ message }: { message: Message }) {
     ? Object.entries(verdict.checks ?? {}).filter(([, v]) => v !== 'pass')
     : [];
   return (
-    <div
-      data-testid="withheld-block"
-      data-band="low"
-      className="rounded-md border border-amber-line bg-amber-soft px-2.5 py-2"
-    >
-      <div className="flex items-baseline gap-1.5">
-        <ShieldAlert className="size-3.5 shrink-0 translate-y-0.5 text-amber" aria-hidden />
-        <span className="type-body font-medium text-text">I'm not confident in this one</span>
-        {verdict && (
-          <span className="type-num type-meta ml-auto text-faint">
-            low · p {verdict.p_correct.toFixed(2)}
-          </span>
-        )}
-      </div>
-      <p className="type-small mt-1 text-muted">
+    <div data-testid="withheld-block" data-band="low" className="callout">
+      <b className="ttl">
+        ◐ I'm not confident in this one
+        {verdict && <span className="ch-meta"> · judge low · p {verdict.p_correct.toFixed(2)}</span>}
+      </b>
+      <p>
         The answer was computed but withheld: the confidence judge could not verify it against
         the filing.{verdict?.reason ? ` ${verdict.reason}` : ''}
       </p>
       {failed.length > 0 && (
-        <p className="type-num type-meta mt-1 text-faint">
-          {failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}
-        </p>
+        <p className="ch-meta">{failed.map(([name, v]) => `${name}: ${v}`).join(' · ')}</p>
       )}
     </div>
   );
@@ -175,17 +159,14 @@ function WithheldBlock({ message }: { message: Message }) {
 function ErrorBlock({ message }: { message: Message }) {
   const copy = errorCopy(message.errorCode, message.errorText);
   return (
-    <div className="rounded-md border border-bad/40 bg-bad/10 px-2.5 py-2">
-      <div className="flex items-baseline gap-1.5">
-        <AlertTriangle className="size-3.5 shrink-0 translate-y-0.5 text-bad" aria-hidden />
-        <span className="type-body font-medium text-text">{copy.title}</span>
-        {message.errorCode && (
-          <span className="type-num type-meta ml-auto text-faint">{message.errorCode}</span>
-        )}
-      </div>
-      <p className="type-small mt-1 text-muted">{copy.hint}</p>
+    <div className="callout err">
+      <b className="ttl">
+        ✕ {copy.title}
+        {message.errorCode && <span className="ch-meta"> · {message.errorCode}</span>}
+      </b>
+      <p>{copy.hint}</p>
       {message.errorText && message.errorText !== 'aborted' && (
-        <p className="type-num type-meta mt-1.5 break-words text-faint">{message.errorText}</p>
+        <p className="ch-meta">{message.errorText}</p>
       )}
     </div>
   );
@@ -207,18 +188,16 @@ interface Props {
 export function Turn({ message, selected, onSelect }: Props) {
   if (message.role === 'system') {
     return (
-      <div data-role="system-message" className="type-small my-2 text-center text-faint italic">
+      <p data-role="system-message" className="ch-sys">
         {message.text}
-      </div>
+      </p>
     );
   }
 
   if (message.role === 'user') {
     return (
-      <div data-role="user-message" className="my-2.5 flex justify-end">
-        <div className="type-body max-w-[76%] rounded-lg rounded-br-sm bg-panel-2 px-3 py-2 break-words whitespace-pre-wrap text-text">
-          {message.text}
-        </div>
+      <div data-role="user-message" className="ch-user">
+        <div className="ch-q">{message.text}</div>
       </div>
     );
   }
@@ -238,17 +217,14 @@ export function Turn({ message, selected, onSelect }: Props) {
       data-final={message.status === 'done' ? 'true' : 'false'}
       data-gold={goldVerdict === undefined ? undefined : goldVerdict ? 'match' : 'mismatch'}
       data-selected={selected ? 'true' : 'false'}
-      className="my-2.5 flex justify-start"
+      className="ch-a"
     >
       <button
         type="button"
         onClick={() => onSelect(message.id)}
         aria-pressed={selected}
         title="Show this turn in the trace inspector"
-        className={cn(
-          'w-full max-w-[92%] cursor-pointer rounded-lg border px-3.5 py-3 text-left transition-colors',
-          selected ? 'border-amber-line bg-panel-2/50' : 'border-line hover:border-line-2',
-        )}
+        className={selected ? 'ch-turn on' : 'ch-turn'}
       >
         <MatchedBanner message={message} />
 
@@ -257,40 +233,30 @@ export function Turn({ message, selected, onSelect }: Props) {
         ) : message.withheld && message.status === 'done' ? (
           <WithheldBlock message={message} />
         ) : message.text ? (
-          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span className="type-hud break-all">{message.text}</span>
+          <span className="ch-ans-row">
+            <span className="ch-ans">{message.text}</span>
             {message.goldAnswer && message.status === 'done' && (
               <span
-                className={cn(
-                  'type-num type-small inline-flex items-baseline gap-1',
-                  goldVerdict ? 'text-good' : 'text-bad',
-                )}
+                className={goldVerdict ? 'ch-gold v-ok' : 'ch-gold v-fail'}
                 title={
                   goldVerdict
                     ? `Matches the dataset gold answer (${message.goldAnswer})`
                     : `The dataset gold answer is ${message.goldAnswer}`
                 }
               >
-                {goldVerdict ? (
-                  <Check className="size-3.5 self-center" aria-hidden />
-                ) : (
-                  <X className="size-3.5 self-center" aria-hidden />
-                )}
-                gold {message.goldAnswer}
+                {goldVerdict ? '✓ matches gold' : `✗ gold ${message.goldAnswer}`}
               </span>
             )}
-            <span className="ml-auto">
+            <span className="ch-push">
               <JudgeBadge message={message} />
             </span>
-          </div>
+          </span>
         ) : (
-          <div className="type-num type-body text-faint">
-            <span className="animate-pulse">answering…</span>
-          </div>
+          <span className="ch-pending ch-pulse">answering…</span>
         )}
 
         {how && (
-          <p data-testid="turn-how" className="type-small mt-2 text-muted">
+          <p data-testid="turn-how" className="ch-how">
             {how}
           </p>
         )}
@@ -298,12 +264,12 @@ export function Turn({ message, selected, onSelect }: Props) {
         {message.status === 'done' && <CautionNote message={message} />}
 
         {message.goldProgram && message.status === 'done' && (
-          <div
-            className="type-num type-meta mt-1.5 break-all text-faint"
+          <p
+            className="ch-meta"
             title="The dataset's own program. It re-derives from raw values while the pipeline reuses prior answers, so a shorter program with the same answer is not a wrong one."
           >
             gold program {message.goldProgram}
-          </div>
+          </p>
         )}
 
         <StageStrip message={message} />

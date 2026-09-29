@@ -489,4 +489,12 @@ describe('the model swap', () => {
     expect(html).toContain('claude-haiku-4-5-20251001');
     expect(html).toContain('-5.50pp');
   });
+
+  it('prints the interval in points, like the delta beside it (ci is stored as a fraction)', () => {
+    const html = renderToStaticMarkup(<ModelSwapTable rows={modelRows(swap)} />);
+    // fixture ci [-0.09, -0.02] → -9.0pp … -2.0pp, never -0.09pp
+    expect(html).toContain('-9.0pp');
+    expect(html).toContain('-2.0pp');
+    expect(html).not.toContain('-0.09pp');
+  });
 });

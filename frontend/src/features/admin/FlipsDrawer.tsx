@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 import { formatFilingId, formatPercent, formatPointsDelta } from '../landing/format';
 import { InstrumentTable } from './InstrumentTable';
-import { clip, formatCount } from './lib';
+import { clip, formatCount, versionLabel } from './lib';
 import { Verdict } from './ui';
 import type { ComparisonResult, Flip } from '../../types';
+import './runs.css';
 
 /**
  * The flips between two versions.
@@ -40,11 +40,10 @@ function flipColumns(
           to={`/runs/traces/eval?version=${candidate}&report_id=${encodeURIComponent(
             row.original.report_id,
           )}&turn_index=${row.original.q_order}`}
-          className="hover:text-amber"
           title={row.original.report_id}
         >
           {formatFilingId(row.original.report_id)}
-          <span className="text-faint"> · {row.original.q_order}</span>
+          <span className="muted"> · {row.original.q_order}</span>
         </Link>
       ),
     },
@@ -53,34 +52,34 @@ function flipColumns(
       header: 'question',
       accessorFn: (r) => r.question,
       meta: { align: 'left', mono: false, wrap: true, width: '220px' },
-      cell: ({ row }) => <span className="text-muted">{clip(row.original.question, 120)}</span>,
+      cell: ({ row }) => clip(row.original.question, 120),
     },
     {
       id: 'gold',
       header: 'gold',
       accessorFn: (r) => r.gold_answer,
       meta: { width: '80px' },
-      cell: ({ row }) => <span className="text-text">{row.original.gold_answer}</span>,
+      cell: ({ row }) => row.original.gold_answer,
     },
     {
       id: 'baseline',
-      header: baseline,
+      header: versionLabel(baseline),
       accessorFn: (r) => r.baseline_answer,
       meta: { width: '80px' },
       cell: ({ row }) => (
-        <span className={tone === 'bad' ? 'text-good' : 'text-bad'}>
-          {row.original.baseline_answer || '—'}
+        <span className={tone === 'bad' ? 'v-ok' : 'v-fail'}>
+          {row.original.baseline_answer || '—'} {tone === 'bad' ? '✓' : '✗'}
         </span>
       ),
     },
     {
       id: 'candidate',
-      header: candidate,
+      header: versionLabel(candidate),
       accessorFn: (r) => r.candidate_answer,
       meta: { width: '80px' },
       cell: ({ row }) => (
-        <span className={tone === 'bad' ? 'text-bad' : 'text-good'}>
-          {row.original.candidate_answer || '—'}
+        <span className={tone === 'bad' ? 'v-fail' : 'v-ok'}>
+          {row.original.candidate_answer || '—'} {tone === 'bad' ? '✗' : '✓'}
         </span>
       ),
     },
@@ -99,78 +98,56 @@ export function FlipsSummary({
   onOpen: () => void;
 }) {
   const { regressions, improvements, promotable, reason } = comparison;
+  const delta = comparison.accuracy_delta;
 
   return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <>
+      <p className="verdict-line">
         <Verdict ok={promotable}>{promotable ? 'promotable' : 'refused'}</Verdict>
-        <span className="type-small text-muted">{reason}</span>
-      </div>
+        <span className="small">{reason}</span>
+      </p>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <button
-          type="button"
-          onClick={onOpen}
-          data-testid="flips-open-regressions"
-          className={cn(
-            'group min-w-0 rounded-md border border-line bg-panel-2 p-2.5 text-left',
-            'transition-colors hover:border-bad focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber',
-          )}
-        >
-          <div className="mono-caps">pass → fail</div>
-          <div className="type-hud mt-1 text-bad">{formatCount(regressions.length)}</div>
-          <div className="type-meta mt-1 text-faint group-hover:text-amber">
-            open the rows &rarr;
+      <div className="kpis flips">
+        <button type="button" onClick={onOpen} data-testid="flips-open-regressions" className="kpi">
+          <div className={`n ${regressions.length > 0 ? 'fail' : 'ok'}`}>
+            {formatCount(regressions.length)}
           </div>
+          <div className="b">
+            pass → fail of {formatCount(comparison.n_compared)} compared
+          </div>
+          <div className="act">open the rows →</div>
         </button>
 
-        <button
-          type="button"
-          onClick={onOpen}
-          data-testid="flips-open-improvements"
-          className={cn(
-            'group min-w-0 rounded-md border border-line bg-panel-2 p-2.5 text-left',
-            'transition-colors hover:border-good-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber',
-          )}
-        >
-          <div className="mono-caps">fail → pass</div>
-          <div className="type-hud mt-1 text-good">{formatCount(improvements.length)}</div>
-          <div className="type-meta mt-1 text-faint group-hover:text-amber">
-            open the rows &rarr;
+        <button type="button" onClick={onOpen} data-testid="flips-open-improvements" className="kpi">
+          <div className="n ok">{formatCount(improvements.length)}</div>
+          <div className="b">
+            fail → pass of {formatCount(comparison.n_compared)} compared
           </div>
+          <div className="act">open the rows →</div>
         </button>
 
-        <div className="min-w-0 rounded-md border border-line bg-panel-2 p-2.5">
-          <div className="mono-caps">accuracy delta</div>
-          <div
-            className={cn(
-              'type-hud mt-1',
-              comparison.accuracy_delta >= 0 ? 'text-good' : 'text-bad',
-            )}
-          >
-            {formatPointsDelta(comparison.accuracy_delta)}
-          </div>
-          <div className="type-meta mt-1 text-faint">
-            {formatPercent(comparison.baseline_accuracy)} →{' '}
+        <div className="kpi">
+          <div className={`n ${delta >= 0 ? 'ok' : 'fail'}`}>{formatPointsDelta(delta)}</div>
+          <div className="b">
+            accuracy, {formatPercent(comparison.baseline_accuracy)} →{' '}
             {formatPercent(comparison.candidate_accuracy)}
           </div>
         </div>
 
-        <div className="min-w-0 rounded-md border border-line bg-panel-2 p-2.5">
-          <div className="mono-caps">compared on</div>
-          <div className="type-hud mt-1 text-text">{formatCount(comparison.n_compared)}</div>
-          <div className="type-meta mt-1 text-faint">questions both versions answered</div>
+        <div className="kpi">
+          <div className="n">{formatCount(comparison.n_compared)}</div>
+          <div className="b">questions both versions answered</div>
         </div>
       </div>
 
-      <p className="type-meta rounded-[4px] border border-line border-dashed px-2 py-1.5 text-faint">
+      <p className="callout note">
         Promotion needs accuracy ≥ champion <em>and</em> zero pass→fail flips. Accuracy alone would
         let &ldquo;fixed the numbers, broke the programs&rdquo; through — which is precisely the
         shape of the {formatCount(improvements.length)}/{formatCount(regressions.length)} split
         above. Enforced in <code>tracking/comparator.py</code>, gated in CI by{' '}
         <code>tracking/gate.py</code>.
       </p>
-    </div>
+    </>
   );
 }
 
@@ -204,16 +181,12 @@ export function FlipsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        data-testid="flips-drawer"
-        className="w-full gap-0 overflow-y-auto border-line bg-ground p-0 sm:max-w-[min(96vw,880px)]"
-      >
-        <SheetHeader className="border-b border-line px-4 py-3">
-          <SheetTitle className="type-h2">
-            {baseline} → {candidate}
+      <SheetContent side="right" data-testid="flips-drawer" className="flips-sheet">
+        <SheetHeader>
+          <SheetTitle>
+            {versionLabel(baseline)} → {versionLabel(candidate)}
           </SheetTitle>
-          <SheetDescription className="type-small text-muted">
+          <SheetDescription>
             Every question whose result changed between the two versions.{' '}
             {comparison.promotable
               ? 'This pair clears the promotion contract.'
@@ -221,15 +194,15 @@ export function FlipsDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-w-0 flex-col gap-3 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="sheet-body">
+          <p className="verdict-line">
             <Verdict ok={comparison.promotable}>
               {comparison.promotable ? 'promotable' : 'refused'}
             </Verdict>
-            <span className="type-small text-muted">{comparison.reason}</span>
-          </div>
+            <span className="small">{comparison.reason}</span>
+          </p>
 
-          <div className="flex flex-wrap gap-1.5" role="tablist">
+          <div className="seg" role="tablist" aria-label="Which flips">
             {(['regressions', 'improvements'] as const).map((key) => {
               const count =
                 key === 'regressions'
@@ -243,12 +216,7 @@ export function FlipsDrawer({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(key)}
-                  className={cn(
-                    'rounded-[4px] border px-2 py-1 font-mono text-[10px] tracking-[0.07em] uppercase',
-                    active
-                      ? 'border-amber-line bg-amber-soft text-amber'
-                      : 'border-line text-faint hover:text-text',
-                  )}
+                  className={active ? 'on' : undefined}
                 >
                   {key === 'regressions' ? 'pass → fail' : 'fail → pass'} · {count}
                 </button>
@@ -271,38 +239,31 @@ export function FlipsDrawer({
           />
 
           {sliceKeys.length > 0 && (
-            <div className="min-w-0 rounded-md border border-line bg-panel p-3">
-              <h3 className="type-body mb-2 font-medium text-text">Slice deltas</h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <section>
+              <h3>Slice deltas — where the accuracy moved</h3>
+              <div className="grid2">
                 {sliceKeys.map((key) => (
-                  <div key={key} className="min-w-0">
-                    <div className="mono-caps mb-1">{key.replace(/^gold_/, '')}</div>
-                    <ul className="flex flex-col gap-0.5">
+                  <div key={key}>
+                    <p className="label">{key.replace(/^gold_/, '')}</p>
+                    <dl className="kv">
                       {Object.entries(comparison.slice_deltas[key]).map(([label, delta]) => (
-                        <li
-                          key={label}
-                          className="flex items-baseline justify-between gap-3 border-b border-line py-0.5 last:border-0"
-                        >
-                          <span className="type-small text-muted">{label}</span>
-                          <span
-                            className={cn(
-                              'type-num text-[11px]',
-                              delta > 0 ? 'text-good' : delta < 0 ? 'text-bad' : 'text-faint',
-                            )}
-                          >
+                        <Fragment key={label}>
+                          <dt>{label}</dt>
+                          <dd className={`num ${delta > 0 ? 'v-ok' : delta < 0 ? 'v-fail' : 'muted'}`}>
+                            {delta > 0 ? '▲ ' : delta < 0 ? '▼ ' : ''}
                             {formatPointsDelta(delta)}
-                          </span>
-                        </li>
+                          </dd>
+                        </Fragment>
                       ))}
-                    </ul>
+                    </dl>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {comparison.notes.length > 0 && (
-            <ul className="type-meta flex flex-col gap-1 text-faint">
+            <ul className="notes">
               {comparison.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}

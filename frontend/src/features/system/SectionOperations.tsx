@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Status } from '@/kit/ui';
+import type { StatusTone } from '@/kit/ui';
 import { formatCount } from '../landing/format';
+import { versionLabel } from '../admin/lib';
 import { OPEN_WORK } from './benchmark';
 import type { OpenStatus } from './benchmark';
 import { DeployDiagram, ObservabilityDiagram } from './diagrams';
@@ -21,9 +23,10 @@ import {
   Th,
 } from './ui';
 import type { SystemData } from './useSystemData';
+import './system.css';
 
 // ---------------------------------------------------------------------------
-// 09 · Observability
+// 04 · Observability
 // ---------------------------------------------------------------------------
 
 interface SignalRow {
@@ -84,10 +87,10 @@ const SIGNALS: SignalRow[] = [
   },
 ];
 
-const STATE_STYLE: Record<SignalRow['state'], string> = {
-  yes: 'text-good',
-  partial: 'text-amber',
-  no: 'text-bad',
+const STATE_TONE: Record<SignalRow['state'], StatusTone> = {
+  yes: 'ok',
+  partial: 'warn',
+  no: 'err',
 };
 
 const STATE_WORD: Record<SignalRow['state'], string> = {
@@ -103,9 +106,9 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
   return (
     <Section
       id="observability"
-      index={9}
+      index={4}
       eyebrow="observability"
-      title="What is captured, what is not, and who decided"
+      title="Every turn is recorded; per-call spans are built, then dropped"
       lede={
         <>
           Three layers exist. One of them reaches nothing, on purpose, and this section says so
@@ -114,41 +117,36 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <Panel>
-        <ObservabilityDiagram />
-      </Panel>
+      <ObservabilityDiagram />
 
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="sys-cols">
         <Panel>
-          <div className="mb-1.5 flex items-center gap-2">
-            <Lamp state="replay" />
-            <span className="mono-caps">1 · OpenTelemetry spans</span>
-          </div>
-          <Prose className="type-small">
+          <PanelTitle>
+            <Lamp state="replay" /> 1 · OpenTelemetry spans
+          </PanelTitle>
+          <Prose className="small">
             Every HTTP request, every agent run, every model request with its tokens, every tool
             call and every turn is wrapped in a span through the Logfire SDK. Export is configured
             as <Mono>if-token-present</Mono>, and no token is set locally, in the container image,
             in the infrastructure or in CI. The spans are built on every turn and thrown away.
           </Prose>
-          <p className="type-meta mt-2 text-faint">Who can see this today: nobody.</p>
+          <p className="small muted">Who can see this today: nobody.</p>
         </Panel>
 
         <Panel>
-          <div className="mb-1.5 flex items-center gap-2">
-            <Lamp state="good" />
-            <span className="mono-caps">2 · the per-turn trace store</span>
-          </div>
-          <Prose className="type-small">
+          <PanelTitle>
+            <Lamp state="good" /> 2 · the per-turn trace store
+          </PanelTitle>
+          <Prose className="small">
             One SQLite row per turn: each stage’s input, output, reasoning and tool trajectory,
             plus latency, tokens, cost, the answer, the gold answer, whether it was right, the
             bundle id, any error code, and a <Mono>source</Mono> of serving, demo or eval so live
             and replayed turns are never summed.
           </Prose>
-          <div className="mt-2 space-y-1">
-            <p className="type-meta">
-              capture{' '}
-              <span className={captureEnabled === false ? 'text-bad' : 'text-good'}>
-                <Live
+          <p className="small">
+            capture{' '}
+            <span className={captureEnabled === false ? 'v-fail' : captureEnabled ? 'v-ok' : undefined}>
+              <Live
                   value={
                     captureEnabled === undefined
                       ? null
@@ -156,34 +154,30 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
                         ? 'enabled'
                         : 'disabled'
                   }
-                  reason="/metrics/production did not answer"
-                />
-              </span>
-              {typeof nTurns === 'number' && (
-                <>
-                  {' '}
-                  · <span className="type-num">{formatCount(nTurns)}</span> turns held
-                </>
-              )}
-            </p>
-            <p className="type-meta text-faint">
-              Everyone can see this — it is the layer the decision kept.
-            </p>
-          </div>
+                reason="/metrics/production did not answer"
+              />
+            </span>
+            {typeof nTurns === 'number' && (
+              <>
+                {' '}
+                · <span className="num">{formatCount(nTurns)}</span> turns held
+              </>
+            )}
+          </p>
+          <p className="small muted">Everyone can see this — it is the layer the decision kept.</p>
         </Panel>
 
         <Panel>
-          <div className="mb-1.5 flex items-center gap-2">
-            <Lamp state="good" />
-            <span className="mono-caps">3 · experiment tracking</span>
-          </div>
-          <Prose className="type-small">
+          <PanelTitle>
+            <Lamp state="good" /> 3 · experiment tracking
+          </PanelTitle>
+          <Prose className="small">
             Evaluation, GEPA and s7 runs with their metrics and artefacts, champion and challenger
             aliases, and an append-only promotion history. Live from MLflow in development; the
             demo image reads a committed export of the same thing, so the history survives a
             container with no database.
           </Prose>
-          <p className="type-meta mt-2 text-faint">Everyone can see this.</p>
+          <p className="small muted">Everyone can see this.</p>
         </Panel>
       </div>
 
@@ -217,13 +211,11 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
             <tbody>
               {SIGNALS.map((row) => (
                 <tr key={row.signal}>
-                  <Td className="text-text">{row.signal}</Td>
-                  <Td>{row.exists}</Td>
-                  <Td>{row.visible}</Td>
-                  <Td>
-                    <span className={cn('type-num whitespace-nowrap', STATE_STYLE[row.state])}>
-                      {STATE_WORD[row.state]}
-                    </span>
+                  <Td className="sub wrap">{row.signal}</Td>
+                  <Td className="wrap">{row.exists}</Td>
+                  <Td className="wrap">{row.visible}</Td>
+                  <Td className="nowrap">
+                    <Status tone={STATE_TONE[row.state]}>{STATE_WORD[row.state]}</Status>
                   </Td>
                 </tr>
               ))}
@@ -233,12 +225,7 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
         <Provenance origin="code">
           verified against <Mono>serving/app.py</Mono>, <Mono>tracking/traces.py</Mono> and{' '}
           <Mono>serving/routes/metrics.py</Mono>.{' '}
-          <Link
-            to="/runs/traces"
-            className="text-amber underline decoration-amber-line underline-offset-4"
-          >
-            Open the turns →
-          </Link>
+          <Link to="/runs/traces">Open the turns →</Link>
         </Provenance>
       </div>
 
@@ -259,7 +246,7 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
 }
 
 // ---------------------------------------------------------------------------
-// 10 · Deploy
+// 05 · Deploy
 // ---------------------------------------------------------------------------
 
 const GATE_LAYERS = [
@@ -284,9 +271,9 @@ export function DeploySection({ data }: { data: SystemData }) {
   return (
     <Section
       id="deploy"
-      index={10}
+      index={5}
       eyebrow="deployment"
-      title="One image, two deployments, and no way for infrastructure to make it billable"
+      title="One image; infrastructure cannot make the public URL billable"
       lede={
         <>
           The same container runs in development with a key and in public without one. The switch is
@@ -295,21 +282,19 @@ export function DeploySection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <Panel>
-        <DeployDiagram />
-      </Panel>
+      <DeployDiagram />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="sys-two">
         <Panel>
           <PanelTitle>the demo gate — three layers, all three required</PanelTitle>
-          <ol className="type-small ml-4 list-decimal space-y-2 text-muted marker:text-faint">
+          <ol className="steps">
             {GATE_LAYERS.map((l) => (
-              <li key={l.layer}>
-                <span className="text-text">{l.layer}</span> — {l.detail}
+              <li key={l.layer} className="small">
+                <b>{l.layer}</b> — {l.detail}
               </li>
             ))}
           </ol>
-          <Prose className="mt-3">
+          <Prose>
             The public container holds no API key at all, so even a bug that got past all three
             would have nothing to spend.
           </Prose>
@@ -317,15 +302,13 @@ export function DeploySection({ data }: { data: SystemData }) {
 
         <Panel>
           <PanelTitle>this deployment, right now</PanelTitle>
-          <div className="space-y-2.5">
+          <div className="sys-fields">
             <Field label="mode" note="demo deployments are keyless and replay recorded turns">
-              <span className="inline-flex items-center gap-2">
-                <Lamp state={data.isDemo ? 'replay' : 'good'} />
-                <Live value={data.health?.mode} reason="/healthz did not answer" />
-              </span>
+              <Lamp state={data.isDemo ? 'replay' : 'good'} />
+              <Live value={data.health?.mode} reason="/healthz did not answer" />
             </Field>
             <Field label="champion" note="the version answering questions here">
-              <Live value={data.health?.champion} reason="/healthz did not answer" />
+              <Live value={versionLabel(data.health?.champion) || null} reason="/healthz did not answer" />
             </Field>
             <Field label="code_sha" note="baked in at image build time">
               <Live value={data.health?.bundle.code_sha} reason="/healthz did not answer" />
@@ -347,7 +330,7 @@ export function DeploySection({ data }: { data: SystemData }) {
 
       <Panel>
         <PanelTitle>the pipeline from commit to public URL</PanelTitle>
-        <ul className="type-small space-y-2 text-muted">
+        <ul className="sys-list">
           <li>
             GitHub Actions assumes an AWS role over OIDC. There is no stored access key in the
             repository or in the workflow — the credential is minted per run and expires with it.
@@ -378,7 +361,7 @@ export function DeploySection({ data }: { data: SystemData }) {
 }
 
 // ---------------------------------------------------------------------------
-// 11 · Make a new version
+// 06 · Make a new version
 // ---------------------------------------------------------------------------
 
 const STEPS: Array<{ title: string; body: string; cmd?: string }> = [
@@ -413,9 +396,9 @@ export function NewVersionSection() {
   return (
     <Section
       id="new-version"
-      index={11}
+      index={6}
       eyebrow="operating it"
-      title="Make a new version, in five steps"
+      title="A new version is five commands, each leaving an artefact"
       lede={
         <>
           Nothing here is a wrapper around a hidden process. Each step is a command, each command
@@ -424,21 +407,17 @@ export function NewVersionSection() {
         </>
       }
     >
-      <ol className="space-y-2.5">
+      <ol className="sys-items">
         {STEPS.map((step, i) => (
-          <li key={step.title} className="min-w-0 rounded-md border border-line bg-panel p-3.5">
-            <div className="flex items-baseline gap-2.5">
-              <span className="type-num shrink-0 text-amber">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <p className="type-body font-medium text-text">{step.title}</p>
-                <p className="type-small mt-1 max-w-[68ch] text-muted">{step.body}</p>
-                {step.cmd && (
-                  <pre className="mt-2 overflow-x-auto rounded-sm border border-line-2 bg-ground p-2 text-[11px] leading-relaxed text-muted">
-                    {step.cmd}
-                  </pre>
-                )}
+          <li key={step.title} className="card">
+            <p className="label">step {i + 1} of {STEPS.length}</p>
+            <h3>{step.title}</h3>
+            <p className="small">{step.body}</p>
+            {step.cmd && (
+              <div className="code band">
+                <pre>{step.cmd}</pre>
               </div>
-            </div>
+            )}
           </li>
         ))}
       </ol>
@@ -455,7 +434,7 @@ export function NewVersionSection() {
 }
 
 // ---------------------------------------------------------------------------
-// 12 · Open work
+// 07 · Open work
 // ---------------------------------------------------------------------------
 
 const STATUS_LABEL: Record<OpenStatus, string> = {
@@ -464,49 +443,48 @@ const STATUS_LABEL: Record<OpenStatus, string> = {
   deferred: 'deliberately deferred',
 };
 
-const STATUS_CLASS: Record<OpenStatus, string> = {
-  broken: 'border-bad/55 text-bad',
-  open: 'border-amber-line text-amber',
-  deferred: 'border-line-2 text-faint',
+const STATUS_TONE: Record<OpenStatus, StatusTone> = {
+  broken: 'err',
+  open: 'warn',
+  deferred: 'no',
 };
+
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
 
 export function OpenWorkSection({ data }: { data: SystemData }) {
   const broken = OPEN_WORK.filter((i) => i.status === 'broken');
   const rest = OPEN_WORK.filter((i) => i.status !== 'broken');
   const ordered = [...broken, ...rest];
+  const nOpen = OPEN_WORK.filter((i) => i.status === 'open').length;
+  const nDeferred = OPEN_WORK.filter((i) => i.status === 'deferred').length;
 
   return (
     <Section
       id="open-work"
-      index={12}
+      index={7}
       eyebrow="open work"
-      title="What is broken, what is unfinished, and what was left out on purpose"
+      title={`${plural(broken.length, 'thing is', 'things are')} broken today; ${nOpen} open, ${nDeferred} deferred`}
       lede={
         <>
-          Two of the items below do not work right now. They are first, they are labelled broken,
+          {plural(broken.length, 'item below does', 'items below do')} not work right now. They are first, they are labelled broken,
           and they say what does not work as a result. A debrief that lists only future work is a
           roadmap, and this page is worth reading only if it is true.
         </>
       }
     >
-      <ul className="space-y-2.5">
+      <ul className="sys-items">
         {ordered.map((item) => (
-          <li key={item.title} className="min-w-0 rounded-md border border-line bg-panel p-3.5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="type-body font-medium text-text">{item.title}</span>
-              <span
-                className={cn(
-                  'mono-caps shrink-0 rounded-sm border px-1.5 py-px',
-                  STATUS_CLASS[item.status],
-                )}
-              >
-                {STATUS_LABEL[item.status]}
+          <li key={item.title} className="card" data-status={item.status}>
+            <div className="sys-card-head">
+              <h3>{item.title}</h3>
+              <span className="small">
+                <Status tone={STATUS_TONE[item.status]}>{STATUS_LABEL[item.status]}</Status>
               </span>
             </div>
-            <p className="type-small mt-1.5 max-w-[72ch] text-muted">{item.body}</p>
-            {item.where && (
-              <p className="type-num mt-1.5 text-[10.5px] text-faint">{item.where}</p>
-            )}
+            <p className="small">{item.body}</p>
+            {item.where && <p className="sys-where">{item.where}</p>}
           </li>
         ))}
       </ul>
@@ -514,7 +492,7 @@ export function OpenWorkSection({ data }: { data: SystemData }) {
       {data.failures.length > 0 && (
         <Callout tone="note" title="Live reads that did not answer while this page was loaded">
           <p>
-            <span className="type-num">{data.failures.join(' · ')}</span>. Everything static on this
+            <span className="mono">{data.failures.join(' · ')}</span>. Everything static on this
             page still stands; the live values above print an em dash rather than a remembered
             number. If the backend is not running, that is the expected appearance.
           </p>

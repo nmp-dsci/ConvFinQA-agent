@@ -11,6 +11,8 @@ a:hover{text-decoration-thickness:2px}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-sm)}
 code,pre,.mono{font-family:var(--mono);font-size:var(--t-1)}
 pre{margin:0;white-space:pre-wrap;word-break:break-word}
+/* a path or id inside prose has no space to break at; without this one long path widens the page */
+p code,li code,dd code,figcaption code,.small code,.callout code{overflow-wrap:anywhere}
 h1,h2,h3{margin:0;text-wrap:balance}
 h1{font:400 var(--t4)/1.15 var(--serif);letter-spacing:0}
 h1 em{font-style:italic;color:var(--accent)}
@@ -173,9 +175,10 @@ pre.wrap-any{white-space:pre-wrap;word-break:break-word}
 .code.diff .ctx{display:block;color:var(--ink-2)}
 
 /* ── bars and rates ─────────────────────────────────────────────────────── */
-.bar{display:inline-block;height:.6em;background:var(--accent);border-radius:2px;vertical-align:middle;margin-right:var(--s2)}
-.bar.warn{background:var(--amber)}
-.bar.zero{background:var(--line-3);width:2px}
+/* HTML bars only: a bare `.bar` would set a CSS height on SVG rects (`.dia .bar`) and override their geometry */
+span.bar,i.bar{display:inline-block;height:.6em;background:var(--accent);border-radius:2px;vertical-align:middle;margin-right:var(--s2)}
+span.bar.warn,i.bar.warn{background:var(--amber)}
+span.bar.zero,i.bar.zero{background:var(--line-3);width:2px}
 .ratecell{display:inline-flex;align-items:center;gap:var(--s2);white-space:nowrap}
 .ratecell .track{display:inline-block;width:6rem;height:.6em;background:var(--line);border-radius:2px;overflow:hidden}
 .ratecell .track i{display:block;height:100%;background:var(--accent)}

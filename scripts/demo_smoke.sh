@@ -76,6 +76,13 @@ readiness_rows="$(curl -fsS --max-time 20 "$BASE/eval/readiness" \
   || fail "readiness scorecard unreachable — evaluation/readiness.json is not in the image"
 [[ "$readiness_rows" -eq 9 ]] || fail "readiness has $readiness_rows rows, expected 9"
 
+# 3e. The Gold review tab reads the committed diagnoses ledger. Missing from the image, the
+#     route answers an empty payload with a reason — legitimate in dev, a deploy bug here.
+gold_cases="$(curl -fsS --max-time 20 "$BASE/eval/gold-review" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("cases") or []))')" \
+  || fail "gold review unreachable"
+[[ "$gold_cases" -gt 0 ]] || fail "gold review has no cases — evaluation/diagnostics/evalloop/diagnoses.jsonl is not in the image"
+
 # 3e. The recorded traces are served. A cold container has answered nothing, so
 #     without the committed snapshot the Traces page and every production-metric
 #     card are empty here while dev shows thousands of scored turns.
@@ -158,4 +165,4 @@ for slot in / /filings /scoring /leaderboard /runs /optimise /agent /gold; do
     || fail "$slot did not render the app"
 done
 
-echo "SMOKE PASS: $BASE — mode=demo, $versions eval runs, $reports recorded reports, $readiness_rows readiness rows, $trace_turns traces, writes refused"
+echo "SMOKE PASS: $BASE — mode=demo, $versions eval runs, $reports recorded reports, $readiness_rows readiness rows, $gold_cases gold-review cases, $trace_turns traces, writes refused"

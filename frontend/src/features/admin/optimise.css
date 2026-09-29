@@ -1,0 +1,65 @@
+/* Optimise › Campaigns (/optimise) and Rule research (/optimise/research), and the progression
+   chart the Overview and Runtimes pages borrow. Tokens only; everything else is kit vocabulary. */
+
+/* ── series: one house colour and one dash per line, each named in a worded key ─────────────── */
+.s-overall{--c:var(--ink)}
+.s-triage{--c:var(--ink-2)}
+.s-preprocess{--c:var(--amber)}
+.s-retriever{--c:var(--accent)}
+.s-calculator{--c:var(--ok)}
+.s-human{--c:var(--amber)}
+.s-incumbent{--c:var(--ink-2)}
+
+.opt-chart .ln{fill:none;stroke:var(--c);stroke-width:1.6;stroke-linejoin:round}
+.opt-chart .ln.s-overall{stroke-width:2.6}
+.opt-chart .ln.s-triage{stroke-dasharray:6 4}
+.opt-chart .ln.s-calculator{stroke-dasharray:2 3}
+.opt-chart .dot{fill:var(--c);stroke:var(--panel);stroke-width:1}
+.opt-chart .tx.lbl{fill:var(--c)}
+
+.opt-key{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);margin-top:var(--s3);font-size:var(--t-1);color:var(--ink-2)}
+.opt-key>span{display:inline-flex;align-items:center;gap:var(--s2)}
+.opt-key>span::before{content:'';width:20px;border-top:2px solid var(--c)}
+.opt-key>.s-overall::before{border-top-width:3px}
+.opt-key>.s-triage::before,.opt-key>.dash::before{border-top-style:dashed}
+.opt-key>.s-calculator::before{border-top-style:dotted}
+.opt-key .sub{color:var(--muted)}
+figcaption .opt-key{margin:0 0 var(--s2)}
+
+/* ── claim-headed sections inside the admin stack (the stack's gap already spaces them) ────── */
+.opt-sec{min-width:0}
+.opt-sec>h2{margin-top:var(--s3)}
+
+/* ── the experiment list: one row each, opened in place ───────────────────────────────────── */
+.opt-exp tr.detail>td{background:var(--band);padding:var(--s4);white-space:normal}
+.opt-exp tr.detail .round-open{margin:0}
+.opt-exp tr.detail .round-open h3{margin-top:0}
+.opt-diff pre{max-height:20rem;overflow:auto}
+.opt-run{margin-top:var(--s4)}
+.opt-run .kv{grid-template-columns:minmax(8rem,auto) minmax(0,1fr)}
+.opt-run .kv dt{text-transform:none;letter-spacing:0}
+
+/* ── forms inside a WriteGate ─────────────────────────────────────────────────────────────── */
+.opt-field{display:inline-flex;align-items:center;gap:var(--s2)}
+.opt-field select{font-family:var(--mono)}
+.opt-field input[type=number]{font:400 var(--t-1)/1.5 var(--mono);color:var(--ink);background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:var(--s2) var(--s3);min-height:36px;width:5.5rem}
+.opt-msg{margin-top:var(--s3)}
+
+/* ── research: jobs ───────────────────────────────────────────────────────────────────────── */
+.opt-job .code pre{max-height:14rem;overflow:auto}
+.opt-jobs{list-style:none;padding:0;margin:var(--s3) 0 0;display:grid;gap:var(--s2)}
+.opt-jobs li{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s1) var(--s3);font-size:var(--t-1)}
+
+/* ── the progression: one bar per stage on a zero baseline ────────────────────────────────── */
+.prog .bar.pipeline_raw{fill:var(--line-2)}
+.prog .bar.pipeline_optimised{fill:var(--ink-2)}
+.prog .bar.sdk_distilled{fill:var(--accent)}
+.prog .bar.sdk_optimised{fill:var(--line-3)}
+.prog .bar.sdk_model_swap{fill:var(--ok)}
+.prog .bar.rejected{stroke:var(--line-3);stroke-width:1.2;stroke-dasharray:4 3}
+.prog .hatch{stroke:var(--line-3);stroke-width:1.5}
+.prog .slot{fill:none;stroke:var(--line-2);stroke-dasharray:4 4}
+.prog .step{fill:none;stroke:var(--ink-2);stroke-opacity:.45;stroke-width:1.2}
+.prog .ref{stroke:var(--c);stroke-width:1.6;stroke-dasharray:6 4}
+.prog .tx.ref-t{fill:var(--c)}
+.prog .tx.num{font-family:var(--mono)}

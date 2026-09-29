@@ -1,4 +1,3 @@
-import { FileText, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -66,11 +65,15 @@ export function CommandPalette() {
             onSelect={() => run(() => openPicker())}
             data-testid="palette-new-conversation"
           >
-            <Plus aria-hidden />
+            <span className="ch-glyph" aria-hidden>
+              +
+            </span>
             New conversation
           </CommandItem>
           <CommandItem value="browse all filings" onSelect={() => run(() => openPicker())}>
-            <Search aria-hidden />
+            <span className="ch-glyph" aria-hidden>
+              ⌕
+            </span>
             Browse all filings…
           </CommandItem>
         </CommandGroup>
@@ -84,12 +87,14 @@ export function CommandPalette() {
               value={`${page.label} ${page.to}`}
               onSelect={() => run(() => navigate(page.to))}
             >
+              <span className="ch-glyph" aria-hidden>
+                →
+              </span>
               {page.label}
               <CommandShortcut>{page.to}</CommandShortcut>
             </CommandItem>
           ))}
         </CommandGroup>
-
 
         {reports.length > 0 && (
           <>
@@ -101,8 +106,10 @@ export function CommandPalette() {
                   value={rid}
                   onSelect={() => run(() => void selectReport(rid))}
                 >
-                  <FileText aria-hidden />
-                  <span className="type-num type-small truncate">{rid}</span>
+                  <span className="ch-glyph" aria-hidden>
+                    ▤
+                  </span>
+                  <span className="mono ch-trunc">{rid}</span>
                   <CommandShortcut>{shortRid(rid)}</CommandShortcut>
                 </CommandItem>
               ))}

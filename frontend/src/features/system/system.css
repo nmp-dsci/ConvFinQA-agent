@@ -1,0 +1,57 @@
+/* The Agent, Scoring and Leaderboard long-form pages (features/system). Tokens only; the kit and
+   app.css carry the vocabulary, this file carries only what these pages add. */
+
+/* ── layout ─────────────────────────────────────────────────────────────── */
+.sys-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:var(--s4);align-items:start}
+.sys-cols>*{min-width:0}
+.sys-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--s5);align-items:start}
+.sys-two>*{min-width:0}
+.sys-two>figure{margin-top:0}
+.sys-fields{display:grid;gap:var(--s3)}
+.sys-fields.cols{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:var(--s3) var(--s5)}
+.sys-list{margin:var(--s2) 0 0;padding-left:1.2em;display:grid;gap:var(--s2);color:var(--ink-2);font-size:var(--t-1);max-width:var(--measure)}
+.sys-list b{color:var(--ink);font-weight:500}
+.sys-action{margin-top:var(--s5)}
+.doc-section .panel>.label.fig-title{margin-top:0}
+.doc-section .panel>p:first-of-type{margin-top:0}
+.doc-section .panel .callout{max-width:none}
+.sys-gap{margin-top:var(--s3)}
+
+/* ── list items as cards (open work, the five steps) ─────────────────────── */
+.sys-items{list-style:none;margin:0;padding:0;display:grid;gap:var(--s3)}
+.sys-items>li{min-width:0}
+.sys-card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:var(--s2) var(--s3)}
+.sys-card-head h3{margin:0}
+.sys-items .code{margin-top:var(--s3)}
+.sys-where{margin-top:var(--s2);font:400 var(--t-2)/1.5 var(--mono);color:var(--faint);overflow-wrap:anywhere}
+
+/* ── legends ────────────────────────────────────────────────────────────── */
+.sys-legend{list-style:none;margin:var(--s2) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4);font-size:var(--t-1);color:var(--muted)}
+.sys-legend li{display:inline-flex;align-items:center;gap:var(--s1)}
+.sys-legend .sw.g{background:var(--line-3)}
+.sys-legend .ln{display:inline-block;width:1.4em;height:0;border-top:2px solid var(--accent);vertical-align:middle;margin-right:.25em}
+.sys-legend .ln.b{border-top:2px dashed var(--line-3)}
+.sys-legend .ln.ref{border-top:2px dashed var(--ink)}
+
+/* ── proportion bars (HTML, so their labels stay at reading size) ─────────── */
+.sys-bars{list-style:none;margin:var(--s3) 0 0;padding:0;display:grid;gap:var(--s3)}
+.sys-bars li{min-width:0}
+.sys-bars .hd{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);font-size:var(--t-1);color:var(--ink)}
+.sys-bars .hd .num{color:var(--muted);flex:none}
+.sys-bars .why{margin-top:var(--s1);font-size:var(--t-2);color:var(--faint)}
+.sys-track{display:block;height:6px;margin-top:var(--s1);background:var(--line);border-radius:2px;overflow:hidden}
+.sys-track>i{display:block;height:100%;background:var(--ink-2)}
+.sys-track>i.acc{background:var(--accent)}
+.sys-track.mini{height:4px;min-width:4rem}
+
+/* ── the slice chart: three bars and the human reference on one 0–100 axis ─ */
+.sys-slice .tracks{position:relative;display:grid;gap:2px;margin-top:var(--s1);padding:3px 0;background:var(--band);border-radius:2px}
+.sys-slice .tracks i{display:block;height:6px;border-radius:0 2px 2px 0}
+.sys-slice .tracks i.f{background:var(--ink-2)}
+.sys-slice .tracks i.g{background:var(--line-3)}
+.sys-slice .tracks i.o{background:var(--accent)}
+.sys-slice .tracks .ref{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--ink)}
+
+/* ── the leaderboard figure ─────────────────────────────────────────────── */
+.lb-rank{color:var(--faint)}
+td.sub.lb-sys{white-space:normal;min-width:18rem}

@@ -1,7 +1,5 @@
-import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import { useStore } from '../../store';
 import type { Message } from '../../types';
 import { ChatEmpty } from './ChatEmpty';
@@ -12,6 +10,7 @@ import { ReportPicker } from './ReportPicker';
 import { SessionsPane } from './SessionsPane';
 import { Thread } from './Thread';
 import { useMediaQuery } from './useMediaQuery';
+import './chat.css';
 
 const INSPECTOR_KEY = 'convfinqa.inspectorWidth';
 const INSPECTOR_MIN = 240;
@@ -31,8 +30,8 @@ function storedWidth(): number {
 /**
  * The Console's chat: sessions · thread · docked inspector.
  *
- * The rail, the sessions pane and the inspector sit at `--ground`; the thread
- * is the one lit surface at `--panel`. The inspector is docked rather than
+ * The sessions pane and the inspector are `--panel` chrome split by `--line`;
+ * the thread sits on `--bg` with each turn a card. The inspector is docked rather than
  * modal on purpose — a system whose selling point is that it shows its work
  * cannot put the work behind a click.
  *
@@ -150,7 +149,7 @@ export function ChatRoute() {
   );
 
   return (
-    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-ground">
+    <div className="ch-root">
       {/*
         Both panes are <aside>, so both expose the `complementary` landmark.
         Without names a screen-reader's landmark list reads "complementary,
@@ -158,14 +157,7 @@ export function ChatRoute() {
         is which — axe's `landmark-unique`, and a real navigation cost on a
         three-pane layout whose whole point is moving between the panes.
       */}
-      <aside
-        aria-label="Sessions"
-        className={cn(
-          'z-30 w-[210px] shrink-0 flex-col border-r border-line bg-ground',
-          'max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:shadow-xl',
-          sessionsOpen ? 'flex' : 'hidden md:flex'
-        )}
-      >
+      <aside aria-label="Sessions" className={`ch-sessions${sessionsOpen ? ' open' : ''}`}>
         <SessionsPane
           onNew={() => {
             setSessionsOpen(false);
@@ -179,38 +171,27 @@ export function ChatRoute() {
           type="button"
           aria-label="Close the sessions pane"
           onClick={() => setSessionsOpen(false)}
-          className="absolute inset-0 z-20 bg-black/40 md:hidden"
+          className="ch-scrim ch-narrow-md"
         />
       )}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="ch-main">
         {!activeReportId || !conversation ? (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <>
             <ChatEmptyHeader onShowSessions={() => setSessionsOpen(true)} />
             <ChatEmpty />
-          </div>
+          </>
         ) : (
-          <div className="flex min-h-0 min-w-0 flex-1">
-            <div className="flex w-8 shrink-0 flex-col items-center border-r border-line bg-ground pt-2 md:hidden">
-              <button
-                type="button"
-                onClick={() => setSessionsOpen(true)}
-                aria-label="Show sessions"
-                className="rounded-[4px] border border-line-2 p-1 text-muted"
-              >
-                <PanelLeft className="size-3" aria-hidden />
-              </button>
-            </div>
-            <Thread
-              conversation={conversation}
-              selectedId={selectedMessage?.id ?? null}
-              onSelect={setSelectedId}
-              docOpen={docOpen}
-              onToggleDoc={() => setDocOpen((v) => !v)}
-              selectedMessage={selectedMessage}
-              onToggleInspector={() => setInspectorOpen(true)}
-            />
-          </div>
+          <Thread
+            conversation={conversation}
+            selectedId={selectedMessage?.id ?? null}
+            onSelect={setSelectedId}
+            docOpen={docOpen}
+            onToggleDoc={() => setDocOpen((v) => !v)}
+            selectedMessage={selectedMessage}
+            onShowSessions={() => setSessionsOpen(true)}
+            onToggleInspector={() => setInspectorOpen(true)}
+          />
         )}
       </div>
 
@@ -246,28 +227,31 @@ export function ChatRoute() {
               /* the width holds for this session and no longer */
             }
           }}
-          className="w-1 shrink-0 cursor-col-resize bg-line transition-colors hover:bg-amber-line focus-visible:bg-amber"
+          className="ch-resize"
+        />
+      )}
+
+      {inspectorOpen && (
+        <button
+          type="button"
+          aria-label="Close the trace inspector"
+          onClick={() => setInspectorOpen(false)}
+          className="ch-scrim ch-narrow-xl"
         />
       )}
 
       <aside
         aria-label="Trace inspector"
         style={wide ? { width } : undefined}
-        className={cn(
-          'z-30 shrink-0 flex-col border-l border-line bg-ground',
-          'max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:w-[min(320px,88vw)] max-xl:shadow-xl',
-          inspectorOpen ? 'flex' : 'hidden xl:flex'
-        )}
+        className={`ch-inspector${inspectorOpen ? ' open' : ''}`}
       >
         {inspectorOpen && (
-          <button
-            type="button"
-            onClick={() => setInspectorOpen(false)}
-            className="type-num type-meta flex shrink-0 items-center justify-between border-b border-line px-2.5 py-1.5 text-left text-muted transition-colors hover:text-amber xl:hidden"
-          >
-            <span className="mono-caps">trace inspector</span>
-            <span aria-hidden>close ×</span>
-          </button>
+          <div className="ch-head ch-narrow-xl">
+            <span className="label ch-fill">trace inspector</span>
+            <button type="button" className="tog" onClick={() => setInspectorOpen(false)}>
+              ✕ close
+            </button>
+          </div>
         )}
         <Inspector message={selectedMessage} turnNumber={turnNumber} />
       </aside>

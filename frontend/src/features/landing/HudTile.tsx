@@ -5,7 +5,7 @@ import type { SparkTone } from './Sparkline';
 import { NO_VALUE } from './format';
 
 export interface HudTileProps {
-  /** The mono-caps micro-label above the number. */
+  /** The mono uppercase label above the number. */
   label: string;
   /** Already formatted. `NO_VALUE` (an em dash) when nothing was measured. */
   value: string;

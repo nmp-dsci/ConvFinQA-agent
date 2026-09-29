@@ -1,13 +1,12 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { PageHead } from '@/kit/ui';
 import { NO_VALUE, formatFilingId, formatLatency, formatUsd } from '../landing/format';
 import { STAGES, getEvalTrace, getLiveTrace } from './api';
 import type { EvalTraceDetail, LiveTraceDetail, StageCapture, StageName } from './api';
-import { bundleLine, formatCount, formatStamp, relativeTime } from './lib';
+import { bundleLine, formatCount, formatStamp, relativeTime, versionLabel } from './lib';
 import {
-  AdminPage,
   EmptyState,
   ErrorNote,
   Lamp,
@@ -15,9 +14,11 @@ import {
   LoadingRows,
   Panel,
   StatCells,
+  TwoUp,
   Verdict,
 } from './ui';
 import { ak } from './useAdminData';
+import './runs.css';
 
 /**
  * One turn, stage by stage.
@@ -37,13 +38,21 @@ import { ak } from './useAdminData';
 // Stage rendering
 // ---------------------------------------------------------------------------
 
-function Json({ value }: { value: unknown }) {
-  if (value === null || value === undefined) return <span className="text-faint">—</span>;
+function Json({ value, label, className }: { value: unknown; label?: ReactNode; className?: string }) {
+  if (value === null || value === undefined) {
+    return (
+      <div className={className}>
+        {label && <p className="label">{label}</p>}
+        <span className="muted">— nothing recorded</span>
+      </div>
+    );
+  }
   const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
   return (
-    <pre className="mt-1 max-h-64 overflow-auto rounded-[4px] border border-line bg-ground px-2 py-1.5 font-mono text-[10.5px] leading-relaxed break-words whitespace-pre-wrap text-muted">
-      {text}
-    </pre>
+    <div className={`code trace-json${className ? ` ${className}` : ''}`}>
+      {label && <p className="label">{label}</p>}
+      <pre>{text}</pre>
+    </div>
   );
 }
 
@@ -52,22 +61,17 @@ function StageCard({ stage, capture }: { stage: StageName; capture: StageCapture
   const metrics = capture?.metrics;
 
   return (
-    <div
+    <section
       data-testid={`stage-${stage}`}
       data-skipped={skipped ? 'true' : 'false'}
-      className={cn(
-        'min-w-0 rounded-md border p-3',
-        skipped ? 'border-line border-dashed bg-panel/40' : 'border-line bg-panel',
-      )}
+      className={`card stage-card${skipped ? ' skipped' : ''}`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className={cn('type-body font-medium', skipped ? 'text-faint' : 'text-text')}>
-          {stage}
-        </span>
+      <div className="head">
+        <h3>{stage}</h3>
         {skipped ? (
-          <span className="mono-caps">skipped — the router did not need this stage</span>
+          <span className="status no small">skipped — the router did not need this stage</span>
         ) : (
-          <span className="type-num text-[11px] text-muted">
+          <span className="num small muted">
             {metrics?.latency_ms !== undefined ? formatLatency(metrics.latency_ms) : NO_VALUE} ·{' '}
             {metrics?.total_tokens !== undefined ? formatCount(metrics.total_tokens) : NO_VALUE} tok
           </span>
@@ -75,77 +79,78 @@ function StageCard({ stage, capture }: { stage: StageName; capture: StageCapture
       </div>
 
       {!skipped && (
-        <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-2">
-          <div className="min-w-0">
-            <div className="mono-caps">input</div>
-            <Json value={capture.input} />
-          </div>
-          <div className="min-w-0">
-            <div className="mono-caps">output</div>
-            <Json value={capture.output} />
-          </div>
-          {capture.reasoning && (
-            <div className="min-w-0 lg:col-span-2">
-              <div className="mono-caps">reasoning</div>
-              <Json value={capture.reasoning} />
-            </div>
-          )}
+        <div className="stage-grid">
+          <Json label="input" value={capture.input} />
+          <Json label="output" value={capture.output} />
+          {capture.reasoning && <Json label="reasoning" value={capture.reasoning} className="span2" />}
           {capture.trajectory && capture.trajectory.length > 0 && (
-            <div className="min-w-0 lg:col-span-2">
-              <div className="mono-caps">tool loop · {capture.trajectory.length} steps</div>
-              <Json value={capture.trajectory} />
-            </div>
+            <Json
+              label={`tool loop · ${capture.trajectory.length} steps`}
+              value={capture.trajectory}
+              className="span2"
+            />
           )}
         </div>
       )}
-    </div>
+    </section>
+  );
+}
+
+function Stages({ capture, endpoint }: { capture: Partial<Record<StageName, StageCapture | null>> | null | undefined; endpoint: string }) {
+  const ran = STAGES.filter((stage) => capture?.[stage]).length;
+  return (
+    <Panel
+      title={`Stages — ${ran} of ${STAGES.length} ran for this turn`}
+      endpoint={endpoint}
+      note="what each agent was given and what it returned; a dashed card is a stage the router skipped"
+    >
+      <div className="stages">
+        {STAGES.map((stage) => (
+          <StageCard key={stage} stage={stage} capture={capture?.[stage] ?? null} />
+        ))}
+      </div>
+    </Panel>
   );
 }
 
 // ---------------------------------------------------------------------------
 
+/** The question, then what was answered beside gold — the verdict is the page's claim. */
 function Header({
   reportId,
-  turnIndex,
   question,
   answer,
   gold,
   correct,
-  backTo,
 }: {
   reportId: string;
-  turnIndex: number;
   question: string;
   answer: string;
   gold: string;
   correct: boolean | null;
-  backTo: string;
 }) {
   return (
-    <Panel title={formatFilingId(reportId)} endpoint={`turn ${turnIndex}`}>
-      <p className="type-lede text-text">{question}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <span className="flex items-baseline gap-2">
-          <span className="mono-caps">answered</span>
-          <span className="type-num text-[15px] text-text">{answer || NO_VALUE}</span>
-        </span>
-        <span className="flex items-baseline gap-2">
-          <span className="mono-caps">gold</span>
-          <span className="type-num text-[15px] text-muted">{gold || NO_VALUE}</span>
-        </span>
-        <Verdict ok={correct}>
-          {correct === null ? 'no gold answer' : correct ? 'correct' : 'incorrect'}
-        </Verdict>
-        <Link
-          to={backTo}
-          className="type-small ml-auto inline-flex items-center gap-1 text-faint hover:text-amber"
-        >
-          <ArrowLeft aria-hidden className="size-3" />
-          back to turns
-        </Link>
-      </div>
-      <p className="type-meta mt-2 break-all text-faint">{reportId}</p>
-    </Panel>
+    <section>
+      <div className="question">{question}</div>
+      <TwoUp>
+        <div className={`answer ${correct === null ? '' : correct ? 'ok' : 'no'}`}>
+          <p className="label">answered</p>
+          <pre className="wrap-any">{answer || NO_VALUE}</pre>
+          <p className="reason">
+            <Verdict ok={correct}>
+              {correct === null ? 'no gold answer' : correct ? 'correct' : 'incorrect'}
+            </Verdict>
+          </p>
+        </div>
+        <div className="answer">
+          <p className="label">gold</p>
+          <pre className="wrap-any">{gold || NO_VALUE}</pre>
+        </div>
+      </TwoUp>
+      <p className="small muted wrap-any">
+        <span className="mono">{reportId}</span>
+      </p>
+    </section>
   );
 }
 
@@ -156,6 +161,13 @@ function Header({
 function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
   const correct = trace.correct === null ? null : Boolean(trace.correct);
   const historyText = trace.capture?.history_text;
+  // `total_tokens` is 0 on some rows that do carry input/output counts; the claim uses whichever is real.
+  const tokens =
+    trace.total_tokens ||
+    (trace.input_tokens != null || trace.output_tokens != null
+      ? (trace.input_tokens ?? 0) + (trace.output_tokens ?? 0)
+      : null);
+  const metered = trace.cost_usd != null || tokens != null;
 
   return (
     <>
@@ -171,8 +183,13 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
               : 'Answered live by the model.'
           }
         />
-        <Lamp label="when" value={relativeTime(trace.created_at)} tone="idle" dashed
-          title={formatStamp(trace.created_at)} />
+        <Lamp
+          label="when"
+          value={relativeTime(trace.created_at)}
+          tone="idle"
+          dashed
+          title={formatStamp(trace.created_at)}
+        />
         {trace.session_id && (
           <Lamp
             label="session"
@@ -187,15 +204,33 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
 
       <Header
         reportId={trace.report_id}
-        turnIndex={trace.turn_index}
         question={trace.question}
         answer={trace.answer ?? ''}
         gold={trace.gold_answer ?? ''}
         correct={correct}
-        backTo="/runs/traces"
       />
 
-      <Panel title="Cost of this turn" endpoint={`/traces/${trace.trace_id}`}>
+      {trace.error && (
+        <div className="callout err">
+          <span className="ttl">✕ {trace.error_code ?? 'error'}</span>
+          <span className="wrap-any">{trace.error}</span>
+          {trace.error_code && (
+            <p className="small muted">
+              classified as <code>{trace.error_code}</code> in{' '}
+              <code>src/convfinqa/error_codes.py</code>
+            </p>
+          )}
+        </div>
+      )}
+
+      <Panel
+        title={
+          metered
+            ? `Cost of this turn — ${formatUsd(trace.cost_usd)} over ${formatCount(tokens)} tokens`
+            : 'Cost of this turn — never metered'
+        }
+        endpoint={`/traces/${trace.trace_id}`}
+      >
         <StatCells
           columns={3}
           cells={[
@@ -216,7 +251,7 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
             },
           ]}
         />
-        <div className="mt-1.5">
+        <div className="runs-gap">
           <StatCells
             columns={2}
             cells={[
@@ -233,36 +268,13 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
             ]}
           />
         </div>
-        {trace.program && trace.program !== 'nan' && (
-          <div className="mt-2">
-            <div className="mono-caps">program</div>
-            <Json value={trace.program} />
-          </div>
-        )}
-        <p className="type-meta mt-2 break-all text-faint">
-          bundle {trace.bundle_id ?? NO_VALUE} · {bundleLine(trace.bundle)}
+        {trace.program && trace.program !== 'nan' && <Json label="program" value={trace.program} />}
+        <p className="small muted wrap-any">
+          bundle <span className="mono">{trace.bundle_id ?? NO_VALUE}</span> · {bundleLine(trace.bundle)}
         </p>
       </Panel>
 
-      {trace.error && (
-        <Panel title="Error">
-          <p className="type-small text-bad">{trace.error}</p>
-          {trace.error_code && (
-            <p className="type-meta mt-1 text-faint">
-              classified as <code>{trace.error_code}</code> in{' '}
-              <code>src/convfinqa/error_codes.py</code>
-            </p>
-          )}
-        </Panel>
-      )}
-
-      <Panel title="Stages" endpoint="capture">
-        <div className="flex flex-col gap-2">
-          {STAGES.map((stage) => (
-            <StageCard key={stage} stage={stage} capture={trace.capture?.[stage] ?? null} />
-          ))}
-        </div>
-      </Panel>
+      <Stages capture={trace.capture} endpoint="capture" />
 
       {historyText && (
         <Panel
@@ -281,6 +293,7 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
 // ---------------------------------------------------------------------------
 
 function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
+  const hasProgram = Boolean(trace.program && trace.program !== 'nan');
   return (
     <>
       <LampRow>
@@ -301,16 +314,14 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
 
       <Header
         reportId={trace.report_id}
-        turnIndex={trace.turn_index}
         question={trace.question}
         answer={trace.answer}
         gold={trace.gold_answer}
         correct={trace.correct}
-        backTo="/runs"
       />
 
       <Panel
-        title="Program"
+        title={hasProgram ? 'Program — what the calculator executed' : 'Program — none recorded'}
         endpoint={`/traces/eval/${trace.version}`}
         note="a scored turn has no clock on it — this run was never metered, so there is no latency or cost to show"
       >
@@ -318,23 +329,17 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
           The CSV writes a pandas `nan` for a turn that produced no program.
           Printing that string would present a missing value as a computed one.
         */}
-        {trace.program && trace.program !== 'nan' ? (
+        {hasProgram ? (
           <Json value={trace.program} />
         ) : (
-          <p className="type-small text-faint">
+          <p className="small muted">
             No program recorded for this turn — it was answered as a direct lookup, or the run
             predates program capture.
           </p>
         )}
       </Panel>
 
-      <Panel title="Stages" endpoint="capture">
-        <div className="flex flex-col gap-2">
-          {STAGES.map((stage) => (
-            <StageCard key={stage} stage={stage} capture={trace.capture?.[stage] ?? null} />
-          ))}
-        </div>
-      </Panel>
+      <Stages capture={trace.capture} endpoint="capture" />
 
       {trace.history_text && (
         <Panel title="Conversation history the agents saw">
@@ -346,6 +351,23 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
 }
 
 // ---------------------------------------------------------------------------
+
+/** The page's claim: the verdict, on which turn, and what was answered against gold. */
+function turnTitle(t: {
+  correct: boolean | null;
+  report_id: string;
+  turn_index: number;
+  answer: string | null;
+  gold_answer: string | null;
+}): ReactNode {
+  const word = t.correct === null ? 'Unscored' : t.correct ? 'Correct' : 'Incorrect';
+  return (
+    <>
+      <em>{word}</em> — {formatFilingId(t.report_id)}, turn {t.turn_index}: answered{' '}
+      {t.answer || NO_VALUE} against gold {t.gold_answer || NO_VALUE}
+    </>
+  );
+}
 
 export default function TraceDetail() {
   const { traceId = '' } = useParams();
@@ -370,17 +392,46 @@ export default function TraceDetail() {
 
   const query = isEval ? evalTrace : live;
 
+  const title =
+    isEval && evalTrace.data
+      ? turnTitle(evalTrace.data)
+      : !isEval && live.data
+        ? turnTitle({ ...live.data, correct: live.data.correct === null ? null : Boolean(live.data.correct) })
+        : (
+            <>
+              One turn, <em>stage by stage</em>
+            </>
+          );
+
+  const crumbs = isEval ? (
+    <>
+      <Link to="/runs">runs</Link> / <Link to={`/runs?version=${encodeURIComponent(version)}`}>{versionLabel(version) || 'scored turn'}</Link> /{' '}
+      <span className="mono">
+        {reportId ? `${formatFilingId(reportId)} · turn ${turnIndex}` : 'scored turn'}
+      </span>
+    </>
+  ) : (
+    <>
+      <Link to="/runs">runs</Link> / <Link to="/runs/traces">served turns</Link> /{' '}
+      <span className="mono">{traceId}</span>
+    </>
+  );
+
   return (
-    <AdminPage
-      testId="admin-trace-detail"
-      eyebrow={isEval ? 'admin · traces · scored turn' : 'admin · traces · turn'}
-      title="Turn detail"
-      sub={
-        isEval
-          ? 'A scored turn replayed out of a committed predictions CSV — the same four stage captures a live turn records, from a run that happened months ago.'
-          : 'Every stage of one answered turn: what each agent was given, what it returned, and what it cost.'
-      }
-    >
+    <div className="stack" data-testid="admin-trace-detail">
+      <div>
+        <nav className="crumbs" aria-label="Breadcrumb">
+          {crumbs}
+        </nav>
+        <PageHead
+          title={title}
+          lead={
+            isEval
+              ? 'A scored turn replayed out of a committed predictions CSV — the same four stage captures a live turn records, from a run that happened months ago.'
+              : 'Every stage of one answered turn: what each agent was given, what it returned, and what it cost.'
+          }
+        />
+      </div>
       {isEval && !(version && reportId) ? (
         <EmptyState>
           A scored turn needs <code>version</code>, <code>report_id</code> and{' '}
@@ -397,6 +448,6 @@ export default function TraceDetail() {
       ) : (
         <EmptyState>No such turn.</EmptyState>
       )}
-    </AdminPage>
+    </div>
   );
 }

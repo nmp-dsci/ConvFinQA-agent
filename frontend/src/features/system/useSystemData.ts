@@ -8,6 +8,8 @@ import {
   listVersions,
 } from '../../lib/api';
 import type { ProductionMetrics, VersionAccuracyRow } from '../../lib/api';
+import { getCampaigns } from '../admin/api';
+import type { RuntimeComparison } from '../admin/api';
 import { qk } from '../../lib/queryClient';
 import { useMode } from '../../modeStore';
 import type { ComparisonResult, Health, ModelAccuracy, VersionAccuracy } from '../../types';
@@ -57,6 +59,16 @@ export interface SystemData {
    */
   metrics: ProductionMetrics | null | undefined;
 
+  /**
+   * `/eval/campaigns` → `runtime_comparison`: the pipeline champion and the single-session
+   * champion, each scored on the fixed gate split. What the Leaderboard puts beside the paper.
+   * `undefined` while loading or when the read failed; an arm's `accuracy` is `null` until run.
+   */
+  runtimes: RuntimeComparison | null | undefined;
+  /** Questions and reports in the gate split those two arms were scored on. */
+  gateQuestions: number | null;
+  gateReports: number | null;
+
   loading: boolean;
   /** Which reads failed, named, so the page can say what is missing and why. */
   failures: string[];
@@ -96,6 +108,19 @@ export function useSystemData(): SystemData {
     enabled: Boolean(championName && gateCandidate),
   });
 
+  // The same key and function the Optimise pages use: one payload, one cache entry, so the
+  // Leaderboard and the Runtimes page cannot show two different arms.
+  const campaignsQuery = useQuery({
+    queryKey: ['eval-campaigns'],
+    queryFn: () => getCampaigns(),
+    staleTime: 60_000,
+  });
+  const split = campaignsQuery.data?.split;
+  const splitCount = (key: string): number | null => {
+    const v = split?.[key];
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  };
+
   const failures: string[] = [];
   if (versionsQuery.error) failures.push('/admin/versions');
   if (experimentsQuery.error) failures.push('/admin/experiments');
@@ -103,6 +128,7 @@ export function useSystemData(): SystemData {
   if (slicesQuery.error) failures.push(`/eval/runs/${championName}/summary`);
   if (gateQuery.error) failures.push('/admin/compare');
   if (metricsQuery.error) failures.push('/metrics/production');
+  if (campaignsQuery.error) failures.push('/eval/campaigns');
 
   return {
     health,
@@ -117,6 +143,9 @@ export function useSystemData(): SystemData {
     gate: gateQuery.data,
     gateCandidate,
     metrics: metricsQuery.data,
+    runtimes: campaignsQuery.data ? (campaignsQuery.data.runtime_comparison ?? null) : undefined,
+    gateQuestions: splitCount('gate_questions'),
+    gateReports: splitCount('gate_reports'),
     loading: versionsQuery.isLoading || experimentsQuery.isLoading,
     failures,
   };

@@ -1,4 +1,5 @@
-import { BundleDiagram, PipelineDiagram } from './diagrams';
+import { Status } from '@/kit/ui';
+import { BundleDiagram } from './diagrams';
 import {
   Callout,
   Field,
@@ -15,9 +16,10 @@ import {
   Th,
 } from './ui';
 import type { SystemData } from './useSystemData';
+import './system.css';
 
 // ---------------------------------------------------------------------------
-// 03 · Pipeline and routing
+// 01 · Pipeline and routing
 // ---------------------------------------------------------------------------
 
 const STAGES: Array<{ stage: string; job: string; onNumber: string }> = [
@@ -47,9 +49,9 @@ export function PipelineSection() {
   return (
     <Section
       id="pipeline"
-      index={3}
+      index={1}
       eyebrow="architecture"
-      title="Four agents, and a router that decides how many of them run"
+      title="A router decides whether two agents run, or four"
       lede={
         <>
           A turn is a question, the filing, and the conversation’s own prior answers — never the
@@ -59,10 +61,6 @@ export function PipelineSection() {
         </>
       }
     >
-      <Panel>
-        <PipelineDiagram />
-      </Panel>
-
       <div>
         <ScrollX>
           <Table>
@@ -76,16 +74,10 @@ export function PipelineSection() {
             <tbody>
               {STAGES.map((s) => (
                 <tr key={s.stage}>
+                  <Td className="sub mono">{s.stage}</Td>
+                  <Td className="wrap">{s.job}</Td>
                   <Td>
-                    <span className="type-num text-amber">{s.stage}</span>
-                  </Td>
-                  <Td>{s.job}</Td>
-                  <Td>
-                    <span
-                      className={s.onNumber === 'runs' ? 'type-num text-good' : 'type-num text-faint'}
-                    >
-                      {s.onNumber}
-                    </span>
+                    <Status tone={s.onNumber === 'runs' ? 'ok' : 'no'}>{s.onNumber}</Status>
                   </Td>
                 </tr>
               ))}
@@ -136,7 +128,7 @@ export function PipelineSection() {
 }
 
 // ---------------------------------------------------------------------------
-// 04 · llm.py
+// 02 · llm.py
 // ---------------------------------------------------------------------------
 
 const POLICY: Array<{ setting: string; value: string; why: string }> = [
@@ -172,9 +164,9 @@ export function LlmSection({ data }: { data: SystemData }) {
   return (
     <Section
       id="llm"
-      index={4}
+      index={2}
       eyebrow="the choke point"
-      title="One module builds every model, and that is the whole point"
+      title="One module builds every model; nothing else may"
       lede={
         <>
           Two things have to be true of every model call in this system: it must be refused outright
@@ -184,27 +176,27 @@ export function LlmSection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <div className="sys-two">
         <Panel>
           <PanelTitle>what the module owns</PanelTitle>
-          <ul className="type-small space-y-2 text-muted">
+          <ul className="sys-list">
             <li>
-              <span className="type-num text-text">guard_llm_call()</span> — raises{' '}
+              <b className="mono">guard_llm_call()</b> — raises{' '}
               <Mono>DemoModeError</Mono> when the deployment is in demo mode. The route layer turns
               that into a 501 carrying <Mono>not_available_demo</Mono>, so a forged request fails at
               the server, not only in the UI.
             </li>
             <li>
-              <span className="type-num text-text">get_provider() / get_model()</span> — the only
+              <b className="mono">get_provider() / get_model()</b> — the only
               construction site for the pydantic-ai model, wrapping a custom retrying transport.
             </li>
             <li>
-              <span className="type-num text-text">model_settings()</span> — sends{' '}
+              <b className="mono">model_settings()</b> — sends{' '}
               <Mono>extra_body</Mono> disabling the provider’s thinking mode, because the provider
               answers 400 to a request that pins a tool while thinking is on.
             </li>
             <li>
-              <span className="type-num text-text">call_with_budget()</span> — the wall-clock ceiling
+              <b className="mono">call_with_budget()</b> — the wall-clock ceiling
               every stage runs inside.
             </li>
           </ul>
@@ -217,7 +209,7 @@ export function LlmSection({ data }: { data: SystemData }) {
 
         <Panel>
           <PanelTitle>models this deployment is running</PanelTitle>
-          <div className="space-y-3">
+          <div className="sys-fields">
             <Field label="lm_mini · the four pipeline agents" note="one small fast model per stage">
               <Live value={bundle?.lm_mini} reason="/healthz did not answer" />
             </Field>
@@ -240,16 +232,16 @@ export function LlmSection({ data }: { data: SystemData }) {
             <thead>
               <tr>
                 <Th>policy</Th>
-                <Th numeric>value</Th>
+                <Th>value</Th>
                 <Th>why it is that</Th>
               </tr>
             </thead>
             <tbody>
               {POLICY.map((p) => (
                 <tr key={p.setting}>
-                  <Td>{p.setting}</Td>
-                  <Td numeric>{p.value}</Td>
-                  <Td>{p.why}</Td>
+                  <Td className="sub">{p.setting}</Td>
+                  <Td className="mono">{p.value}</Td>
+                  <Td className="wrap">{p.why}</Td>
                 </tr>
               ))}
             </tbody>
@@ -287,7 +279,7 @@ export function LlmSection({ data }: { data: SystemData }) {
 }
 
 // ---------------------------------------------------------------------------
-// 05 · The bundle fingerprint
+// 03 · The bundle fingerprint
 // ---------------------------------------------------------------------------
 
 export function BundleSection({ data }: { data: SystemData }) {
@@ -295,9 +287,9 @@ export function BundleSection({ data }: { data: SystemData }) {
   return (
     <Section
       id="bundle"
-      index={5}
+      index={3}
       eyebrow="versioning"
-      title="What “a version” means when the model is somebody else’s API"
+      title="A version is six hashed fields, not model weights"
       lede={
         <>
           There are no weights to checkpoint here. What changes between versions is the prompts, an
@@ -307,14 +299,12 @@ export function BundleSection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Panel>
-          <BundleDiagram bundleId={data.health?.bundle_id} />
-        </Panel>
+      <BundleDiagram bundleId={data.health?.bundle_id} />
 
+      <div>
         <Panel>
           <PanelTitle>this deployment’s bundle</PanelTitle>
-          <div className="space-y-2.5">
+          <div className="sys-fields cols">
             <Field label="bundle_id">
               <Live value={data.health?.bundle_id} reason="/healthz did not answer" />
             </Field>

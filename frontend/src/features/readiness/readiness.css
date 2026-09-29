@@ -1,0 +1,38 @@
+/* The readiness scorecard (R1–R9): the Overview's strip and the Agent slot's page. Tokens only.
+   Status is a glyph and a word, never colour alone: ● shipped · ◐ partial · ○ designed · — n/a. */
+
+.rd-g{display:inline-block;width:1em;text-align:center}
+.rd-g.shipped{color:var(--ok)}
+.rd-g.partial{color:var(--amber)}
+.rd-g.designed{color:var(--line-3)}
+.rd-g.na{color:var(--faint)}
+
+/* ── the strip: nine small links ────────────────────────────────────────── */
+.rd-strip .rd-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:var(--s2) var(--s4)}
+.rd-strip .rd-head a{font-size:var(--t-1)}
+.rd-strip ol{list-style:none;margin:var(--s2) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2)}
+.rd-strip li{min-width:0}
+.rd-strip li a{display:inline-flex;align-items:center;gap:var(--s1);min-height:28px;padding:var(--s1) var(--s3);border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--panel);font:500 var(--t-2)/1.4 var(--mono);color:var(--ink-2);text-decoration:none}
+.rd-strip li a:hover{border-color:var(--accent);color:var(--ink)}
+.rd-strip li a[data-status=designed]{border-style:dashed}
+.rd-strip .rd-names{margin-top:var(--s2);font:400 var(--t-2)/1.5 var(--mono);color:var(--faint);max-width:none}
+
+/* ── the block: two halves of cards ─────────────────────────────────────── */
+.rd-block{display:grid;gap:var(--s5)}
+.rd-block>p{margin:0}
+.rd-legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4);font-size:var(--t-1);color:var(--muted)}
+.rd-half h3{margin-top:0}
+.rd-half h3 .label{margin-left:var(--s2)}
+.rd-half>p{margin-top:var(--s1)}
+.rd-half .cards{list-style:none;padding:0;margin-top:var(--s3)}
+.card.rd-card{display:flex;flex-direction:column;gap:var(--s2)}
+.card.rd-card.designed{box-shadow:none;border:1px dashed var(--line-3);background:transparent}
+.rd-card p{margin:0;font-size:var(--t-1)}
+.rd-card .q{font-style:italic;color:var(--muted)}
+.rd-card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:var(--s1) var(--s3)}
+.rd-card-head h3{margin:0;font:600 var(--t0)/1.35 var(--sans)}
+.rd-card-head h3 .num{color:var(--faint);margin-right:var(--s2)}
+.rd-status{font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);white-space:nowrap}
+.rd-links{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s3);font:400 var(--t-1)/1.4 var(--mono)}
+.rd-card details{margin-top:0}
+.rd-card details ul{margin:var(--s2) 0 0;padding-left:1.2em;display:grid;gap:var(--s1);font:400 var(--t-2)/1.5 var(--mono);color:var(--muted);overflow-wrap:anywhere}
