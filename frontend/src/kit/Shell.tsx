@@ -8,7 +8,7 @@
  * A route whose `handle` carries `{ wide: true }` renders full-width and full-height (a chat, a
  * playground) with no footer.
  */
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 import { NavLink, Outlet, useMatches } from 'react-router-dom';
 
 export type Tab = {
@@ -36,13 +36,15 @@ export type ShellProps = {
   context?: unknown;
   /** rendered after <main> and before the footer (a toaster, a palette) */
   children?: ReactNode;
+  /** shown while a lazy route loads; the header never blanks */
+  fallback?: ReactNode;
 };
 
 function isWide(matches: ReturnType<typeof useMatches>): boolean {
   return matches.some((m) => (m.handle as { wide?: boolean } | undefined)?.wide === true);
 }
 
-export function Shell({ brand, logo = '/favicon.svg', tabs, mode, footer, context, children }: ShellProps) {
+export function Shell({ brand, logo = '/favicon.svg', tabs, mode, footer, context, children, fallback }: ShellProps) {
   const matches = useMatches();
   const wide = isWide(matches);
   const path = matches.length ? matches[matches.length - 1].pathname : '/';
@@ -77,7 +79,9 @@ export function Shell({ brand, logo = '/favicon.svg', tabs, mode, footer, contex
         </div>
       </header>
       <main className={wide ? 'app' : undefined}>
-        <Outlet context={context} />
+        <Suspense fallback={fallback ?? <p className="empty">Loading…</p>}>
+          <Outlet context={context} />
+        </Suspense>
       </main>
       {children}
       {!wide && footer && <footer className="site">{footer}</footer>}

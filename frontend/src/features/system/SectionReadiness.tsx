@@ -22,7 +22,7 @@ export function ReadinessSection() {
           judge, a regression gate, a learning loop, guardrails, tracing, cost control, deploy,
           and a scale path. This is the grade for this one, with each row linking to the page in
           the app that carries its proof.{' '}
-          <Link to="/admin/readiness" className="text-amber underline underline-offset-4">
+          <Link to="/agent/readiness" className="text-amber underline underline-offset-4">
             The full page
           </Link>{' '}
           adds the question each dimension asks and the file paths behind it.

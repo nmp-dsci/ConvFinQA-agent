@@ -1,164 +1,109 @@
-import {
-  Activity,
-  BarChart3,
-  BookOpenCheck,
-  ClipboardCheck,
-  Cpu,
-  FlaskConical,
-  MessageSquare,
-  Server,
-  Sparkles,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-
 /**
- * The navigation, as data — and the story order, as navigation.
- *
- * Nine routes in four labelled groups, in the order the write-up tells it:
- * the product, how it was built, the evidence, and the operations behind it.
- * Every surface that walks the story — the rail, the phone tab bar, the page
- * headers' eyebrows and the "next" footers — reads this one list, so the order
- * cannot be told three different ways.
+ * Navigation is data, told once: the house's eight slots (ui/DESIGN.md §2) in story order —
+ * what the benchmark is → how it is judged → who else has tried → what we ran → how we improve
+ * → what the agent is → what we know by hand. The header's tabs, each slot's chip bar and the
+ * command palette all read from here.
  */
+import type { Tab } from '@/kit/Shell';
 
-export interface NavItem {
-  to: string;
-  label: string;
-  /** One line under the label in tooltips and in the next-step footer. */
-  hint: string;
-  icon: LucideIcon;
-  /** Extra paths that should light this item up (child routes, aliases). */
-  matches?: string[];
+export type SlotKey =
+  | 'overview'
+  | 'filings'
+  | 'scoring'
+  | 'leaderboard'
+  | 'runs'
+  | 'optimise'
+  | 'agent'
+  | 'gold';
+
+export interface Slot extends Tab {
+  key: SlotKey;
 }
 
-export interface NavGroup {
-  key: 'product' | 'built' | 'evidence' | 'operations';
-  label: string;
-  items: NavItem[];
-}
-
-export const NAV: NavGroup[] = [
+export const SLOTS: Slot[] = [
+  { key: 'overview', to: '/', label: 'Overview', hint: 'The result, with its baseline and its caveat' },
   {
-    key: 'product',
-    label: 'Product',
-    items: [
-      {
-        to: '/',
-        label: 'Overview',
-        hint: 'What this system does, the result, and the nine-dimension score',
-        icon: Sparkles,
-      },
-      {
-        to: '/chat',
-        label: 'Chat',
-        hint: 'Ask a filing a chain of questions and watch each stage resolve',
-        icon: MessageSquare,
-      },
-    ],
+    key: 'filings',
+    to: '/filings',
+    label: 'Filings & questions',
+    hint: 'Every filing and question in every split, beside its gold answer and gold program',
   },
   {
-    key: 'built',
-    label: 'Built',
-    items: [
-      {
-        to: '/admin/system',
-        label: 'Architecture',
-        hint: 'Four agents, one choke point, one contract — and what is still broken',
-        icon: Server,
-        matches: ['/debrief'],
-      },
-      {
-        to: '/admin/readiness',
-        label: 'Readiness',
-        hint: 'The production gen-AI rubric, R1–R9, scored against this system with its proof',
-        icon: ClipboardCheck,
-      },
-    ],
+    key: 'scoring',
+    to: '/scoring',
+    label: 'Scoring',
+    hint: 'How a turn is judged: execution accuracy, attribution, the promotion gate, the judge',
   },
   {
-    key: 'evidence',
-    label: 'Evidence',
-    items: [
-      {
-        to: '/admin/runtimes',
-        label: 'Runtimes',
-        hint: 'How we got to sdk_v1: the progression, the test score, the recommendation',
-        icon: Cpu,
-      },
-      {
-        to: '/admin/evaluations',
-        label: 'Evaluations',
-        hint: 'Accuracy per version and slice, gold beside every answer',
-        icon: BarChart3,
-      },
-      {
-        to: '/admin/dataset',
-        label: 'Dataset',
-        hint: 'Every split, every question, its gold answer and gold program',
-        icon: BookOpenCheck,
-      },
-      {
-        to: '/admin/experiments',
-        label: 'Experiments',
-        hint: 'Campaigns, runs, the registry, and the append-only promotion history',
-        icon: FlaskConical,
-      },
-    ],
+    key: 'leaderboard',
+    to: '/leaderboard',
+    label: 'Leaderboard',
+    hint: "The paper's baselines and the human expert beside our two runtimes, on one axis",
   },
   {
-    key: 'operations',
-    label: 'Operations',
-    items: [
-      {
-        to: '/admin/traces',
-        label: 'Traces',
-        hint: 'Every served turn, by source, with the four stage captures behind it',
-        icon: Activity,
-      },
-    ],
+    key: 'runs',
+    to: '/runs',
+    label: 'Runs',
+    hint: 'Every version by slice, two compared with their flips, and every served turn',
+  },
+  {
+    key: 'optimise',
+    to: '/optimise',
+    label: 'Optimise',
+    hint: 'Campaigns, the runtime progression, and the append-only promotion history',
+  },
+  {
+    key: 'agent',
+    to: '/agent',
+    label: 'Agent',
+    hint: 'Four agents, one choke point, one contract — and a conversation with it',
+  },
+  {
+    key: 'gold',
+    to: '/gold',
+    label: 'Gold review',
+    hint: 'Gold labels the loop flagged as suspect or could not settle, and how each was settled',
   },
 ];
 
-/** Every item, in story order. */
-export const NAV_ITEMS: NavItem[] = NAV.flatMap((g) => g.items);
+/** The pages inside a slot, as its chip bar. A slot with one page has no bar. */
+export const SUBPAGES: Partial<Record<SlotKey, { key: string; to: string; label: string }[]>> = {
+  runs: [
+    { key: 'versions', to: '/runs', label: 'Versions & slices' },
+    { key: 'traces', to: '/runs/traces', label: 'Served turns' },
+  ],
+  optimise: [
+    { key: 'campaigns', to: '/optimise', label: 'Campaigns' },
+    { key: 'runtimes', to: '/optimise/runtimes', label: 'Runtimes' },
+    { key: 'research', to: '/optimise/research', label: 'Rule research' },
+  ],
+  agent: [
+    { key: 'architecture', to: '/agent', label: 'Architecture' },
+    { key: 'readiness', to: '/agent/readiness', label: 'Readiness R1–R9' },
+    { key: 'chat', to: '/agent/chat', label: 'Ask a filing' },
+  ],
+};
 
-/** True when `pathname` is this item or one of its children. */
-export function isActive(item: NavItem, pathname: string): boolean {
-  if (item.matches?.includes(pathname)) return true;
-  // `/` is a prefix of every path and `/admin` of every admin page, so both
-  // can only ever match exactly.
-  if (item.to === '/' || item.to === '/admin') return pathname === item.to;
-  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+/** Every addressable page, flat: the command palette's list. */
+export const NAV_ITEMS: { to: string; label: string; hint?: string }[] = SLOTS.flatMap((s) => {
+  const subs = SUBPAGES[s.key];
+  if (!subs) return [{ to: s.to, label: s.label, hint: s.hint }];
+  return subs.map((p) => ({ to: p.to, label: `${s.label} · ${p.label}`, hint: s.hint }));
+});
+
+/** The slot a path belongs to. `/` only matches itself. */
+export function slotOf(pathname: string): Slot | null {
+  if (pathname === '/') return SLOTS[0];
+  return SLOTS.slice(1).find((s) => pathname === s.to || pathname.startsWith(`${s.to}/`)) ?? null;
 }
 
-export function activeItem(pathname: string): NavItem | undefined {
-  return NAV_ITEMS.find((item) => isActive(item, pathname));
-}
-
-export function groupOf(item: NavItem): NavGroup | undefined {
-  return NAV.find((g) => g.items.includes(item));
-}
-
-/** `evidence · 03 of 06` — the eyebrow every page header prints. */
-export function positionOf(pathname: string): string | null {
-  const item = activeItem(pathname);
-  const group = item && groupOf(item);
-  if (!item || !group) return null;
-  const n = group.items.indexOf(item) + 1;
-  return `${group.label} · ${String(n).padStart(2, '0')} of ${String(group.items.length).padStart(2, '0')}`;
-}
-
-/** The item after this one in story order, or null at the end. */
-export function nextItem(pathname: string): NavItem | null {
-  const item = activeItem(pathname);
-  if (!item) return null;
-  const i = NAV_ITEMS.indexOf(item);
-  return NAV_ITEMS[i + 1] ?? null;
-}
-
-export function prevItem(pathname: string): NavItem | null {
-  const item = activeItem(pathname);
-  if (!item) return null;
-  const i = NAV_ITEMS.indexOf(item);
-  return i > 0 ? NAV_ITEMS[i - 1] : null;
+/** The sub-page a path is on, most specific first (`/runs/traces/x` → traces, not versions). */
+export function subpageOf(pathname: string): string | undefined {
+  const slot = slotOf(pathname);
+  const subs = slot ? SUBPAGES[slot.key] : undefined;
+  if (!subs) return undefined;
+  const hit = [...subs]
+    .sort((a, b) => b.to.length - a.to.length)
+    .find((p) => pathname === p.to || pathname.startsWith(`${p.to}/`));
+  return hit?.key;
 }

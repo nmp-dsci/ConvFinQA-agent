@@ -84,7 +84,7 @@ export function ReadinessStrip({ className }: { className?: string }) {
           production readiness · <ScoreLine data={data} />
         </span>
         <Link
-          to="/admin/readiness"
+          to="/agent/readiness"
           className="type-meta text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
         >
           the nine dimensions →
@@ -96,7 +96,7 @@ export function ReadinessStrip({ className }: { className?: string }) {
           return (
             <li key={row.ref} className="min-w-0">
               <Link
-                to={row.app[0] ?? '/admin/readiness'}
+                to={row.app[0] ?? '/agent/readiness'}
                 data-ref={row.ref}
                 data-status={row.status}
                 title={`${row.ref} ${row.label} — ${s.label}: ${s.blurb}`}

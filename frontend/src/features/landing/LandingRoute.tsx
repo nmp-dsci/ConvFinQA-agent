@@ -100,7 +100,7 @@ function LeftPane({ board }: { board: BoardData }) {
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <Link
-          to="/chat"
+          to="/agent/chat"
           data-testid="landing-enter"
           className="type-body inline-flex items-center gap-1.5 rounded-md bg-amber px-4 py-2 font-medium text-amber-ink transition-[transform,box-shadow,opacity] duration-[var(--dur)] hover:-translate-y-px hover:opacity-95 hover:shadow-[var(--lift)]"
         >
@@ -108,7 +108,7 @@ function LeftPane({ board }: { board: BoardData }) {
           <ArrowRight className="size-4" aria-hidden />
         </Link>
         <Link
-          to="/admin/system"
+          to="/agent"
           className="type-body rounded-md border border-line-2 px-4 py-2 text-text transition-colors hover:border-amber-line hover:bg-panel-2"
         >
           How it was built
@@ -126,7 +126,7 @@ function LeftPane({ board }: { board: BoardData }) {
           {isDemo ? 'replay a recorded conversation' : 'open a recorded conversation'}
         </span>
         <Link
-          to="/chat"
+          to="/agent/chat"
           data-testid="landing-cta"
           className="type-meta whitespace-nowrap text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
         >
@@ -221,7 +221,7 @@ export function RightPane({ board }: { board: BoardData }) {
             optimising the ConvFinQA agent · accuracy on the unseen gate split
           </span>
           <Link
-            to="/admin/runtimes"
+            to="/optimise/runtimes"
             className="type-meta text-amber underline decoration-amber-line underline-offset-4 hover:decoration-amber"
           >
             read the comparison →
@@ -249,8 +249,8 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={!campaigns && board.loading}
           reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
-          to="/admin/experiments"
-          drill="/admin/experiments"
+          to="/optimise"
+          drill="/optimise"
           meta={
             campaigns?.champion_accuracy != null && (
               <>
@@ -278,8 +278,8 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={!campaigns && board.loading}
           reason="the Claude Agent SDK arm has no run on the gate split yet"
           tone={gate?.promoted ? 'good' : 'plain'}
-          to="/admin/runtimes"
-          drill="/admin/runtimes"
+          to="/optimise/runtimes"
+          drill="/optimise/runtimes"
           meta={
             sdkArm?.accuracy != null && (
               <>
@@ -306,8 +306,8 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={metricsLoading}
           reason={metricsReason('token cost')}
           tone="amber"
-          to="/admin/traces"
-          drill="/admin/traces"
+          to="/runs/traces"
+          drill="/runs/traces"
           meta={
             metrics && (
               <>
@@ -324,8 +324,8 @@ export function RightPane({ board }: { board: BoardData }) {
           loading={metricsLoading}
           reason={metricsReason('latency')}
           tone="info"
-          to="/admin/traces"
-          drill="/admin/traces"
+          to="/runs/traces"
+          drill="/runs/traces"
           meta={
             metrics && (
               <>
@@ -349,7 +349,7 @@ export function RightPane({ board }: { board: BoardData }) {
 
       {/* --- Tried last -------------------------------------------------- */}
       <Link
-        to="/admin/runtimes"
+        to="/optimise/runtimes"
         data-testid="landing-judge"
         data-significant={judge ? String(judge.significant) : 'none'}
         className="group mt-3 block rounded-md border border-line bg-panel p-3.5 transition-colors hover:border-amber-line hover:bg-panel-2"

@@ -179,7 +179,7 @@ export default function Evaluations() {
         meta: { align: 'left', mono: false, width: '148px' },
         cell: ({ row }) => (
           <Link
-            to={`/admin/traces/eval?version=${selectedVersion}&report_id=${encodeURIComponent(
+            to={`/runs/traces/eval?version=${selectedVersion}&report_id=${encodeURIComponent(
               row.original.report_id,
             )}&turn_index=${row.original.turn_index}`}
             className="hover:text-amber"

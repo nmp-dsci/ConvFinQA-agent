@@ -58,7 +58,7 @@ export function RecordedConversations({ conversations, loading, isDemo }: Props)
       {conversations.map((c) => (
         <Link
           key={c.reportId}
-          to={`/chat/${c.reportId}`}
+          to={`/agent/chat/${c.reportId}`}
           data-testid="recorded-conversation"
           data-rid={c.reportId}
           className="group block rounded-md border border-line bg-panel p-3 transition-colors hover:border-amber-line hover:bg-panel-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"

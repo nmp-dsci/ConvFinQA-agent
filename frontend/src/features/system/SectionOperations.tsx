@@ -234,7 +234,7 @@ export function ObservabilitySection({ data }: { data: SystemData }) {
           verified against <Mono>serving/app.py</Mono>, <Mono>tracking/traces.py</Mono> and{' '}
           <Mono>serving/routes/metrics.py</Mono>.{' '}
           <Link
-            to="/admin/traces"
+            to="/runs/traces"
             className="text-amber underline decoration-amber-line underline-offset-4"
           >
             Open the turns →

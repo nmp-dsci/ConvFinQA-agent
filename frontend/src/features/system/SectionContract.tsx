@@ -167,7 +167,7 @@ export function EvaluationSection({ data }: { data: SystemData }) {
           CSVs on each request; <Mono>/admin/experiments</Mono> supplies the never-seen split, which{' '}
           <Mono>/admin/versions</Mono> deliberately cannot compute.{' '}
           <Link
-            to="/admin/evaluations"
+            to="/runs"
             className="text-amber underline decoration-amber-line underline-offset-4"
           >
             Open the rows behind these figures →
@@ -287,7 +287,7 @@ export function PromotionSection({ data }: { data: SystemData }) {
           computed on request from the committed prediction CSVs — the same function the CLI and CI
           call, not a re-implementation.{' '}
           <Link
-            to="/admin/experiments"
+            to="/optimise"
             className="text-amber underline decoration-amber-line underline-offset-4"
           >
             See the flips →
@@ -415,7 +415,7 @@ export function OptimisationSection({ data }: { data: SystemData }) {
           <Provenance origin="committed">
             stores and per-case results under <Mono>evaluation/diagnostics/</Mono>, tracked in git.{' '}
             <Link
-              to="/admin/research"
+              to="/optimise/research"
               className="text-amber underline decoration-amber-line underline-offset-4"
             >
               Open the rule stores →

@@ -14,13 +14,15 @@ import '@fontsource/ibm-plex-mono/latin-500.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { installPreloadErrorGuard } from './app/preloadGuard';
-import { router } from './app/router';
+import { routes } from './routes';
 import { queryClient } from './lib/queryClient';
 import './styles.css';
 
 installPreloadErrorGuard();
+
+const router = createBrowserRouter(routes);
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element #root not found');

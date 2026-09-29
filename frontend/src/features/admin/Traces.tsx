@@ -240,7 +240,7 @@ export default function Traces() {
         meta: { align: 'left', width: '86px' },
         cell: ({ row }) => (
           <Link
-            to={`/admin/traces/${row.original.trace_id}`}
+            to={`/runs/traces/${row.original.trace_id}`}
             className="hover:text-amber"
             title={row.original.created_at}
           >
@@ -274,7 +274,7 @@ export default function Traces() {
         meta: { align: 'left', mono: false, width: '146px' },
         cell: ({ row }) => (
           <Link
-            to={`/admin/traces/${row.original.trace_id}`}
+            to={`/runs/traces/${row.original.trace_id}`}
             className="hover:text-amber"
             title={row.original.report_id}
           >
@@ -386,7 +386,7 @@ export default function Traces() {
           label="turns"
           value={formatCount(stats.data?.n_turns ?? 0)}
           tone="info"
-          to="/admin/traces"
+          to="/runs/traces"
         />
         <Lamp
           label="filings"

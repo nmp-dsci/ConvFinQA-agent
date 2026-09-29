@@ -622,7 +622,7 @@ export default function Experiments() {
           accuracy — a single Claude session has no subagents, so it has nothing to plot on this
           chart. Its own campaign (capped at 2 experiments, not 5) and the sdk_v1-vs-pipeline
           comparison are on{' '}
-          <Link to="/admin/runtimes" className="text-amber underline underline-offset-4">
+          <Link to="/optimise/runtimes" className="text-amber underline underline-offset-4">
             Runtimes
           </Link>
           .
@@ -849,7 +849,7 @@ export default function Experiments() {
           testId="experiments-holdout"
           title="Held-out accuracy per version"
           endpoint="/admin/experiments"
-          to="/admin/evaluations"
+          to="/runs"
           note="the only endpoint that can separate optimizer_train from never_seen"
         >
           <InstrumentTable
@@ -863,7 +863,7 @@ export default function Experiments() {
                   meta: { align: 'left', mono: false, width: '104px' },
                   cell: ({ row }) => (
                     <Link
-                      to={`/admin/evaluations?version=${row.original.version}`}
+                      to={`/runs?version=${row.original.version}`}
                       className="hover:text-amber"
                     >
                       {row.original.version}

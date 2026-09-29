@@ -76,7 +76,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         value={isDemo ? 'replay · keyless' : 'live'}
         tone={isDemo ? 'amber' : 'good'}
         dashed={isDemo}
-        to="/admin/system"
+        to="/agent"
         tooltip={
           isDemo
             ? 'This deployment holds no API key. Chat replays conversations recorded in development through the same events a live turn emits. Nothing on this page was measured against live production traffic.'
@@ -87,7 +87,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         label="champion"
         value={versionLabel(servingChampion ?? campaigns?.sdk_champion ?? campaigns?.champion) || 'unset'}
         tone="info"
-        to="/admin/runtimes"
+        to="/optimise/runtimes"
         tooltip={
           health
             ? `${servingRuntime === 'agent_sdk' ? 'One Claude Agent SDK session per conversation, the six calculator tools as its only tools' : 'Four prompted agents in a fixed order'} · sdk_champion ${health.sdk_champion ?? 'unset'} · pipeline champion ${health.champion ?? 'unset'} · dataset ${health.bundle.dataset_hash} · code ${health.bundle.code_sha}.`
@@ -99,7 +99,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         value={gateLamp.value}
         tone={gateLamp.tone}
         dashed={gateLamp.dashed}
-        to="/admin/experiments"
+        to="/optimise"
         tooltip={gateLamp.tooltip}
       />
     </div>

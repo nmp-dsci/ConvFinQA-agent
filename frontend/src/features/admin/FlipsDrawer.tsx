@@ -37,7 +37,7 @@ function flipColumns(
       meta: { align: 'left', mono: false, width: '150px' },
       cell: ({ row }) => (
         <Link
-          to={`/admin/traces/eval?version=${candidate}&report_id=${encodeURIComponent(
+          to={`/runs/traces/eval?version=${candidate}&report_id=${encodeURIComponent(
             row.original.report_id,
           )}&turn_index=${row.original.q_order}`}
           className="hover:text-amber"

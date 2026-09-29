@@ -325,7 +325,7 @@ export const FINDINGS: Finding[] = [
     response:
       'The s7 harness diagnoses each failure into a bucket, writes a candidate rule for the agent responsible, and keeps it only if the case then passes and the regression set does not move.',
     evidence: 'The per-agent rule stores, with every attempt kept — including the rejected ones.',
-    to: '/admin/research',
+    to: '/optimise/research',
   },
   {
     paper:
@@ -348,7 +348,7 @@ export const FINDINGS: Finding[] = [
     response:
       'The calculator never writes DSL text. It calls add / subtract / multiply / divide / exp / greater as tools, and the program is reconstructed from the tool loop afterwards.',
     evidence: 'The tool loop in every trace.',
-    to: '/admin/traces',
+    to: '/runs/traces',
   },
   {
     paper:

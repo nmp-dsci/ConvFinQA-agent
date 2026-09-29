@@ -30,20 +30,23 @@ EXPECTED_REFS = tuple(f"R{i}" for i in range(1, 10))
 
 KNOWN_ROUTES = (
     "/",
-    "/chat",
-    "/admin",
-    "/admin/evaluations",
-    "/admin/dataset",
-    "/admin/campaigns",
-    "/admin/runtimes",
-    "/admin/experiments",
-    "/admin/traces",
-    "/admin/research",
-    "/admin/system",
-    "/admin/readiness",
+    "/filings",
+    "/scoring",
+    "/leaderboard",
+    "/runs",
+    "/runs/traces",
+    "/optimise",
+    "/optimise/runtimes",
+    "/optimise/research",
+    "/agent",
+    "/agent/readiness",
+    "/agent/chat",
+    "/gold",
 )
-"""Every route the frontend router serves. An `app` link outside this list
-would send a reader to a blank page."""
+"""Every page the frontend's route table (`frontend/src/routes.tsx`) serves: the house's eight
+slots and their sub-pages (s16). The Console's `/admin/*` and `/chat` addresses still land —
+they redirect — but a proof link names the page itself, so one outside this list would send a
+reader through a redirect at best and to a blank page at worst."""
 
 
 def load_readiness() -> dict[str, Any]:

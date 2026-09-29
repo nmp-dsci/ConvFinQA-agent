@@ -77,7 +77,7 @@ export function ChatRoute() {
   useEffect(() => {
     if (!routeReportId) return;
     if (activeReportId && activeReportId !== routeReportId) {
-      navigate(`/chat/${activeReportId}`, { replace: true });
+      navigate(`/agent/chat/${activeReportId}`, { replace: true });
     }
   }, [activeReportId, routeReportId, navigate]);
 

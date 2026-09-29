@@ -142,18 +142,20 @@ code="$(curl -s -o /tmp/smoke_promote.json -w '%{http_code}' --max-time 20 \
   -H 'Content-Type: application/json' -d '{"version":"v2"}')"
 [[ "$code" == "403" ]] || fail "POST /admin/registry/promote returned $code, expected 403"
 
-# 6b. A page URL resolves to the page. `/admin` is both an API prefix and a UI
-#     route prefix, and `/admin/experiments` is spelled the same on both sides;
-#     without the document-request rule in `serving/app.py` FastAPI wins and a
-#     visitor opening that page — a bookmark, a refresh, a shared link — is
-#     handed raw JSON. Dev cannot catch this: Vite's proxy applies the same rule
-#     from the other side.
+# 6b. A page URL resolves to the page. The Console's pages lived under `/admin`,
+#     which is also an API prefix, and `/admin/experiments` is spelled the same
+#     on both sides. Since s16 the pages live at the house's eight slots and the
+#     old addresses redirect client-side — so an old bookmark must still reach
+#     the SPA shell (the document-request rule in `serving/app.py`), not raw JSON.
 page="$(curl -fsS --max-time 20 -H 'Accept: text/html' -H 'Sec-Fetch-Dest: document' \
   "$BASE/admin/experiments")" || fail "/admin/experiments unreachable"
 echo "$page" | grep -qi '<!doctype html' \
   || fail "/admin/experiments returned the API payload, not the page"
 
-# 6. The React shell serves from the same origin.
-curl -fsS --max-time 20 "$BASE/" | grep -qi '<!doctype html' || fail "index did not render"
+# 6. The React shell serves from the same origin, at the root and at every slot.
+for slot in / /filings /scoring /leaderboard /runs /optimise /agent /gold; do
+  curl -fsS --max-time 20 -H 'Accept: text/html' "$BASE$slot" | grep -qi '<!doctype html' \
+    || fail "$slot did not render the app"
+done
 
 echo "SMOKE PASS: $BASE — mode=demo, $versions eval runs, $reports recorded reports, $readiness_rows readiness rows, $trace_turns traces, writes refused"

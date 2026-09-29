@@ -1,4 +1,4 @@
-import { FileText, MoonStar, Plus, Search, Sun } from 'lucide-react';
+import { FileText, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -11,17 +11,16 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command';
-import { useTheme } from '@/lib/theme';
 import { useStore } from '../../store';
 import { NAV_ITEMS } from '../../app/nav';
 import { shortRid } from './format';
 
-/** Every page but the chat itself, in story order — the same list the rail reads. */
-const PAGES = NAV_ITEMS.filter((item) => item.to !== '/chat');
+/** Every page but the chat itself, in story order — the same list the header reads. */
+const PAGES = NAV_ITEMS.filter((item) => item.to !== '/agent/chat');
 
 /**
  * ⌘K. Four things a person actually wants mid-conversation: change filing,
- * start a new one, jump to an instrument page, flip the theme.
+ * start a new one, jump to a page. (The theme follows the OS, as every house app does.)
  *
  * Filings are listed directly rather than behind a submenu — recall beats
  * browsing once you know the ticker, and the picker dialog is still there for
@@ -30,7 +29,6 @@ const PAGES = NAV_ITEMS.filter((item) => item.to !== '/chat');
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { theme, toggle } = useTheme();
   const reports = useStore((s) => s.reports);
   const selectReport = useStore((s) => s.selectReport);
   const openPicker = useStore((s) => s.openPicker);
@@ -80,30 +78,18 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Pages">
-          {PAGES.map((page) => {
-            const Icon = page.icon;
-            return (
-              <CommandItem
-                key={page.to}
-                value={`${page.label} ${page.to}`}
-                onSelect={() => run(() => navigate(page.to))}
-              >
-                <Icon aria-hidden />
-                {page.label}
-                <CommandShortcut>{page.to}</CommandShortcut>
-              </CommandItem>
-            );
-          })}
+          {PAGES.map((page) => (
+            <CommandItem
+              key={page.to}
+              value={`${page.label} ${page.to}`}
+              onSelect={() => run(() => navigate(page.to))}
+            >
+              {page.label}
+              <CommandShortcut>{page.to}</CommandShortcut>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
-        <CommandSeparator />
-
-        <CommandGroup heading="Appearance">
-          <CommandItem value="toggle theme dark light" onSelect={() => run(toggle)}>
-            {theme === 'dark' ? <Sun aria-hidden /> : <MoonStar aria-hidden />}
-            Switch to {theme === 'dark' ? 'light' : 'dark'} theme
-          </CommandItem>
-        </CommandGroup>
 
         {reports.length > 0 && (
           <>

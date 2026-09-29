@@ -25,7 +25,7 @@ import { ak } from './useAdminData';
  * Two kinds of turn open in this viewer. A live one comes out of the trace
  * store with timing, tokens and a cost; a scored one is reconstructed from a
  * committed predictions CSV and has the same four stage captures but never had
- * a clock on it. The route distinguishes them by `/admin/traces/eval` plus
+ * a clock on it. The route distinguishes them by `/runs/traces/eval` plus
  * query parameters, because a report id contains slashes and cannot survive a
  * single dynamic segment.
  *
@@ -178,7 +178,7 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
             label="session"
             value={trace.session_id.slice(0, 8)}
             tone="info"
-            to={`/admin/traces?session=${trace.session_id}`}
+            to={`/runs/traces?session=${trace.session_id}`}
             title={trace.session_id}
           />
         )}
@@ -192,7 +192,7 @@ function LiveTraceView({ trace }: { trace: LiveTraceDetail }) {
         answer={trace.answer ?? ''}
         gold={trace.gold_answer ?? ''}
         correct={correct}
-        backTo="/admin/traces"
+        backTo="/runs/traces"
       />
 
       <Panel title="Cost of this turn" endpoint={`/traces/${trace.trace_id}`}>
@@ -295,7 +295,7 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
           label="version"
           value={trace.version}
           tone="info"
-          to={`/admin/evaluations?version=${trace.version}`}
+          to={`/runs?version=${trace.version}`}
         />
       </LampRow>
 
@@ -306,7 +306,7 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
         answer={trace.answer}
         gold={trace.gold_answer}
         correct={trace.correct}
-        backTo="/admin/evaluations"
+        backTo="/runs"
       />
 
       <Panel

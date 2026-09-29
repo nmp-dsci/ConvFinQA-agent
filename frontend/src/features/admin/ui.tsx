@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { NextFooter, PageHeader } from '@/components/console';
+import { PageHead } from '@/kit/ui';
 import { NO_VALUE } from '../landing/format';
 
 export { Lamp, LampRow } from '@/components/console';
@@ -29,23 +29,21 @@ export function AdminPage({
   children,
   testId,
 }: {
-  /** Kept for callers; the header now derives its eyebrow from the nav. */
+  /** The mono label above the claim. */
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
   /** The sentence the page settles — rendered at the lede step. */
   sub: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   testId: string;
 }) {
-  void eyebrow;
   return (
-    <div className="h-full overflow-y-auto bg-ground" data-testid={testId}>
-      <div className="mx-auto flex max-w-[1560px] min-w-0 flex-col gap-4 px-3 py-5 sm:px-5">
-        <PageHeader title={title} verdict={sub} chips={actions} />
-        {children}
-        <NextFooter />
-      </div>
+    <div className="flex min-w-0 flex-col gap-4" data-testid={testId}>
+      <PageHead eyebrow={eyebrow} title={title} lead={sub}>
+        {actions && <div className="chips">{actions}</div>}
+      </PageHead>
+      {children}
     </div>
   );
 }
