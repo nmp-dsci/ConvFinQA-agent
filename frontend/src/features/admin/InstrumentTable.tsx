@@ -7,20 +7,12 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { ColumnDef, RowData, SortingState } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 /**
- * The mock's `table.tb`: a dense instrument table.
- *
- * Mono-caps column heads, tabular monospaced figures right-aligned, the first
- * column in the UI face because it is a name rather than a measurement, and a
- * champion row tinted `--amber-soft`. TanStack Table supplies sorting and the
- * row model; the look is entirely ours.
- *
- * Every table scrolls inside its own `overflow-x-auto` box. That is not
- * cosmetic: eleven columns of telemetry cannot fit a 420px phone, and a page
- * that scrolls sideways as a whole is the failure mode this avoids.
+ * A house table (ui/DESIGN.md §3 Tables) with TanStack's sorting underneath: a `.tw` scroll
+ * wrapper, mono uppercase heads, `th.sortable` / `th.sorted`, `td.num` for measurements (right,
+ * tabular), and the promoted row as `tr.pro`. Every table scrolls inside its own box so the page
+ * never scrolls sideways.
  */
 
 /** Per-column display hints, read off `column.columnDef.meta`. */
@@ -29,19 +21,13 @@ export interface CellMeta {
   align?: 'left' | 'right';
   /** Defaults to true for right-aligned columns. */
   mono?: boolean;
-  /**
-   * Column width. Under the default auto layout this is a *minimum*; under
-   * `layout="fixed"` it is the width, so give every column one and prefer
-   * percentages summing to 100.
-   */
+  /** A minimum under the default layout; the width under `layout="fixed"`. */
   width?: string;
-  /** Wrap rather than truncate (questions, rule text). */
+  /** Wrap rather than hold the cell on one line (questions, rule text). */
   wrap?: boolean;
 }
 
 declare module '@tanstack/react-table' {
-  // The generics are required by the declaration being augmented even though
-  // this table's hints do not vary with row or cell type.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> extends CellMeta {}
 }
@@ -49,25 +35,17 @@ declare module '@tanstack/react-table' {
 export interface InstrumentTableProps<T> {
   data: T[];
   columns: Array<ColumnDef<T, unknown>>;
-  /** Stable identity per row; used as the React key. */
   rowKey: (row: T, index: number) => string;
-  /** Extra classes per row — the champion tint, a failed turn. */
+  /** Row classes: `pro` for the champion, `dim`, `warnrow`, `click`. */
   rowClass?: (row: T) => string | undefined;
-  /** Below this the table scrolls horizontally inside its own box. */
   minWidth?: number;
   emptyLabel?: ReactNode;
   initialSorting?: SortingState;
-  /** Caps the body height and scrolls, for the long tables. */
+  /** Caps the body height and scrolls, heads sticky. */
   maxHeight?: number;
-  /**
-   * `fixed` sizes columns purely from `meta.width`, ignoring content.
-   *
-   * Auto layout grows a column to avoid breaking an unbreakable token — a
-   * report id like `Double_HIG/2016/page_253.pdf` — and pays for it by pushing
-   * the last column off-screen, which no per-column minimum can prevent. Wide
-   * tables of long strings want `fixed`; tables of short measurements do not.
-   */
+  /** `fixed` sizes columns purely from `meta.width` (wide tables of long ids). */
   layout?: 'auto' | 'fixed';
+  caption?: ReactNode;
   testId?: string;
 }
 
@@ -81,6 +59,7 @@ export function InstrumentTable<T>({
   initialSorting = [],
   maxHeight,
   layout = 'auto',
+  caption,
   testId,
 }: InstrumentTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -96,23 +75,21 @@ export function InstrumentTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className="rounded-[5px] border border-line border-dashed px-3 py-5 text-center">
-        <p className="type-small text-faint">{emptyLabel}</p>
-      </div>
+      <p className="empty" data-testid={testId ? `${testId}-empty` : undefined}>
+        {emptyLabel}
+      </p>
     );
   }
 
   return (
     <div
       data-testid={testId}
-      className="min-w-0 overflow-x-auto"
+      className={`tw${maxHeight ? ' scroll-y' : ''}`}
       style={maxHeight ? { maxHeight, overflowY: 'auto' } : undefined}
     >
-      <table
-        className={cn('w-full border-collapse text-[11px]', layout === 'fixed' && 'table-fixed')}
-        style={{ minWidth }}
-      >
-        <thead className={cn(maxHeight && 'sticky top-0 z-10 bg-panel')}>
+      <table style={{ minWidth, tableLayout: layout }}>
+        {caption && <caption>{caption}</caption>}
+        <thead>
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id}>
               {group.headers.map((header) => {
@@ -120,34 +97,27 @@ export function InstrumentTable<T>({
                 const align = meta.align ?? 'right';
                 const sortable = header.column.getCanSort();
                 const dir = header.column.getIsSorted();
+                const cls = [
+                  align === 'right' ? 'num' : 'left',
+                  sortable ? 'sortable' : '',
+                  dir ? 'sorted' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
                 return (
                   <th
                     key={header.id}
                     scope="col"
+                    className={cls}
+                    aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
                     style={
-                      meta.width
-                        ? layout === 'fixed'
-                          ? { width: meta.width }
-                          : { minWidth: meta.width }
-                        : undefined
+                      meta.width ? (layout === 'fixed' ? { width: meta.width } : { minWidth: meta.width }) : undefined
                     }
-                    className={cn(
-                      'mono-caps border-b border-line-2 px-1.5 py-1 font-medium whitespace-nowrap',
-                      align === 'left' ? 'text-left' : 'text-right',
-                    )}
                   >
                     {sortable ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className={cn(
-                          'mono-caps inline-flex items-center gap-0.5 hover:text-amber',
-                          dir && 'text-amber',
-                        )}
-                      >
+                      <button type="button" className="sort" onClick={header.column.getToggleSortingHandler()}>
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {dir === 'asc' && <ChevronUp aria-hidden className="size-2.5" />}
-                        {dir === 'desc' && <ChevronDown aria-hidden className="size-2.5" />}
+                        {dir === 'asc' ? ' ▲' : dir === 'desc' ? ' ▼' : ''}
                       </button>
                     ) : (
                       flexRender(header.column.columnDef.header, header.getContext())
@@ -160,26 +130,20 @@ export function InstrumentTable<T>({
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row, index) => (
-            <tr
-              key={rowKey(row.original, index)}
-              className={cn('border-b border-line last:border-0', rowClass?.(row.original))}
-            >
-              {row.getVisibleCells().map((cell) => {
+            <tr key={rowKey(row.original, index)} className={rowClass?.(row.original)}>
+              {row.getVisibleCells().map((cell, i) => {
                 const meta = (cell.column.columnDef.meta ?? {}) as CellMeta;
                 const align = meta.align ?? 'right';
                 const mono = meta.mono ?? align === 'right';
+                const cls = [
+                  align === 'right' ? (mono ? 'num' : 'num sans') : i === 0 ? 'sub left' : 'left',
+                  mono && align === 'left' ? 'mono' : '',
+                  meta.wrap ? 'wrap-cell' : 'nowrap',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
                 return (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      'px-1.5 py-1 align-top',
-                      align === 'left' ? 'text-left' : 'text-right',
-                      mono
-                        ? 'type-num text-[10.5px] text-muted'
-                        : 'font-sans text-[11.5px] text-text',
-                      meta.wrap ? 'break-words' : 'whitespace-nowrap',
-                    )}
-                  >
+                  <td key={cell.id} className={cls}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 );
@@ -192,5 +156,5 @@ export function InstrumentTable<T>({
   );
 }
 
-/** The champion tint from the mock's `tr.ch`. */
-export const CHAMPION_ROW = 'bg-amber-soft [&>td]:text-text';
+/** The promoted row, as the house marks it. */
+export const CHAMPION_ROW = 'pro';

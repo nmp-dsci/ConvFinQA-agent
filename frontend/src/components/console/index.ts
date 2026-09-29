@@ -5,4 +5,3 @@
  */
 export { Lamp, LampRow } from './Lamp';
 export type { LampProps, LampTone } from './Lamp';
-export { FilterChip } from './FilterChip';
