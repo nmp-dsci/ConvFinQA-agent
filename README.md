@@ -99,26 +99,25 @@ This result is what motivated [`ai_specs/s8-optimisation-testing.md`](ai_specs/s
 
 ## Production surfaces
 
-The frontend is the operator console ("The Console"), not just a chat window —
-dark-first, IBM Plex type, a terminal-amber accent. A status-board landing at
-`/` is the front door; chat lives at `/chat`; everything else is an
-instrument-style admin section at `/admin`, all reading the same backend:
+The frontend is the portfolio's house UI — the same app as DataAgentBench's and tau2-loop's,
+in blue: a sticky header with eight tabs in one story order, IBM Plex serif/sans/mono, plain
+CSS on shared tokens, following the OS theme. The kit lives in `nmp-central-ai/ui/` and is
+vendored in `frontend/src/kit/`; the brief is `DESIGN.md`.
 
-| Route | What it answers |
+| Tab · route | What it answers |
 |---|---|
-| **`/`** (landing) | The status board: pipeline health, recent activity, recorded conversations to jump into. |
-| **`/chat`** | Pick a filing, ask freely or step through the dataset's own questions, watch the four stages stream in a sessions/thread-inspector layout. |
-| **`/admin`** | Redirects to `/admin/runtimes` — the lead evidence page. |
-| **`/admin/runtimes`** | How we got to `sdk_v1`: the progression chart, each model's test score, and the runtime recommendation — same `evaluation/story.json` as the landing HUD. |
-| **`/admin/evaluations`** | Which conversations the optimizer saw, and every question with gold beside each version's answer — filterable to just the turns where versions disagree. |
-| **`/admin/dataset`** | Every split's questions beside gold answer + gold program, so a human can settle `gold_suspect` rows the eval-loop teacher flags. |
-| **`/admin/experiments`** | Campaigns (target agent, promoted/rejected, p-value), every eval / GEPA / research run, the registry, and the append-only promotion history — one page instead of three. |
-| **`/admin/traces`** (+ `/admin/traces/:traceId`) | Every turn the system has answered, stage by stage: inputs, outputs, reasoning, tool loop, tokens, latency, gold comparison. |
-| **`/admin/research`** | Launch an s7 round or a GEPA smoke run and watch it stream; browse the rules each round promoted. Linked from Architecture, not from the nav rail — the harness is retired. |
-| **`/admin/system`** | The debrief: paper benchmark, pipeline/LLM-choke-point architecture, the evaluation/optimisation/promotion contract, observability, and open work. |
-| **`/admin/readiness`** | The production gen-AI rubric (R1–R9), scored against this system with its proof paths and in-app routes — same `evaluation/readiness.json` the landing strip and Architecture read. |
+| **Overview** · `/` | The result with its baseline and caveat: the runtime progression, the readiness strip, recorded conversations to jump into. |
+| **Filings & questions** · `/filings` | What the benchmark is: every split's questions beside gold answer and gold program. |
+| **Scoring** · `/scoring` | How a turn is judged: execution accuracy, gold-derived attribution, the one-sided cluster McNemar gate, and the confidence judge that was tried and not adopted. |
+| **Leaderboard** · `/leaderboard` | The paper's FinQANet, GPT-3 and human-expert rows beside our two runtimes, on one axis, with the caveats. |
+| **Runs** · `/runs`, `/runs/traces`, `/runs/traces/:id` | Every version by slice, two compared with their flips, and every served turn stage by stage. |
+| **Optimise** · `/optimise`, `/optimise/runtimes`, `/optimise/research` | Campaigns and the append-only promotion history; how we got to `sdk_v1`; the retired s7 rule research. |
+| **Agent** · `/agent`, `/agent/readiness`, `/agent/chat/*` | The pipeline, the one place a model is built, the bundle fingerprint, deploy and open work; the R1–R9 scorecard; and the chat itself. |
+| **Gold review** · `/gold` | Gold labels the loop flagged as suspect or could not settle, and how each was adjudicated. |
 
-All eight admin pages are visible **read-only** in the public demo — that is
+The Console's old addresses (`/chat/*`, `/admin/*`, `/debrief`) redirect to their tab.
+
+Every page is visible **read-only** in the public demo — that is
 intentional exposure, not a leak. The demo gate is three layers: a route
 filter, a real `<fieldset disabled>` around every write control, and a server
 501/403 on the write itself, so viewing is always allowed and acting never is.
