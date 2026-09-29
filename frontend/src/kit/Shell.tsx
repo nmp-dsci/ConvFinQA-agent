@@ -1,4 +1,4 @@
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /**
  * The house shell: a sticky header (brand, the tab pills, the mode pill), the page, and a
  * provenance footer. Every project renders the same markup; only the props differ.

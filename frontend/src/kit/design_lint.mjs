@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /**
  * DESIGN.md's never-do list as a check. Walks src/ (this file lives in src/kit/):
  *   - a hex colour outside the two token files (kit/tokens.base.css, theme.css) fails;

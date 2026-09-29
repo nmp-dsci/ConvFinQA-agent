@@ -1,4 +1,4 @@
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /** Formatting every page shares. An absent value is `—`, never 0, never blank. */
 
 export const NO_VALUE = '—';

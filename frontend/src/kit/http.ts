@@ -1,4 +1,4 @@
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /** The whole data layer a read-only page needs: GET, POST, and a hook. Projects with a richer
  *  client (react-query, SSE) keep theirs; this is the floor, not a ceiling. */
 import { useEffect, useState } from 'react';

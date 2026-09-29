@@ -1,4 +1,4 @@
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /**
  * The pieces every page shares, so DESIGN.md's number and status rules live in one place.
  * Carved from DataAgentBench's and tau2-loop's `lib/ui.tsx`.

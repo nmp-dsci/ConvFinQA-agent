@@ -1,4 +1,4 @@
-// nmp-ui-kit 0.1.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
+// nmp-ui-kit 1.0.0 · vendored from nmp-central-ai/ui/kit — do not edit here; change the kit and run `make ui-sync`.
 /**
  * `land(routes, url)` — drive the real route table in a memory router (loaders and redirects run,
  * nothing renders) and report where an address ends up. `routes.test.tsx` uses it to prove that
