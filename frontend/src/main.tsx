@@ -1,11 +1,15 @@
 // Self-hosted, no CDN: the demo container must render identically with no
-// outbound network at all. Upright weights only — nothing in this UI is
-// italic, and the mono faces are pinned to the latin subset because every
-// string it renders is an id, a number or a program.
-import '@fontsource-variable/ibm-plex-sans/wght.css';
+// outbound network at all. The house's three voices (ui/DESIGN.md): Serif for the
+// h1 and the lead (with the one italic <em>), Sans for the interface, Mono for data.
+// Latin subset only: every string this UI renders is English, an id or a number.
+import '@fontsource/ibm-plex-serif/latin-400.css';
+import '@fontsource/ibm-plex-serif/latin-400-italic.css';
+import '@fontsource/ibm-plex-serif/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
-import '@fontsource/ibm-plex-mono/latin-600.css';
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';

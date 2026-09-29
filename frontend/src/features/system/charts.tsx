@@ -39,7 +39,7 @@ export function DistributionBars({ bars }: { bars: Distribution[] }) {
             className="mt-1 block overflow-hidden rounded-[2px]"
           >
             <rect width="100%" height="5" fill="var(--panel-2)" />
-            <rect width={`${bar.pct}%`} height="5" fill="var(--amber)" opacity="0.75" />
+            <rect width={`${bar.pct}%`} height="5" fill="var(--accent)" opacity="0.75" />
           </svg>
           {bar.note && <p className="type-meta mt-0.5 text-faint">{bar.note}</p>}
         </li>
@@ -55,7 +55,7 @@ export function DistributionBars({ bars }: { bars: Distribution[] }) {
 const SERIES = [
   { key: 'finqanet', label: 'FinQANet RoBERTa-large', fill: 'var(--info)', opacity: 0.55 },
   { key: 'gpt3', label: 'GPT-3 Program-normal', fill: 'var(--muted)', opacity: 0.45 },
-  { key: 'ours', label: 'This deployment', fill: 'var(--amber)', opacity: 1 },
+  { key: 'ours', label: 'This deployment', fill: 'var(--accent)', opacity: 1 },
 ] as const;
 
 export function SliceLegend() {
@@ -120,7 +120,7 @@ export function SliceChart({ rows }: { rows: SliceRow[] }) {
             <rect y="1" width={`${row.finqanet}%`} height="5" fill="var(--info)" opacity="0.55" />
             <rect y="7.5" width={`${row.gpt3}%`} height="5" fill="var(--muted)" opacity="0.45" />
             {row.ours !== null && (
-              <rect y="14" width={`${row.ours}%`} height="5" fill="var(--amber)" />
+              <rect y="14" width={`${row.ours}%`} height="5" fill="var(--accent)" />
             )}
             {/* The human ceiling, so no bar is read as "good" in isolation. */}
             <line
@@ -256,7 +256,7 @@ export function PerTurnChart({
           <polyline
             points={oursPoints.join(' ')}
             fill="none"
-            stroke="var(--amber)"
+            stroke="var(--accent)"
             strokeWidth="1.6"
           />
         )}
@@ -266,7 +266,7 @@ export function PerTurnChart({
             cx={x(p.order + 1)}
             cy={y(p.accuracy)}
             r={p.n < SAMPLE_FLOOR ? 1.5 : 2.4}
-            fill="var(--amber)"
+            fill="var(--accent)"
             opacity={p.n < SAMPLE_FLOOR ? 0.4 : 1}
           />
         ))}
@@ -275,7 +275,7 @@ export function PerTurnChart({
       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="type-meta flex items-center gap-1.5">
           <svg width="12" height="4" aria-hidden>
-            <line x1="0" y1="2" x2="12" y2="2" stroke="var(--amber)" strokeWidth="1.6" />
+            <line x1="0" y1="2" x2="12" y2="2" stroke="var(--accent)" strokeWidth="1.6" />
           </svg>
           this deployment, per turn
         </span>
@@ -325,7 +325,7 @@ export function MiniBar({ pct, tone = 'amber' }: { pct: number | null; tone?: 'a
       <rect
         width={`${Math.max(0, Math.min(100, pct))}%`}
         height="4"
-        fill={tone === 'amber' ? 'var(--amber)' : 'var(--info)'}
+        fill={tone === 'amber' ? 'var(--accent)' : 'var(--info)'}
       />
     </svg>
   );

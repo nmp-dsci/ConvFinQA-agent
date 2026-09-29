@@ -1,0 +1,5 @@
+/* The project's own tokens: the blue accent (ui/accents.yaml) and any recorded
+   extension. Owned by the project; `make ui-sync` never touches it. */
+:root{ --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40; }}
+:root[data-theme="dark"]{ --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40; }

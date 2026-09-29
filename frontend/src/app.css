@@ -1,0 +1,2 @@
+/* ConvFinQA components the kit does not have. Tokens only: `npm run lint:design` fails on a hex here.
+   Loaded in the `app` layer, after the kit and after Tailwind (while it is still here). */

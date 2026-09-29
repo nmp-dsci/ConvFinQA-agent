@@ -3,7 +3,7 @@ import { sparkPolylines } from './format';
 export type SparkTone = 'amber' | 'good' | 'bad' | 'info';
 
 const STROKE: Record<SparkTone, string> = {
-  amber: 'var(--amber)',
+  amber: 'var(--accent)',
   good: 'var(--good)',
   bad: 'var(--bad)',
   info: 'var(--info)',

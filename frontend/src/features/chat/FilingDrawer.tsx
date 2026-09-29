@@ -194,7 +194,7 @@ export function FilingDrawer({ reportId, message, onClose }: Props) {
                               className={cn(
                                 'border-b border-l border-line px-2 py-1 text-right font-mono whitespace-nowrap',
                                 hit
-                                  ? 'bg-amber-soft text-amber shadow-[inset_0_0_0_1px_var(--amber-line)]'
+                                  ? 'bg-amber-soft text-amber shadow-[inset_0_0_0_1px_var(--accent-line)]'
                                   : 'text-muted'
                               )}
                             >

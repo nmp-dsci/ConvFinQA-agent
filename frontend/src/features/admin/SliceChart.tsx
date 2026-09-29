@@ -24,7 +24,7 @@ export interface SliceSeries {
 }
 
 /** Three versions is the whole history; a fourth falls back to amber. */
-const SERIES_COLOR = ['var(--amber)', 'var(--info)', 'var(--violet)'];
+const SERIES_COLOR = ['var(--accent)', 'var(--info)', 'var(--violet)'];
 
 interface ChartRow {
   label: string;
@@ -77,25 +77,25 @@ export function SliceChart({
             <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: 'var(--faint)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+              tick={{ fill: 'var(--faint)', fontSize: 12.8, fontFamily: 'var(--font-mono)' }}
               tickLine={false}
               axisLine={{ stroke: 'var(--line-2)' }}
             />
             <YAxis
               domain={[0, 100]}
               width={44}
-              tick={{ fill: 'var(--faint)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+              tick={{ fill: 'var(--faint)', fontSize: 12.8, fontFamily: 'var(--font-mono)' }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `${v}%`}
             />
             <Tooltip
-              cursor={{ fill: 'var(--amber-soft)' }}
+              cursor={{ fill: 'var(--accent-soft)' }}
               contentStyle={{
                 background: 'var(--panel-2)',
                 border: '1px solid var(--line-2)',
                 borderRadius: 5,
-                fontSize: 11,
+                fontSize: 12.8,
                 fontFamily: 'var(--font-mono)',
                 color: 'var(--text)',
               }}

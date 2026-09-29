@@ -537,7 +537,7 @@ export default function Evaluations() {
                 type="checkbox"
                 checked={onlyDisagreements}
                 onChange={(e) => setParam('disagree', e.target.checked ? '1' : '')}
-                className="accent-[var(--amber)]"
+                className="accent-[var(--accent)]"
               />
               versions disagree
             </label>

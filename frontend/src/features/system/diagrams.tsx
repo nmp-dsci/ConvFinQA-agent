@@ -79,8 +79,8 @@ function Box({
       width={w}
       height={h}
       rx="4"
-      fill={accent ? 'var(--amber-soft)' : 'var(--panel)'}
-      stroke={accent ? 'var(--amber-line)' : 'var(--line-2)'}
+      fill={accent ? 'var(--accent-soft)' : 'var(--panel)'}
+      stroke={accent ? 'var(--accent-line)' : 'var(--line-2)'}
       strokeWidth="1"
       strokeDasharray={dashed ? '4 3' : undefined}
       opacity={dashed ? 0.75 : 1}
@@ -334,7 +334,7 @@ export function BundleDiagram({ bundleId }: { bundleId?: string }) {
 
       <Arrow x1={296} y1={120} x2={296} y2={130} />
       <Box x={206} y={132} w={180} h={28} accent />
-      <T x={296} y={150} size={11} mono weight={500} fill="var(--amber)">
+      <T x={296} y={150} size={11} mono weight={500} fill="var(--accent)">
         {bundleId ?? 'bundle_id'}
       </T>
     </Figure>

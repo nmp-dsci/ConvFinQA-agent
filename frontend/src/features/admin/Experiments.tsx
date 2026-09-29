@@ -56,7 +56,7 @@ type Agent = (typeof AGENTS)[number];
 const AGENT_COLOR: Record<Agent, string> = {
   triage: 'var(--info)',
   preprocess: 'var(--violet)',
-  retriever: 'var(--amber)',
+  retriever: 'var(--accent)',
   calculator: 'var(--good)',
 };
 

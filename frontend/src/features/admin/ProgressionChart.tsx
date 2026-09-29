@@ -24,7 +24,7 @@ const STAGE_LABEL: Record<ProgressionPoint['key'], string> = {
 
 const STAGE_FILL: Record<ProgressionPoint['key'], string> = {
   pipeline_raw: 'var(--muted)',
-  pipeline_optimised: 'var(--amber)',
+  pipeline_optimised: 'var(--accent)',
   sdk_distilled: 'var(--info)',
   sdk_optimised: 'var(--violet)',
   sdk_model_swap: 'var(--good)',
@@ -112,8 +112,8 @@ export function ProgressionChart({
     references.push({
       key: 'incumbent',
       value: pipelineBaseline,
-      line: 'var(--amber-line)',
-      text: 'var(--amber)',
+      line: 'var(--accent-line)',
+      text: 'var(--accent)',
       label: `pipeline champion ${formatPercent(pipelineBaseline)}`,
       sub: 'measured on this gate split',
     });
