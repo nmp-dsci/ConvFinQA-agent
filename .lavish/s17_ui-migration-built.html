@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>s17 · House UI migration built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+/* the house kit's tokens (nmp-central-ai/ui/kit/tokens.base.css) with ConvFinQA's blue accent */
+:root{
+  --bg:#F7F6F2; --panel:#FFFFFF; --band:#EFEEE8;
+  --ink:#1A1D1B; --ink-2:#3B403D; --muted:#4A514D; --faint:#5C635E;
+  --line:#DCDAD2; --line-2:#C7C5BC; --line-3:#8A8880;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3;
+  --amber:#8A5006; --amber-soft:#F6E6CF; --ok:#0A6552; --ok-soft:#DFEFE8; --red:#A2342B;
+  --sans:'IBM Plex Sans',system-ui,sans-serif; --serif:'IBM Plex Serif',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --t-2:0.8rem; --t-1:0.875rem; --t0:1rem; --t1:1.125rem; --t2:1.406rem; --t3:1.758rem; --t4:2.197rem;
+  --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s9:96px;
+  --r:10px; --r-sm:6px; --shadow:0 1px 2px rgb(20 25 22 / .05), 0 12px 28px -18px rgb(20 25 22 / .22);
+  --w:1140px; --measure:68ch; --track-label:.08em;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121614; --panel:#191E1B; --band:#161A18; --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+  --line:#28302B; --line-2:#3A443E; --line-3:#727E77; --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40;
+  --amber:#D99A4E; --amber-soft:#3A2A14; --ok:#43C29A; --ok-soft:#17382C; --red:#E8776B;
+  --shadow:0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -18px rgb(0 0 0 / .65);
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t0)/1.6 var(--sans)}
+main{max-width:var(--w);margin:0 auto;padding:var(--s7) var(--s4) var(--s9)}
+h1{font:400 var(--t4)/1.15 var(--serif);margin:var(--s3) 0 var(--s4);text-wrap:balance}
+h1 em{color:var(--accent)}
+h2{font:600 var(--t2)/1.25 var(--sans);margin:var(--s7) 0 var(--s3);text-wrap:balance}
+p{max-width:var(--measure);color:var(--ink-2);margin:0 0 var(--s3)}
+.lead{font:400 var(--t1)/1.55 var(--serif)}
+.label{font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);margin:0}
+code{font-family:var(--mono);font-size:var(--t-1);background:var(--band);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--s4);margin:var(--s5) 0}
+.kpi{background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4) var(--s5)}
+.kpi .n{font:500 var(--t3)/1.1 var(--mono)} .kpi .n.ok{color:var(--ok)}
+.kpi .b{font-size:var(--t-1);color:var(--muted);margin-top:var(--s2)}
+.tw{overflow-x:auto;background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);margin:var(--s3) 0}
+table{border-collapse:collapse;width:100%;font-size:var(--t-1)}
+thead th{font:500 var(--t-2)/1.3 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);text-align:left;padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+td.sub{color:var(--ink);font-weight:500;white-space:nowrap}
+.path{display:block;font:400 var(--t-2)/1.4 var(--mono);color:var(--faint)}
+.ok{color:var(--ok);font-weight:500} .warn{color:var(--amber);font-weight:500}
+figure{margin:var(--s5) 0 0}
+figure img{display:block;width:100%;height:auto;border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--line)}
+figcaption{margin-top:var(--s2);font-size:var(--t-1);color:var(--muted);max-width:var(--measure)}
+.fig-title{margin-bottom:var(--s2)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:var(--s5);align-items:start}
+.grid2>*{min-width:0}
+.phone{max-width:320px}
+ul{max-width:var(--measure);color:var(--ink-2);padding-left:1.2em} li{margin-bottom:var(--s2)}
+</style>
+</head>
+<body>
+<main>
+  <p class="label">s17 · build walkthrough · ConvFinQA-agent branch ui-migration · 2026-09-30</p>
+  <h1>ConvFinQA now wears the house UI in <em>blue</em>, and all three apps pull it from one kit</h1>
+  <p class="lead">Plan s16, all recommended options, delivered: the Console's rail, Tailwind and amber are gone; the eight house tabs, the Field Guide tokens and plain CSS are in; the shared parts live in <code>nmp-central-ai/ui</code> as kit 1.0.0, and DataAgentBench and tau2-loop run on it too.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n ok">3 / 3</div><div class="b">apps on kit 1.0.0 — ConvFinQA (blue), DataAgentBench (green), tau2-loop (red); <code>ui-check</code> PASS on each branch</div></div>
+    <div class="kpi"><div class="n">9 → 8</div><div class="b">ConvFinQA's nav items → the house's eight tabs; 14 old addresses redirect, pinned by 20 route tests</div></div>
+    <div class="kpi"><div class="n">0</div><div class="b">Tailwind utility classes left in 18k lines; 8 dependencies removed; design lint runs without the Tailwind exemption</div></div>
+    <div class="kpi"><div class="n ok">48 / 48</div><div class="b">route × width × theme checks with no sideways scroll and no text under 12.8px (12 routes, 390 and 1280px)</div></div>
+  </div>
+
+  <h2>1 · The look — one header, three colours</h2>
+  <div class="grid2">
+    <figure><p class="label fig-title">ConvFinQA · overview · light</p><img src="s17_assets/overview-light-1280.png" alt="ConvFinQA overview, light" /></figure>
+    <figure><p class="label fig-title">ConvFinQA · overview · dark</p><img src="s17_assets/overview-dark-1280.png" alt="ConvFinQA overview, dark" /></figure>
+    <figure><p class="label fig-title">DataAgentBench on kit 1.0.0</p><img src="s17_assets/family-dab-light-1280.png" alt="DataAgentBench overview" /></figure>
+    <figure><p class="label fig-title">tau2-loop on kit 1.0.0</p><img src="s17_assets/family-tau2-light-1280.png" alt="tau2-loop overview" /></figure>
+  </div>
+  <p style="margin-top:var(--s3)">Same header, same pill tabs, same type and spacing. Only the accent triple differs, and it lives in each project's own <code>src/theme.css</code>.</p>
+
+  <h2>2 · The three new tabs — each built from data the repo already had</h2>
+  <div class="grid2">
+    <figure><p class="label fig-title">Leaderboard · the paper's 12 systems and ours on one axis</p><img src="s17_assets/leaderboard-light-1280.png" alt="Leaderboard" /><figcaption>Our two runtimes read live from <code>/eval/campaigns</code>; the human expert is the reference line; the paradigm caveat sits under the figure.</figcaption></figure>
+    <figure><p class="label fig-title">Gold review · what we know by hand</p><img src="s17_assets/gold-light-1280.png" alt="Gold review" /><figcaption>New read-only <code>GET /eval/gold-review</code> over the committed diagnoses ledger: 120 review rows on 65 questions; shipped in the demo image and smoke-checked.</figcaption></figure>
+  </div>
+  <p style="margin-top:var(--s3)">Scoring (slot 3) gathers the metric, the gold-derived attribution walk, the promotion gate and the confidence judge, which moved there from Runtimes.</p>
+
+  <h2>3 · The working surfaces — chat and the evidence pages</h2>
+  <div class="grid2">
+    <figure><p class="label fig-title">Agent › Ask a filing · the one wide route</p><img src="s17_assets/agent-chat-light-1280.png" alt="Chat" /></figure>
+    <figure><p class="label fig-title">Agent · architecture, diagrams at 13px</p><img src="s17_assets/agent-light-1280.png" alt="Agent" /></figure>
+    <figure><p class="label fig-title">Optimise › Runtimes · dark</p><img src="s17_assets/optimise-runtimes-dark-1280.png" alt="Runtimes" /></figure>
+    <figure class="phone"><p class="label fig-title">Runs · 390px</p><img src="s17_assets/runs-light-390.png" alt="Runs at phone width" /></figure>
+  </div>
+
+  <h2>4 · What shipped where — every commit on a branch, nothing pushed</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Repo · branch</th><th>Commits</th><th>What</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">nmp-central-ai<span class="path">ui-kit</span></td><td>6</td><td>kit 0.1.0 → 1.0.0 (<code>ui/</code>: DESIGN.md, kit/, accents.yaml, template/, CHANGELOG.md), <code>scripts/ui_kit.py</code> (new · check · sync · accent), <code>make ui-check/ui-sync/ui-new</code>, registry <code>ui:</code> blocks, spec s05 + D25, <code>platform-ui</code> skill + eval, plugin 0.3.0, PLATFORM.md rule 8</td><td><span class="ok">●</span> ruff, mypy, 27 tests, plugin validate, template builds</td></tr>
+      <tr><td class="sub">ConvFinQA-agent<span class="path">ui-migration</span></td><td>7</td><td>C0 kit + bridge · C1 shell, routes, redirects · C2 shared pieces · C3–C5 every tab, Gold review, Tailwind out · docs · kit 1.0.0</td><td><span class="ok">●</span> lint, 182 unit, 8 e2e (landing), build, 54 backend tests, story_check</td></tr>
+      <tr><td class="sub">DataAgentBench<span class="path">ui-kit-1.0.0</span></td><td>1</td><td>vendored kit, green theme.css (+ SQL tokens), app.css minus 165 duplicate lines, kit Shell</td><td><span class="ok">●</span> 51 tests, build; pixel-identical on 6/8 pages, SVG bar fix on 2</td></tr>
+      <tr><td class="sub">tau2-loop<span class="path">ui-kit-1.0.0</span></td><td>1</td><td>vendored kit, red theme.css, app.css minus 141 duplicate lines, kit Shell, theme-color fixed</td><td><span class="ok">●</span> 76 tests, build; layout identical except captions (+24px each)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>5 · Left for you — the decisions a branch cannot make</h2>
+  <ul>
+    <li><b>Merge order:</b> nmp-central-ai <code>ui-kit</code> first (so <code>make ui-check</code> exists), then the three app branches. tau2-loop's branch is cut from <code>main</code>; your uncommitted <code>s09-banking-plan</code> work touches different files.</li>
+    <li><b>After merging nmp-central-ai:</b> <code>make install-agent-context FORCE=1</code> puts the one-line UI convention into the portfolio CLAUDE.md/AGENTS.md; <code>/plugin</code> update picks up <code>platform-ui</code>.</li>
+    <li><b>Pre-existing, not fixed:</b> DataAgentBench overflows at 390px on Runs, Agent and Golden (unchanged by the sync); the portfolio site's case-study text still names <code>/admin/traces</code> (the address redirects).</li>
+    <li><b>Found and fixed on the way:</b> the model-swap CI printed a fraction as points; the Promote panel described a rule its endpoint does not enforce.</li>
+  </ul>
+</main>
+</body>
+</html>
