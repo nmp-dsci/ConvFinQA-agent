@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
+import { Kpi, Status } from '@/kit/ui';
+import { versionLabel } from '../admin/lib';
 import { formatPercent, formatPointsDelta } from '../landing/format';
 import { MiniBar } from './charts';
 import {
   Callout,
   Field,
-  Lamp,
   Live,
   Mono,
   Panel,
@@ -18,12 +19,13 @@ import {
   Th,
 } from './ui';
 import type { SystemData } from './useSystemData';
+import './system.css';
 
 // ---------------------------------------------------------------------------
-// 06 · Evaluation — the two-number rule
+// Evaluation — the two-number rule
 // ---------------------------------------------------------------------------
 
-export function EvaluationSection({ data }: { data: SystemData }) {
+export function EvaluationSection({ data, index = 1 }: { data: SystemData; index?: number }) {
   const { versions, versionHoldouts, championName } = data;
 
   const holdoutOf = (version: string) =>
@@ -32,7 +34,7 @@ export function EvaluationSection({ data }: { data: SystemData }) {
   return (
     <Section
       id="evaluation"
-      index={6}
+      index={index}
       eyebrow="evaluation"
       title="Two numbers, always, and never their average"
       lede={
@@ -45,31 +47,35 @@ export function EvaluationSection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Panel>
-          <PanelTitle>optimizer_train</PanelTitle>
-          <p className="type-hud text-info">120</p>
-          <p className="type-meta mt-1">
-            conversations GEPA and the s7 harness optimised against. Accuracy measured here says
-            nothing about generalisation, because the prompts were tuned on it.
-          </p>
-        </Panel>
-        <Panel>
-          <PanelTitle>never_seen</PanelTitle>
-          <p className="type-hud text-good">80</p>
-          <p className="type-meta mt-1">
-            309 questions no optimizer ever saw. The only subset that supports a generalisation
-            claim, and the one the held-out figure is measured on.
-          </p>
-        </Panel>
-        <Panel>
-          <PanelTitle>sampled · the scored set</PanelTitle>
-          <p className="type-hud">770</p>
-          <p className="type-meta mt-1">
-            questions across all 200 conversations. Its accuracy mixes seen and unseen, so it is
-            reported as “overall” and never as “held out”.
-          </p>
-        </Panel>
+      <div className="kpis">
+        <Kpi
+          n="120"
+          b={
+            <>
+              <span className="label">optimizer_train</span> conversations GEPA and the s7 harness
+              optimised against. Accuracy here says nothing about generalisation: the prompts were
+              tuned on it.
+            </>
+          }
+        />
+        <Kpi
+          n="80"
+          b={
+            <>
+              <span className="label">never_seen</span> conversations, 309 questions no optimizer
+              ever saw. The only subset that supports a generalisation claim.
+            </>
+          }
+        />
+        <Kpi
+          n="770"
+          b={
+            <>
+              <span className="label">sampled · the scored set</span> questions across all 200
+              conversations. It mixes seen and unseen, so it is “overall”, never “held out”.
+            </>
+          }
+        />
       </div>
       <Provenance origin="code">
         <Mono>data/loader.py::optimizer_split()</Mono> — <Mono>random.Random(42)</Mono>, shuffle,
@@ -97,7 +103,7 @@ export function EvaluationSection({ data }: { data: SystemData }) {
                 <Th numeric>overall exe</Th>
                 <Th numeric>never-seen exe</Th>
                 <Th numeric>program</Th>
-                <Th>questions</Th>
+                <Th numeric>questions</Th>
                 <Th>state</Th>
               </tr>
             </thead>
@@ -107,47 +113,36 @@ export function EvaluationSection({ data }: { data: SystemData }) {
                 const isChampion = v.version === championName;
                 return (
                   <tr key={v.version}>
-                    <Td>
-                      <span className="type-num text-text">{v.version}</span>
-                    </Td>
+                    <Td className="sub mono">{versionLabel(v.version)}</Td>
                     <Td numeric>
                       {formatPercent(v.exe_acc)}
-                      <div className="mt-1">
-                        <MiniBar pct={v.exe_acc * 100} />
-                      </div>
+                      <MiniBar pct={v.exe_acc * 100} />
                     </Td>
                     <Td numeric>
-                      <span className={holdout ? 'text-good' : undefined}>
-                        <Live
-                          value={holdout ? formatPercent(holdout.holdout_accuracy) : null}
-                          reason="/admin/experiments did not answer"
-                        />
-                      </span>
-                      {holdout && (
-                        <div className="type-meta mt-0.5 font-normal">
-                          {holdout.holdout_n_questions} q
-                        </div>
-                      )}
+                      <Live
+                        value={holdout ? formatPercent(holdout.holdout_accuracy) : null}
+                        reason="/admin/experiments did not answer"
+                      />
+                      {holdout && <span className="path">{holdout.holdout_n_questions} questions</span>}
                     </Td>
                     <Td numeric>
                       {formatPercent(v.prog_acc)}
-                      <div className="type-meta mt-0.5 font-normal">
+                      <span className="path">
                         {v.n_program_correct}/{v.n_program_turns}
-                      </div>
-                    </Td>
-                    <Td>{v.n_questions}</Td>
-                    <Td>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Lamp state={isChampion ? 'good' : 'idle'} />
-                        {isChampion ? 'champion' : 'registered'}
                       </span>
+                    </Td>
+                    <Td numeric>{v.n_questions}</Td>
+                    <Td>
+                      <Status tone={isChampion ? 'ok' : 'no'}>
+                        {isChampion ? 'champion' : 'registered'}
+                      </Status>
                     </Td>
                   </tr>
                 );
               })}
               {(versions ?? []).length === 0 && (
                 <tr>
-                  <Td className="text-faint">
+                  <Td className="muted">
                     <Live value={null} reason="/admin/versions did not answer" /> no versions —{' '}
                     <Mono>/admin/versions</Mono> did not answer. Start the backend to fill this
                     table; everything else on this page is readable without it.
@@ -166,12 +161,7 @@ export function EvaluationSection({ data }: { data: SystemData }) {
           <Mono>/admin/versions</Mono> recomputes execution and program accuracy from the committed
           CSVs on each request; <Mono>/admin/experiments</Mono> supplies the never-seen split, which{' '}
           <Mono>/admin/versions</Mono> deliberately cannot compute.{' '}
-          <Link
-            to="/admin/evaluations"
-            className="text-amber underline decoration-amber-line underline-offset-4"
-          >
-            Open the rows behind these figures →
-          </Link>
+          <Link to="/runs">Open the rows behind these figures →</Link>
         </Provenance>
       </div>
 
@@ -191,16 +181,16 @@ export function EvaluationSection({ data }: { data: SystemData }) {
 }
 
 // ---------------------------------------------------------------------------
-// 07 · The promotion contract
+// The promotion contract
 // ---------------------------------------------------------------------------
 
-export function PromotionSection({ data }: { data: SystemData }) {
+export function PromotionSection({ data, index = 2 }: { data: SystemData; index?: number }) {
   const { gate, gateCandidate, championName } = data;
 
   return (
     <Section
       id="promotion"
-      index={7}
+      index={index}
       eyebrow="the contract"
       title="A challenger is promoted only if it breaks nothing"
       lede={
@@ -211,10 +201,10 @@ export function PromotionSection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="sys-cols">
         <Panel>
           <PanelTitle>accuracy_ok</PanelTitle>
-          <Prose className="type-small">
+          <Prose className="small">
             The candidate’s accuracy over the rows both versions answered is at least the
             champion’s, to within a floating-point epsilon. Full-frame accuracy is computed and
             reported but never drives the decision — comparing two versions on different populations
@@ -223,14 +213,14 @@ export function PromotionSection({ data }: { data: SystemData }) {
         </Panel>
         <Panel>
           <PanelTitle>no_regressions</PanelTitle>
-          <Prose className="type-small">
+          <Prose className="small">
             Not a single pass→fail flip on any shared question. Every flip is listed by report id
             and question, so a refusal names the turns it is refusing over rather than a percentage.
           </Prose>
         </Panel>
         <Panel>
           <PanelTitle>promotable</PanelTitle>
-          <Prose className="type-small">
+          <Prose className="small">
             Both of the above, and a non-empty comparison. An empty join promotes nothing — a
             candidate with no overlapping rows is unmeasured, not perfect.
           </Prose>
@@ -243,40 +233,44 @@ export function PromotionSection({ data }: { data: SystemData }) {
       </Provenance>
 
       <Panel>
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <span className="mono-caps">the comparator, run right now on this deployment</span>
+        <div className="panel-head">
+          <h3>The comparator, run right now on this deployment</h3>
           {gate && (
-            <span className="type-meta inline-flex items-center gap-1.5">
-              <Lamp state={gate.promotable ? 'good' : 'bad'} />
-              {gate.promotable ? 'promotable' : 'refused'}
+            <span className="right">
+              <Status tone={gate.promotable ? 'ok' : 'err'}>
+                {gate.promotable ? 'promotable' : 'refused'}
+              </Status>
             </span>
           )}
         </div>
 
         {gate ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="candidate" note={`against champion ${gate.baseline_version}`}>
-              <span className="type-num">{gate.candidate_version}</span>
-            </Field>
-            <Field label="accuracy delta" note={`over ${gate.n_compared} shared questions`}>
-              <span className={gate.accuracy_delta >= 0 ? 'text-good' : 'text-bad'}>
-                {formatPointsDelta(gate.accuracy_delta)}
-              </span>
-            </Field>
-            <Field label="pass → fail flips" note="any single one refuses the promotion">
-              <span className={gate.regressions.length === 0 ? 'text-good' : 'text-bad'}>
-                {gate.regressions.length}
-              </span>
-            </Field>
-            <Field label="fail → pass flips" note="what the candidate did fix">
-              <span className="text-muted">{gate.improvements.length}</span>
-            </Field>
-            <div className="sm:col-span-2 lg:col-span-4">
-              <p className="type-small text-muted">{gate.reason}</p>
+          <>
+            <div className="sys-fields cols">
+              <Field
+                label="candidate"
+                note={`against champion ${versionLabel(gate.baseline_version)}`}
+              >
+                <span className="num">{versionLabel(gate.candidate_version)}</span>
+              </Field>
+              <Field label="accuracy delta" note={`over ${gate.n_compared} shared questions`}>
+                <span className={`num ${gate.accuracy_delta >= 0 ? 'v-ok' : 'v-fail'}`}>
+                  {formatPointsDelta(gate.accuracy_delta)}
+                </span>
+              </Field>
+              <Field label="pass → fail flips" note="any single one refuses the promotion">
+                <span className={`num ${gate.regressions.length === 0 ? 'v-ok' : 'v-fail'}`}>
+                  {gate.regressions.length}
+                </span>
+              </Field>
+              <Field label="fail → pass flips" note="what the candidate did fix">
+                <span className="num">{gate.improvements.length}</span>
+              </Field>
             </div>
-          </div>
+            <p className="small muted">{gate.reason}</p>
+          </>
         ) : (
-          <p className="type-small text-faint">
+          <p className="small muted">
             <Live value={null} reason="/admin/compare did not answer" /> no live comparison —{' '}
             {gateCandidate && championName
               ? `${championName} vs ${gateCandidate} could not be read from /admin/compare.`
@@ -286,32 +280,27 @@ export function PromotionSection({ data }: { data: SystemData }) {
         <Provenance origin="live">
           computed on request from the committed prediction CSVs — the same function the CLI and CI
           call, not a re-implementation.{' '}
-          <Link
-            to="/admin/experiments"
-            className="text-amber underline decoration-amber-line underline-offset-4"
-          >
-            See the flips →
-          </Link>
+          <Link to="/optimise">See the flips →</Link>
         </Provenance>
       </Panel>
 
       <Panel>
         <PanelTitle>the CI gate</PanelTitle>
-        <ol className="type-small ml-4 list-decimal space-y-2 text-muted marker:text-faint">
+        <ol className="steps">
           <li>
-            <span className="text-text">Re-score every committed version.</span> Each row’s{' '}
+            <b>Re-score every committed version.</b> Each row’s{' '}
             <Mono>correct</Mono> column is re-derived from its predicted and gold answers with the
             same numeric matcher the evaluator uses. Any disagreement fails the build — a committed
             CSV whose verdicts have drifted from the scorer is a silently wrong artefact, and every
             number on this site is computed from those CSVs.
           </li>
           <li>
-            <span className="text-text">Hold the champion to its recorded floor.</span> Accuracy
+            <b>Hold the champion to its recorded floor.</b> Accuracy
             recomputed from the CSV must be within <Mono>0.005</Mono> of the figure the registry
             recorded when it was promoted.
           </li>
           <li>
-            <span className="text-text">Report the challenger comparison.</span> If a challenger
+            <b>Report the challenger comparison.</b> If a challenger
             alias exists, the comparison and up to twenty pass→fail flips are printed — as
             information. This step does not fail the build; a human decides whether to promote.
           </li>
@@ -338,16 +327,16 @@ export function PromotionSection({ data }: { data: SystemData }) {
 }
 
 // ---------------------------------------------------------------------------
-// 08 · GEPA and the s7 harness
+// GEPA and the s7 harness
 // ---------------------------------------------------------------------------
 
-export function OptimisationSection({ data }: { data: SystemData }) {
+export function OptimisationSection({ data, index = 3 }: { data: SystemData; index?: number }) {
   return (
     <Section
       id="optimisation"
-      index={8}
+      index={index}
       eyebrow="optimisation"
-      title="Two ways the prompts were written by something other than a person"
+      title="Prompts written by optimizers, kept only when a re-run confirms"
       lede={
         <>
           No exemplars are ever put in front of these agents. The instructions themselves are the
@@ -356,25 +345,23 @@ export function OptimisationSection({ data }: { data: SystemData }) {
         </>
       }
     >
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="sys-two">
         <Panel>
           <PanelTitle>GEPA · reflective prompt evolution</PanelTitle>
-          <Prose className="type-small">
+          <Prose className="small">
             The DSPy optimizer proposes instruction rewrites, scores them against the 120
             optimizer-train conversations with a turn-level metric that feeds textual feedback back
             into the next proposal, and keeps what wins. Two modes: a smoke run capped at 120 metric
             calls over 5 validation conversations, which checks the wiring and is not a transferable
             optimization, and a real run over 12 that takes five to nine hours.
           </Prose>
-          <div className="mt-3 space-y-1">
-            <p className="type-meta">
-              artifacts per run, committed to git so results reproduce on another machine:
-            </p>
-            <p className="type-num text-[11px] text-muted">
-              runs/gepa_&lt;mode&gt;_&lt;ts&gt;/config.json · dspy_optimized_runner.json ·
-              dspy_gepa_stats.json · dspy_summary.json · dspy_gepa_logs/
-            </p>
-          </div>
+          <p className="small muted">
+            Artifacts per run, committed to git so results reproduce on another machine:
+          </p>
+          <p className="sys-where">
+            runs/gepa_&lt;mode&gt;_&lt;ts&gt;/config.json · dspy_optimized_runner.json ·
+            dspy_gepa_stats.json · dspy_summary.json · dspy_gepa_logs/
+          </p>
           <Callout tone="broken" title="Not runnable from this checkout today">
             <p>
               The DSPy path does not send the provider’s thinking-mode override, so every GEPA
@@ -387,15 +374,15 @@ export function OptimisationSection({ data }: { data: SystemData }) {
 
         <Panel>
           <PanelTitle>s7 · the auto-research harness</PanelTitle>
-          <Prose className="type-small">
-            One failing case at a time, through three steps. <span className="text-text">Diagnose</span>{' '}
-            — what went wrong, in which stage. <span className="text-text">Route + fix</span> — a
+          <Prose className="small">
+            One failing case at a time, through three steps. <b>Diagnose</b>{' '}
+            — what went wrong, in which stage. <b>Route + fix</b> — a
             router picks which of the four agents owns the failure and that agent’s specialist
-            proposes one additional rule. <span className="text-text">Verify</span> — the case is
+            proposes one additional rule. <b>Verify</b> — the case is
             re-run; a rule that does not fix it, or that moves the regression set, is written to the
             attempts log and not to the rule store.
           </Prose>
-          <ul className="type-small mt-3 space-y-1.5 text-muted">
+          <ul className="sys-list">
             <li>
               Kept rules land in <Mono>rules_&lt;agent&gt;_&lt;variant&gt;.jsonl</Mono>; every
               attempt, including the rejected ones, lands in{' '}
@@ -414,12 +401,7 @@ export function OptimisationSection({ data }: { data: SystemData }) {
           </ul>
           <Provenance origin="committed">
             stores and per-case results under <Mono>evaluation/diagnostics/</Mono>, tracked in git.{' '}
-            <Link
-              to="/admin/research"
-              className="text-amber underline decoration-amber-line underline-offset-4"
-            >
-              Open the rule stores →
-            </Link>
+            <Link to="/optimise/research">Open the rule stores →</Link>
           </Provenance>
         </Panel>
       </div>

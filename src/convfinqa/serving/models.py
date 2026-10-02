@@ -348,3 +348,70 @@ class CampaignsResponse(BaseModel):
     # subagent, the other a failure class) and every existing view reads
     # `experiments` as pipeline-only.
     sdk_experiments: list[CampaignExperiment] = []
+
+
+class GoldReviewCase(BaseModel):
+    """One diagnosis a human should look at: the gold was doubted, or attribution needed a ruling.
+
+    Read straight from the append-only diagnoses ledger. The same question can
+    appear more than once — once per prompt version that failed it — so a row is
+    keyed on ``diagnosis_id``, not ``question_id``. ``reasons`` names every
+    reason the row is in the review set: ``gold_suspect_flag`` (the teacher said
+    the gold looks wrong), ``derived_gold_suspect`` (the attribution rule found
+    the gold's operands absent from the document), ``ambiguous`` (the record
+    could not settle which agent failed) and ``adjudicated`` (the binary
+    question was asked and settled it). Gold is shown in full: this is dev
+    evidence, and the reviewer's job is to read it.
+    """
+
+    diagnosis_id: str
+    diagnosed_at: str = ""
+    runtime: str = ""
+    version: str = ""
+    split: str = ""
+    report_id: str = ""
+    question_id: str = ""
+    turn_index: int | None = None
+    question: str = ""
+    gold_answer: str = ""
+    gold_program: str = ""
+    pred_answer: str = ""
+    pred_program: str = ""
+    derived_agent: str = ""
+    stage: str = ""
+    label: str = ""
+    missing_gold_operands: list[str] = []
+    gold_suspect: bool = False
+    attribution_disputed: bool = False
+    adjudicated: bool = False
+    adjudication_reason: str = ""
+    attribution_reason: str = ""
+    what_went_wrong: str = ""
+    confidence: float | None = None
+    reasons: list[str] = []
+
+
+class GoldReviewSummary(BaseModel):
+    """Counts over the whole diagnoses ledger, and over the review set drawn from it."""
+
+    n_diagnoses: int = 0
+    n_gold_suspect_flags: int = 0
+    n_derived_gold_suspect: int = 0
+    n_ambiguous: int = 0
+    n_adjudicated: int = 0
+    n_disputed: int = 0
+    n_review_rows: int = 0
+    n_review_questions: int = 0
+
+
+class GoldReviewResponse(BaseModel):
+    """`GET /eval/gold-review`: the review set, its counts, and where it was read from.
+
+    ``reason`` is set, and ``cases`` empty, when the ledger is absent — an
+    absence said out loud rather than an empty page or a 500.
+    """
+
+    source: str
+    reason: str = ""
+    summary: GoldReviewSummary = GoldReviewSummary()
+    cases: list[GoldReviewCase] = []

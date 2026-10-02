@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '../../components/ui/tooltip';
-import { RightPane } from './LandingRoute';
+import { LandingBoard } from './LandingRoute';
 import type { BoardData } from './useBoardData';
 import type { CampaignsResponse, JudgeVerdict } from '../admin/api';
 
@@ -90,7 +90,7 @@ function renderJudgeTile(v: JudgeVerdict | null): string {
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <TooltipProvider>
-          <RightPane board={boardWithVerdict(v)} />
+          <LandingBoard board={boardWithVerdict(v)} />
         </TooltipProvider>
       </MemoryRouter>
     </QueryClientProvider>,

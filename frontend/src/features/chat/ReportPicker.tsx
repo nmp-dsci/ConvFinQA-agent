@@ -43,54 +43,46 @@ export function ReportPicker() {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <DialogContent
-        data-testid="report-picker"
-        showCloseButton={false}
-        className="top-24 flex max-h-[70vh] w-[min(640px,90vw)] max-w-none translate-y-0 flex-col gap-0 overflow-hidden border-line-2 bg-panel p-0 sm:max-w-none"
-      >
+      <DialogContent data-testid="report-picker" showCloseButton={false} className="ch-picker">
         <DialogTitle className="sr-only">Choose a filing</DialogTitle>
         <DialogDescription className="sr-only">
           Search the report ids and press Enter to open the first match.
         </DialogDescription>
-        <div className="border-b border-line p-3">
+        <div className="ch-picker-head">
           <input
             ref={inputRef}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search filings…"
+            aria-label="Search filings"
             data-testid="report-picker-input"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && filtered[0]) void selectReport(filtered[0]);
             }}
-            className="type-body w-full rounded-md border border-line bg-ground px-3 py-2 text-text outline-none focus:border-amber-line"
           />
-          <div className="type-meta mt-1 flex items-center justify-between text-faint">
+          <div className="ch-picker-meta">
             <span>
               {reportsLoading ? 'Loading filings…' : `${filtered.length} of ${reports.length} filings`}
             </span>
             {reportsError && !reportsLoading && (
-              <button
-                type="button"
-                onClick={() => void loadReports()}
-                className="text-bad underline underline-offset-2 hover:opacity-80"
-              >
-                Retry
+              <button type="button" onClick={() => void loadReports()} className="linkbtn">
+                ↻ retry
               </button>
             )}
           </div>
         </div>
 
-        <ul className="overflow-y-auto" data-testid="report-picker-list">
+        <ul className="ch-picker-list" data-testid="report-picker-list">
           {reportsError && reports.length === 0 ? (
-            <li className="type-small px-4 py-3 text-bad">
-              Could not load the filing list: {reportsError}. Is the API server running? Vite
+            <li className="ch-picker-msg err">
+              ✕ Could not load the filing list: {reportsError}. Is the API server running? Vite
               proxies to http://127.0.0.1:8765 by default.
             </li>
           ) : reportsLoading && reports.length === 0 ? (
-            <li className="type-small px-4 py-3 text-faint">Loading filings…</li>
+            <li className="ch-picker-msg">Loading filings…</li>
           ) : filtered.length === 0 ? (
-            <li className="type-small px-4 py-3 text-faint">No matches.</li>
+            <li className="ch-picker-msg">No matches.</li>
           ) : (
             filtered.map((rid) => (
               <li key={rid}>
@@ -99,7 +91,7 @@ export function ReportPicker() {
                   aria-label={rid}
                   onClick={() => void selectReport(rid)}
                   title={shortRid(rid)}
-                  className="type-num type-small block w-full truncate px-4 py-2 text-left text-text transition-colors hover:bg-panel-2"
+                  className="ch-picker-row"
                 >
                   {/*
                     The row's text is exactly the report id and nothing else.

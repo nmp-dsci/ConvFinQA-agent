@@ -1,0 +1,34 @@
+/* The Overview (/): page-specific rules only. Tokens only — no hex, nothing under --t-2.
+   Everything else on the page is a kit or app.css class. */
+
+  /* the caveat travels with the human-expert claim: directly under the h1, before the lead */
+  .landing .caveat{margin-top:var(--s2);font-size:var(--t-1);color:var(--muted)}
+
+  /* three proof figures under the lead: the number in mono, what it is measured against under it */
+  .landing .proof{display:flex;flex-wrap:wrap;gap:var(--s4) var(--s7);margin:var(--s5) 0 0}
+  .landing .proof>div{min-width:0;max-width:26ch}
+  .landing .proof dd{margin:0;font:500 var(--t2)/1.2 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+  .landing .proof dd.ok{color:var(--ok)}
+  .landing .proof dd.fail{color:var(--red)}
+  .landing .proof dd.base{color:var(--ink-2)}
+  .landing .proof dd.absent{color:var(--faint)}
+  .landing .proof dt{margin-top:var(--s1);font-size:var(--t-1);color:var(--muted)}
+
+  /* the one solid button, and the secondary as an underlined link beside it */
+  .landing .cta{margin-top:var(--s5);gap:var(--s5)}
+
+  .landing .holdout{font-size:var(--t-1);color:var(--muted)}
+  .landing .lamps{margin-top:var(--s5)}
+
+  /* the judge card: the verdict on the right of its label, the sentence under it */
+  .landing a.judge{display:block;margin-top:var(--s4);text-decoration:none;color:inherit}
+  .landing .judge-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--s2) var(--s4)}
+  .landing .judge-head .verdict{font:500 var(--t1)/1.2 var(--mono)}
+  .landing .judge p{font-size:var(--t-1)}
+  .landing .judge .go{color:var(--accent);white-space:nowrap}
+  .landing a.judge:hover .go{text-decoration:underline}
+
+  .landing details.sources{margin-top:var(--s7)}
+  .landing details.sources p{font-size:var(--t-1);color:var(--muted)}
+  .landing details.sources b{color:var(--ink);font-weight:500}
+  .landing .notes p{font-size:var(--t-1);color:var(--muted)}

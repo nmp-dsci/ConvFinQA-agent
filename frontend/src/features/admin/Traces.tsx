@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link, useSearchParams } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import { Sparkline } from '../landing/Sparkline';
 import {
   NO_VALUE,
@@ -37,6 +36,7 @@ import {
 import { ak, useDeploymentSource, useProductionMetrics, useTraceStats } from './useAdminData';
 import type { MetricsSource, SourceMetrics } from '../../lib/api';
 import type { TraceSummary } from '../../types';
+import './runs.css';
 
 /**
  * Turns. Not "observability" — turns.
@@ -99,62 +99,50 @@ function SourceCard({
       onClick={onSelect}
       aria-pressed={active}
       data-testid={`source-${source}`}
-      className={cn(
-        // `flex flex-col` matters: a <button> centres its content box when the
-        // grid stretches it taller than its content, which would leave the
-        // three source cards with their headings at three different heights.
-        'flex min-w-0 flex-col rounded-md border bg-panel p-3 text-left transition-colors',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber',
-        active ? 'border-amber-line bg-panel-2' : 'border-line hover:bg-panel-2',
-      )}
+      className={`card pick link${active ? ' hi' : ''}`}
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="mono-caps">{source}</span>
-        <span className="type-num text-[12px] text-text">
-          {formatCount(metrics?.n_turns ?? 0)} turns
-        </span>
-      </div>
-      <p className="type-meta mt-1 text-faint">{SOURCE_BLURB[source]}</p>
+      <span className="head">
+        <span className="label">{source}</span>
+        <span className="num">{formatCount(metrics?.n_turns ?? 0)} turns</span>
+      </span>
+      <span className="small muted">{SOURCE_BLURB[source]}</span>
 
-      <div className="mt-2">
-        <StatCells
-          columns={2}
-          cells={[
-            {
-              label: 'p50 latency',
-              value: formatLatency(latency?.p50),
-              reason: absenceReason(metrics ?? null, 'latency'),
-            },
-            {
-              label: 'p95',
-              value: formatLatency(latency?.p95),
-              reason: absenceReason(metrics ?? null, 'latency'),
-            },
-            {
-              label: 'cost / turn',
-              value: formatUsd(cost?.per_turn),
-              reason: absenceReason(metrics ?? null, 'cost'),
-            },
-            {
-              label: 'accuracy',
-              value: formatPercent(accuracy?.accuracy),
-              reason: absenceReason(metrics ?? null, 'accuracy'),
-              tone: 'good',
-            },
-          ]}
-        />
-      </div>
+      <StatCells
+        columns={2}
+        cells={[
+          {
+            label: 'p50 latency',
+            value: formatLatency(latency?.p50),
+            reason: absenceReason(metrics ?? null, 'latency'),
+          },
+          {
+            label: 'p95',
+            value: formatLatency(latency?.p95),
+            reason: absenceReason(metrics ?? null, 'latency'),
+          },
+          {
+            label: 'cost / turn',
+            value: formatUsd(cost?.per_turn),
+            reason: absenceReason(metrics ?? null, 'cost'),
+          },
+          {
+            label: 'accuracy',
+            value: formatPercent(accuracy?.accuracy),
+            reason: absenceReason(metrics ?? null, 'accuracy'),
+          },
+        ]}
+      />
 
-      <div className="mt-auto pt-2">
+      <span className="foot">
         {/*
           The bucket is chosen by the backend from this source's own span — 24
           bars of whatever width covers its whole history — so the label has to
           come from the payload. It read "24 h" for everything, which was wrong
           about both the bars and the figures above them.
         */}
-        <div className="mono-caps mb-0.5">
+        <span className="label">
           turns per {metrics?.series_bucket ?? 'hour'} · {seriesSpan(metrics)}
-        </div>
+        </span>
         {/*
           A source that has served nothing gets the label, not a flat line at
           the floor. Twenty-four measured zeros are a real observation, but on
@@ -166,17 +154,19 @@ function SourceCard({
           tone="amber"
           emptyLabel="nothing served on this deployment"
         />
-      </div>
+      </span>
 
       {errors && errors.n_errors > 0 && (
-        <p className="type-meta mt-1.5 text-bad">
-          {formatCount(errors.n_errors)} errors ({formatPercent(errors.error_rate)}) ·{' '}
+        <span className="small v-fail">
+          ✕ {formatCount(errors.n_errors)} errors of {formatCount(metrics?.n_turns ?? 0)} turns (
+          {formatPercent(errors.error_rate)}) ·{' '}
           {Object.entries(errors.by_code)
             .filter(([, n]) => n > 0)
             .map(([code, n]) => `${code} ${n}`)
             .join(' · ')}
-        </p>
+        </span>
       )}
+      <span className="act">{active ? 'filtering the turns table ✕' : 'filter the turns table →'}</span>
     </button>
   );
 }
@@ -240,8 +230,7 @@ export default function Traces() {
         meta: { align: 'left', width: '86px' },
         cell: ({ row }) => (
           <Link
-            to={`/admin/traces/${row.original.trace_id}`}
-            className="hover:text-amber"
+            to={`/runs/traces/${row.original.trace_id}`}
             title={row.original.created_at}
           >
             {relativeTime(row.original.created_at)}
@@ -254,17 +243,7 @@ export default function Traces() {
         accessorFn: (r) => r.source,
         meta: { align: 'left', width: '62px' },
         cell: ({ row }) => (
-          <span
-            className={
-              row.original.source === 'demo'
-                ? 'text-amber'
-                : row.original.source === 'eval'
-                  ? 'text-violet'
-                  : 'text-info'
-            }
-          >
-            {row.original.source}
-          </span>
+          <span className="mono">{row.original.source}</span>
         ),
       },
       {
@@ -274,12 +253,11 @@ export default function Traces() {
         meta: { align: 'left', mono: false, width: '146px' },
         cell: ({ row }) => (
           <Link
-            to={`/admin/traces/${row.original.trace_id}`}
-            className="hover:text-amber"
+            to={`/runs/traces/${row.original.trace_id}`}
             title={row.original.report_id}
           >
             {formatFilingId(row.original.report_id)}
-            <span className="text-faint"> · {row.original.turn_index}</span>
+            <span className="muted"> · {row.original.turn_index}</span>
           </Link>
         ),
       },
@@ -288,14 +266,14 @@ export default function Traces() {
         header: 'question',
         accessorFn: (r) => r.question,
         meta: { align: 'left', mono: false, wrap: true, width: '220px' },
-        cell: ({ row }) => <span className="text-muted">{clip(row.original.question, 110)}</span>,
+        cell: ({ row }) => clip(row.original.question, 110),
       },
       {
         id: 'answer',
         header: 'answer',
         accessorFn: (r) => r.answer ?? '',
         meta: { width: '84px' },
-        cell: ({ row }) => <span className="text-text">{row.original.answer || NO_VALUE}</span>,
+        cell: ({ row }) => row.original.answer || NO_VALUE,
       },
       {
         id: 'gold',
@@ -304,9 +282,9 @@ export default function Traces() {
         meta: { width: '84px' },
         cell: ({ row }) => {
           const { gold_answer: gold, correct } = row.original;
-          if (!gold) return <span className="text-faint" title="no gold answer for this turn">—</span>;
+          if (!gold) return <span className="muted" title="no gold answer for this turn">—</span>;
           return (
-            <span className={correct ? 'text-good' : 'text-bad'}>
+            <span className={correct ? 'v-ok' : 'v-fail'}>
               {gold} {correct ? '✓' : '✗'}
             </span>
           );
@@ -317,7 +295,7 @@ export default function Traces() {
         header: 'ms',
         accessorFn: (r) => r.latency_ms ?? -1,
         cell: ({ row }) => (
-          <span className={row.original.latency_ms === null ? 'text-faint' : undefined}>
+          <span className={row.original.latency_ms === null ? 'muted' : undefined}>
             {formatLatency(row.original.latency_ms)}
           </span>
         ),
@@ -327,7 +305,7 @@ export default function Traces() {
         header: 'tokens',
         accessorFn: (r) => r.total_tokens ?? -1,
         cell: ({ row }) => (
-          <span className={row.original.total_tokens === null ? 'text-faint' : undefined}>
+          <span className={row.original.total_tokens === null ? 'muted' : undefined}>
             {formatCount(row.original.total_tokens)}
           </span>
         ),
@@ -337,7 +315,7 @@ export default function Traces() {
         header: '$',
         accessorFn: (r) => r.cost_usd ?? -1,
         cell: ({ row }) => (
-          <span className={row.original.cost_usd == null ? 'text-faint' : undefined}>
+          <span className={row.original.cost_usd == null ? 'muted' : undefined}>
             {formatUsd(row.original.cost_usd)}
           </span>
         ),
@@ -349,10 +327,10 @@ export default function Traces() {
         meta: { align: 'left', width: '104px' },
         cell: ({ row }) => {
           const code = row.original.error_code || (row.original.error ? 'unknown' : '');
-          if (!code) return <span className="text-faint">—</span>;
+          if (!code) return <span className="muted">—</span>;
           return (
-            <span className="text-bad" title={row.original.error ?? undefined}>
-              {code}
+            <span className="v-fail" title={row.original.error ?? undefined}>
+              ✕ {code}
             </span>
           );
         },
@@ -363,11 +341,23 @@ export default function Traces() {
 
   const captureEnabled = metricsQuery.data?.trace_capture_enabled ?? true;
 
+  const nTurns = stats.data?.n_turns ?? null;
+  const title =
+    nTurns !== null && nTurns > 0 ? (
+      <>
+        <em>{formatCount(nTurns)}</em> answered turns, grouped by source and never blended
+      </>
+    ) : (
+      <>
+        Every answered turn, <em>grouped</em> by source and never blended
+      </>
+    );
+
   return (
     <AdminPage
       testId="admin-traces"
-      eyebrow="admin · traces"
-      title="Traces"
+      eyebrow="runs · served turns"
+      title={title}
       sub="One row per answered turn, with the four stage captures behind it. Grouped by source, never blended — a replayed turn's timing is not latency."
     >
       <LampRow>
@@ -386,7 +376,7 @@ export default function Traces() {
           label="turns"
           value={formatCount(stats.data?.n_turns ?? 0)}
           tone="info"
-          to="/admin/traces"
+          to="/runs/traces"
         />
         <Lamp
           label="filings"
@@ -405,7 +395,7 @@ export default function Traces() {
 
       <Panel
         testId="traces-metrics"
-        title="Production metrics, by source"
+        title="01 · Production metrics by source — replay timing is not latency"
         endpoint="/metrics/production"
         note={sourceNote(deploymentSource, metricsQuery.data?.generated_at)}
       >
@@ -416,7 +406,7 @@ export default function Traces() {
             This backend does not serve <code>/metrics/production</code>.
           </EmptyState>
         ) : (
-          <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+          <div className="cards pick-cards">
             {(['serving', 'demo', 'eval'] as MetricsSource[]).map((source) => (
               <SourceCard
                 key={source}
@@ -428,7 +418,7 @@ export default function Traces() {
             ))}
           </div>
         )}
-        <p className="type-meta mt-2 text-faint">
+        <p className="small muted">
           Click a source to filter the table below. Latency, tokens and cost are{' '}
           <code>null</code>—not zero—wherever nothing was metered; the demo pack carries no timing
           at all, so its cards read as em dashes by design rather than by failure.
@@ -437,75 +427,72 @@ export default function Traces() {
 
       <Panel
         testId="traces-table"
-        title="Turns"
+        title="02 · Turns — newest first, each one opens its four stages"
         endpoint="/traces"
-        note={
-          traces.data
-            ? `${formatCount(rows.length)} of ${formatCount(traces.data.length)} fetched · newest first`
-            : undefined
-        }
-        right={
-          <div className="flex flex-wrap items-center gap-1.5">
-            <select
-              value={filter.source}
-              onChange={(e) => update({ source: e.target.value })}
-              aria-label="Source"
-              className="rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text"
-            >
-              <option value="">all sources</option>
-              <option value="serving">serving</option>
-              <option value="demo">demo</option>
-              <option value="eval">eval</option>
-            </select>
-            <select
-              value={filter.correctness}
-              onChange={(e) => update({ correctness: e.target.value as CorrectnessFilter })}
-              aria-label="Correctness"
-              className="rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text"
-            >
-              <option value="all">any result</option>
-              <option value="correct">correct</option>
-              <option value="incorrect">incorrect</option>
-              <option value="unscored">no gold</option>
-            </select>
-            <select
-              value={filter.errorCode}
-              onChange={(e) => update({ errorCode: e.target.value })}
-              aria-label="Error code"
-              className="rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text"
-            >
-              <option value="">any error state</option>
-              <option value="any">errors only</option>
-              {errorCodes.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
-            <input
-              value={filter.reportId}
-              onChange={(e) => update({ reportId: e.target.value })}
-              placeholder="report id"
-              aria-label="Report id"
-              className="w-28 rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text placeholder:text-faint"
-            />
-            <input
-              value={filter.sessionId}
-              onChange={(e) => update({ sessionId: e.target.value })}
-              placeholder="session id"
-              aria-label="Session id"
-              className="w-28 rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text placeholder:text-faint"
-            />
-            <input
-              value={filter.q}
-              onChange={(e) => update({ q: e.target.value })}
-              placeholder="text"
-              aria-label="Search question and answer text"
-              className="w-24 rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text placeholder:text-faint"
-            />
-          </div>
-        }
       >
+        <div className="filters">
+          <select
+            value={filter.source}
+            onChange={(e) => update({ source: e.target.value })}
+            aria-label="Source"
+          >
+            <option value="">all sources</option>
+            <option value="serving">serving</option>
+            <option value="demo">demo</option>
+            <option value="eval">eval</option>
+          </select>
+          <select
+            value={filter.correctness}
+            onChange={(e) => update({ correctness: e.target.value as CorrectnessFilter })}
+            aria-label="Correctness"
+          >
+            <option value="all">any result</option>
+            <option value="correct">correct</option>
+            <option value="incorrect">incorrect</option>
+            <option value="unscored">no gold</option>
+          </select>
+          <select
+            value={filter.errorCode}
+            onChange={(e) => update({ errorCode: e.target.value })}
+            aria-label="Error code"
+          >
+            <option value="">any error state</option>
+            <option value="any">errors only</option>
+            {errorCodes.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+          <input
+            type="search"
+            value={filter.q}
+            onChange={(e) => update({ q: e.target.value })}
+            placeholder="search question and answer text"
+            aria-label="Search question and answer text"
+          />
+          <input
+            type="search"
+            className="narrow"
+            value={filter.reportId}
+            onChange={(e) => update({ reportId: e.target.value })}
+            placeholder="report id"
+            aria-label="Report id"
+          />
+          <input
+            type="search"
+            className="narrow"
+            value={filter.sessionId}
+            onChange={(e) => update({ sessionId: e.target.value })}
+            placeholder="session id"
+            aria-label="Session id"
+          />
+          {traces.data && (
+            <span className="count">
+              {formatCount(rows.length)} of {formatCount(traces.data.length)} fetched
+            </span>
+          )}
+        </div>
         {traces.isLoading ? (
           <LoadingRows rows={6} />
         ) : traces.error ? (
@@ -524,18 +511,21 @@ export default function Traces() {
               data={rows}
               columns={columns}
               rowKey={(r) => r.trace_id}
-              rowClass={(r) => (r.error ? 'bg-bad/5' : undefined)}
+              rowClass={(r) => (r.error ? 'warnrow' : undefined)}
               minWidth={980}
               maxHeight={560}
             />
             {traces.data && traces.data.length >= limit && (
-              <button
-                type="button"
-                onClick={() => setLimit((n) => Math.min(n + 200, 500))}
-                className="mono-caps mt-2 w-full rounded-[4px] border border-line py-1.5 hover:border-amber-line hover:text-amber"
-              >
-                fetch more · the server returns at most 500 rows a page
-              </button>
+              <p className="small">
+                <button
+                  type="button"
+                  className="linkbtn"
+                  onClick={() => setLimit((n) => Math.min(n + 200, 500))}
+                >
+                  fetch more
+                </button>{' '}
+                <span className="muted">· the server returns at most 500 rows a page</span>
+              </p>
             )}
           </>
         )}

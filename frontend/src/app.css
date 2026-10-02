@@ -1,0 +1,24 @@
+/* ConvFinQA components the kit does not have yet. Tokens only: `npm run lint:design` fails on a hex
+   here. Loaded in the `app` layer, after the kit (and after Tailwind while it is still here).
+   Candidates for the kit at 1.0 are marked "→ kit". */
+
+/* ── provenance: where a number came from ─────────────────────────────────────────────────── */
+.provenance{font-size:var(--t-1);color:var(--muted);margin-top:var(--s2)}
+.origin{display:inline-block;margin-right:var(--s2);font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 var(--s2);color:var(--faint)}
+.origin.live{border-color:var(--ok);color:var(--ok)}
+.origin.committed{border-color:var(--line-3);color:var(--ink-2)}
+.origin.code{border-color:var(--accent);color:var(--accent)}
+.cite{font:400 var(--t-2)/1.4 var(--mono);color:var(--faint);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 var(--s1);white-space:nowrap}
+.live{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.live.absent{color:var(--faint)}
+code.lit{background:var(--band);padding:1px var(--s1);border-radius:4px;overflow-wrap:anywhere;color:var(--ink)}
+
+/* ── long-form sections (Agent, Scoring, Leaderboard): numbered, claim-headed ─────────────── */
+.doc-section{scroll-margin-top:80px}
+.doc-section>.label{margin-top:var(--s7)}
+.doc-section>h2{max-width:46ch;margin-top:var(--s2)}
+.doc-section>.lead{margin-top:var(--s3)}
+.doc-section>.body{margin-top:var(--s4);display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+.field{min-width:0}
+.field .v{margin-top:2px;color:var(--ink);overflow-wrap:anywhere}
+.field .note{font-size:var(--t-2);color:var(--muted);margin-top:2px}

@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { cn } from '@/lib/utils';
+import './optimise.css';
+import { Status } from '@/kit/ui';
+import type { StatusTone } from '@/kit/ui';
 import { InstrumentTable } from './InstrumentTable';
 import { clip, formatCount, formatStamp, relativeTime } from './lib';
 import {
@@ -24,7 +27,7 @@ import { useMode } from '../../modeStore';
 import type { ResearchJob, Rule } from '../../types';
 
 /**
- * The s7 prompt-improvement harness, from the outside.
+ * Optimise › Rule research: the s7 prompt-improvement harness, from the outside.
  *
  * Two halves. The rules browser is the durable half: four append-only JSONL
  * stores, one per agent, holding the rules a diagnose → fix → verify loop
@@ -65,42 +68,52 @@ function caseRef(value: unknown): string {
   return '';
 }
 
+function jobTone(status: string): StatusTone {
+  if (status === 'succeeded') return 'ok';
+  if (status === 'failed') return 'err';
+  if (status === 'running') return 'warn';
+  return 'no';
+}
+
 // ---------------------------------------------------------------------------
 
 function JobCard({ job }: { job: ResearchJob }) {
-  const tone =
-    job.status === 'succeeded'
-      ? 'text-good'
-      : job.status === 'failed'
-        ? 'text-bad'
-        : job.status === 'running'
-          ? 'text-amber'
-          : 'text-faint';
-
   return (
-    <div className="min-w-0 rounded-md border border-line bg-panel-2 p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="type-body font-medium text-text">
-          {job.kind} · {job.job_id}
-        </span>
-        <span className={cn('mono-caps', tone)}>{job.status}</span>
-      </div>
-      <p className="type-meta mt-1 text-faint">
+    <div className="card opt-job">
+      <p className="label">
+        {job.kind} · {job.job_id}
+      </p>
+      <h3>
+        <Status tone={jobTone(job.status)}>{job.status}</Status>
+      </h3>
+      <p className="small muted">
         started {formatStamp(job.started_at)}
         {job.finished_at ? ` · finished ${formatStamp(job.finished_at)}` : ' · still running'}
         {job.returncode !== null ? ` · exit ${job.returncode}` : ''}
       </p>
-      <p className="type-meta mt-1 text-faint">
+      <p className="small mono wrap-any">
         {Object.entries(job.args)
           .map(([key, value]) => `${key}=${String(value)}`)
           .join(' · ')}
       </p>
       {job.log_tail.length > 0 && (
-        <pre className="mt-2 max-h-56 overflow-auto rounded-[4px] border border-line bg-ground px-2 py-1.5 font-mono text-[10.5px] leading-relaxed break-words whitespace-pre-wrap text-muted">
-          {job.log_tail.join('\n')}
-        </pre>
+        <div className="code band">
+          <p className="label">log tail · {job.log_tail.length} lines</p>
+          <pre>{job.log_tail.join('\n')}</pre>
+        </div>
       )}
     </div>
+  );
+}
+
+function Section({ testId, n, label, claim, children }: { testId: string; n: number; label: string; claim: ReactNode; children: ReactNode }) {
+  return (
+    <section className="opt-sec" data-testid={testId}>
+      <h2>
+        {n} · {label} — {claim}
+      </h2>
+      {children}
+    </section>
   );
 }
 
@@ -158,11 +171,7 @@ export default function Research() {
         header: 'rule',
         accessorFn: (r) => str(r, 'rule'),
         meta: { align: 'left', mono: false, wrap: true, width: '340px' },
-        cell: ({ row }) => (
-          <span className="text-muted" title={str(row.original, 'rule')}>
-            {clip(str(row.original, 'rule'), 260)}
-          </span>
-        ),
+        cell: ({ row }) => <span title={str(row.original, 'rule')}>{clip(str(row.original, 'rule'), 260)}</span>,
       },
       {
         id: 'fix_type',
@@ -176,7 +185,7 @@ export default function Research() {
         accessorFn: (r) => num(r, 'confidence') ?? -1,
         cell: ({ row }) => {
           const value = num(row.original, 'confidence');
-          return value === null ? <span className="text-faint">—</span> : value.toFixed(2);
+          return value === null ? <span className="muted">—</span> : value.toFixed(2);
         },
       },
     ];
@@ -188,9 +197,7 @@ export default function Research() {
           header: 'verified on',
           accessorFn: (r) => caseRef(r.verified_on),
           meta: { align: 'left', width: '190px' },
-          cell: ({ row }) => (
-            <span className="text-faint">{caseRef(row.original.verified_on) || '—'}</span>
-          ),
+          cell: ({ row }) => <span className="muted">{caseRef(row.original.verified_on) || '—'}</span>,
         },
         {
           id: 'verified_at',
@@ -216,9 +223,7 @@ export default function Research() {
           header: 'attempted on',
           accessorFn: (r) => caseRef(r.attempted_on),
           meta: { align: 'left', width: '190px' },
-          cell: ({ row }) => (
-            <span className="text-faint">{caseRef(row.original.attempted_on) || '—'}</span>
-          ),
+          cell: ({ row }) => <span className="muted">{caseRef(row.original.attempted_on) || '—'}</span>,
         },
         {
           id: 'attempted_at',
@@ -239,13 +244,27 @@ export default function Research() {
 
   const totalRules = counts.reduce((sum, c) => sum + c.rules, 0);
   const totalAttempts = counts.reduce((sum, c) => sum + c.attempts, 0);
+  const agentCount = counts.find((c) => c.name === agent) ?? { rules: 0, attempts: 0 };
+
+  const title: ReactNode = rules.isLoading ? (
+    <>
+      Reading the <em>rule</em> stores…
+    </>
+  ) : (
+    <>
+      {activeVariant || 'This variant'}&rsquo;s stores hold <em>{formatCount(totalRules)} landed rules</em> from{' '}
+      {formatCount(totalAttempts)} attempts
+    </>
+  );
+
+  const history = status.data?.history ?? [];
 
   return (
     <AdminPage
       testId="admin-research"
-      eyebrow="admin · research"
-      title="Research"
-      sub="The s7 harness: a per-case diagnose → route + fix → verify loop over the first wrong turn of each failing conversation. The rules it landed are below; launching a new round is an operator action."
+      eyebrow={`optimise · rule research · s7 harness · variant ${activeVariant || '…'}`}
+      title={title}
+      sub="The s7 harness: a per-case diagnose → route + fix → verify loop over the first wrong turn of each failing conversation. The rules it landed are below, with every attempt that failed verification; launching a new round is an operator action."
     >
       <LampRow>
         <Lamp
@@ -266,87 +285,64 @@ export default function Research() {
         <Lamp label="attempts" value={formatCount(totalAttempts)} tone="idle" dashed />
       </LampRow>
 
-      <Panel
+      <Section
         testId="research-rules"
-        title="Rule stores"
-        endpoint="/admin/rules"
-        note={
-          <>
-            Four append-only JSONL stores under <code>evaluation/diagnostics/</code>. The generated
-            prompt module <code>src/convfinqa/prompts/{activeVariant || '…'}.py</code> is assembled
-            from these — it is never hand-edited.
-          </>
-        }
-        right={
-          <div className="flex flex-wrap items-center gap-1.5">
-            <label className="mono-caps flex items-center gap-1">
-              variant
-              <select
-                value={activeVariant}
-                onChange={(e) => setVariant(e.target.value)}
-                className="rounded-[4px] border border-line-2 bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-text"
-              >
-                {(variants.data ?? []).map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
+        n={1}
+        label="Rules"
+        claim={`${agent} landed ${formatCount(agentCount.rules)} of ${formatCount(agentCount.attempts)} attempts in ${activeVariant || '…'}`}
+      >
+        <p>
+          Four append-only JSONL stores under <code>evaluation/diagnostics/</code>. The generated prompt
+          module <code>src/convfinqa/prompts/{activeVariant || '…'}.py</code> is assembled from these — it
+          is never hand-edited.
+        </p>
+        <div className="filters">
+          <label className="pick">
+            <span className="label">variant</span>
+            <select value={activeVariant} onChange={(e) => setVariant(e.target.value)}>
+              {(variants.data ?? []).map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="seg" role="group" aria-label="rules or attempts">
             {(['rules', 'attempts'] as const).map((key) => (
               <button
                 key={key}
                 type="button"
+                aria-pressed={view === key}
+                className={view === key ? 'on' : ''}
                 onClick={() => setView(key)}
-                className={cn(
-                  'rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px] tracking-[0.06em] uppercase',
-                  view === key
-                    ? 'border-amber-line bg-amber-soft text-amber'
-                    : 'border-line text-faint hover:text-text',
-                )}
               >
-                {key}
+                {key === 'rules' ? 'landed rules' : 'every attempt'}
               </button>
             ))}
           </div>
-        }
-      >
-        <div className="mb-2">
-          <StatCells
-            columns={4}
-            cells={counts.map((c) => ({
-              label: c.name,
-              value: `${view === 'rules' ? c.rules : c.attempts}`,
-            }))}
-          />
         </div>
 
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className="chips" role="group" aria-label="agent">
           {counts.map((c) => (
             <button
               key={c.name}
               type="button"
+              aria-pressed={agent === c.name}
               onClick={() => setAgent(c.name)}
-              className={cn(
-                'rounded-[4px] border px-2 py-1 font-mono text-[11px]',
-                agent === c.name
-                  ? 'border-amber-line bg-amber-soft text-amber'
-                  : 'border-line text-faint hover:text-text',
-              )}
+              className={`chip${agent === c.name ? ' on' : ''}`}
             >
-              {c.name}{' '}
-              {/*
-                The count was `opacity-70`, which on the selected chip put amber
-                at 70% over `--amber-soft` — 3.77:1 dark, 2.90:1 light, both
-                under AA. Opacity is not a colour: it moves the foreground
-                toward whatever is behind it, so it defeats a token that was
-                chosen against that background. Weight carries the same
-                hierarchy without touching contrast.
-              */}
-              <span className="font-normal">{view === 'rules' ? c.rules : c.attempts}</span>
+              {c.name} · {view === 'rules' ? c.rules : c.attempts}
             </button>
           ))}
         </div>
+
+        <StatCells
+          columns={4}
+          cells={counts.map((c) => ({
+            label: `${c.name} · ${view === 'rules' ? 'landed' : 'attempts'}`,
+            value: view === 'rules' ? `${c.rules} of ${c.attempts}` : `${c.attempts}`,
+          }))}
+        />
 
         {rules.isLoading ? (
           <LoadingRows rows={5} />
@@ -360,6 +356,7 @@ export default function Research() {
             rowKey={(r, i) => str(r, 'rule_id') || str(r, 'attempt_id') || String(i)}
             minWidth={760}
             maxHeight={480}
+            caption={`${view === 'rules' ? 'Landed rules' : 'Every attempt, failed verifications included'} for ${agent} in ${activeVariant || '…'}. Source: /admin/rules.`}
             emptyLabel={
               totalRules === 0 && totalAttempts === 0
                 ? `${activeVariant} has empty rule stores: the round diagnosed its cases but landed no rule that survived verification, so nothing was written. That is a recorded outcome, not a missing file.`
@@ -373,104 +370,92 @@ export default function Research() {
         <Caveat>
           Attempts include the ones that failed verification. A harness that only showed what worked
           would be a claim about its hit rate rather than a record of it — for{' '}
-          {activeVariant || 'this variant'}{' '}
-          the stores hold {formatCount(totalRules)} landed rules against{' '}
+          {activeVariant || 'this variant'} the stores hold {formatCount(totalRules)} landed rules against{' '}
           {formatCount(totalAttempts)} attempts.
         </Caveat>
-      </Panel>
+      </Section>
 
       <Panel
         testId="research-console"
-        title="Research console"
+        title={`Research console — ${canLaunch ? 'this backend can launch a round' : 'launching is refused here'}`}
         endpoint="POST /admin/research/start"
         note="a round runs the s7 harness as a subprocess against the live model — minutes, and real API spend"
       >
         <WriteGate enabled={canLaunch} reason={launchReason} testId="research-gate">
-          <label className="mono-caps flex items-center gap-1.5">
-            kind
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value)}
-              className="rounded-[4px] border border-line-2 bg-panel-2 px-2 py-1 font-mono text-[11px] text-text"
-            >
+          <label className="opt-field">
+            <span className="label">kind</span>
+            <select value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="s7">s7</option>
               <option value="gepa_smoke">gepa_smoke</option>
             </select>
           </label>
-          <label className="mono-caps flex items-center gap-1.5">
-            cases
+          <label className="opt-field">
+            <span className="label">cases</span>
             <input
               type="number"
               min={1}
               max={100}
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value))}
-              className="w-16 rounded-[4px] border border-line-2 bg-panel-2 px-2 py-1 font-mono text-[11px] text-text"
             />
           </label>
-          <label className="mono-caps flex items-center gap-1.5">
-            retry_n
+          <label className="opt-field">
+            <span className="label">retry_n</span>
             <input
               type="number"
               min={1}
               max={3}
               value={retryN}
               onChange={(e) => setRetryN(Number(e.target.value))}
-              className="w-14 rounded-[4px] border border-line-2 bg-panel-2 px-2 py-1 font-mono text-[11px] text-text"
             />
           </label>
-          <button
-            type="button"
-            data-testid="research-start"
-            onClick={() => start.mutate()}
-            className="rounded-[4px] border border-amber-line bg-amber-soft px-2.5 py-1 font-mono text-[11px] text-amber hover:bg-amber hover:text-amber-ink disabled:cursor-not-allowed disabled:hover:bg-amber-soft disabled:hover:text-amber"
-          >
-            {start.isPending ? 'starting…' : 'Start a round'}
+          <button type="button" className="btn" data-testid="research-start" onClick={() => start.mutate()}>
+            {start.isPending ? 'Starting…' : 'Start a round'}
           </button>
-          <button
-            type="button"
-            data-testid="research-cancel"
-            onClick={() => cancel.mutate()}
-            className="rounded-[4px] border border-line-2 px-2.5 py-1 font-mono text-[11px] text-muted hover:border-bad hover:text-bad disabled:cursor-not-allowed"
-          >
-            Cancel
+          <button type="button" className="linkbtn" data-testid="research-cancel" onClick={() => cancel.mutate()}>
+            Cancel the running round
           </button>
         </WriteGate>
 
         {writeError && (
-          <p className="type-small mt-2 rounded-[4px] border border-bad px-2 py-1.5 text-bad">
+          <div className="callout err opt-msg" role="alert">
+            <span className="ttl">✗ Refused</span>
             {writeError}
-          </p>
+          </div>
         )}
 
-        <div className="mt-3">
-          {status.isLoading ? (
-            <LoadingRows rows={2} />
-          ) : status.error ? (
-            <ErrorNote error={status.error} />
-          ) : status.data?.current ? (
+        {status.isLoading ? (
+          <LoadingRows rows={2} />
+        ) : status.error ? (
+          <ErrorNote error={status.error} />
+        ) : status.data?.current ? (
+          <div className="cards">
             <JobCard job={status.data.current} />
-          ) : (
-            <EmptyState>
-              No round is running. The harness is normally driven from the command line —{' '}
-              <code>uv run python scripts/diagnose_failures.py --limit 10</code> — and this console
-              is the same subprocess with its log tailed.
-            </EmptyState>
-          )}
-        </div>
-
-        {(status.data?.history.length ?? 0) > 0 && (
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="mono-caps">previous rounds</div>
-            {status.data?.history.map((job) => (
-              <div key={job.job_id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="type-num text-[11px] text-text">{job.job_id}</span>
-                <span className="type-small text-muted">{job.kind}</span>
-                <Verdict ok={job.status === 'succeeded'}>{job.status}</Verdict>
-                <span className="type-meta text-faint">{relativeTime(job.started_at)}</span>
-              </div>
-            ))}
           </div>
+        ) : (
+          <EmptyState>
+            No round is running. The harness is normally driven from the command line —{' '}
+            <code>uv run python scripts/diagnose_failures.py --limit 10</code> — and this console is the
+            same subprocess with its log tailed.
+          </EmptyState>
+        )}
+
+        {history.length > 0 && (
+          <>
+            <h3>
+              Previous rounds · {history.length}, {history.filter((j) => j.status === 'succeeded').length} succeeded
+            </h3>
+            <ul className="opt-jobs">
+              {history.map((job) => (
+                <li key={job.job_id}>
+                  <span className="mono">{job.job_id}</span>
+                  <span className="muted">{job.kind}</span>
+                  <Verdict ok={job.status === 'succeeded'}>{job.status}</Verdict>
+                  <span className="muted">{relativeTime(job.started_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Panel>
     </AdminPage>

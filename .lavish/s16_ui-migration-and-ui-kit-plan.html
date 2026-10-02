@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>s16 · ConvFinQA UI migration + house UI kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+/* Field Guide tokens (nmp-dsci.github.io/assets/css/tokens.css) with the proposed ConvFinQA blue accent,
+   plus --ok / --red as the kit's standard status pair. This artifact is rendered in the target system. */
+:root{
+  --bg:#F7F6F2; --panel:#FFFFFF; --band:#EFEEE8;
+  --ink:#1A1D1B; --ink-2:#3B403D; --muted:#4A514D; --faint:#5C635E;
+  --line:#DCDAD2; --line-2:#C7C5BC; --line-3:#8A8880;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3;
+  --amber:#8A5006; --amber-soft:#F6E6CF;
+  --ok:#0A6552; --ok-soft:#DFEFE8;
+  --red:#A2342B; --red-soft:#F6DEDB;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --serif:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --t-2:0.8rem; --t-1:0.875rem; --t0:1rem; --t1:1.125rem; --t2:1.406rem; --t3:1.758rem; --t4:2.197rem;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --r:10px; --r-sm:6px;
+  --shadow:0 1px 2px rgb(20 25 22 / .05), 0 12px 28px -18px rgb(20 25 22 / .22);
+  --dur:300ms; --ease:cubic-bezier(.2,.7,.2,1); --focus:var(--accent);
+  --w:1140px; --measure:68ch; --track-label:.08em;
+  /* family accents, for the mock headers only */
+  --g:#0A6552; --g-soft:#DFEFE8; --rd:#8A2B1D; --rd-soft:#F5DCD7; --bl:#1F4E8C; --bl-soft:#DCE6F3;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121614; --panel:#191E1B; --band:#161A18;
+  --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+  --line:#28302B; --line-2:#3A443E; --line-3:#727E77;
+  --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40;
+  --amber:#D99A4E; --amber-soft:#3A2A14;
+  --ok:#43C29A; --ok-soft:#17382C;
+  --red:#E8776B; --red-soft:#3D1D1A;
+  --shadow:0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -18px rgb(0 0 0 / .65);
+  --g:#43C29A; --g-soft:#17382C; --rd:#E08A7A; --rd-soft:#3A1E1A; --bl:#7EA8E4; --bl-soft:#172A40;
+}}
+@media (prefers-reduced-motion: reduce){ :root{ --dur:0.01ms; } }
+
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t0)/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-sm)}
+h1,h2,h3{text-wrap:balance;color:var(--ink)}
+h1{font:400 var(--t4)/1.15 var(--serif);margin:var(--s3) 0 var(--s4)}
+h1 em{font-style:italic;color:var(--accent)}
+h2{font:600 var(--t2)/1.25 var(--sans);margin:var(--s7) 0 var(--s3);scroll-margin-top:80px}
+h3{font:600 var(--t1)/1.3 var(--sans);margin:var(--s5) 0 var(--s2)}
+p{max-width:var(--measure);color:var(--ink-2);text-wrap:pretty;margin:0 0 var(--s3)}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:var(--t-1)}
+code{background:var(--band);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.lead{font:400 var(--t1)/1.55 var(--serif);color:var(--ink-2)}
+.label{font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);margin:0}
+.small{font-size:var(--t-1)}
+.muted{color:var(--muted)}
+
+.top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+.top .in{max-width:var(--w);margin:0 auto;padding:var(--s3) var(--s4);display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;min-width:0}
+.brand{font:500 var(--t0)/1 var(--serif);color:var(--ink);text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:var(--s2)}
+.brand b{color:var(--accent);font-weight:500}
+.dot{width:22px;height:22px;border-radius:var(--r-sm);background:var(--bg);border:1px solid var(--line-2);display:inline-grid;place-items:center}
+.dot::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.top nav{display:flex;gap:var(--s1);flex-wrap:wrap;min-width:0}
+.top nav a{font:500 var(--t-1)/1 var(--sans);color:var(--muted);text-decoration:none;padding:var(--s2) var(--s3);border-radius:var(--r-sm);min-height:24px}
+.top nav a:hover{background:var(--band);color:var(--ink)}
+.top nav a.on{color:var(--accent);background:var(--accent-soft)}
+.mode{margin-left:auto;font:500 var(--t-2)/1 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);padding:var(--s2) var(--s3);border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted);white-space:nowrap}
+.mode.live{color:var(--ok);border-color:var(--ok)}
+main{max-width:var(--w);margin:0 auto;padding-block:var(--s7) var(--s9);padding-inline:var(--s4)}
+footer{max-width:var(--w);margin:0 auto;padding:var(--s6) var(--s4);color:var(--faint);font-size:var(--t-1);border-top:1px solid var(--line)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--s4);margin:var(--s5) 0}
+.kpi{background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4) var(--s5);min-width:0}
+.kpi .n{font:500 var(--t3)/1.1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.kpi .n.acc{color:var(--accent)} .kpi .n.warn{color:var(--amber)}
+.kpi .b{font-size:var(--t-1);color:var(--muted);margin-top:var(--s1)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s4)}
+.card{background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4) var(--s5);min-width:0}
+.card h3{margin-top:0}
+.card.rec{box-shadow:inset 0 0 0 2px var(--accent),var(--shadow)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0}
+.chip{font:500 var(--t-2)/1.2 var(--mono);padding:3px var(--s2);border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted);white-space:nowrap}
+.chip.acc{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chip.ok{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.chip.warn{border-color:var(--amber);color:var(--amber);background:var(--amber-soft)}
+.chip.no{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.v-ok{color:var(--ok)} .v-warn{color:var(--amber)} .v-no{color:var(--red)}
+.status{font:500 var(--t-2)/1.2 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);white-space:nowrap}
+.status.ok{color:var(--ok)} .status.ok::before{content:"● "}
+.status.warn{color:var(--amber)} .status.warn::before{content:"◐ "}
+.status.no{color:var(--red)} .status.no::before{content:"✕ "}
+.status.new{color:var(--accent)} .status.new::before{content:"○ "}
+
+.tw{overflow-x:auto;background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);margin:var(--s3) 0 var(--s4)}
+table{border-collapse:collapse;width:100%;font-size:var(--t-1)}
+thead th{font:500 var(--t-2)/1.3 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);text-align:left;padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+td.sub{font-weight:600;color:var(--ink);min-width:140px}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.path{display:block;font:400 var(--t-2)/1.4 var(--mono);color:var(--faint);overflow-wrap:anywhere;font-weight:400}
+tr.pro td{background:var(--accent-soft)}
+td ul{margin:0;padding-left:1.1em}
+
+figure{margin:var(--s5) 0;background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4) var(--s5)}
+.fig-title{margin-bottom:var(--s3)}
+figcaption{font-size:var(--t-1);color:var(--muted);margin-top:var(--s3);max-width:var(--measure)}
+svg.dia{width:100%;height:auto;display:block}
+.dia .nd{fill:var(--panel);stroke:var(--line-2);stroke-width:1.2}
+.dia .nd.band{fill:var(--band);stroke:var(--line)}
+.dia .nd.hi{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6}
+.dia .nd.ext{fill:none;stroke:var(--line-3);stroke-dasharray:5 4}
+.dia .ed{fill:none;stroke:var(--line-3);stroke-width:1.3}
+.dia .ed.acc{stroke:var(--accent);stroke-width:1.6}
+.dia .ed.dash{stroke-dasharray:5 4}
+.dia .tx{fill:var(--ink);font:500 13px var(--sans)}
+.dia .tx.s{fill:var(--muted);font:400 12.8px var(--mono)}
+.dia .tx.k{fill:var(--accent);font:600 13px var(--sans)}
+.dia .ah{fill:var(--line-3)} .dia .ah.acc{fill:var(--accent)}
+
+.steps{counter-reset:s;list-style:none;padding:0;margin:var(--s3) 0}
+.steps>li{position:relative;padding-left:40px;margin-bottom:var(--s3);color:var(--ink-2);max-width:78ch}
+.steps>li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:600 var(--t-2)/26px var(--mono);text-align:center}
+.callout{border-left:3px solid var(--amber);background:var(--amber-soft);padding:var(--s3) var(--s4);border-radius:0 var(--r-sm) var(--r-sm) 0;margin:var(--s4) 0;color:var(--ink-2);max-width:86ch}
+.callout.acc{border-color:var(--accent);background:var(--accent-soft)}
+.callout b{color:var(--ink)}
+section.band{background:var(--band);margin-inline:calc(-1 * var(--s4));padding:var(--s6) var(--s4)}
+@media (min-width:1200px){section.band{margin-inline:calc(-1 * var(--s6));padding-inline:var(--s6);border-radius:var(--r)}}
+.toc{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s4) 0}
+.toc a{font:500 var(--t-2)/1 var(--mono);text-decoration:none;color:var(--muted);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:var(--s2) var(--s3)}
+.toc a:hover{color:var(--accent);border-color:var(--accent)}
+pre.code{background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4);overflow-x:auto;font:400 var(--t-1)/1.55 var(--mono);color:var(--ink-2);margin:var(--s3) 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--s4)}
+.grid2>*{min-width:0}
+
+/* ---- header mocks ---- */
+.mock{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin:var(--s3) 0 var(--s2);background:var(--bg)}
+.mock .top{position:static}
+.mock-cap{font-size:var(--t-1);color:var(--muted);margin:0 0 var(--s5)}
+.acc-g{--accent:var(--g);--accent-soft:var(--g-soft)} .acc-r{--accent:var(--rd);--accent-soft:var(--rd-soft)}
+.acc-b{--accent:var(--bl);--accent-soft:var(--bl-soft)}
+/* a picture of today's Console: its own literal palette, dark-first as shipped */
+.console{display:grid;grid-template-columns:176px minmax(0,1fr);background:#191b1f;color:#e8e9ea;font-family:var(--sans);min-height:250px}
+.console .rail{background:#212429;border-right:1px solid #32363d;padding:10px 0}
+.console .bm{display:flex;align-items:center;gap:8px;padding:4px 12px 12px;font-weight:600;font-size:14px}
+.console .bm i{width:22px;height:22px;background:#f0a93f;color:#1d1405;border-radius:4px;font:700 12.8px/22px var(--mono);text-align:center;font-style:normal}
+.console .gh{font:500 12.8px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:#9ba1ab;padding:8px 12px 2px}
+.console .it{font-size:13px;padding:5px 12px 5px 14px;color:#b6bbc2;display:flex;gap:8px;align-items:center}
+.console .it::before{content:"";width:12px;height:12px;border:1.5px solid currentColor;border-radius:3px;opacity:.7}
+.console .it.on{background:rgba(240,169,63,.13);color:#f0a93f;box-shadow:inset 2px 0 #f0a93f}
+.console .bar{height:44px;border-bottom:1px solid #32363d;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:13px;color:#b6bbc2}
+.console .bar .lamp{margin-left:auto;border:1px dashed #f0a93f;color:#f0a93f;border-radius:999px;padding:2px 10px;font:500 12.8px var(--mono)}
+.console .body{padding:14px 18px}
+.console .eb{font:500 12.8px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#9ba1ab}
+.console .h{font-size:22px;font-weight:500;margin:6px 0}
+.console .ld{font-size:14px;color:#b6bbc2;max-width:60ch}
+@media (max-width:640px){.console{grid-template-columns:1fr}.console .rail{display:none}}
+
+/* decision forms */
+form.q{background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);padding:var(--s4) var(--s5);margin:var(--s4) 0}
+form.q h3{margin-top:0}
+form.q label.opt{display:block;position:relative;padding:var(--s3) var(--s3) var(--s3) 40px;border:1px solid var(--line);border-radius:var(--r-sm);margin:var(--s2) 0;cursor:pointer}
+form.q label.opt input{position:absolute;left:14px;top:16px;margin:0;accent-color:var(--accent)}
+form.q label.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+form.q label.opt span{display:block}
+form.q label.opt b{color:var(--ink)}
+form.q label.opt .small{color:var(--muted)}
+.rec-tag{font:500 var(--t-2)/1 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--accent);margin-left:var(--s2)}
+.btn{font:500 var(--t-1)/1 var(--sans);background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--r-sm);padding:var(--s3) var(--s4);cursor:pointer;min-height:36px}
+.qfoot{display:flex;gap:var(--s3);align-items:center;flex-wrap:wrap;margin-top:var(--s3)}
+.qfoot textarea{flex:1 1 260px;min-width:0;font:400 var(--t-1)/1.4 var(--sans);background:var(--bg);color:var(--ink);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:var(--s2)}
+.queued{font:500 var(--t-2)/1 var(--mono);color:var(--ok)}
+table.batch select{font:400 var(--t-1) var(--sans);background:var(--bg);color:var(--ink);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:4px 6px;min-height:32px;max-width:100%}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#top"><span class="dot"></span><span>convfinqa<b>-agent</b></span></a>
+    <nav aria-label="Sections">
+      <a href="#evidence" class="on">Evidence</a><a href="#look">The look</a><a href="#blue">Blue</a><a href="#tabs">Tab set</a><a href="#port">The port</a><a href="#kit">The kit</a><a href="#phases">Phases</a><a href="#touch">Touchpoints</a><a href="#risks">Risks</a><a href="#decide">Decisions</a>
+    </nav>
+    <span class="mode">plan · s16 · draft</span>
+  </div>
+</header>
+
+<main id="top">
+  <p class="label">s16 · branch ui-migration · 2026-09-29 · plan for review, nothing built</p>
+  <h1>ConvFinQA moves to the house UI in <em>blue</em>, and the house UI becomes a kit that every project pulls from.</h1>
+  <p class="lead">DataAgentBench (green) and tau2-loop (red) already share one app: the site's Field Guide tokens, a sticky header with eight pill-shaped tabs, and plain CSS with no framework. ConvFinQA is a different app, "The Console": dark-first, Tailwind + shadcn, a left rail, amber. This plan ports ConvFinQA onto the house UI. As it does, it carves the shared parts into <code>nmp-central-ai/ui/</code>, with a <code>platform-ui</code> skill to stand up a new agent UI and a <code>make ui-sync</code> to bring every project up to the latest kit.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">18,345</div><div class="b">non-test TS/TSX lines in ConvFinQA's frontend, against 6,677 in DataAgentBench and 5,943 in tau2-loop: 2.7× the surface to port</div></div>
+    <div class="kpi"><div class="n">271</div><div class="b">amber references across 47 files. Most go through tokens, so a token bridge recolours them all in the first phase (C0)</div></div>
+    <div class="kpi"><div class="n acc">9 → 8</div><div class="b">nav items in four rail groups become the house's eight pill tabs, in the same order as the siblings</div></div>
+    <div class="kpi"><div class="n">2 → 3</div><div class="b">Field Guide apps. DataAgentBench is the reference; tau2-loop is a copy that has already drifted (102 changed lines in a ~95-line <code>lib/ui.tsx</code>). A third copy is the point to make a kit</div></div>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <a href="#evidence">1 · Evidence</a><a href="#look">2 · The look</a><a href="#blue">3 · Blue</a><a href="#tabs">4 · Tab set</a><a href="#port">5 · The port</a><a href="#kit">6 · The kit</a><a href="#phases">7 · Phases</a><a href="#touch">8 · Touchpoints</a><a href="#risks">9 · Risks</a><a href="#decide">10 · Decisions</a>
+  </nav>
+
+  <!-- 1 -->
+  <h2 id="evidence">1 · Evidence — two design systems, and the siblings share one</h2>
+  <p>Every row was read from the repos today. The reference column is the intersection of <code>DataAgentBench/frontend</code> and <code>tau2-loop/frontend</code>. tau2-loop was cloned from DataAgentBench in its own s04 (<code>tau2-loop/.lavish/s04_ui-migration-and-platform-plan.html</code>, commits <code>64dddf6</code> M0 and <code>86faa6e</code> M3), and this plan follows that precedent.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Dimension</th><th>ConvFinQA today · "The Console"</th><th>House reference · Field Guide</th><th>Move</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">Styling</td><td>Tailwind v4 (CSS-first) + vendored shadcn (<code>components/ui/</code>) + cva + tailwind-merge + tw-animate<span class="path">frontend/src/tokens.css · 370 lines, @theme inline bridge</span></td><td>Plain CSS: <code>tokens.css</code> (40 lines) + <code>styles.css</code> (~400), "nothing here names a colour"<span class="path">DataAgentBench/frontend/src/styles.css</span></td><td><span class="status no">replace</span></td></tr>
+      <tr><td class="sub">Navigation</td><td>Left rail (52px icons at md, 176px labels at lg), 4 groups, lucide icons, phone tab bar + "All pages" sheet<span class="path">src/app/NavRail.tsx · TabBar.tsx · nav.ts</span></td><td>Sticky white header: brand, 8 pill tabs, mode pill. Wraps on narrow screens; no rail, no phone bar<span class="path">Shell.tsx · 49–65 lines</span></td><td><span class="status no">replace</span></td></tr>
+      <tr><td class="sub">Theme</td><td>Dark-first; <code>ThemeToggle</code> + localStorage <code>theme</code>; pre-paint script in <code>index.html</code></td><td>Follows the OS; light is the reference palette; a <code>data-theme</code> hook exists but has no toggle</td><td><span class="status warn">decide Q5</span></td></tr>
+      <tr><td class="sub">Type</td><td>Plex Sans + Mono; eight px <code>.type-*</code> steps; 11px floor</td><td>Three voices: Serif (h1, lead) · Sans (UI) · Mono (data); <code>--t-2…--t4</code> in rem; 12.8px floor; one <code>&lt;em&gt;</code> in the h1</td><td><span class="status no">replace</span></td></tr>
+      <tr><td class="sub">Colour</td><td>amber = accent/CTA; <code>--good --bad --info</code> (blue) <code>--violet</code></td><td>one accent per project; <code>--amber</code> = partial only; status is always word + glyph; <em>no purple</em></td><td><span class="status no">replace</span></td></tr>
+      <tr><td class="sub">Page frame</td><td><code>PageHeader</code> (eyebrow "Evidence · 03 of 04" + verdict) → Panels → <code>NextFooter</code></td><td>mono eyebrow → h1 claim → serif lead → <code>.kpis</code> → <code>NN · label — claim</code> sections, each figure + one insight line</td><td><span class="status warn">adapt</span></td></tr>
+      <tr><td class="sub">Charts &amp; icons</td><td>hand SVG + recharts (one file, <code>SliceChart.tsx</code>); lucide</td><td>hand SVG with the <code>.dia</code> class vocabulary; glyphs + words (<code>● ○ ◐ ✕</code>)</td><td><span class="status warn">adapt</span></td></tr>
+      <tr><td class="sub">Data layer</td><td>react-query, zustand, TanStack Table, fetch-event-source (SSE chat)</td><td>a 20-line <code>useGet</code> hook</td><td><span class="status ok">keep ours</span></td></tr>
+      <tr><td class="sub">Routing</td><td>one <code>router.tsx</code>, lazy admin pages, pages under <code>/admin/*</code> (the path collides with the API; see the CLAUDE.md invariant)</td><td>routes as data (<code>routes.tsx</code>), redirect loaders for old URLs, <code>routes.test.tsx</code> drives every address, <code>lib/url.ts</code> grammar</td><td><span class="status no">replace</span></td></tr>
+      <tr><td class="sub">Lint</td><td><code>design_lint.mjs</code> (110 lines): hex outside tokens, legacy aliases, px ratchet against <code>design-baseline.json</code></td><td><code>design_lint.mjs</code> (44 lines, identical in both): hex outside tokens, font-size &lt; 12.8px, Inter/Roboto/Helvetica</td><td><span class="status no">replace</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">The reference has its own loose ends; the kit fixes them rather than copying them. <code>.chip.acc</code> and <code>.card.hi</code> are used but never defined in tau2-loop. tau2-loop's <code>index.html</code> theme-color is still green. The nav CSS targets the bare <code>nav</code> element, so it leaks into <code>DomainChips</code>; the kit scopes it as <code>.top nav</code>.</p>
+
+  <!-- 2 -->
+  <h2 id="look">2 · The look — one header, three accents, ConvFinQA the blue one</h2>
+  <p>These are the real header CSS at the real sizes. The only thing that changes between projects is the accent triple (<code>--accent</code>, <code>--accent-soft</code>, and <code>--accent-ink</code>, the text colour on accent). The tabs, spacing, type, pill shape, mode pill and footer are identical.</p>
+
+  <p class="label">today · ConvFinQA, /admin/runtimes (dark, as shipped)</p>
+  <div class="mock" aria-label="Mock of today's ConvFinQA console">
+    <div class="console">
+      <div class="rail">
+        <div class="bm"><i>CF</i>ConvFinQA</div>
+        <div class="gh">Product</div><div class="it">Overview</div><div class="it">Chat</div>
+        <div class="gh">Built</div><div class="it">Architecture</div><div class="it">Readiness</div>
+        <div class="gh">Evidence</div><div class="it on">Runtimes</div><div class="it">Evaluations</div><div class="it">Dataset</div><div class="it">Experiments</div>
+        <div class="gh">Operations</div><div class="it">Traces</div>
+      </div>
+      <div>
+        <div class="bar">serving <b style="color:#e8e9ea">sdk-v1</b> · agent sdk <span class="lamp">demo · recorded replay</span></div>
+        <div class="body"><div class="eb">Evidence · 01 of 04</div><div class="h">Runtimes</div><div class="ld">How we got to sdk_v1: the progression, the test score, the recommendation.</div></div>
+      </div>
+    </div>
+  </div>
+  <p class="mock-cap">Rail, icons, amber, a dark ground, a bare-noun heading. Neither DataAgentBench nor tau2-loop looks like this.</p>
+
+  <p class="label">target · ConvFinQA (blue) — follows your OS theme</p>
+  <div class="mock acc-b">
+    <header class="top"><div class="in">
+      <span class="brand"><span class="dot"></span><span>convfinqa<b>-agent</b></span></span>
+      <nav aria-label="Mock ConvFinQA pages"><a>Overview</a><a>Filings &amp; questions</a><a>Scoring</a><a>Leaderboard</a><a>Runs</a><a class="on">Optimise</a><a>Agent</a><a>Gold review</a></nav>
+      <span class="mode">demo · read only</span>
+    </div></header>
+    <div style="padding:var(--s5) var(--s4) var(--s4);max-width:var(--w);margin:0 auto">
+      <p class="label">optimise · runtimes and campaigns</p>
+      <h1 style="font-size:var(--t3)">One Agent SDK session beats the four-agent pipeline by <em>8.9 points</em> on the unseen test split</h1>
+      <p class="lead">sdk_v1 at 90.5% against v8 at 81.7%, one-sided cluster McNemar p = 0.0003. It was distilled once and never beaten in campaign s01.</p>
+    </div>
+  </div>
+  <p class="mock-cap">The same page as a slide: the eyebrow, a claim with its number, then the evidence. The figures in the mock come from <code>CLAUDE.md</code>. The real page reads them from <code>evaluation/story.json</code>, as today.</p>
+
+  <p class="label">the family · real nav arrays, read from each Shell.tsx</p>
+  <div class="mock acc-g"><header class="top"><div class="in"><span class="brand"><span class="dot"></span><span>DAB<b> explorer</b></span></span><nav aria-label="Mock DAB"><a class="on">Overview</a><a>Datasets &amp; queries</a><a>Validators</a><a>Leaderboard</a><a>Runs</a><a>Optimise</a><a>Agent</a><a>Golden</a></nav><span class="mode">rescored</span></div></header></div>
+  <div class="mock acc-r"><header class="top"><div class="in"><span class="brand"><span class="dot"></span><span>tau2<b>-loop</b></span></span><nav aria-label="Mock tau2"><a class="on">Overview</a><a>Domains &amp; tasks</a><a>Rubric</a><a>Leaderboard</a><a>Runs</a><a>Optimise</a><a>Agent</a><a>Review</a></nav><span class="mode live">live · dev</span></div></header></div>
+  <div class="mock acc-b"><header class="top"><div class="in"><span class="brand"><span class="dot"></span><span>convfinqa<b>-agent</b></span></span><nav aria-label="Mock ConvFinQA"><a class="on">Overview</a><a>Filings &amp; questions</a><a>Scoring</a><a>Leaderboard</a><a>Runs</a><a>Optimise</a><a>Agent</a><a>Gold review</a></nav><span class="mode live">live · dev</span></div></header></div>
+  <p class="mock-cap">The same eight slots in the same order: what the benchmark is → how it is judged → who else has tried → what we ran → how we improve → what the agent is → what we know by hand. DataAgentBench is the reference implementation of each slot; tau2-loop shows the same slots relabelled for another benchmark.</p>
+
+  <!-- 3 -->
+  <h2 id="blue">3 · Blue — a deep ink-blue that clears contrast as well as the red does</h2>
+  <p>The blue matches the green and red for weight: dark enough to carry white text in light mode, and light enough to read on the near-black panels in dark. The ratios below were computed with the site's own <code>contrast_audit.py</code> functions (WCAG 2.x).</p>
+  <div class="tw"><table>
+    <thead><tr><th>Accent</th><th>Light · accent</th><th>on bg</th><th>on band</th><th>white on accent</th><th>Dark · accent</th><th>on bg</th><th>on panel</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">DataAgentBench green</td><td class="num">#0A6552</td><td class="num">6.48</td><td class="num">6.03</td><td class="num">7.01</td><td class="num">#43C29A</td><td class="num">8.19</td><td class="num">7.58</td></tr>
+      <tr><td class="sub">tau2-loop red</td><td class="num">#8A2B1D</td><td class="num">7.95</td><td class="num">7.39</td><td class="num">8.59</td><td class="num">#E08A7A</td><td class="num">7.03</td><td class="num">6.51</td></tr>
+      <tr class="pro"><td class="sub">ConvFinQA blue · proposed</td><td class="num">#1F4E8C</td><td class="num">7.69</td><td class="num">7.15</td><td class="num">8.31</td><td class="num">#7EA8E4</td><td class="num">7.48</td><td class="num">6.93</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid2">
+<pre class="code">/* frontend/src/theme.css — the ONLY project-owned token file */
+:root{
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3;
+}
+/* dark (both the prefers-color-scheme and [data-theme=dark] blocks) */
+  --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40;
+
+/* --ok (passed) and --red (failed) come from the kit's base,
+   not from here: every project gets the same status pair. */</pre>
+    <div>
+      <h3>What the rest of the palette does</h3>
+      <ul class="small" style="padding-left:1.1em;color:var(--ink-2)">
+        <li><b>Status becomes kit-standard.</b> tau2-loop added <code>--ok</code> because its accent is red, and DataAgentBench added <code>--red</code> because it needed "failed". The kit defines both for everyone, so a pass is always green and a fail always red, whatever the brand.</li>
+        <li><b><code>--info</code> goes.</b> It is already blue (<code>#1d54ab</code> light), so it would read as "act on this". Informational lamps become neutral <code>--ink-2</code> with a glyph and a word.</li>
+        <li><b><code>--violet</code> goes.</b> The brief says "no purple". The SDK stage colour becomes a word label.</li>
+        <li><b><code>--amber</code> keeps its name but changes meaning</b>, from "the CTA" to "partial / caveat". That is the one rename a find-and-replace gets wrong, so C0 bridges it by hand.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <h2 id="tabs">4 · Tab set — ten current surfaces fold into the eight slots, and no content is lost</h2>
+  <p>Solid edges move a whole page. Dashed edges move one section. Slots drawn in accent have no page today and are assembled from existing sections plus existing data: the paper's baselines in <code>paper.ts</code>, the judge record in <code>story.json</code>, the <code>gold_suspect</code> flags.</p>
+  <figure>
+    <p class="label fig-title">fig 1 · ConvFinQA pages → house slots</p>
+    <svg class="dia" viewBox="0 0 760 450" role="img" aria-label="Mapping of ten current ConvFinQA pages onto eight house tabs">
+      <defs><marker id="a1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker><marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah acc" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+      <text class="tx s" x="10" y="12">TODAY · 9 NAV ITEMS + 1 OFF-NAV</text>
+      <text class="tx s" x="500" y="12">TARGET · 8 HOUSE SLOTS</text>
+      <!-- left nodes -->
+      <g id="l0"><title>Landing, /</title><rect class="nd" x="10" y="22" width="220" height="32" rx="6"/><text class="tx" x="20" y="43">Overview <tspan class="tx s">/</tspan></text></g>
+      <g id="l1"><title>Chat, /chat/*</title><rect class="nd" x="10" y="64" width="220" height="32" rx="6"/><text class="tx" x="20" y="85">Chat <tspan class="tx s">/chat/*</tspan></text></g>
+      <g id="l2"><title>System, /admin/system</title><rect class="nd" x="10" y="106" width="220" height="32" rx="6"/><text class="tx" x="20" y="127">Architecture <tspan class="tx s">/admin/system</tspan></text></g>
+      <g id="l3"><title>/admin/readiness</title><rect class="nd" x="10" y="148" width="220" height="32" rx="6"/><text class="tx" x="20" y="169">Readiness <tspan class="tx s">R1–R9</tspan></text></g>
+      <g id="l4"><title>/admin/runtimes</title><rect class="nd" x="10" y="190" width="220" height="32" rx="6"/><text class="tx" x="20" y="211">Runtimes <tspan class="tx s">+ judge</tspan></text></g>
+      <g id="l5"><title>/admin/evaluations</title><rect class="nd" x="10" y="232" width="220" height="32" rx="6"/><text class="tx" x="20" y="253">Evaluations</text></g>
+      <g id="l6"><title>/admin/dataset</title><rect class="nd" x="10" y="274" width="220" height="32" rx="6"/><text class="tx" x="20" y="295">Dataset <tspan class="tx s">gold_suspect</tspan></text></g>
+      <g id="l7"><title>/admin/experiments</title><rect class="nd" x="10" y="316" width="220" height="32" rx="6"/><text class="tx" x="20" y="337">Experiments</text></g>
+      <g id="l8"><title>/admin/traces and /:traceId</title><rect class="nd" x="10" y="358" width="220" height="32" rx="6"/><text class="tx" x="20" y="379">Traces <tspan class="tx s">+ detail</tspan></text></g>
+      <g id="l9"><title>/admin/research, off-nav</title><rect class="nd ext" x="10" y="400" width="220" height="32" rx="6"/><text class="tx" x="20" y="421">Research <tspan class="tx s">off-nav</tspan></text></g>
+      <!-- right slots -->
+      <g id="r0"><title>Slot 1</title><rect class="nd" x="500" y="22" width="250" height="36" rx="6"/><text class="tx" x="512" y="45">1 · Overview <tspan class="tx s">/</tspan></text></g>
+      <g id="r1"><title>Slot 2</title><rect class="nd" x="500" y="74" width="250" height="36" rx="6"/><text class="tx" x="512" y="97">2 · Filings &amp; questions</text></g>
+      <g id="r2"><title>Slot 3, new page</title><rect class="nd hi" x="500" y="126" width="250" height="36" rx="6"/><text class="tx k" x="512" y="149">3 · Scoring <tspan class="tx s">new</tspan></text></g>
+      <g id="r3"><title>Slot 4, new page</title><rect class="nd hi" x="500" y="178" width="250" height="36" rx="6"/><text class="tx k" x="512" y="201">4 · Leaderboard <tspan class="tx s">new</tspan></text></g>
+      <g id="r4"><title>Slot 5</title><rect class="nd" x="500" y="230" width="250" height="36" rx="6"/><text class="tx" x="512" y="253">5 · Runs <tspan class="tx s">· run · trace</tspan></text></g>
+      <g id="r5"><title>Slot 6</title><rect class="nd" x="500" y="282" width="250" height="36" rx="6"/><text class="tx" x="512" y="305">6 · Optimise</text></g>
+      <g id="r6"><title>Slot 7</title><rect class="nd" x="500" y="334" width="250" height="36" rx="6"/><text class="tx" x="512" y="357">7 · Agent <tspan class="tx s">+ chat</tspan></text></g>
+      <g id="r7"><title>Slot 8, new page</title><rect class="nd hi" x="500" y="386" width="250" height="36" rx="6"/><text class="tx k" x="512" y="409">8 · Gold review <tspan class="tx s">new</tspan></text></g>
+      <!-- edges: solid = page, dash = section -->
+      <path class="ed" marker-end="url(#a1)" d="M230,38 C360,38 370,40 498,40"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,80 C380,80 360,352 498,352"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,122 C380,122 360,350 498,350"/>
+      <path class="ed dash" marker-end="url(#a1)" d="M230,122 C360,122 370,144 498,144"/>
+      <path class="ed dash" marker-end="url(#a1)" d="M230,126 C370,126 360,194 498,194"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,164 C380,164 360,354 498,354"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,206 C370,206 370,300 498,300"/>
+      <path class="ed dash" marker-end="url(#a1)" d="M230,204 C360,204 370,198 498,198"/>
+      <path class="ed dash" marker-end="url(#a1)" d="M230,208 C360,208 370,150 498,150"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,248 C360,248 370,248 498,248"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,290 C360,290 370,92 498,92"/>
+      <path class="ed dash" marker-end="url(#a1)" d="M230,292 C370,292 360,404 498,404"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,332 C360,332 370,302 498,302"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,374 C360,374 370,252 498,252"/>
+      <path class="ed" marker-end="url(#a1)" d="M230,416 C360,416 370,304 498,304"/>
+    </svg>
+    <figcaption>Every current page survives, either as a whole slot or as a section of one. The three new slots are Scoring, Leaderboard and Gold review, and each already has its data in the repo. Sources: <code>frontend/src/app/nav.ts</code>, <code>DataAgentBench/frontend/src/Shell.tsx</code>, <code>tau2-loop/frontend/src/Shell.tsx</code>.</figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <thead><tr><th>Slot · route</th><th>What the tab says (assertion headline)</th><th>Built from</th><th>Old URLs → redirect</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">1 · Overview<span class="path">/</span></td><td>The result, with its baseline and caveat: sdk_v1 against v8 and against the paper's human expert, then the readiness strip and one recorded conversation</td><td>Landing (<code>LandingRoute</code>, <code>useBoardData</code>), rebuilt in the slide pattern; HUD tiles become <code>.kpi</code></td><td><code>/welcome</code></td></tr>
+      <tr><td class="sub">2 · Filings &amp; questions<span class="path">/filings · /filings/:report/:q</span></td><td>What the benchmark is: every filing, every question, gold answer and gold program, by split</td><td><code>DatasetReview</code> + the report browser in <code>ReportPicker</code>; <code>FilingDrawer</code> becomes the filing page</td><td><code>/admin/dataset</code></td></tr>
+      <tr><td class="sub">3 · Scoring <span class="status new">new</span><span class="path">/scoring</span></td><td>How a turn is judged: execution accuracy and its tolerance, gold-derived attribution (<code>first_fault</code>), the one-sided cluster McNemar gate, and the confidence judge that was tried and not adopted</td><td>Contract sections of <code>SectionContract.tsx</code>; judge panels from <code>Runtimes.tsx</code> (<code>JudgeVerdictBanner</code>, <code>JudgeTable</code>)</td><td>—</td></tr>
+      <tr><td class="sub">4 · Leaderboard <span class="status new">new</span><span class="path">/leaderboard</span></td><td>Who else has tried: the paper's FinQANet, GPT-3 and human-expert rows beside our two runtimes, on one axis, with the paradigm caveat</td><td><code>features/system/paper.ts</code> (lines 150–260) + <code>story.json → runtime_comparison</code></td><td>—</td></tr>
+      <tr><td class="sub">5 · Runs<span class="path">/runs · /runs/:version · /runs/traces/:id</span></td><td>What we ran: every version's accuracy by slice, compare two with their flips, and every served turn's trace</td><td><code>Evaluations</code>, <code>FlipsDrawer</code>, <code>Traces</code>, <code>TraceDetail</code></td><td><code>/admin/evaluations</code>, <code>/admin/traces</code>, <code>/admin/traces/:id</code></td></tr>
+      <tr><td class="sub">6 · Optimise<span class="path">/optimise · /optimise/:campaign/:exp</span></td><td>How we improve: campaigns as rounds, and a round opens in place as diagnose → rewrite → gate. Also the runtime progression and model swaps</td><td><code>Experiments</code>, <code>Runtimes</code> (progression, SDK list, model swap), <code>Research</code></td><td><code>/admin/experiments</code>, <code>/admin/campaigns</code>, <code>/admin/runtimes</code>, <code>/admin/research</code>, <code>/admin</code></td></tr>
+      <tr><td class="sub">7 · Agent<span class="path">/agent · /agent/chat/*</span></td><td>What the agent is: the architecture figure with every node openable, the readiness scorecard R1–R9, and "Ask a filing" as the page's one solid button, which opens Chat</td><td><code>SystemRoute</code> sections, <code>Readiness</code>, the whole Chat feature (in a wide app layout)</td><td><code>/admin/system</code>, <code>/debrief</code>, <code>/admin/readiness</code>, <code>/chat/*</code></td></tr>
+      <tr><td class="sub">8 · Gold review <span class="status new">new</span><span class="path">/gold</span></td><td>What we know by hand: gold labels flagged <code>gold_suspect</code>, <code>ambiguous</code> cases and how they were settled, and the κ sheet</td><td><code>gold_suspect</code> filter of the dataset + <code>diagnoses.jsonl</code> verdicts; read-only (no write route in this plan)</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">Moving pages off <code>/admin/*</code> also removes the API/page path collision that the <code>serving/app.py</code> document middleware and Vite's <code>bypassDocumentRequests</code> exist to paper over. Both stay for one release, so old bookmarks still reach the SPA and its redirect loaders.</p>
+
+  <!-- 5 -->
+  <h2 id="port">5 · The port — keep the machinery, replace every pixel</h2>
+  <p>"Exactly the same tabs and feel" rules out a restyle inside Tailwind: the siblings share CSS classes, not utility strings. The behaviour libraries are invisible, though, and ConvFinQA's chat, SSE stream and tables depend on them, so they stay. They get restyled with kit classes.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Dependency</th><th>Verdict</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">react-query · zustand · fetch-event-source · TanStack Table (headless)</td><td><span class="status ok">keep</span></td><td>Logic, not look. Chat's SSE and the store's 513 lines stay as they are. TanStack sorting renders into kit <code>th.sortable</code> tables.</td></tr>
+      <tr><td class="sub">radix Dialog / Sheet · cmdk</td><td><span class="status warn">keep, restyle</span></td><td>Focus traps and a11y are hard to rebuild. The report picker and drawers get kit panel CSS. The palette depends on Q5/batch item B-2.</td></tr>
+      <tr><td class="sub">tailwindcss · @tailwindcss/vite · tw-animate-css · cva · tailwind-merge · <code>components.json</code></td><td><span class="status no">remove (C5)</span></td><td>They conflict with the kit's CSS. Removed only after the last page is ported, and a grep for utility classes has to come back empty.</td></tr>
+      <tr><td class="sub">lucide-react · recharts</td><td><span class="status no">remove</span></td><td>Icons become glyphs and words; <code>SliceChart</code> becomes a <code>.dia</code> SVG bar chart, as the siblings draw.</td></tr>
+      <tr><td class="sub">@fontsource Plex Sans + Mono</td><td><span class="status ok">keep, add Serif</span></td><td>Self-hosting suits the demo container. The site self-hosts too; the siblings use Google Fonts. The kit allows either.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout acc"><b>Test IDs are frozen.</b> Every <code>data-testid</code> the e2e specs and <code>demo_smoke.sh</code> read (<code>landing-board</code>, <code>readiness-strip</code>, <code>judge-badge</code>, <code>composer-run-all</code> and the rest) is kept through the port. Only <code>nav.test.tsx</code> is rewritten; it becomes the kit's <code>routes.test.tsx</code>.</div>
+
+  <!-- 6 -->
+  <h2 id="kit">6 · The kit — <code>nmp-central-ai/ui/</code>, vendored into each app, checked for drift</h2>
+  <p>Today the style spreads by copy: DataAgentBench → tau2-loop, and the copy has already drifted (<code>lib/ui.tsx</code> has 102 changed lines out of about 95). A third copy would triple that; this is the point to stop copying. Its migration produces the kit as it goes, and everything later pulls from the kit.</p>
+  <figure>
+    <p class="label fig-title">fig 2 · where the house UI lives, and how it moves</p>
+    <svg class="dia" viewBox="0 0 760 330" role="img" aria-label="Kit distribution: site palette to nmp-central-ai ui kit to three vendored apps, with ui-sync, ui-check and ui-new">
+      <defs><marker id="b1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker><marker id="b2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ah acc" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+      <g id="site"><title>Palette origin</title><rect class="nd band" x="10" y="120" width="170" height="80" rx="8"/><text class="tx" x="22" y="146">nmp-dsci.github.io</text><text class="tx s" x="22" y="166">tokens.css · DESIGN.md</text><text class="tx s" x="22" y="186">palette origin</text></g>
+      <g id="kitbox"><title>The kit</title><rect class="nd hi" x="240" y="40" width="230" height="250" rx="8"/><text class="tx k" x="254" y="66">nmp-central-ai/ui · v1</text>
+        <text class="tx s" x="254" y="92">DESIGN.md (house brief)</text><text class="tx s" x="254" y="114">kit/tokens.base.css</text><text class="tx s" x="254" y="136">kit/kit.css</text><text class="tx s" x="254" y="158">kit/Shell.tsx · ui.tsx</text><text class="tx s" x="254" y="180">kit/url.ts · useGet.ts</text><text class="tx s" x="254" y="202">kit/design_lint.mjs</text><text class="tx s" x="254" y="224">template/ (ui-new)</text><text class="tx s" x="254" y="246">accents: registry ui:</text><text class="tx s" x="254" y="268">skill: platform-ui</text></g>
+      <g id="app1"><title>DataAgentBench</title><rect class="nd" x="560" y="20" width="190" height="52" rx="8"/><rect x="570" y="36" width="10" height="20" rx="3" style="fill:var(--g)"/><text class="tx" x="590" y="43">DataAgentBench</text><text class="tx s" x="590" y="62">src/kit/ · green</text></g>
+      <g id="app2"><title>tau2-loop</title><rect class="nd" x="560" y="86" width="190" height="52" rx="8"/><rect x="570" y="102" width="10" height="20" rx="3" style="fill:var(--rd)"/><text class="tx" x="590" y="109">tau2-loop</text><text class="tx s" x="590" y="128">src/kit/ · red</text></g>
+      <g id="app4"><title>ConvFinQA</title><rect class="nd hi" x="560" y="152" width="190" height="52" rx="8"/><rect x="570" y="168" width="10" height="20" rx="3" style="fill:var(--bl)"/><text class="tx k" x="590" y="175">ConvFinQA-agent</text><text class="tx s" x="590" y="194">src/kit/ · blue</text></g>
+      <g id="app5"><title>Any new project</title><rect class="nd ext" x="560" y="222" width="190" height="40" rx="8"/><text class="tx s" x="574" y="247">new project · make ui-new</text></g>
+      <path class="ed dash" marker-end="url(#b1)" d="M180,160 L238,160"/><text class="tx s" x="186" y="150">palette</text><text class="tx s" x="186" y="182">check</text>
+      <path class="ed acc" marker-end="url(#b2)" d="M470,110 C520,110 510,46 558,46"/>
+      <path class="ed acc" marker-end="url(#b2)" d="M470,130 C520,130 510,112 558,112"/>
+      <path class="ed acc" marker-end="url(#b2)" d="M470,160 C520,160 510,178 558,178"/>
+      <path class="ed dash" marker-end="url(#b1)" d="M470,250 C520,250 510,242 558,242"/>
+      <text class="tx k" x="484" y="96">ui-sync</text>
+    </svg>
+    <figcaption><b>The boundary is one directory.</b> <code>ui-sync</code> owns <code>frontend/src/kit/</code> and overwrites nothing else. Each project owns <code>theme.css</code> (its accent and any extensions), <code>app.css</code> and its pages. <code>make ui-check</code> reports each project's kit version and any drift, the way <code>make check</code> already reports each project's MLflow.</figcaption>
+  </figure>
+
+  <div class="grid2">
+<pre class="code">nmp-central-ai/
+  ai_specs/s05_ui_kit.md          # the plan + D25 (amends "frontends are never centralised")
+  ui/
+    DESIGN.md                     # house brief: Field Guide + accent slot + status pair + 8 slots
+    VERSION                       # 1.0.0 — every kit file carries it in its header
+    kit/
+      tokens.base.css             # site palette, minus accent, plus --ok / --red
+      kit.css                     # shell, tabs, kpis, cards, chips, status, tables,
+                                  #   filters, .tog .seg .steps3, figure/.dia, waterfall,
+                                  #   crumbs, band, main.app (wide layout, new)
+      Shell.tsx                   # &lt;Shell brand nav mode footer /&gt; — props, not copies
+      ui.tsx                      # Rate, Kpi, Loading, Clip, Chips, Status
+      url.ts · useGet.ts          # URL grammar helpers, fetch hook + formatters
+      routes.harness.tsx          # land(path) for routes.test.tsx
+      design_lint.mjs             # hex outside tokens, &lt;12.8px, banned fonts, no Tailwind
+    template/                     # minimal Vite app: package.json, index.html, one page
+    accents.md                    # green · red · blue, with contrast receipts
+  scripts/ui_kit.py               # new | check | sync, reads registry ui: blocks
+  plugins/nmp-platform/skills/platform-ui/SKILL.md</pre>
+<pre class="code"># registry/projects.yaml — one new block per project
+- id: P1
+  name: convfinqa-agent
+  ui:
+    frontend: frontend/
+    accent: blue          # green | red | blue | &lt;hex triple&gt;
+    kit: 1.0.0
+    slots: [Overview, Filings &amp; questions, Scoring,
+            Leaderboard, Runs, Optimise, Agent, Gold review]
+
+# make targets
+make ui-new   PROJECT=&lt;id&gt;       # scaffold frontend/ from template/
+make ui-check [ARGS=--only P1]   # kit version + drift, PASS/DRIFT/BEHIND
+make ui-sync  PROJECT=&lt;id&gt;       # branch ui-kit-&lt;ver&gt; in the sibling,
+                                 #   copy kit/, run lint+test+build, report
+                                 #   (never pushes; same rule as onboarding)
+
+# skill: platform-ui — "stand up an agent UI", "match the house
+# style", "update this project to the latest UI", "new project colour"</pre>
+  </div>
+  <p class="small muted"><b>Vendored, not an npm package</b>, because every app builds in Docker from its own repo, and a <code>file:../nmp-central-ai</code> dependency breaks that build and CI. The drift check gives the "one place to update" property without coupling the builds (decision Q4). The site's <code>tokens.css</code> stays the palette origin, and <code>ui-check</code> asserts that <code>tokens.base.css</code> still equals it minus the accent.</p>
+
+  <!-- 7 -->
+  <h2 id="phases">7 · Phases — two central, seven here, one back-port; each leaves the app working</h2>
+  <p>Each phase is one PR on its own branch, cut from <code>ui-migration</code>. The first visible change (C0) makes the whole app blue and Field Guide in one step, and every later phase ships without a half-styled page.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Phase · repo</th><th>Deliverable</th><th>Verify</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">K0 · nmp-central-ai</td><td>
+        <ul>
+          <li>Spec <code>s05_ui_kit.md</code> and decision D25.</li>
+          <li>Kit v0.1 carved from what DataAgentBench and tau2-loop share (generic <code>styles.css</code> sections, Shell as props, <code>ui.tsx</code> primitives, lint), with the reference's loose ends fixed.</li>
+          <li><code>accents.md</code> with all three triples.</li>
+        </ul></td><td><code>template/</code> builds; the lint is clean; <code>contrast_audit.py</code> passes for all three accents in both themes</td><td class="num">S–M</td></tr>
+      <tr><td class="sub">C0 · foundations</td><td>
+        <ul>
+          <li>Vendor <code>src/kit/</code> and add <code>theme.css</code> (blue).</li>
+          <li><b>Token bridge:</b> the old Console names map onto Field Guide values (<code>--ground→--bg</code>, <code>--text→--ink</code>, <code>--amber→--accent</code>, <code>--good→--ok</code>, <code>--bad→--red</code>, <code>--info→--ink-2</code>, <code>--violet→--muted</code>), so every Tailwind class recolours at once.</li>
+          <li>Plex Serif; theme follows the OS.</li>
+          <li><code>routes.tsx</code> as data, <code>routes.test.tsx</code> and <code>url.ts</code>.</li>
+        </ul></td><td>unit + <code>landing.spec.ts</code> green; screenshots light/dark; no page lost</td><td class="num">M</td></tr>
+      <tr><td class="sub">C1 · shell &amp; tabs</td><td>
+        <ul>
+          <li>Kit <code>Shell</code>: brand, 8 pill tabs, mode pill, provenance footer.</li>
+          <li>Redirect loaders for the 14 old addresses. Current pages are mounted in their new slots as they are.</li>
+          <li>Delete <code>NavRail</code>, <code>TabBar</code>, <code>TopBar</code>, <code>ModeLamp</code> and <code>nav.ts</code> groups.</li>
+          <li>Update <code>readiness.py KNOWN_ROUTES</code> and <code>readiness.json</code>.</li>
+        </ul></td><td><code>routes.test</code> lands every old URL; <code>story_check</code>, <code>test_readiness.py</code> and <code>demo_smoke.sh</code> pass</td><td class="num">M</td></tr>
+      <tr><td class="sub">C2 · primitives</td><td>
+        <ul>
+          <li><code>Panel→.card</code>, <code>Lamp→.status</code>, <code>Verdict→.v-*</code>, <code>HudTile→.kpi</code>, <code>InstrumentTable→.tw</code> with <code>th.sortable</code>, <code>EmptyState/LoadingRows→.empty</code>.</li>
+          <li><code>PageHeader</code> becomes eyebrow + h1 claim + lead.</li>
+          <li>Merge the two <code>Lamp</code>s and the two <code>ui.tsx</code>s into the kit.</li>
+        </ul></td><td>test-id grep unchanged; unit tests green</td><td class="num">L</td></tr>
+      <tr><td class="sub">C3 · evidence slots</td><td>
+        <ul>
+          <li>Runs (Evaluations + Traces + TraceDetail).</li>
+          <li>Optimise (rounds open in place; Runtimes progression; Research).</li>
+          <li>Leaderboard and Scoring, both new.</li>
+          <li><code>SliceChart</code> redrawn as <code>.dia</code>.</li>
+        </ul></td><td>each page's headline is computed from its data; the <code>judgeStory</code> and <code>runtimeStory</code> tests green</td><td class="num">L</td></tr>
+      <tr><td class="sub">C4 · product slots</td><td>
+        <ul>
+          <li>Overview in the slide pattern.</li>
+          <li>Agent: architecture figure, readiness, Chat in a <code>main.app</code> wide layout with the Inspector.</li>
+          <li>Filings &amp; questions.</li>
+          <li>Gold review, read-only.</li>
+        </ul></td><td>all e2e specs (smoke, reset, unread, concurrent) with a key; <code>landing.spec</code> in CI</td><td class="num">L</td></tr>
+      <tr><td class="sub">C5 · remove the old system</td><td>
+        <ul>
+          <li>Drop Tailwind, shadcn styling, lucide, recharts, cva, tailwind-merge and tw-animate.</li>
+          <li>Delete the token bridge, <code>design-baseline.json</code> and the ratchet.</li>
+          <li>Kit lint becomes a hard gate.</li>
+        </ul></td><td>no utility classes left (grep); bundle size before/after recorded; CI green</td><td class="num">M</td></tr>
+      <tr><td class="sub">C6 · docs &amp; proof</td><td>
+        <ul>
+          <li>Root <code>DESIGN.md</code> = the house brief plus the blue divergence; <code>frontend/DESIGN.md</code> deleted.</li>
+          <li>Update <code>CLAUDE.md</code>, <code>AGENTS.md</code> and <code>README.md</code>.</li>
+          <li><code>.lavish/s17</code> build walkthrough with screenshots.</li>
+        </ul></td><td>screenshots at 390 / 900 / 1280 × light / dark; <code>docker compose up demo</code> + smoke</td><td class="num">M</td></tr>
+      <tr><td class="sub">K1 · nmp-central-ai</td><td>
+        <ul>
+          <li>Kit v1.0, cut from what C0–C5 learned (<code>main.app</code>, merged Lamp/Status, sortable tables).</li>
+          <li><code>platform-ui</code> skill, <code>ui_kit.py new|check|sync</code>, registry <code>ui:</code> blocks.</li>
+          <li>Plugin 0.3.0 plus an eval case.</li>
+        </ul></td><td><code>make plugin-validate</code>; <code>make ui-check</code> lists all three; <code>ui-new</code> scaffolds and builds</td><td class="num">M</td></tr>
+      <tr><td class="sub">K2 · DataAgentBench, tau2-loop</td><td>
+        <ul>
+          <li><code>ui-sync</code> into DataAgentBench first (the reference the kit was carved from), then tau2-loop: mostly file moves into <code>src/kit/</code> plus the loose-end fixes.</li>
+        </ul></td><td><code>make ui-check</code> PASS ×3</td><td class="num">M–L</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- 8 -->
+  <h2 id="touch">8 · Touchpoints — nine places outside <code>frontend/src</code> that break if forgotten</h2>
+  <div class="tw"><table>
+    <thead><tr><th>File</th><th>What depends on the UI</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">src/convfinqa/evalloop/readiness.py<span class="path">KNOWN_ROUTES, lines 31–44</span></td><td><code>problems()</code> fails any <code>readiness.json</code> link outside this list. The new slots replace the <code>/admin/*</code> entries.</td><td class="num">C1</td></tr>
+      <tr><td class="sub">evaluation/readiness.json<span class="path">+ the portfolio front-matter copy</span></td><td>In-app route per rubric row. The CLAUDE.md invariant: "the portfolio's front matter is the second copy — change both".</td><td class="num">C1</td></tr>
+      <tr><td class="sub">scripts/demo_smoke.sh</td><td>Checks that <code>/admin/experiments</code> as a document returns the SPA, and that the landing payloads are not in their empty states.</td><td class="num">C1</td></tr>
+      <tr><td class="sub">tests/test_demo_image.py<span class="path">lines 98–140</span></td><td>A fake <code>dist</code> with <code>&lt;title&gt;ConvFinQA Agent&lt;/title&gt;</code>; the <code>_wants_document</code> collision test.</td><td class="num">C1</td></tr>
+      <tr><td class="sub">serving/app.py · vite.config.ts</td><td>SPA fallback, the <code>/admin</code> document middleware, <code>BACKEND_PREFIXES</code>. The new page prefixes (<code>/runs</code>, <code>/agent</code>, …) must not match any API prefix. <code>/eval</code> and <code>/traces</code> are API-only today; <code>/runs/traces/:id</code> is safe.</td><td class="num">C1</td></tr>
+      <tr><td class="sub">Dockerfile</td><td>Unchanged. <code>src/kit/</code> is vendored, so the build context stays self-contained.</td><td class="num">—</td></tr>
+      <tr><td class="sub">frontend/tests/e2e/*.spec.ts</td><td>Test ids are kept. <code>landing.spec.ts</code> text assertions (<code>/human-expert/</code>, <code>/contamination/</code>) follow the rewritten copy.</td><td class="num">C4</td></tr>
+      <tr><td class="sub">CLAUDE.md · AGENTS.md · README.md</td><td>The "frontend has a design brief" invariant; the Vite proxy list (already missing <code>/metrics</code>); the <code>/admin</code> collision note; the route table; "terminal-amber accent".</td><td class="num">C6</td></tr>
+      <tr><td class="sub">.github/workflows/ci.yml</td><td><code>lint:design</code> keeps its name but points at the kit lint; <code>test:unit</code> picks up <code>routes.test.tsx</code>.</td><td class="num">C5</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- 9 -->
+  <h2 id="risks">9 · Risks — the port is large; the one real unknown is Chat's layout</h2>
+  <div class="tw"><table>
+    <thead><tr><th>ID</th><th>Risk</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td class="sub">R-1</td><td><b>Scope.</b> 18k lines, 2.7× the size of DataAgentBench. A literal page-by-page rewrite is weeks.</td><td>The token bridge gets the look right at C0; C1 gets the tabs. After that each page is ported one PR at a time, and the app is shippable after every phase. Q1 sets how deep this goes.</td></tr>
+      <tr><td class="sub">R-2</td><td><b>Chat does not fit a 1,140px column.</b> It has three panes plus an Inspector (240–560px, drag-resizable). The siblings have no full-height app page.</td><td>The kit gains <code>main.app</code>: full width, full height below the header, same tokens. It is the first kit extension that ConvFinQA contributes, and tau2-loop's Agent playground can use it too.</td></tr>
+      <tr><td class="sub">R-3</td><td><b>Route renames reach the public demo, README links and the portfolio's front matter.</b></td><td>Redirect loaders for every old address, pinned by <code>routes.test</code>. <code>readiness.problems()</code> catches a stale link in CI.</td></tr>
+      <tr><td class="sub">R-4</td><td><b>Colour meaning shifts.</b> amber goes from CTA to caveat; <code>--info</code> would read as the accent; <code>--violet</code> goes.</td><td>Mapped by hand in C0, not by find-and-replace. Status always carries a word and a glyph, so no meaning rides on hue alone.</td></tr>
+      <tr><td class="sub">R-5</td><td><b>Dark-first → OS-first.</b> A visitor on a light OS sees a light app for the first time.</td><td>Intended: light is the Field Guide's reference palette. Q5 decides whether a toggle survives.</td></tr>
+      <tr><td class="sub">R-6</td><td><b>The central plan says "frontends are never centralised"</b> (<code>nmp-central-ai/ai_specs/s00_project_plan.md:25</code>).</td><td>D25 amends it narrowly: the <em>kit</em> is central, and each frontend stays in its own repo and its own build. The "duplication count ≥ 2" rule is met: DataAgentBench and tau2-loop, with ConvFinQA the third.</td></tr>
+      <tr><td class="sub">R-7</td><td><b>Kit churn during C0–C5.</b> ConvFinQA would consume a kit that is still moving.</td><td>v0.1 is vendored and pinned. v1.0 is cut at K1 from what the port learned, and only then synced to the siblings.</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- 10 -->
+  <h2 id="decide">10 · Decisions — five answers and a keep/drop list, and the plan is executable</h2>
+  <p>Each form queues one prompt. Anything left unanswered takes the recommended option.</p>
+
+  <form class="q" data-lavish-question="Q1-depth" onsubmit="return queue(event,'Q1-depth','Q1 migration depth')">
+    <h3>Q1 · How far does the migration go?</h3>
+    <label class="opt"><input type="radio" name="Q1-depth" value="A · Full port (C0–C6)" checked /><span><b>A · Full port, C0–C6</b><span class="rec-tag">recommended</span><span class="small">Every page on kit CSS; Tailwind and shadcn gone. The only answer that makes the three apps "exactly the same", and the only one that lets the kit be the single source.</span></span></label>
+    <label class="opt"><input type="radio" name="Q1-depth" value="B · Chrome only (C0–C2)" /><span><b>B · Chrome only, C0–C2</b><span class="small">Tokens, header, tabs and primitives match; page bodies keep Tailwind on bridged tokens. Fast, and 90% looks right, but the kit can never be synced into this app.</span></span></label>
+    <label class="opt"><input type="radio" name="Q1-depth" value="C · Fresh app from the template" /><span><b>C · Fresh app from the template</b><span class="small">Scaffold from <code>template/</code> and rebuild pages against the API. Cleanest result, but the highest risk to Chat, SSE and the e2e suite.</span></span></label>
+    <div class="qfoot"><textarea name="note" rows="1" placeholder="optional note"></textarea><button class="btn" type="submit">Queue this answer</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="Q2-ia" onsubmit="return queue(event,'Q2-ia','Q2 information architecture')">
+    <h3>Q2 · The tab set</h3>
+    <label class="opt"><input type="radio" name="Q2-ia" value="A · The eight house slots (§4)" checked /><span><b>A · The eight house slots, as in §4</b><span class="rec-tag">recommended</span><span class="small">The same order and meaning as DataAgentBench and tau2-loop. Three pages are new (Scoring, Leaderboard, Gold review) and are assembled from existing data.</span></span></label>
+    <label class="opt"><input type="radio" name="Q2-ia" value="B · Keep today's nine pages in the pill bar" /><span><b>B · Keep today's nine pages, in the pill bar</b><span class="small">Same look, different grammar. Cheaper (no new pages), but a reader moving between apps meets different tabs.</span></span></label>
+    <div class="qfoot"><textarea name="note" rows="1" placeholder="optional: rename a slot (e.g. 'Filings' → 'Reports')"></textarea><button class="btn" type="submit">Queue this answer</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="Q3-chat" onsubmit="return queue(event,'Q3-chat','Q3 where Chat lives')">
+    <h3>Q3 · Where Chat lives</h3>
+    <label class="opt"><input type="radio" name="Q3-chat" value="A · Inside Agent: /agent/chat, opened by the page's one solid button" checked /><span><b>A · Inside Agent, at <code>/agent/chat</code></b><span class="rec-tag">recommended</span><span class="small">Matches the siblings, whose Agent tab runs the agent (tau2-loop's playground). Overview's primary button also opens it.</span></span></label>
+    <label class="opt"><input type="radio" name="Q3-chat" value="B · A ninth tab 'Ask' after Overview" /><span><b>B · A ninth tab, "Ask"</b><span class="small">Keeps the product front and centre, but breaks eight-slot parity.</span></span></label>
+    <label class="opt"><input type="radio" name="Q3-chat" value="C · Replace Overview with Chat" /><span><b>C · Chat is the Overview</b><span class="small">Product-first landing. It loses the "result first" slide that the brief puts on screen one.</span></span></label>
+    <div class="qfoot"><textarea name="note" rows="1" placeholder="optional note"></textarea><button class="btn" type="submit">Queue this answer</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="Q4-kit" onsubmit="return queue(event,'Q4-kit','Q4 how the kit is distributed')">
+    <h3>Q4 · How the kit reaches each project</h3>
+    <label class="opt"><input type="radio" name="Q4-kit" value="A · Vendored src/kit/ + make ui-check / ui-sync + platform-ui skill" checked /><span><b>A · Vendored <code>src/kit/</code> + <code>ui-check</code> / <code>ui-sync</code> + skill</b><span class="rec-tag">recommended</span><span class="small">Docker builds stay self-contained; one command reports drift across the portfolio; the skill stands up new UIs.</span></span></label>
+    <label class="opt"><input type="radio" name="Q4-kit" value="B · npm package (git dependency) @nmp/ui" /><span><b>B · An npm package, <code>@nmp/ui</code></b><span class="small">Real versioning with <code>npm update</code>. Needs a registry or git auth inside every Docker build and CI job, and the repo is public.</span></span></label>
+    <label class="opt"><input type="radio" name="Q4-kit" value="C · Knowledge only: DESIGN.md + skill, no code" /><span><b>C · Knowledge only: DESIGN.md + skill</b><span class="small">The agent re-derives the kit each time. The lightest option, but it is today's drift problem with better instructions.</span></span></label>
+    <div class="qfoot"><textarea name="note" rows="1" placeholder="optional note"></textarea><button class="btn" type="submit">Queue this answer</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="Q5-theme" onsubmit="return queue(event,'Q5-theme','Q5 theme toggle')">
+    <h3>Q5 · Light / dark</h3>
+    <label class="opt"><input type="radio" name="Q5-theme" value="A · Follow the OS, no toggle (as siblings)" checked /><span><b>A · Follow the OS, no toggle</b><span class="rec-tag">recommended</span><span class="small">Exactly the siblings. <code>ThemeToggle</code>, <code>lib/theme.ts</code> and the pre-paint script are deleted.</span></span></label>
+    <label class="opt"><input type="radio" name="Q5-theme" value="B · Add a toggle to the kit, for all three apps" /><span><b>B · A toggle in the kit, for all three apps</b><span class="small">The <code>data-theme</code> hook already exists in every <code>tokens.css</code>. A small mono "light / dark / auto" control in the header, synced to DataAgentBench and tau2-loop by K2.</span></span></label>
+    <div class="qfoot"><textarea name="note" rows="1" placeholder="optional note"></textarea><button class="btn" type="submit">Queue this answer</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="B-keepdrop" onsubmit="return queueBatch(event)">
+    <h3>Keep / drop · ConvFinQA-only features the siblings do not have</h3>
+    <p class="small muted">Defaults are the recommendation. "Into the kit" means the feature becomes available to all three apps at K1.</p>
+    <div class="tw"><table class="batch">
+      <thead><tr><th>ID</th><th>Feature today</th><th>Disposition</th></tr></thead>
+      <tbody>
+        <tr><td class="num">B-1</td><td><code>NextFooter</code>: previous and next cards in story order</td><td><select data-id="B-1" data-label="NextFooter"><option>drop</option><option>into the kit</option><option>keep ConvFinQA-only</option></select></td></tr>
+        <tr><td class="num">B-2</td><td>⌘K command palette (Chat only)</td><td><select data-id="B-2" data-label="Command palette"><option>keep ConvFinQA-only</option><option>into the kit</option><option>drop</option></select></td></tr>
+        <tr><td class="num">B-3</td><td>Rail hover hints (one-line description per page)</td><td><select data-id="B-3" data-label="Nav hints"><option>into the kit (as title= on tabs)</option><option>drop</option></select></td></tr>
+        <tr><td class="num">B-4</td><td>Sparklines inside HUD tiles and Traces source cards</td><td><select data-id="B-4" data-label="Sparklines"><option>into the kit (.dia spark)</option><option>drop</option><option>keep ConvFinQA-only</option></select></td></tr>
+        <tr><td class="num">B-5</td><td>Inspector drag-resize (width in localStorage)</td><td><select data-id="B-5" data-label="Inspector resize"><option>keep ConvFinQA-only</option><option>drop</option></select></td></tr>
+        <tr><td class="num">B-6</td><td>System page sticky contents with scroll-spy (13 entries)</td><td><select data-id="B-6" data-label="Scroll-spy TOC"><option>drop (sections become slots)</option><option>into the kit</option></select></td></tr>
+        <tr><td class="num">B-7</td><td><code>WriteGate</code> (disabled fieldset in demo mode) for promote and research</td><td><select data-id="B-7" data-label="WriteGate"><option>into the kit</option><option>keep ConvFinQA-only</option></select></td></tr>
+        <tr><td class="num">B-8</td><td><code>EndpointChip</code> on every panel (the API path each panel reads)</td><td><select data-id="B-8" data-label="EndpointChip"><option>into the kit (as figcaption source path)</option><option>drop</option></select></td></tr>
+      </tbody>
+    </table></div>
+    <div class="qfoot"><button class="btn" type="submit">Queue all eight dispositions</button><span class="queued" aria-live="polite"></span></div>
+  </form>
+
+  <div class="qfoot">
+    <button type="button" class="btn" style="background:var(--panel);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)" onclick="copyAll(this)">Copy all answers</button>
+    <span id="copystat" class="small muted" role="status" aria-live="polite"></span>
+  </div>
+  <p class="small muted" style="margin-top:var(--s5)">Design source: the Field Guide itself (<code>nmp-dsci.github.io/DESIGN.md</code>, the tokens DataAgentBench and tau2-loop vendor), with the proposed blue. The artifact is drawn in the system it proposes.</p>
+</main>
+
+<footer>Every claim here was read from <code>ConvFinQA-agent/frontend</code>, <code>DataAgentBench/frontend</code>, <code>tau2-loop/frontend</code>, <code>nmp-central-ai</code> and <code>nmp-dsci.github.io/scripts/contrast_audit.py</code> on 2026-09-29, at branch <code>ui-migration</code> (from <code>6bb1a1c</code>).</footer>
+
+<script>
+function mark(form,text){const s=form.querySelector('.queued');if(s)s.textContent=text;}
+function queue(ev,key,title){
+  ev.preventDefault();const f=ev.currentTarget;const d=new FormData(f);
+  const ans=d.get(key);const note=(d.get('note')||'').toString().trim();
+  if(!ans)return false;
+  const msg=title+': '+ans+(note?' — note: '+note:'');
+  if(window.lavish&&window.lavish.queuePrompt){window.lavish.queuePrompt(msg,{tag:'choice',text:msg,element:f,queueKey:key,data:{question:key,answer:ans,note}});mark(f,'queued ✓');}
+  else mark(f,'selected (open in Lavish to send, or use Copy all answers)');
+  return false;
+}
+function queueBatch(ev){
+  ev.preventDefault();const f=ev.currentTarget;
+  const items=[...f.querySelectorAll('select[data-id]')].map(s=>({id:s.dataset.id,label:s.dataset.label,disposition:s.value}));
+  const msg='Keep/drop dispositions for ConvFinQA-only features. Account for every ID (B-1…B-8) in the plan: '+items.map(i=>i.id+' '+i.label+' → '+i.disposition).join('; ');
+  if(window.lavish&&window.lavish.queuePrompt){window.lavish.queuePrompt(msg,{tag:'tracked-batch',text:'Apply 8 keep/drop dispositions',element:f,queueKey:'B-keepdrop',data:{items}});mark(f,'queued ✓');}
+  else mark(f,'selected (open in Lavish to send, or use Copy all answers)');
+  return false;
+}
+async function copyAll(btn){
+  const out=[];
+  for(const q of document.querySelectorAll('[data-lavish-question]')){
+    const key=q.getAttribute('data-lavish-question');const lines=[];
+    q.querySelectorAll('input[type=radio]:checked').forEach(r=>lines.push('  '+r.value));
+    q.querySelectorAll('select[data-id]').forEach(s=>lines.push('  '+s.dataset.id+' '+s.dataset.label+': '+s.value));
+    const n=q.querySelector('textarea[name=note]');if(n&&n.value.trim())lines.push('  note: '+n.value.trim());
+    if(lines.length)out.push(key+':\n'+lines.join('\n'));
+  }
+  const text=out.join('\n\n');const st=document.getElementById('copystat');
+  try{await navigator.clipboard.writeText(text);st.textContent='Answers copied.';}
+  catch{const t=document.createElement('textarea');t.value=text;t.rows=10;t.style.width='100%';btn.parentElement.after(t);t.select();st.textContent='Clipboard unavailable. Copy the answers below.';}
+}
+</script>
+</body>
+</html>

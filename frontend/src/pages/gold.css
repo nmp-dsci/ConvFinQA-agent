@@ -1,0 +1,18 @@
+/* Slot 8 · Gold review (/gold): only what the kit and app.css lack.
+   Tokens only — `npm run lint:design` fails on a hex here. */
+
+.gold-table td .qid{display:block;font:500 var(--t-1)/1.4 var(--mono);overflow-wrap:anywhere}
+.gold-table td .path a{color:var(--accent)}
+.gold-table .ans{display:block;font:500 var(--t-1)/1.4 var(--mono);color:var(--ink);overflow-wrap:anywhere}
+.gold-table .ans.pred{color:var(--ink-2)}
+.gold-table .ans.none{color:var(--faint);font-weight:400}
+/* the program under its answer: wraps at word boundaries, never mid-operand */
+.gold-table .prog{display:block;margin-top:var(--s1);font:400 var(--t-2)/1.45 var(--mono);color:var(--faint);white-space:normal;overflow-wrap:break-word;text-align:right}
+.gold-table .verdict{display:flex;flex-direction:column;gap:var(--s1);align-items:flex-start}
+.gold-table .verdict .status{font:500 var(--t-1)/1.4 var(--sans);color:var(--ink);white-space:nowrap}
+.gold-table .verdict .tags{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.gold-table .why .k{display:block;font:500 var(--t-2)/1.4 var(--mono);text-transform:uppercase;letter-spacing:var(--track-label);color:var(--faint);margin-bottom:var(--s1)}
+.gold-table .why + .why{margin-top:var(--s3)}
+.gold-table .why{font-size:var(--t-1);color:var(--ink-2);overflow-wrap:break-word}
+.gold-table .miss{margin-top:var(--s1);font:400 var(--t-2)/1.45 var(--mono);color:var(--muted)}
+.gold-source{font-size:var(--t-1);color:var(--muted);margin-top:var(--s3)}

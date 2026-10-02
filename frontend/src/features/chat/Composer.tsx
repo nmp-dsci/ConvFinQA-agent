@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
 import * as api from '../../api';
 import { useIsDemo } from '../../modeStore';
 import { useStore } from '../../store';
@@ -84,27 +83,27 @@ export function Composer({ reportId, isStreaming }: Props) {
   const runAllBlocked = isDemo && !inPack;
 
   return (
-    <div className="shrink-0 border-t border-line bg-panel px-3 py-2.5">
+    <div className="ch-composer">
       {chips.length > 0 && !isStreaming && (
-        <div className="mb-2 flex min-w-0 items-start gap-2" data-testid="suggestion-chips">
+        <div className="ch-suggest" data-testid="suggestion-chips">
           <span
-            className={cn('mono-caps mt-1 shrink-0', isDemo && 'text-amber')}
+            className={isDemo ? 'label warn' : 'label'}
             title={
               isDemo
                 ? 'These are the questions this deployment has a recording for'
                 : 'The dataset questions for this filing, with their gold answers'
             }
           >
-            {isDemo ? 'recorded' : 'the dataset’s questions'}
+            {isDemo ? '◐ recorded' : 'the dataset’s questions'}
           </span>
-          <div className="flex min-w-0 flex-wrap gap-1">
+          <div className="ch-sugg-list">
             {chips.map((chip) => (
               <button
                 key={chip.key}
                 type="button"
                 onClick={() => void send(chip.question, chip.gold, chip.goldProgram)}
                 title={chip.question}
-                className="type-meta max-w-[300px] truncate rounded-full border border-line-2 px-2.5 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
+                className="chip ch-sugg"
               >
                 {chip.question}
               </button>
@@ -113,11 +112,12 @@ export function Composer({ reportId, isStreaming }: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="ch-input-row">
         <textarea
           ref={inputRef}
           value={text}
           rows={1}
+          aria-label="Ask a question about this filing"
           onChange={(e) => setText(e.target.value)}
           disabled={isStreaming}
           placeholder={
@@ -132,21 +132,20 @@ export function Composer({ reportId, isStreaming }: Props) {
             }
           }}
           data-testid="composer-input"
-          className="type-body min-h-[36px] min-w-0 flex-1 resize-none rounded-md border border-line bg-ground px-3 py-2 text-text outline-none transition-colors focus:border-amber-line max-sm:basis-full disabled:opacity-50"
+          className="ch-input"
         />
         <button
           type="button"
           onClick={() => void send(text)}
           disabled={isStreaming || !text.trim()}
           data-testid="composer-send"
-          className="type-small h-[36px] shrink-0 rounded-md bg-amber px-3.5 font-medium text-amber-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="btn"
         >
-          Send
+          ↵ Send
         </button>
 
         <fieldset
           disabled={runAllBlocked}
-          className="m-0 shrink-0 border-0 p-0 disabled:opacity-40"
           title={
             runAllBlocked
               ? 'This deployment replays recorded conversations and has no recording for this filing'
@@ -158,17 +157,17 @@ export function Composer({ reportId, isStreaming }: Props) {
             onClick={() => void runAllGold(reportId, chips)}
             disabled={isStreaming}
             data-testid="composer-run-all"
-            className="type-small h-[36px] rounded-md border border-line-2 px-3 font-medium text-muted transition-colors hover:border-amber-line hover:text-amber disabled:opacity-40"
+            className="tog"
           >
-            {isDemo ? 'Replay all' : 'Run all gold'}
+            ▸ {isDemo ? 'Replay all' : 'Run all gold'}
             {chips.length > 0 ? ` (${chips.length})` : ''}
           </button>
         </fieldset>
       </div>
 
       {runAllBlocked && (
-        <p className="type-meta mt-1.5 text-faint">
-          <span className="mono-caps mr-1 text-amber">demo</span>
+        <p className="small muted">
+          <b className="ch-kicker">◐ demo</b>
           No recording for this filing, so there is nothing to replay. Open one of the
           recorded examples in the sessions pane to watch a full conversation.
         </p>

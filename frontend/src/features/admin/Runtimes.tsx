@@ -1,23 +1,11 @@
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
+import { Figure, Loading, PageHead, Status } from '@/kit/ui';
+import type { StatusTone } from '@/kit/ui';
 import { getCampaigns } from './api';
-import type {
-  CampaignExperiment,
-  CampaignSummary,
-  JudgeVerdict as JudgeVerdictSummary,
-  RuntimeArm,
-} from './api';
-import {
-  AdminPage,
-  Caveat,
-  EmptyState,
-  ErrorNote,
-  LoadingRows,
-  Panel,
-  StatCells,
-  TwoUp,
-  Verdict,
-} from './ui';
+import type { CampaignExperiment, CampaignSummary, RuntimeArm } from './api';
+import { EmptyState, ErrorNote, TwoUp } from './ui';
 import {
   ARMS,
   PANEL_STAGES,
@@ -32,17 +20,14 @@ import {
   sdkCampaign,
   sliceRows,
 } from './runtimeStory';
-import type {
-  ArmDescription,
-  ModelRow,
-  RuntimeVerdict,
-  SliceRow,
-} from './runtimeStory';
+import type { ArmDescription, ModelRow, RuntimeVerdict, SliceRow } from './runtimeStory';
 import { NO_VALUE, formatCount, formatPercent, formatUsd } from '../landing/format';
-import { judgeRows } from './runtimeStory';
-import type { JudgeRow } from './runtimeStory';
 import { ProgressionChart } from './ProgressionChart';
 import { versionLabel } from './lib';
+import './runtimes.css';
+
+// The judge moved to Scoring (slot 3); re-exported so `judgeStory.test.tsx` keeps its import.
+export { JudgeTable, JudgeVerdictBanner } from './judge';
 
 /**
  * Runtimes: one Claude Agent SDK session against four prompted agents.
@@ -64,78 +49,104 @@ import { versionLabel } from './lib';
  * What is here is rendering.
  */
 
+const SOURCE = '/eval/campaigns ← evaluation/story.json';
+
 // ---------------------------------------------------------------------------
-// 1 · The verdict
+// Small figures with their reason when absent
+// ---------------------------------------------------------------------------
+
+interface Cell {
+  label: string;
+  value: string;
+  /** Printed whenever `value` is an em dash. Never a bare blank. */
+  reason: string;
+  tone?: 'ok' | 'fail';
+}
+
+function Cells({ cells }: { cells: Cell[] }) {
+  return (
+    <div className="stats rt-cells">
+      {cells.map((cell) => {
+        const absent = cell.value === NO_VALUE;
+        const tone = absent ? 'absent' : cell.tone === 'ok' ? 'good' : cell.tone === 'fail' ? 'bad' : '';
+        return (
+          <div key={cell.label} className="stat" data-absent={absent ? 'true' : 'false'}>
+            <div className={`n ${tone}`}>{cell.value}</div>
+            <span className="label">{cell.label}</span>
+            {absent && <div className="why">{cell.reason}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 0 · The verdict
 // ---------------------------------------------------------------------------
 
 export function VerdictBanner({ verdict }: { verdict: RuntimeVerdict }) {
   const adopt = verdict.recommendation === 'adopt-agent-sdk';
   const unrun = verdict.recommendation === 'not-yet-run';
+  const tone: StatusTone = unrun ? 'no' : adopt ? 'ok' : 'err';
   return (
     <section
       data-testid="runtime-verdict"
       data-recommendation={verdict.recommendation}
-      className={cn(
-        'min-w-0 rounded-md border bg-panel p-3',
-        adopt ? 'border-good-line' : unrun ? 'border-line border-dashed' : 'border-amber-line',
-      )}
+      data-tone={tone}
+      className="card rt-verdict"
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="mono-caps">recommendation</span>
-        <Verdict ok={unrun ? null : adopt}>
+      <div className="rt-verdict-head">
+        <span className="label">recommendation</span>
+        <Status tone={tone}>
           {unrun ? 'not yet run' : adopt ? 'adopt · agent sdk' : 'hold · pipeline'}
-        </Verdict>
-        {verdict.gateId && (
-          <span className="font-mono text-[10px] text-faint">{verdict.gateId}</span>
-        )}
+        </Status>
+        {verdict.gateId && <span className="mono muted wrap-any">{verdict.gateId}</span>}
       </div>
-      <p className="type-lede max-w-[80ch] text-text">{verdict.headline}</p>
-      <p className="type-small mt-1 max-w-[92ch] text-muted">{verdict.because}</p>
-      <div className="mt-3">
-        <StatCells
-          columns={3}
-          cells={[
-            {
-              label: 'paired delta (sdk − pipeline)',
-              value: formatPp(verdict.deltaPp),
-              reason: 'no cross-runtime gate has been run',
-              tone: verdict.deltaPp === null ? 'plain' : verdict.deltaPp > 0 ? 'good' : 'bad',
-            },
-            {
-              label: 'one-sided clustered p',
-              value: formatP(verdict.pValue),
-              reason: 'no gate to test',
-            },
-            {
-              label: '95% CI on the delta',
-              value:
-                verdict.ciLo === null || verdict.ciHi === null
-                  ? NO_VALUE
-                  : `${formatPp(verdict.ciLo * 100, 1)} … ${formatPp(verdict.ciHi * 100, 1)}`,
-              reason: 'no gate to bootstrap',
-            },
-            {
-              label: 'fixed / broken',
-              value:
-                verdict.fixed === null && verdict.broken === null
-                  ? NO_VALUE
-                  : `${formatCount(verdict.fixed ?? 0)} / ${formatCount(verdict.broken ?? 0)}`,
-              reason: 'no flips recorded',
-            },
-            {
-              label: 'gate split',
-              value:
-                verdict.gateQuestions === null
-                  ? NO_VALUE
-                  : `${formatCount(verdict.gateQuestions)} q / ${formatCount(
-                      verdict.gateReports ?? 0,
-                    )} conv`,
-              reason: 'the split manifest is not in this payload',
-            },
-          ]}
-        />
-      </div>
-      <p className="type-meta mt-2 text-faint">
+      <p className="lead rt-headline">{verdict.headline}</p>
+      <p className="small muted">{verdict.because}</p>
+      <Cells
+        cells={[
+          {
+            label: 'paired delta (sdk − pipeline)',
+            value: formatPp(verdict.deltaPp),
+            reason: 'no cross-runtime gate has been run',
+            tone: verdict.deltaPp === null ? undefined : verdict.deltaPp > 0 ? 'ok' : 'fail',
+          },
+          {
+            label: 'one-sided clustered p',
+            value: formatP(verdict.pValue),
+            reason: 'no gate to test',
+          },
+          {
+            label: '95% CI on the delta',
+            value:
+              verdict.ciLo === null || verdict.ciHi === null
+                ? NO_VALUE
+                : `${formatPp(verdict.ciLo * 100, 1)} … ${formatPp(verdict.ciHi * 100, 1)}`,
+            reason: 'no gate to bootstrap',
+          },
+          {
+            label: 'fixed / broken',
+            value:
+              verdict.fixed === null && verdict.broken === null
+                ? NO_VALUE
+                : `${formatCount(verdict.fixed ?? 0)} / ${formatCount(verdict.broken ?? 0)}`,
+            reason: 'no flips recorded',
+          },
+          {
+            label: 'gate split',
+            value:
+              verdict.gateQuestions === null
+                ? NO_VALUE
+                : `${formatCount(verdict.gateQuestions)} q / ${formatCount(
+                    verdict.gateReports ?? 0,
+                  )} conv`,
+            reason: 'the split manifest is not in this payload',
+          },
+        ]}
+      />
+      <p className="small muted">
         {verdict.baselineVersion && verdict.candidateVersion
           ? `${verdict.candidateVersion} against ${verdict.baselineVersion}, paired per question on one fixed gate split, one-sided cluster-corrected McNemar at α = 0.05.`
           : 'Both arms are compared on one fixed gate split, paired per question.'}
@@ -145,10 +156,10 @@ export function VerdictBanner({ verdict }: { verdict: RuntimeVerdict }) {
 }
 
 // ---------------------------------------------------------------------------
-// 2 · The two arms
+// 1 · The two arms
 // ---------------------------------------------------------------------------
 
-function Figure({
+function ArmFigure({
   label,
   value,
   reason,
@@ -161,18 +172,13 @@ function Figure({
 }) {
   const absent = value === NO_VALUE;
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="type-small text-muted">{label}</span>
-      <span
-        className={cn(
-          'type-num shrink-0 text-[12px]',
-          absent ? 'text-faint' : strong ? 'text-text' : 'text-muted',
-        )}
-        title={absent ? reason : undefined}
-      >
+    <>
+      <dt>{label}</dt>
+      <dd className={absent ? 'num rt-absent' : strong ? 'num rt-strong' : 'num'}>
         {absent ? 'not yet run' : value}
-      </span>
-    </div>
+        {absent && reason && <span className="rt-why">{reason}</span>}
+      </dd>
+    </>
   );
 }
 
@@ -187,241 +193,110 @@ export function ArmCard({
 }) {
   const present = Boolean(arm && (arm.accuracy !== null || arm.version));
   return (
-    <div
+    <article
       data-testid={`arm-${desc.key}`}
       data-present={present ? 'true' : 'false'}
-      className={cn(
-        'min-w-0 rounded-[5px] border bg-panel-2 p-3',
-        recommended ? 'border-good-line' : 'border-line',
-      )}
+      className={recommended ? 'card hi rt-arm' : 'card rt-arm'}
     >
-      <div className="mb-1 flex flex-wrap items-center gap-2">
-        <span className="mono-caps text-faint">{desc.key}</span>
-        <span className="type-body font-medium text-text">{desc.title}</span>
-        {recommended && <Verdict ok>recommended</Verdict>}
+      <div className="rt-arm-head">
+        <span className="label">{desc.key}</span>
+        {recommended && <span className="tag acc">recommended</span>}
       </div>
-      <p className="type-meta mb-2 text-faint">{desc.architecture}</p>
+      <h3>{desc.title}</h3>
+      <p className="small muted">{desc.architecture}</p>
       {!present ? (
         <EmptyState>
           not yet run — this arm has no run on the gate split, so it has no figures
         </EmptyState>
       ) : (
         <>
-          <div className="mb-2 flex flex-wrap items-baseline gap-2">
-            <span className="type-num text-[27px] leading-none text-text">
-              {formatPercent(arm?.accuracy ?? null)}
-            </span>
-            <span className="font-mono text-[11px] text-muted">
-              {arm?.version ? versionLabel(arm.version) : NO_VALUE}
+          <div className="rt-arm-acc">
+            <span className="num rt-big">{formatPercent(arm?.accuracy ?? null)}</span>
+            <span className="small muted">
+              execution accuracy ·{' '}
+              <span className="mono">{arm?.version ? versionLabel(arm.version) : NO_VALUE}</span>
             </span>
           </div>
-          <p className="type-meta mb-2 break-all text-faint">{arm?.run_name ?? NO_VALUE}</p>
-          <div className="flex flex-col gap-1">
-            <Figure
+          <p className="mono muted wrap-any">{arm?.run_name ?? NO_VALUE}</p>
+          <dl className="kv">
+            <ArmFigure
               label="number turns"
               value={formatPercent(arm?.by_turn_type?.number ?? null)}
               reason="the run carries no per-turn-type slice"
               strong
             />
-            <Figure
+            <ArmFigure
               label="program turns"
               value={formatPercent(arm?.by_turn_type?.program ?? null)}
               reason="the run carries no per-turn-type slice"
               strong
             />
-            <Figure
+            <ArmFigure
               label="program accuracy (gold program reproduced)"
               value={formatPercent(arm?.program_accuracy ?? null)}
               reason="the run's predictions CSV is not on disk"
             />
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
+          </dl>
+          <div className="stats rt-stages">
             {PANEL_STAGES.map((stage) => {
               const value = arm?.panel?.[stage] ?? null;
               return (
-                <div
-                  key={stage}
-                  data-absent={value === null ? 'true' : 'false'}
-                  className="rounded-[4px] border border-line px-2 py-1"
-                >
-                  <div className="mono-caps text-faint">{stage}</div>
-                  <div
-                    className={cn('type-num text-[12px]', value === null ? 'text-faint' : 'text-text')}
-                  >
+                <div key={stage} data-absent={value === null ? 'true' : 'false'} className="stat">
+                  <div className={value === null ? 'n absent' : 'n'}>
                     {value === null ? 'not scored' : formatPercent(value)}
                   </div>
+                  <span className="label">{stage}</span>
                 </div>
               );
             })}
           </div>
-          <div className="mt-2 flex flex-col gap-1">
-            <Figure
+          <dl className="kv">
+            <ArmFigure
               label="wall clock"
               value={formatWall(arm?.wall ?? null)}
               reason="the run logged no wall time"
             />
-            <Figure
+            <ArmFigure
               label="cost"
               value={formatUsd(arm?.cost ?? null)}
               reason="this arm's provider spend is not metered into the run"
             />
-          </div>
-          <p className="type-meta mt-2 text-faint">{desc.aliasNote}</p>
+          </dl>
+          <p className="small muted">{desc.aliasNote}</p>
         </>
       )}
-    </div>
+    </article>
   );
 }
 
 // ---------------------------------------------------------------------------
-// 2b · The model swap: one prompt, several models
+// 3 · The model swap: one prompt, several models
 // ---------------------------------------------------------------------------
 
-/**
- * s12: the confidence judge, one row per (version, split). The champion's
- * test row is the headline: the gate split, scored once by the frozen judge.
- * "Unseen error" is the one-sided 95% bound on the high band's true error
- * rate — zero misses among n released proves ≤ ~3/n, never 0%.
- */
-/**
- * What the judge experiment settled, in the terms the decision needs.
- *
- * The band is only worth acting on if it beats the policy it replaces —
- * releasing every answer — so this leads with that comparison and with
- * whether the interval separates them, not with the high-band accuracy on
- * its own, which reads as a pass mark when it is not one.
- */
-export function JudgeVerdictBanner({ verdict }: { verdict: JudgeVerdictSummary }) {
-  const adopt = verdict.significant && verdict.meets_target;
-  const [lo, hi] = verdict.high_band_accuracy_ci ?? [null, null];
+function Heads({ cols }: { cols: Array<[string, boolean]> }) {
   return (
-    <section
-      data-testid="judge-verdict"
-      data-significant={verdict.significant ? 'true' : 'false'}
-      className={cn(
-        'mb-3 min-w-0 rounded-md border bg-panel p-3',
-        adopt ? 'border-good-line' : 'border-amber-line',
-      )}
-    >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="mono-caps">recommendation</span>
-        <Verdict ok={adopt}>{adopt ? 'adopt as a gate' : 'advisory only'}</Verdict>
-        <span className="font-mono text-[10px] text-faint">
-          {versionLabel(verdict.version)} on {verdict.split}
-        </span>
-      </div>
-      <p className="type-lede max-w-[80ch] text-text">
-        Tried at the end of the SDK work, and{' '}
-        {verdict.significant ? 'it beats' : <strong>not statistically significant</strong>}
-        {verdict.significant ? '' : ' against the policy it replaces'}: releasing everything
-        scores <span className="type-num">{formatPercent(verdict.baseline_accuracy, 2)}</span> on
-        the same turns, the high band{' '}
-        <span className="type-num">{formatPercent(verdict.high_band_accuracy, 2)}</span> —{' '}
-        <span className="type-num">{formatPp(verdict.delta_pp)}</span>, and the 95% interval{' '}
-        {lo === null || hi === null
-          ? 'is unavailable'
-          : `${formatPercent(lo, 1)}–${formatPercent(hi, 1)}`}{' '}
-        {verdict.significant ? 'excludes' : 'contains'} that baseline.
-      </p>
-      <p className="type-small mt-1 max-w-[92ch] text-muted">
-        It withholds {formatCount(verdict.n_withheld)} answers to remove{' '}
-        {formatCount(verdict.n_failures_caught)} wrong ones, and{' '}
-        {formatCount(verdict.n_false_alarms)} of those withheld were correct. The band is
-        recorded and shown; it is not evidence to gate on.
-      </p>
-    </section>
+    <thead>
+      <tr>
+        {cols.map(([h, num]) => (
+          <th key={h} scope="col" className={num ? 'num' : undefined}>
+            {h}
+          </th>
+        ))}
+      </tr>
+    </thead>
   );
 }
 
-export function JudgeTable({ rows, target }: { rows: JudgeRow[]; target: number }) {
-  if (!rows.length) {
-    return (
-      <EmptyState>
-        not yet run — no judge has been scored on the calibrate or test split
-      </EmptyState>
-    );
-  }
-  return (
-    <div className="min-w-0 overflow-x-auto">
-      <table data-testid="judge-table" className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-line">
-            {[
-              'judge',
-              'split',
-              'turns',
-              'runtime acc.',
-              'coverage',
-              'high band correct',
-              'wrong / released',
-              'unseen error (95%)',
-              'failures caught',
-              'AUROC',
-              'target',
-            ].map((h) => (
-              <th key={h} className="mono-caps py-1.5 pr-3 font-normal whitespace-nowrap">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={`${row.version}-${row.split}`}
-              data-judge={row.version}
-              data-split={row.split}
-              data-champion={row.isChampion ? 'true' : 'false'}
-              className={cn(
-                'border-b border-line last:border-0',
-                row.isChampion && row.split === 'test' && 'bg-good/5'
-              )}
-            >
-              <td className="py-2 pr-3 font-mono text-[12px] text-text">
-                {versionLabel(row.version)}
-                {row.isChampion && <span className="ml-1.5 text-[10px] text-good">champion</span>}
-              </td>
-              <td className="py-2 pr-3 font-mono text-[12px] text-muted">{row.split}</td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {row.n} · {row.nWrong} wrong
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.runtimeAccuracy)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[14px] text-text">
-                {formatPercent(row.coverage)}
-              </td>
-              <td
-                className={cn(
-                  'type-num py-2 pr-3 text-[14px]',
-                  row.meetsTarget ? 'text-good' : 'text-amber'
-                )}
-              >
-                {row.highBandAccuracy == null ? NO_VALUE : `${(row.highBandAccuracy * 100).toFixed(2)}%`}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {row.nHighWrong} / {row.nHigh}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {row.unseenErrorUpper == null ? NO_VALUE : `≤ ${(row.unseenErrorUpper * 100).toFixed(2)}%`}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.failureCapture)} ({row.nCaught}/{row.nWrong})
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {row.auroc == null ? NO_VALUE : row.auroc.toFixed(3)}
-              </td>
-              <td className="py-2 pr-3 text-[12px]">
-                <span className={cn('font-mono', row.meetsTarget ? 'text-good' : 'text-amber')}>
-                  {row.meetsTarget ? `≤ ${(target * 100).toFixed(0)}% met` : 'missed'}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+function effectTone(effect: string): StatusTone {
+  return effect === 'better' || effect === 'significant' ? 'ok' : effect === 'worse' ? 'err' : 'no';
+}
+
+function deltaClass(effect: string): string {
+  return effect === 'better' || effect === 'significant'
+    ? 'num v-ok'
+    : effect === 'worse'
+      ? 'num v-fail'
+      : 'num';
 }
 
 export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
@@ -434,89 +309,63 @@ export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
     );
   }
   return (
-    <div className="min-w-0 overflow-x-auto">
-      <table data-testid="model-swap-table" className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-line">
-            {[
-              'model',
-              'accuracy',
-              'number turns',
-              'program turns',
-              'program acc.',
-              'cost',
-              'wall',
-              'delta vs reference',
-              'clustered p (direction of delta)',
-              'verdict',
-            ].map((h) => (
-              <th key={h} className="mono-caps py-1.5 pr-3 font-normal whitespace-nowrap">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
+    <div className="tw">
+      <table data-testid="model-swap-table" className="rt-table">
+        <Heads
+          cols={[
+            ['model', false],
+            ['accuracy', true],
+            ['number turns', true],
+            ['program turns', true],
+            ['program acc.', true],
+            ['cost', true],
+            ['wall', true],
+            ['delta vs reference', true],
+            ['clustered p (direction of delta)', true],
+            ['verdict', false],
+          ]}
+        />
         <tbody>
           {rows.map((row) => (
             <tr
               key={row.model}
               data-model={row.shortName}
               data-effect={row.effect}
-              className="border-b border-line last:border-0"
             >
-              <td className="py-2 pr-3">
-                <div className="font-mono text-[12px] text-text">{row.shortName}</div>
-                <div className="type-meta break-all text-faint">{row.model}</div>
+              <td className="sub">
+                <span className="mono">{row.shortName}</span>
+                <span className="path wrap-any">{row.model}</span>
               </td>
-              <td className="type-num py-2 pr-3 text-[14px] text-text">
-                {formatPercent(row.accuracy)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.number)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.program)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.programAccuracy)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">{formatUsd(row.cost)}</td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">{formatWall(row.wall)}</td>
-              <td
-                className={cn(
-                  'type-num py-2 pr-3 text-[12px]',
-                  row.effect === 'better'
-                    ? 'text-good'
-                    : row.effect === 'worse'
-                      ? 'text-bad'
-                      : 'text-muted',
-                )}
-              >
+              <td className="num rt-strong">{formatPercent(row.accuracy)}</td>
+              <td className="num">{formatPercent(row.number)}</td>
+              <td className="num">{formatPercent(row.program)}</td>
+              <td className="num">{formatPercent(row.programAccuracy)}</td>
+              <td className="num">{formatUsd(row.cost)}</td>
+              <td className="num">{formatWall(row.wall)}</td>
+              <td className={deltaClass(row.effect)}>
                 {row.isReference ? (
                   'reference'
                 ) : (
                   <>
                     {formatPp(row.deltaPp)}
                     {row.deltaPp !== null && (
-                      <div className="type-meta text-faint">
-                        CI [{formatPp(row.ciLo)}, {formatPp(row.ciHi)}]
-                      </div>
+                      <span className="path">
+                        CI [{formatPp(row.ciLo === null ? null : row.ciLo * 100, 1)}, {formatPp(row.ciHi === null ? null : row.ciHi * 100, 1)}]
+                      </span>
                     )}
                   </>
                 )}
               </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+              <td className="num">
                 {row.isReference ? NO_VALUE : formatP(row.pValue)}
                 {row.deltaPp !== null && (
-                  <div className="type-meta text-faint">
+                  <span className="path">
                     {formatCount(row.fixed)} / {formatCount(row.broken)} flips
-                  </div>
+                  </span>
                 )}
               </td>
-              <td className="py-2 pr-3">
-                <Verdict ok={row.effect === 'better' ? true : row.effect === 'worse' ? false : null}>
-                  {row.effectLabel}
-                </Verdict>
+              <td>
+                <Status tone={effectTone(row.effect)}>{row.effectLabel}</Status>
               </td>
             </tr>
           ))}
@@ -527,7 +376,7 @@ export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// 3 · Where the difference is
+// 2 · Where the difference is
 // ---------------------------------------------------------------------------
 
 export function SliceTable({ rows }: { rows: SliceRow[] }) {
@@ -535,65 +384,37 @@ export function SliceTable({ rows }: { rows: SliceRow[] }) {
     return <EmptyState>not yet run — the gate carries no per-turn-type split</EmptyState>;
   }
   return (
-    <div className="min-w-0 overflow-x-auto">
-      <table data-testid="slice-table" className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-line">
-            {[
-              'turn type',
-              'n',
-              'pipeline',
-              'agent sdk',
-              'delta',
-              'fixed / broken',
-              'one-sided clustered p',
-              'verdict',
-            ].map((h) => (
-              <th key={h} className="mono-caps py-1.5 pr-3 font-normal whitespace-nowrap">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
+    <div className="tw">
+      <table data-testid="slice-table" className="rt-table">
+        <Heads
+          cols={[
+            ['turn type', false],
+            ['n', true],
+            ['pipeline', true],
+            ['agent sdk', true],
+            ['delta', true],
+            ['fixed / broken', true],
+            ['one-sided clustered p', true],
+            ['verdict', false],
+          ]}
+        />
         <tbody>
           {rows.map((row) => (
-            <tr
-              key={row.key}
-              data-slice={row.key}
-              data-effect={row.effect}
-              className="border-b border-line last:border-0"
-            >
-              <td className="py-2 pr-3">
-                <div className="type-small text-text">{row.label}</div>
-                <div className="type-meta text-faint">{row.what}</div>
+            <tr key={row.key} data-slice={row.key} data-effect={row.effect}>
+              <td className="sub rt-wrap">
+                {row.label}
+                <span className="path rt-sans">{row.what}</span>
               </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatCount(row.n)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
-                {formatPercent(row.baseline)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-text">
-                {formatPercent(row.candidate)}
-              </td>
-              <td
-                className={cn(
-                  'type-num py-2 pr-3 text-[12px]',
-                  row.effect === 'significant'
-                    ? 'text-good'
-                    : row.effect === 'no-effect'
-                      ? 'text-faint'
-                      : 'text-muted',
-                )}
-              >
-                {formatPp(row.deltaPp)}
-              </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">
+              <td className="num">{formatCount(row.n)}</td>
+              <td className="num">{formatPercent(row.baseline)}</td>
+              <td className="num rt-strong">{formatPercent(row.candidate)}</td>
+              <td className={deltaClass(row.effect)}>{formatPp(row.deltaPp)}</td>
+              <td className="num">
                 {formatCount(row.fixed)} / {formatCount(row.broken)}
               </td>
-              <td className="type-num py-2 pr-3 text-[12px] text-muted">{formatP(row.pValue)}</td>
-              <td className="py-2 pr-3">
-                <Verdict ok={row.effect === 'significant' ? true : null}>{row.effectLabel}</Verdict>
+              <td className="num">{formatP(row.pValue)}</td>
+              <td>
+                <Status tone={effectTone(row.effect)}>{row.effectLabel}</Status>
               </td>
             </tr>
           ))}
@@ -604,7 +425,7 @@ export function SliceTable({ rows }: { rows: SliceRow[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// 5 · What the loop could do with one prompt
+// 4 · What the loop could do with one prompt
 // ---------------------------------------------------------------------------
 
 function editSummary(exp: CampaignExperiment): string {
@@ -627,61 +448,61 @@ export function SdkExperimentList({
     return <EmptyState>not yet run — this arm has gated no experiment</EmptyState>;
   }
   return (
-    <div className="flex flex-col gap-2" data-testid="sdk-experiments">
-      {experiments.map((exp) => {
-        const baseline = isBaselineExperiment(exp);
-        const target = exp.target_class || exp.target_agent || NO_VALUE;
-        const summary = editSummary(exp);
-        return (
-          <div
-            key={`${exp.campaign}-${exp.label}-${exp.candidate_version}`}
-            data-experiment={exp.label}
-            data-promoted={exp.promoted ? 'true' : 'false'}
-            className="rounded-[5px] border border-line bg-panel-2 px-3 py-2.5"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[12px] text-text">{exp.label}</span>
-              <Verdict ok={exp.promoted}>{exp.promoted ? 'promoted' : 'rejected'}</Verdict>
-              <span className="rounded-[4px] border border-line-2 px-1.5 py-0.5 font-mono text-[10px] text-muted">
-                {baseline ? `${target} · not an optimisation attempt` : `class: ${target}`}
-              </span>
-              <span className="ml-auto type-num text-[12px] text-muted">
-                {formatPp((exp.accuracy_delta ?? null) === null ? null : (exp.accuracy_delta as number) * 100)}{' '}
-                · p={formatP(exp.cluster_p_one_sided)}
-              </span>
-            </div>
-            <p className="type-meta mt-1 text-faint">
-              <span className="font-mono text-muted">
-                {exp.baseline_version} → {exp.candidate_version}
-              </span>{' '}
-              · {formatPercent(exp.accuracy_baseline)} → {formatPercent(exp.accuracy_candidate)} ·{' '}
-              {formatCount(exp.fixed)} fixed / {formatCount(exp.broken)} broken of{' '}
-              {formatCount(exp.n_compared)} shared questions
-            </p>
-            {baseline && (
-              <p className="type-meta mt-1 text-faint">
-                This row is the cross-runtime read-out itself: the distilled single-session prompt
-                against the optimised pipeline, not a change to either.
+    <div data-testid="sdk-experiments">
+      <ol className="rt-exps">
+        {experiments.map((exp) => {
+          const baseline = isBaselineExperiment(exp);
+          const target = exp.target_class || exp.target_agent || NO_VALUE;
+          const summary = editSummary(exp);
+          return (
+            <li
+              key={`${exp.campaign}-${exp.label}-${exp.candidate_version}`}
+              data-experiment={exp.label}
+              data-promoted={exp.promoted ? 'true' : 'false'}
+              className="card rt-exp"
+            >
+              <div className="rt-exp-head">
+                <span className="mono rt-strong">{exp.label}</span>
+                <Status tone={exp.promoted ? 'ok' : 'err'}>{exp.promoted ? 'promoted' : 'rejected'}</Status>
+                <span className="tag">
+                  {baseline ? `${target} · not an optimisation attempt` : `class: ${target}`}
+                </span>
+                <span className="num rt-exp-delta">
+                  {formatPp(
+                    (exp.accuracy_delta ?? null) === null ? null : (exp.accuracy_delta as number) * 100,
+                  )}{' '}
+                  · p={formatP(exp.cluster_p_one_sided)}
+                </span>
+              </div>
+              <p className="small muted">
+                <span className="mono">
+                  {exp.baseline_version} → {exp.candidate_version}
+                </span>{' '}
+                · {formatPercent(exp.accuracy_baseline)} → {formatPercent(exp.accuracy_candidate)} ·{' '}
+                {formatCount(exp.fixed)} fixed / {formatCount(exp.broken)} broken of{' '}
+                {formatCount(exp.n_compared)} shared questions
               </p>
-            )}
-            {summary && <p className="type-meta mt-1 text-faint">{summary}</p>}
-            {exp.summary_of_changes && (
-              <p className="type-small mt-1 text-muted">{exp.summary_of_changes}</p>
-            )}
-          </div>
-        );
-      })}
+              {baseline && (
+                <p className="small muted">
+                  This row is the cross-runtime read-out itself: the distilled single-session prompt
+                  against the optimised pipeline, not a change to either.
+                </p>
+              )}
+              {summary && <p className="small muted">{summary}</p>}
+              {exp.summary_of_changes && <p className="small">{exp.summary_of_changes}</p>}
+            </li>
+          );
+        })}
+      </ol>
       {campaign && (
-        <p className="type-meta text-faint">
+        <p className="small muted">
           {campaign.name}: {formatCount(campaign.n_experiments)} of{' '}
           {campaign.cap === undefined ? 'an unreported cap' : formatCount(campaign.cap)} experiments
           used, {formatCount(campaign.n_promoted)} promoted
-          {campaign.cap === undefined
-            ? ''
-            : `, ${formatCount(campaign.n_remaining)} remaining`}
-          . The cap on this arm is deliberately lower than the pipeline&rsquo;s: one prompt is a
-          smaller search space, and the point of a cap is that the review happens on schedule rather
-          than never.
+          {campaign.cap === undefined ? '' : `, ${formatCount(campaign.n_remaining)} remaining`}. The
+          cap on this arm is deliberately lower than the pipeline&rsquo;s: one prompt is a smaller
+          search space, and the point of a cap is that the review happens on schedule rather than
+          never.
         </p>
       )}
     </div>
@@ -692,9 +513,62 @@ export function SdkExperimentList({
 // The page
 // ---------------------------------------------------------------------------
 
+function Sec({
+  n,
+  label,
+  claim,
+  lead,
+  children,
+  id,
+}: {
+  n: number;
+  label: string;
+  claim: ReactNode;
+  lead?: ReactNode;
+  children: ReactNode;
+  id?: string;
+}) {
+  return (
+    <section className="rt-sec" id={id}>
+      <h2>
+        {n} · {label} — {claim}
+      </h2>
+      {lead && <p>{lead}</p>}
+      {children}
+    </section>
+  );
+}
+
+function pageTitle(verdict: RuntimeVerdict): ReactNode {
+  if (verdict.recommendation === 'adopt-agent-sdk') {
+    return (
+      <>
+        One Claude session beats four prompted agents by <em>{formatPp(verdict.deltaPp)}</em> on
+        the same gate questions
+      </>
+    );
+  }
+  if (verdict.recommendation === 'stay-on-pipeline') {
+    return (
+      <>
+        The four-agent pipeline <em>holds</em>: one Claude session did not clear the gate
+      </>
+    );
+  }
+  return (
+    <>
+      Two runtimes, one evaluator, and <em>no</em> cross-runtime gate run yet
+    </>
+  );
+}
+
+const EYEBROW = 'optimise · runtimes · two runtimes, one evaluator';
+const LEAD =
+  'Four prompted DeepSeek agents in a fixed order, and one Claude Agent SDK session whose only tools are the calculator functions, answer the same gate split under one evaluator and one significance rule. This page carries the recommendation and the evidence for it.';
+
 export default function Runtimes() {
   const query = useQuery({
-    // The same key the Experiments page uses: one payload backs both, and two
+    // The same key the Experiments and Scoring pages use: one payload backs all three, and two
     // cache entries of the same story could show two different champions.
     queryKey: ['eval-campaigns'],
     queryFn: () => getCampaigns(),
@@ -705,8 +579,6 @@ export default function Runtimes() {
   const verdict = runtimeVerdict(comparison, data?.split);
   const rows = sliceRows(comparison?.gate);
   const swapRows = modelRows(data?.sdk_model_comparison);
-  const judgeTable = judgeRows(data?.judge);
-  const judgeTarget = data?.judge?.error_target ?? 0.01;
   const sdkExperiments = data?.sdk_experiments ?? [];
   const stages = progression(
     data?.champion_track,
@@ -721,46 +593,56 @@ export default function Runtimes() {
 
   if (query.isLoading) {
     return (
-      <AdminPage
-        eyebrow="runtime"
-        title="Runtimes"
-        sub="One Claude Agent SDK session against four prompted agents, on the same gate split."
-        testId="runtimes"
-      >
-        <Panel title="reading the record" endpoint="/eval/campaigns">
-          <LoadingRows rows={8} />
-        </Panel>
-      </AdminPage>
+      <div data-testid="runtimes">
+        <PageHead
+          eyebrow={EYEBROW}
+          title={
+            <>
+              Two runtimes, <em>one</em> evaluator
+            </>
+          }
+          lead={LEAD}
+        />
+        <Loading what="the campaign record" />
+      </div>
     );
   }
 
-  return (
-    <AdminPage
-      eyebrow="runtime"
-      title="Runtimes"
-      sub="Two runtimes answer the same gate split under one evaluator and one significance rule: four prompted DeepSeek agents in a fixed order, and one Claude Agent SDK session whose only tools are the calculator functions. This page carries the recommendation and the evidence for it."
-      testId="runtimes"
-    >
-      {query.error ? (
-        <Panel title="verdict" endpoint="/eval/campaigns">
-          <ErrorNote error={query.error} />
-        </Panel>
-      ) : (
-        <VerdictBanner verdict={verdict} />
-      )}
+  const top = rows.find((r) => r.effect === 'significant') ?? null;
+  const attempts = sdkExperiments.filter((e) => !isBaselineExperiment(e));
+  const promotedAttempts = attempts.filter((e) => e.promoted).length;
+  const loopClaim =
+    attempts.length === 0
+      ? 'the loop has not yet attempted the distilled prompt'
+      : promotedAttempts === 0
+        ? `the loop could not beat the distilled prompt (${attempts.length} of ${attempts.length} ${
+            attempts.length === 1 ? 'attempt' : 'attempts'
+          } rejected)`
+        : `${promotedAttempts} of ${attempts.length} loop attempts beat the distilled prompt`;
 
-      <Panel
-        title="the two arms on the gate split"
-        endpoint="/eval/campaigns"
-        note="Both arms are scored by the same evaluator on the same questions; the per-stage panel is derived from gold, with no model calls."
-        right={
-          <span className="type-small text-faint">
-            champion {data?.champion ? versionLabel(data.champion) : NO_VALUE} · sdk_champion{' '}
-            {data?.sdk_champion ? versionLabel(data.sdk_champion) : NO_VALUE}
-          </span>
+  return (
+    <div data-testid="runtimes">
+      <PageHead eyebrow={EYEBROW} title={pageTitle(verdict)} lead={LEAD} />
+
+      {query.error ? <ErrorNote error={query.error} /> : <VerdictBanner verdict={verdict} />}
+
+      <Sec
+        n={1}
+        label="The two arms"
+        claim={
+          verdict.gateQuestions === null
+            ? 'one evaluator, the same questions'
+            : `one evaluator, the same ${formatCount(verdict.gateQuestions)} questions`
         }
+        lead="Both arms are scored by the same evaluator on the same questions; the per-stage panel is derived from gold, with no model calls."
       >
-        <TwoUp>
+        <p className="small muted">
+          champion{' '}
+          <span className="mono">{data?.champion ? versionLabel(data.champion) : NO_VALUE}</span> ·
+          sdk_champion{' '}
+          <span className="mono">{data?.sdk_champion ? versionLabel(data.sdk_champion) : NO_VALUE}</span>
+        </p>
+        <TwoUp className="rt-arms">
           <ArmCard desc={ARMS.pipeline} arm={comparison?.pipeline} recommended={false} />
           <ArmCard
             desc={ARMS.agent_sdk}
@@ -768,160 +650,138 @@ export default function Runtimes() {
             recommended={verdict.recommendation === 'adopt-agent-sdk'}
           />
         </TwoUp>
-        <Caveat>
+        <p className="callout">
           The two arms differ in model <em>and</em> in architecture at once. Nothing here separates
           &ldquo;one session beats four&rdquo; from &ldquo;this model beats that one&rdquo; — see the
           caveats below.
-        </Caveat>
-      </Panel>
+        </p>
+      </Sec>
 
-      <Panel
-        title="where the difference is"
-        endpoint="/eval/campaigns"
-        note="The dataset splits every turn into a lookup (number) and a computation (program). The aggregate delta is an average over the two and describes neither."
+      <Sec
+        n={2}
+        label="Where the difference is"
+        claim={
+          !rows.length
+            ? 'the gate carries no per-turn-type split'
+            : top
+              ? `${top.label} carry ${formatPp(top.deltaPp)}`
+              : 'no slice moved significantly'
+        }
+        lead="The dataset splits every turn into a lookup (number) and a computation (program). The aggregate delta is an average over the two and describes neither."
       >
         <SliceTable rows={rows} />
         {rows.some((r) => r.effect === 'no-effect') && (
-          <Caveat>
-            Both arms have saturated the lookup, so a slice marked <strong>no effect</strong> is
-            exactly that: the same accuracy either side, flips in both directions cancelling. The
-            entire aggregate gain sits in the program turns.
-          </Caveat>
+          <p className="callout">
+            Both arms have saturated the lookup, so a slice marked <b>no effect</b> is exactly that:
+            the same accuracy either side, flips in both directions cancelling. The entire aggregate
+            gain sits in the program turns.
+          </p>
         )}
-      </Panel>
+      </Sec>
 
-      <Panel
-        title="the model swap: one prompt, two models"
-        endpoint="/eval/campaigns"
-        note="The same sdk champion prompt, the same calculator tools, the same gate split and the same scoring — only the model differs. A scoring pass, not an experiment: no prompt was tuned for the second model and nothing was promoted. The p is one-sided in the direction of the observed delta, because unlike the gate this comparison has no preferred direction."
+      <Sec
+        n={3}
+        label="The progression"
+        claim="every scored version, on the same held-back questions, in the order it happened"
+      >
+        <Figure
+          title="fig 1 · execution accuracy on the unseen gate split, by stage"
+          caption="Each stage in the order the work happened, on one zero-based axis. The pipeline points are the champion track's first and last."
+          source={SOURCE}
+        >
+          <ProgressionChart points={stages} pipelineBaseline={comparison?.pipeline?.accuracy ?? null} />
+        </Figure>
+      </Sec>
+
+      <Sec
+        n={4}
+        label="The model swap"
+        claim={
+          swapRows.length ? `one prompt, ${swapRows.length} models` : 'one prompt, one model so far'
+        }
+        lead="The same sdk champion prompt, the same calculator tools, the same gate split and the same scoring — only the model differs. A scoring pass, not an experiment: nothing was tuned for the second model and nothing was promoted. The p is one-sided in the direction of the observed delta."
       >
         <ModelSwapTable rows={swapRows} />
         {swapRows.length > 0 && (
-          <Caveat>
+          <p className="callout">
             The delta is the model&rsquo;s contribution <em>at this prompt</em>, which was distilled
             from four DeepSeek agents and never optimised for either model — so neither figure is
             that model&rsquo;s ceiling. It answers &ldquo;how much of the SDK arm is the model&rdquo;
             for the session runtime only; the pipeline was never run on either of these models.
-          </Caveat>
+          </p>
         )}
-      </Panel>
+      </Sec>
 
-      <Panel
-        title="the confidence judge: answer when the trace can be verified"
-        endpoint="/eval/campaigns"
-        note="Tried last, after the runtime decision. A Haiku 4.5 judge reads each finished turn — question, filing, sub-questions, retrieved cells with their cited sources, program, calculator trajectory, answer — and returns a band. high releases the answer; low withholds it. It never sees the gold answer. Trained the way sdk_v1 was: a teacher diagnosed every case of a balanced optimise split with gold, one distil call wrote the prompt; scored at natural prevalence on a disjoint calibrate split, then once on the gate split by the frozen champion. The result did not clear the bar — see the recommendation."
-        right={
-          <span className="type-small text-faint">
-            judge_champion {data?.judge?.champion ? versionLabel(data.judge.champion) : NO_VALUE} ·{' '}
-            calibrated to{' '}
-            {data?.judge?.runtime_version ? versionLabel(data.judge.runtime_version) : NO_VALUE}
-          </span>
-        }
+      <Sec
+        n={5}
+        label="The finding that matters most"
+        claim={loopClaim}
+        lead="Distilling four tuned prompts into one produced this arm's best result. The loop then did to that prompt exactly what it does to a pipeline prompt — diagnose the first-wrong cases, file each under a failure class, rewrite the highest-ranked one, gate it."
       >
-        {data?.judge?.verdict && <JudgeVerdictBanner verdict={data.judge.verdict} />}
-        <JudgeTable rows={judgeTable} target={judgeTarget} />
-        {judgeTable.length > 0 && (
-          <Caveat>
-            Zero wrong answers among <em>n</em> released proves the true error rate is below about
-            3/<em>n</em> at 95% confidence, not that it is zero — that is the &ldquo;unseen
-            error&rdquo; column. Some misses are not the runtime&rsquo;s: a gold answer rounded
-            differently from the calculator&rsquo;s exact result leaves a trace that passes every
-            check, and no judge without gold can withhold it.
-          </Caveat>
-        )}
-      </Panel>
-
-      <Panel
-        title="Optimising the ConvFinQA agent — accuracy on the unseen gate split"
-        endpoint="/eval/campaigns"
-        note="Every version that has been scored, on the same 349 held-back questions, in the order the work actually happened: the raw four-agent pipeline, the same pipeline after the optimisation loop, the single-session agent distilled from it, the loop's one attempt to improve that, and the same prompt on a second model. The pipeline points are the champion track's first and last."
-      >
-        <ProgressionChart points={stages} pipelineBaseline={comparison?.pipeline?.accuracy ?? null} />
-      </Panel>
-
-      <Panel
-        title="the finding that matters most"
-        endpoint="/eval/campaigns"
-        note="Distilling four tuned prompts into one produced this arm's best result — and the optimisation loop could not improve on it."
-      >
-        <p className="type-small mb-3 max-w-[92ch] text-muted">
-          The single-session arm&rsquo;s best prompt is the <em>distilled</em> one: the four tuned
-          pipeline prompts written into a single system prompt, run with no further optimisation. The
-          loop then did to that prompt exactly what it does to a pipeline prompt — diagnose the
-          first-wrong cases, file each under a failure class, rewrite the highest-ranked one, gate it
-          — and its one completed experiment was rejected by the same paired test that promoted the
-          distillation. That is the result, stated as it happened: the optimiser could not beat the
-          distillation, on this split, within this campaign&rsquo;s cap.
-        </p>
         <SdkExperimentList experiments={sdkExperiments} campaign={campaign} />
-      </Panel>
+      </Sec>
 
-      <TwoUp>
-        <Panel
-          title="what made the comparison possible"
-          endpoint="/eval/campaigns"
-          note="why a runtime swap is a measurable claim here"
-        >
-          <p className="type-small max-w-[80ch] text-muted">
-            MLflow and the eval loop give both runtimes one fixed gate split, one evaluator, one
-            significance rule and one append-only record. Because the split, the scoring and the
-            promotion test were already fixed before this arm existed, swapping the runtime changed
-            exactly one thing and the difference could be measured rather than argued about. Every
-            figure on this page is read back out of that record — the same record the published
-            write-up is built from — which is why the two cannot disagree.
-          </p>
-          <p className="type-meta mt-2 text-faint">
-            {data?.rule ? `Promotion rule: ${data.rule}.` : ''}{' '}
-            {data?.generated_at ? `Record generated ${data.generated_at}.` : ''}
-          </p>
-        </Panel>
-
-        <Panel
-          title="caveats"
-          endpoint="/eval/campaigns"
-          note="not footnotes — read these with the number above"
-        >
-          <ul className="flex flex-col gap-2">
-            <li className="rounded-[4px] border border-amber-line px-2.5 py-2">
-              <div className="mono-caps text-amber">contamination cannot be excluded</div>
-              <p className="type-small mt-1 text-muted">
+      <Sec n={6} label="Caveats" claim="three reasons to doubt the number above">
+        <TwoUp>
+          <div className="rt-caveats">
+            <div className="callout">
+              <span className="ttl">contamination cannot be excluded</span>
+              <p>
                 The single-session arm scores {formatPercent(sdkArm?.accuracy ?? null)} execution
                 accuracy, above the {formatPercent(PAPER_HUMAN.exe)} human-expert figure{' '}
-                {PAPER_HUMAN.citation} reports — on a dataset that has been public since 2022. A
-                model that has seen this corpus in training would look exactly like this. The
-                program accuracy on the same run is{' '}
-                {formatPercent(sdkArm?.program_accuracy ?? null)}, against the paper&rsquo;s{' '}
-                {formatPercent(PAPER_HUMAN.prog)} for a human: it is reaching the right numbers
-                without reproducing the gold programs, so this is not a claim of human-level
+                {PAPER_HUMAN.citation} reports — on a dataset public since 2022. A model that has
+                seen this corpus in training would look exactly like this. Program accuracy on the
+                same run is {formatPercent(sdkArm?.program_accuracy ?? null)}, against the
+                paper&rsquo;s {formatPercent(PAPER_HUMAN.prog)} for a human: it reaches the right
+                numbers without reproducing the gold programs, so this is not a claim of human-level
                 reasoning.
               </p>
-            </li>
-            <li className="rounded-[4px] border border-amber-line px-2.5 py-2">
-              <div className="mono-caps text-amber">model and architecture moved together</div>
-              <p className="type-small mt-1 text-muted">
-                The pipeline arm is {ARMS.pipeline.title}; the SDK arm is {ARMS.agent_sdk.title}. Both
-                variables changed in the same step.{' '}
+            </div>
+            <div className="callout">
+              <span className="ttl">model and architecture moved together</span>
+              <p>
+                The pipeline arm is {ARMS.pipeline.title}; the SDK arm is {ARMS.agent_sdk.title}.
+                Both variables changed in the same step.{' '}
                 {swapRows.length > 0
                   ? 'The model swap above measures the session-side half — the same prompt on a second model — but no four-agent run on a Claude model exists, so the other half stays open.'
-                  : 'The confound was never isolated — no single-session run on the pipeline\u2019s model, and no four-agent run on the SDK\u2019s.'}{' '}
-                The measured delta is real; the attribution of it to &ldquo;one session is better
-                than four&rdquo; is not established.
+                  : 'The confound was never isolated — no single-session run on the pipeline’s model, and no four-agent run on the SDK’s.'}{' '}
+                The measured delta is real; its attribution to &ldquo;one session is better than
+                four&rdquo; is not established.
               </p>
-            </li>
-            <li className="rounded-[4px] border border-amber-line px-2.5 py-2">
-              <div className="mono-caps text-amber">the gate split has been read many times</div>
-              <p className="type-small mt-1 text-muted">
+            </div>
+            <div className="callout">
+              <span className="ttl">the gate split has been read many times</span>
+              <p>
                 The same {formatCount(verdict.gateQuestions)} questions across{' '}
-                {formatCount(verdict.gateReports)} conversations have now been read by at least{' '}
-                {formatCount(nGateReads)} gated comparisons across both arms. Every read costs some of its
-                unseen-ness, so the interval on this delta is optimistic in a way no single test
-                reports. The sealed holdout — opened once, on the record — is the only split left
-                that has not been read.
+                {formatCount(verdict.gateReports)} conversations have been read by at least{' '}
+                {formatCount(nGateReads)} gated comparisons across both arms. Every read costs some
+                of its unseen-ness, so the interval on this delta is optimistic in a way no single
+                test reports. The sealed holdout — opened once, on the record — is the only split
+                left unread.
               </p>
-            </li>
-          </ul>
-        </Panel>
-      </TwoUp>
-    </AdminPage>
+            </div>
+          </div>
+          <div className="card">
+            <h3>What made the comparison possible</h3>
+            <p className="small">
+              MLflow and the eval loop give both runtimes one fixed gate split, one evaluator, one
+              significance rule and one append-only record. Because the split, the scoring and the
+              promotion test were fixed before this arm existed, swapping the runtime changed
+              exactly one thing, and the difference could be measured rather than argued about.
+              Every figure on this page is read back out of that record — the same record the
+              published write-up is built from — so the two cannot disagree.
+            </p>
+            <p className="small muted">
+              {data?.rule ? `Promotion rule: ${data.rule}.` : ''}{' '}
+              {data?.generated_at ? `Record generated ${data.generated_at}.` : ''}
+            </p>
+          </div>
+        </TwoUp>
+      </Sec>
+
+      <p className="rt-next">
+        <Link to="/scoring">The confidence judge that was tried on this runtime →</Link>
+      </p>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { PanelLeft } from 'lucide-react';
 import { useStore } from '../../store';
 
 /**
@@ -14,24 +13,22 @@ export function ChatEmptyHeader({ onShowSessions }: { onShowSessions: () => void
   const openPicker = useStore((s) => s.openPicker);
 
   return (
-    <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-panel px-3">
+    <div className="ch-head">
       <button
         type="button"
         onClick={onShowSessions}
         aria-label="Show sessions"
-        className="rounded-[4px] border border-line-2 p-1 text-muted transition-colors hover:border-amber-line hover:text-amber md:hidden"
+        className="tog ch-narrow-md"
       >
-        <PanelLeft className="size-3" aria-hidden />
+        ☰ sessions
       </button>
-      <span className="mono-caps shrink-0">filing</span>
-      <span className="type-small min-w-0 flex-1 truncate text-faint italic">
-        none selected
-      </span>
+      <span className="label">filing</span>
+      <span className="ch-fill ch-trunc small muted">— none selected</span>
       <button
         type="button"
         onClick={openPicker}
         data-testid="topbar-change-report"
-        className="type-num type-meta shrink-0 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
+        className="tog"
       >
         + new conversation
       </button>

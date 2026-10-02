@@ -106,7 +106,7 @@ test.describe('status board at /', () => {
       const tile = page.getByTestId(testId);
       await expect(tile, `${testId} should be on the board`).toBeVisible();
       // "A metric a reader cannot drill into is decoration."
-      await expect(tile).toHaveAttribute('href', /^\/admin\//);
+      await expect(tile).toHaveAttribute('href', /^\/(optimise|runs|scoring|agent)(\/|$)/);
     }
 
     // --- three recorded conversations, each a door into the chat ----------
@@ -115,7 +115,7 @@ test.describe('status board at /', () => {
     for (let i = 0; i < 3; i++) {
       const rid = await cards.nth(i).getAttribute('data-rid');
       expect(rid, 'each card names the filing it opens').toBeTruthy();
-      await expect(cards.nth(i)).toHaveAttribute('href', `/chat/${rid}`);
+      await expect(cards.nth(i)).toHaveAttribute('href', `/agent/chat/${rid}`);
     }
   });
 
@@ -271,7 +271,7 @@ test.describe('status board at /', () => {
     await openBoard(page);
 
     // The secondary CTA — "or start from any filing".
-    await expect(page.getByTestId('landing-cta')).toHaveAttribute('href', '/chat');
+    await expect(page.getByTestId('landing-cta')).toHaveAttribute('href', '/agent/chat');
 
     // The primary one, clicked, because that is the path every other spec takes.
     await page.getByTestId('landing-enter').click();

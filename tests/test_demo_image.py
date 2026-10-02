@@ -47,6 +47,7 @@ SHIPPED_ARTIFACTS: dict[str, str] = {
     "evaluation/splits/": "GET /eval/dataset",
     "evaluation/predictions/": "GET /eval/answers, GET /eval/loop-runs",
     "evaluation/diagnostics/": "GET /admin/rules",
+    "evaluation/diagnostics/evalloop/diagnoses.jsonl": "GET /eval/gold-review",
     "evaluation/judge/": "the judge's own record",
     "data/": "GET /reports",
     "runs/": "the GEPA overlay the pipeline runtime loads",
@@ -70,10 +71,18 @@ def _copied_paths() -> set[str]:
     return copied
 
 
+def _is_copied(artifact: str) -> bool:
+    """The artifact itself is copied, or a directory above it is (`evaluation/diagnostics/`)."""
+    copied = _copied_paths()
+    parts = artifact.rstrip("/").split("/")
+    ancestors = {"/".join(parts[:i]) + "/" for i in range(1, len(parts))}
+    return artifact in copied or bool(ancestors & copied)
+
+
 @pytest.mark.parametrize(("artifact", "reader"), sorted(SHIPPED_ARTIFACTS.items()))
 def test_artifact_is_committed_and_shipped(artifact: str, reader: str) -> None:
     assert (REPO_ROOT / artifact).exists(), f"{artifact} is missing from the repo"
-    assert artifact in _copied_paths(), (
+    assert _is_copied(artifact), (
         f"{artifact} is read by {reader} but the Dockerfile never copies it, "
         "so that route serves its empty state on the public demo"
     )

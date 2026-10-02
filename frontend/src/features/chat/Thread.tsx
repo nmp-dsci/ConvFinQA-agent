@@ -1,6 +1,4 @@
-import { PanelRight, Table2, Trash2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
 import { useIsDemo } from '../../modeStore';
 import { useStore } from '../../store';
 import type { Conversation, Message } from '../../types';
@@ -17,14 +15,9 @@ function ModeChip() {
           ? 'This deployment holds no API key. Every turn is a recording made in development, replayed.'
           : 'Live: every turn is a real model call'
       }
-      className={cn(
-        'type-num type-meta shrink-0 rounded-full px-2 py-0.5 leading-tight',
-        isDemo
-          ? 'border border-dashed border-amber-line text-amber'
-          : 'border border-good-line text-good'
-      )}
+      className={isDemo ? 'tag warn ch-replay' : 'tag ok'}
     >
-      {isDemo ? 'recorded replay' : 'live model'}
+      {isDemo ? '◌ recorded replay' : '● live model'}
     </span>
   );
 }
@@ -36,7 +29,9 @@ interface Props {
   docOpen: boolean;
   onToggleDoc: () => void;
   selectedMessage: Message | null;
-  /** Only rendered below the inspector's breakpoint, where it is a drawer. */
+  /** Only shown below the sessions pane's breakpoint, where it is a drawer. */
+  onShowSessions?: () => void;
+  /** Only shown below the inspector's breakpoint, where it is a drawer. */
   onToggleInspector?: () => void;
 }
 
@@ -47,6 +42,7 @@ export function Thread({
   docOpen,
   onToggleDoc,
   selectedMessage,
+  onShowSessions,
   onToggleInspector,
 }: Props) {
   const openPicker = useStore((s) => s.openPicker);
@@ -70,14 +66,24 @@ export function Thread({
   const isDemo = useIsDemo();
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-panel">
+    <div className="ch-thread">
       {/*
         Wraps rather than clips below ~520 px. A header that scrolls its own
         controls off the right edge hides the reset and inspector buttons on a
         phone with nothing on screen to say they exist.
       */}
-      <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-3 py-1">
-        <span className="mono-caps shrink-0">filing</span>
+      <div className="ch-head">
+        {onShowSessions && (
+          <button
+            type="button"
+            onClick={onShowSessions}
+            aria-label="Show sessions"
+            className="tog ch-narrow-md"
+          >
+            ☰ sessions
+          </button>
+        )}
+        <span className="label">filing</span>
         {/*
           An <h1>, not a <span>: the thread is about exactly one filing, and
           that filing's id is the page's subject. Without it the chat has no
@@ -86,11 +92,7 @@ export function Thread({
           than reading the transcript. The text is unchanged — `smoke.spec.ts`
           asserts this element's text equals the report id exactly.
         */}
-        <h1
-          data-testid="active-report-id"
-          title={rid}
-          className="type-num type-small min-w-0 flex-1 truncate font-normal text-text"
-        >
+        <h1 data-testid="active-report-id" title={rid} className="ch-title ch-fill ch-trunc">
           {rid}
         </h1>
         <ModeChip />
@@ -101,15 +103,9 @@ export function Thread({
           aria-expanded={docOpen}
           data-testid="toggle-document"
           title="Show the filing, with the cells this turn's retriever returned highlighted"
-          className={cn(
-            'type-num type-meta flex shrink-0 items-center gap-1 rounded-[4px] border px-2 py-0.5 transition-colors',
-            docOpen
-              ? 'border-amber-line bg-amber-soft text-amber'
-              : 'border-line-2 text-muted hover:border-amber-line hover:text-amber'
-          )}
+          className={docOpen ? 'tog on' : 'tog'}
         >
-          <Table2 className="size-3" aria-hidden />
-          filing
+          ▤ filing
         </button>
 
         <button
@@ -117,9 +113,9 @@ export function Thread({
           onClick={openPicker}
           data-testid="topbar-change-report"
           title="Open a different filing"
-          className="type-num type-meta shrink-0 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-amber-line hover:text-amber"
+          className="tog"
         >
-          change
+          ⇄ change
         </button>
 
         <button
@@ -134,20 +130,20 @@ export function Thread({
           }}
           data-testid="reset-conversation"
           title="Clear the history so the next question is answered with no prior context"
-          className="type-num type-meta flex shrink-0 items-center gap-1 rounded-[4px] border border-line-2 px-2 py-0.5 text-muted transition-colors hover:border-bad hover:text-bad disabled:opacity-30 disabled:hover:border-line-2 disabled:hover:text-muted"
+          className="tog"
         >
-          <Trash2 className="size-3" aria-hidden />
-          reset
+          ↻ reset
         </button>
 
         {onToggleInspector && (
           <button
             type="button"
             onClick={onToggleInspector}
+            aria-label="Show the trace inspector"
             title="Show the trace inspector"
-            className="shrink-0 rounded-[4px] border border-line-2 p-1 text-muted transition-colors hover:border-amber-line hover:text-amber xl:hidden"
+            className="tog ch-narrow-xl"
           >
-            <PanelRight className="size-3" aria-hidden />
+            ◧ trace
           </button>
         )}
       </div>
@@ -158,36 +154,32 @@ export function Thread({
         reading the table while typing the next question is the whole point.
       */}
       {isDemo && (
-        <p
-          data-testid="demo-banner"
-          className="type-small shrink-0 border-b border-dashed border-amber-line bg-amber-soft px-3 py-1.5 text-text"
-        >
-          <span className="mono-caps mr-1.5 text-amber">demo</span>
+        <p data-testid="demo-banner" className="ch-banner">
+          <b className="ch-kicker">◐ demo</b>
           Replaying a recorded run at its real pacing — the stage events, tool calls and timings
           captured in development. No model is called on this deployment.
         </p>
       )}
 
-      <div className="relative min-h-0 min-w-0 flex-1">
-        <div
-          ref={scrollRef}
-          className="absolute inset-0 overflow-y-auto overflow-x-hidden px-3 py-2"
-        >
-          {conversation.messages.length === 0 ? (
-            <p className="type-small mt-10 text-center text-faint">
-              No turns yet. Ask a question below, or pick one of the suggested questions to watch
-              all four stages run.
-            </p>
-          ) : (
-            conversation.messages.map((message) => (
-              <Turn
-                key={message.id}
-                message={message}
-                selected={message.id === selectedId}
-                onSelect={onSelect}
-              />
-            ))
-          )}
+      <div className="ch-body">
+        <div ref={scrollRef} className="ch-scroll">
+          <div className="ch-turns">
+            {conversation.messages.length === 0 ? (
+              <p className="empty ch-none">
+                No turns yet. Ask a question below, or pick one of the suggested questions to
+                watch all four stages run.
+              </p>
+            ) : (
+              conversation.messages.map((message) => (
+                <Turn
+                  key={message.id}
+                  message={message}
+                  selected={message.id === selectedId}
+                  onSelect={onSelect}
+                />
+              ))
+            )}
+          </div>
         </div>
 
         {docOpen && (

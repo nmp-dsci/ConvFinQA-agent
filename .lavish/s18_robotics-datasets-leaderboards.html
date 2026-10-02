@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robotics Leaderboard Projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* House "Field Guide" tokens (nmp-ui-kit 1.0.0) with the ConvFinQA blue accent. */
+:root{
+  --bg:#F7F6F2; --panel:#FFFFFF; --band:#EFEEE8;
+  --ink:#1A1D1B; --ink-2:#3B403D; --muted:#4A514D; --faint:#5C635E;
+  --line:#DCDAD2; --line-2:#C7C5BC;
+  --amber:#8A5006; --amber-soft:#F6E6CF; --ok:#0A6552; --ok-soft:#DFEFE8; --red:#A2342B; --red-soft:#F6DEDB;
+  --accent:#1F4E8C; --accent-ink:#FFFFFF; --accent-soft:#DCE6F3;
+  --sans:'IBM Plex Sans',system-ui,sans-serif; --serif:'IBM Plex Serif',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --r:10px; --shadow:0 1px 2px rgb(20 25 22 / .05), 0 12px 28px -18px rgb(20 25 22 / .22);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121614; --panel:#191E1B; --band:#161A18; --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+  --line:#28302B; --line-2:#3A443E; --amber:#D99A4E; --amber-soft:#3A2A14; --ok:#43C29A; --ok-soft:#17382C; --red:#E8776B; --red-soft:#3D1D1A;
+  --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40; --shadow:0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -18px rgb(0 0 0 / .65);
+}}
+:root[data-theme="dark"]{
+  --bg:#121614; --panel:#191E1B; --band:#161A18; --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+  --line:#28302B; --line-2:#3A443E; --amber:#D99A4E; --amber-soft:#3A2A14; --ok:#43C29A; --ok-soft:#17382C; --red:#E8776B; --red-soft:#3D1D1A;
+  --accent:#7EA8E4; --accent-ink:#0C1320; --accent-soft:#172A40;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.6 var(--sans)}
+a{color:var(--accent)}
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+header.top .in{max-width:1140px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.brand{font:500 .95rem var(--mono);color:var(--ink)} .brand b{color:var(--accent);font-weight:500}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+nav.tabs a{font:500 .8rem var(--sans);text-decoration:none;color:var(--ink-2);padding:5px 12px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel)}
+nav.tabs a:hover{border-color:var(--accent);color:var(--accent)}
+main{max-width:1140px;margin:0 auto;padding:40px 16px 96px}
+.eyebrow,.label{font:500 .8rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:0}
+h1{font:400 clamp(1.8rem,4vw,2.6rem)/1.15 var(--serif);margin:10px 0 14px;max-width:26ch}
+h1 em,h2 em{color:var(--accent);font-style:italic}
+.lead{font:400 1.15rem/1.55 var(--serif);color:var(--ink-2);max-width:68ch;margin:0}
+h2{font:400 1.6rem/1.25 var(--serif);margin:6px 0 10px}
+h3{font:600 1rem var(--sans);margin:0 0 6px}
+section{margin-top:56px}
+p{max-width:72ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin-top:28px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.kpi .v{font:500 1.7rem/1.1 var(--serif);color:var(--accent)}
+.kpi .k{font-size:.875rem;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.card p{margin:.4em 0}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:880px;font-size:.9rem}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:500 .8rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint);background:var(--band)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);white-space:nowrap}
+code{font:400 .85em var(--mono);background:var(--band);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.pill{display:inline-block;font:500 .8rem var(--mono);padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok);background:var(--ok-soft)} .pill.warn{color:var(--amber);background:var(--amber-soft)} .pill.no{color:var(--red);background:var(--red-soft)} .pill.acc{color:var(--accent);background:var(--accent-soft)}
+.fit{font:500 .9rem var(--mono);color:var(--accent);white-space:nowrap}
+.map{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.map > div{padding:10px 14px;border-bottom:1px solid var(--line);min-width:0}
+.map > div:nth-last-child(-n+2){border-bottom:0}
+.map .req{background:var(--band);font-weight:500}
+@media (max-width:640px){.map{grid-template-columns:1fr}.map .req{border-bottom:0}}
+.proj{border-left:4px solid var(--accent)}
+.proj .tag{margin-bottom:6px}
+.proj ul{margin:.4em 0;padding-left:1.1em}
+.proj li{margin:.2em 0}
+.callout{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:var(--r);background:var(--panel);padding:14px 16px;margin:12px 0}
+.callout.note{border-left-color:var(--accent)}
+.callout .ttl{display:block;font-weight:600;margin-bottom:4px}
+form.q{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-top:14px}
+form.q fieldset{border:0;padding:0;margin:0 0 14px}
+form.q legend{font-weight:600;margin-bottom:8px}
+form.q label{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+form.q textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink)}
+.btn{font:500 .9rem var(--sans);background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
+.small{font-size:.875rem;color:var(--muted)}
+footer{max-width:1140px;margin:0 auto;padding:24px 16px 48px;color:var(--faint);font-size:.875rem;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <span class="brand">spike<b>-multimodal-robotics</b></span>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#role">Role</a><a href="#boards">Scoreboards</a><a href="#datasets">Datasets</a><a href="#projects">Projects</a><a href="#risks">Risks</a><a href="#decide">Decide</a>
+  </nav>
+</div></header>
+
+<main>
+  <p class="eyebrow">Spike · Alloy Robotics ML Engineer · checked live 30 Sep 2026</p>
+  <h1>Three live Hugging Face scoreboards map onto Alloy's job, and <em>one closes in 31 days</em>.</h1>
+  <p class="lead">Alloy is a data platform: it turns fleet logs, video and telemetry into a queryable layer with agents on top. The closest public work is reasoning about why a machine did something from multi-camera video, forecasting telemetry, and retrieval over episodes. Each has a Hugging Face dataset. Two have leaderboards you can submit to yourself; the third is listed on request.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v">0.928</div><div class="k">top <code>top1_score</code> on NVIDIA's AV reasoning board (21 Sep); most entries sit at 0.857</div></div>
+    <div class="kpi"><div class="v">31 Oct</div><div class="k">NVIDIA challenge deadline; Track 1 winner gets a DGX Spark</div></div>
+    <div class="kpi"><div class="v">0.349</div><div class="k">best CRPS on Datadog BOOM (Toto 2.0 2.5B), 32,887 real telemetry series</div></div>
+    <div class="kpi"><div class="v">74.0</div><div class="k">best RoboFail score on PAI-Bench Understanding (GPT-5); the best overall score is 70.8 (Cosmos-Reason2-32B)</div></div>
+  </div>
+
+  <section id="role">
+    <p class="label">01 · The role</p>
+    <h2>What the posting asks for, and <em>which public task exercises it</em></h2>
+    <div class="map">
+      <div class="req">Evaluation systems for quality, speed and cost</div><div>A judge-scored board (NVIDIA AlpaJudge) where you report the score together with the cost per clip and the time per clip. ConvFinQA's gate, McNemar test and MLflow loop carry over directly.</div>
+      <div class="req">Retrieval over messy fleet data</div><div>Picking the right keyframes from a multi-camera clip, and searching across DROID episodes in natural language (Project C). MTEB covers the embedding side.</div>
+      <div class="req">Inference cost down: routing, caching, distillation</div><div>NVIDIA Track 1 asks for 6 rollouts per event. Distilling a large VLM teacher into a small one, and routing easy events to the cheap model, is the whole game.</div>
+      <div class="req">Task-specific models where APIs fall short</div><div>Fine-tuning a small time-series foundation model (TSFM) on BOOMLET, or a VLM on the PAI-AV train split.</div>
+      <div class="req">Time-series and sensor data (nice to have)</div><div>BOOM: 350M points of real observability telemetry, the closest public stand-in for fleet telemetry.</div>
+      <div class="req">Cross-fleet usage into datasets and detectors</div><div>NVIDIA Track 2 (auto-labelling), RoboFAC failure labels, and anomaly detection from forecast error on BOOM.</div>
+      <div class="req">Open-source work they can read</div><div>Every project below ends in a public leaderboard row or a public repo, and each shows the portfolio's house UI.</div>
+    </div>
+  </section>
+
+  <section id="boards">
+    <p class="label">02 · Scoreboards</p>
+    <h2>Live leaderboards, <em>ranked by fit to the role</em></h2>
+    <p class="small">I opened each Space in Chrome on 30 Sep 2026. Dataset stats come from the Hugging Face API. "Self-serve" means you submit and get a score back without a maintainer.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Board</th><th>Task</th><th>Current top</th><th>Submit</th><th>Status</th><th>Fit</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://huggingface.co/spaces/nvidia/PhysicalAI-OOD-Leaderboard">NVIDIA PhysicalAI AV OOD Reasoning</a><br><span class="small">info: <a href="https://huggingface.co/spaces/nvidia/PhysicalAI-AV-OOD-Reasoning-Challenge-2026">challenge page</a></span></td>
+          <td>Multi-camera driving clip plus an event window. Output a chain-of-causation: the agents involved, the interaction, and what the ego vehicle should do. Track 1 is 214 clips / 284 events. Track 2 auto-labels 290 validation clips.</td>
+          <td class="num">0.9281 top1<br>0.857 cluster</td><td><span class="pill ok">self-serve</span><br><span class="small">upload <code>submission.json</code>; scored on GPU in minutes; can be kept private</span></td>
+          <td><span class="pill warn">closes 31 Oct</span></td><td class="fit">●●●●●</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/Datadog/BOOM">Datadog BOOM</a></td>
+          <td>Forecasting observability metrics: ~350M points, 32,887 variates. BOOMLET is a 23M-point subset for small budgets.</td>
+          <td class="num">CRPS 0.349<br>MASE 0.581</td><td><span class="pill acc">results PR</span><br><span class="small">run their eval, open a PR with the results JSON</span></td>
+          <td><span class="pill ok">open</span></td><td class="fit">●●●●○</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/shi-labs/physical-ai-bench-leaderboard">PAI-Bench, Understanding tab</a></td>
+          <td>1,214 embodied-reasoning video QA items with columns for RoboFail, RoboVQA, AgiBot, BridgeData V2, HoloAssist and AV.</td>
+          <td class="num">70.8 overall<br>GPT-5 69.8</td><td><span class="pill warn">self-score</span><br><span class="small">run the scripts in their GitHub repo; ask the maintainers to add a row</span></td>
+          <td><span class="pill ok">updated Aug</span></td><td class="fit">●●●●○</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/Salesforce/GIFT-Eval">GIFT-Eval</a> · <a href="https://huggingface.co/spaces/autogluon/fev-bench">fev-bench</a></td>
+          <td>General time-series forecasting. These are the mainstream TSFM boards and are more crowded than BOOM.</td>
+          <td class="num">—<span class="small"> not recorded</span></td><td><span class="pill acc">results PR</span></td>
+          <td><span class="pill ok">updated Sep</span></td><td class="fit">●●●○○</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/mteb/leaderboard">MTEB</a></td>
+          <td>Text embedding and retrieval. The tool you would use to choose an embedder for Project C, not a place to compete.</td>
+          <td class="num">—<span class="small"> general</span></td><td><span class="pill acc">results PR</span></td>
+          <td><span class="pill ok">very active</span></td><td class="fit">●●○○○</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/HuggingFaceVLA/libero-vla-leaderboard">LIBERO VLA board</a></td>
+          <td>Robot manipulation policies in simulation (VLAs).</td>
+          <td class="num">smolvla 0.87 avg</td><td><span class="pill warn">few rows</span></td>
+          <td><span class="pill warn">thin</span></td><td class="fit">●○○○○</td></tr>
+        <tr><td><a href="https://huggingface.co/spaces/nexar-ai/nexar-driving-leaderboard">Nexar driving board</a></td>
+          <td>Driving-incident classification from dashcam video (F1).</td>
+          <td class="num">—<span class="small"> loaded empty</span></td><td><span class="pill no">static</span></td>
+          <td><span class="pill no">2024</span></td><td class="fit">●●○○○</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">LIBERO measures robot control. Alloy sells data and debugging, not policies, so a VLA score would signal the wrong job.</p>
+  </section>
+
+  <section id="datasets">
+    <p class="label">03 · Datasets</p>
+    <h2>The data under the boards, and <em>the fleet-like data that has no board</em></h2>
+    <div class="tw"><table>
+      <thead><tr><th>Dataset</th><th>What it is</th><th>Access</th><th>Signal</th><th>Use in</th></tr></thead>
+      <tbody>
+        <tr><td><code>nvidia/PhysicalAI-Autonomous-Vehicles</code></td><td>NVIDIA's PAI-AV corpus: multi-camera clips; <code>reasoning/ood_reasoning.parquet</code> holds the labelled train and val splits</td><td><span class="pill warn">gated</span> accept the licence</td><td class="num">229k dl · 1,103 ♥</td><td>A</td></tr>
+        <tr><td><code>Datadog/BOOM</code></td><td>Real observability telemetry, 100M–1B points, Apache-2.0</td><td><span class="pill ok">open</span></td><td class="num">3.5k dl · 36 ♥</td><td>B</td></tr>
+        <tr><td><code>shi-labs/physical-ai-bench-understanding</code></td><td>PAI-Bench video QA, including RoboFail failure items</td><td><span class="pill ok">open</span></td><td class="num">674 dl</td><td>A, C</td></tr>
+        <tr><td><code>MINT-SJTU/RoboFAC-dataset</code></td><td>Robot failure analysis and correction as video-text QA (10K–100K rows, MIT). This is the "why did the robot break" task, labelled.</td><td><span class="pill ok">open</span></td><td class="num">9.8k dl</td><td>C</td></tr>
+        <tr><td><code>lerobot/droid_1.0.1</code></td><td>DROID in LeRobot format: real teleoperated episodes with video, state, action and a language instruction. The closest open stand-in for fleet logs.</td><td><span class="pill ok">open</span></td><td class="num">17k dl</td><td>C</td></tr>
+        <tr><td><code>nexar-ai/nexar_collision_prediction</code></td><td>Dashcam clips labelled for collision or near-miss; updated 29 Sep</td><td><span class="pill warn">gated</span></td><td class="num">11k dl</td><td>detector side-quest</td></tr>
+        <tr><td><code>nominal-io/dji-drone-telemetry</code> · <code>bolu61/loghub_2</code></td><td>Drone flight telemetry, and system logs. Both are small; useful to make a query demo feel real.</td><td><span class="pill ok">open</span></td><td class="num">small</td><td>C</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout note"><span class="ttl">The gap is the opportunity</span>I found no live Hugging Face leaderboard for querying robot logs, fleet telemetry anomalies, or failure retrieval. Searches for robot anomaly, flight log, UAV fault and TSB-AD turned up only one-off uploads. That is exactly Alloy's product, so Project C builds that board yourself.</div>
+  </section>
+
+  <section id="projects">
+    <p class="label">04 · Projects</p>
+    <h2>Three projects, each ending in <em>a number someone else can check</em></h2>
+    <div class="grid2">
+      <div class="card proj">
+        <p class="tag"><span class="pill warn">A · do first · deadline</span></p>
+        <h3>"Why did it do that?": NVIDIA AV reasoning, Tracks 1 and 2</h3>
+        <ul>
+          <li><b>Build:</b> clip → keyframe and camera selection (retrieval) → open VLM (Cosmos-Reason2 / Qwen3-VL) → chain-of-causation → 6 rollouts, with the best one reranked into slot 1.</li>
+          <li><b>Loop:</b> a local AlpaJudge proxy on the labelled train split, driving the same diagnose → rewrite → gate cycle as ConvFinQA.</li>
+          <li><b>Cost story:</b> score against $ per event and seconds per event; distil the teacher into a small model; route events by difficulty.</li>
+          <li><b>Proof:</b> a public board row before 31 Oct, plus a write-up of the cost curve.</li>
+        </ul>
+        <p class="small">Covers: evals · retrieval · cost · distillation · multimodal.</p>
+      </div>
+      <div class="card proj">
+        <p class="tag"><span class="pill acc">B · time series</span></p>
+        <h3>Fleet telemetry: BOOM forecasting, then an anomaly detector</h3>
+        <ul>
+          <li><b>Build:</b> baselines (seasonal naive, Chronos-Bolt, Toto) on BOOMLET → fine-tune a small TSFM → submit to BOOM.</li>
+          <li><b>Extend:</b> turn forecast error into an anomaly score; inject faults into held-out series and report precision and recall.</li>
+          <li><b>Cost story:</b> CRPS against inference ms per 1k series across model sizes.</li>
+          <li><b>Proof:</b> a BOOM results PR, plus a detector benchmark in the repo.</li>
+        </ul>
+        <p class="small">Covers: sensor data · task-specific models · detectors.</p>
+      </div>
+      <div class="card proj">
+        <p class="tag"><span class="pill acc">C · the product</span></p>
+        <h3>"Ask the fleet": natural-language search and failure reports over robot episodes</h3>
+        <ul>
+          <li><b>Build:</b> index DROID episodes (video frames, state, language) and RoboFAC failures; an agent answers "show me grasps that failed on transparent objects" and writes a mission report.</li>
+          <li><b>Scoreboard:</b> your own benchmark (recall@k, answer accuracy, $ per query), published as a Hugging Face dataset and Space, with PAI-Bench RoboFail as the external check.</li>
+          <li><b>UI:</b> a new house-kit app: eight tabs, its own accent colour, <code>make ui-new</code>.</li>
+          <li><b>Proof:</b> a public dataset, a Space and a leaderboard. This is the demo to show Alloy.</li>
+        </ul>
+        <p class="small">Covers: retrieval · agents · evals · the platform itself.</p>
+      </div>
+    </div>
+    <div class="callout note"><span class="ttl">Order</span>A first, because its board closes on 31 Oct. B runs in parallel on CPU and cheap GPU. C starts once A's harness exists, because it reuses A's multimodal retrieval and eval code.</div>
+  </section>
+
+  <section id="risks">
+    <p class="label">05 · Risks</p>
+    <h2>What could <em>waste the month</em></h2>
+    <div class="grid2">
+      <div class="callout"><span class="ttl">The judge is a model</span>AlpaJudge scores against hidden labels. Tuning to a local proxy can drift from it, so keep private submissions as the truth check; the board allows unpublished runs.</div>
+      <div class="callout"><span class="ttl">Compute</span>284 events × 6 rollouts from a 7–32B VLM needs a GPU. Budget it: HF Inference Endpoints, a rented A100 for hours not days, or an API VLM as the teacher only. The platform runs no GPU today.</div>
+      <div class="callout"><span class="ttl">Gated data</span>You have to accept the PAI-AV and Nexar licences in your own HF account. I didn't, and can't do it for you.</div>
+      <div class="callout"><span class="ttl">Crowded ceiling</span>Many Track 1 entries tie at 0.857 on 7 Aug, which looks like a shared baseline. The gain comes from reranking and the cost story, not from a bigger model.</div>
+      <div class="callout"><span class="ttl">Where the code lives</span>The branch <code>spike-multimodal-robotics</code> sits on ConvFinQA-agent, but this work is not ConvFinQA. It probably wants its own sibling repo registered in nmp-central-ai, with a new accent colour and MLflow experiments named <code>robotics/…</code>.</div>
+      <div class="callout"><span class="ttl">Not verified</span>Nexar's live collision board was on Kaggle, not Hugging Face, and I didn't check it. PAI-Bench does not accept self-serve submissions.</div>
+    </div>
+  </section>
+
+  <section id="decide">
+    <p class="label">06 · Decide</p>
+    <h2>Pick the start, and <em>I'll write the build plan</em></h2>
+    <form class="q" data-lavish-question="robotics-spike" onsubmit="event.preventDefault(); const f=new FormData(event.currentTarget); const first=f.get('first'); const home=f.get('home'); const also=f.getAll('also'); const note=(f.get('note')||'').trim(); if(!first||!home) return; window.lavish && window.lavish.queuePrompt('Robotics spike: start with '+first+'; code lives in '+home+(also.length?'; also: '+also.join(', '):'')+(note?'; note: '+note:'')+'. Write the build plan as the next lavish page.', {tag:'choice', text:'Start '+first+' in '+home, element:event.currentTarget, data:{first,home,also,note}});">
+      <fieldset><legend>Which project first?</legend>
+        <label><input type="radio" name="first" value="A · NVIDIA AV reasoning (deadline 31 Oct)" checked> <span><b>A · NVIDIA AV reasoning</b> (recommended: a live deadline and a prize)</span></label>
+        <label><input type="radio" name="first" value="B · BOOM telemetry + anomaly detector"> <span><b>B · BOOM telemetry</b> (cheapest compute)</span></label>
+        <label><input type="radio" name="first" value="C · Ask-the-fleet own benchmark"> <span><b>C · Ask the fleet</b> (closest to Alloy's product; no external board)</span></label>
+      </fieldset>
+      <fieldset><legend>Where should the code live?</legend>
+        <label><input type="radio" name="home" value="a new sibling repo registered in nmp-central-ai" checked> <span>A new sibling repo in <code>nmp-ai-portfolio</code>, registered with its own accent colour (recommended)</span></label>
+        <label><input type="radio" name="home" value="the spike-multimodal-robotics branch of ConvFinQA-agent"> <span>Keep it on the <code>spike-multimodal-robotics</code> branch here</span></label>
+      </fieldset>
+      <fieldset><legend>Also include</legend>
+        <label><input type="checkbox" name="also" value="Track 2 auto-labelling"> <span>NVIDIA Track 2 (auto-labelling), which reuses the Track 1 pipeline</span></label>
+        <label><input type="checkbox" name="also" value="GPU cost estimate"> <span>A GPU and API cost estimate before any spend</span></label>
+        <label><input type="checkbox" name="also" value="CV/cover-letter mapping"> <span>A one-page mapping of the finished work to the Alloy posting</span></label>
+      </fieldset>
+      <textarea name="note" rows="2" placeholder="Anything else: budget, hours per week, GPU access…"></textarea>
+      <p><button class="btn" type="submit">Queue this answer</button></p>
+    </form>
+  </section>
+</main>
+<footer>Sources: the Alloy Robotics ML Engineer posting on Dover; Hugging Face Spaces opened in Chrome and the Hugging Face API, 30 Sep 2026. Board figures are as displayed on that date. Branch: <code>spike-multimodal-robotics</code>.</footer>
+</body>
+</html>

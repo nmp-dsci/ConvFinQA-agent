@@ -1,0 +1,6 @@
+/* Scoring (slot 3): how a turn is judged. Tokens only. The judge blocks' own rules come with
+   features/admin/judge.tsx (runtimes.css). */
+.sc-kv{grid-template-columns:minmax(8rem,auto) minmax(0,1fr);max-width:var(--measure)}
+.sc-kv dt{padding-top:.15em;text-transform:none;letter-spacing:0}
+.doc-section .body>.label{margin-top:0}
+.doc-section .steps code,.sc-kv code{overflow-wrap:anywhere}
