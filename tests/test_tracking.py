@@ -627,6 +627,30 @@ def test_evalloop_champion_csv_path_matches_exact_version_and_latest_run(
         comparator.evalloop_champion_csv_path("v9")
 
 
+def test_evalloop_champion_csv_path_finds_sdk_runs_and_skips_model_pinned_ones(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sdk runtime's `sdk-evalloop-…` names are found, and a challenger run
+    pinned to another model is never taken for the champion's own evidence,
+    even when it is newer."""
+    from convfinqa.tracking import comparator
+
+    evalloop_dir = tmp_path / "evalloop"
+    evalloop_dir.mkdir(parents=True)
+    monkeypatch.setattr(
+        comparator, "EVALLOOP_PREDICTIONS_DIR", evalloop_dir, raising=False
+    )
+    for name in (
+        "sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv",  # champion -> picked
+        "sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310.csv",
+        "sdk-evalloop-train100-sdk_v1·s1-20260905_180924.csv",
+    ):
+        (evalloop_dir / name).write_text("report_id\n")
+
+    picked = comparator.evalloop_champion_csv_path("sdk_v1")
+    assert picked.name == "sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv"
+
+
 def test_load_evalloop_champion_predictions_normalises_and_rejects_wrong_split(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
