@@ -482,14 +482,21 @@ def runtime_model_of(manifest: dict[str, Any]) -> str:
     if recorded:
         return str(recorded)
     from convfinqa.evalloop.runner import prior_sdk_model
-    from convfinqa.llm import LM_SDK_MODEL
+    from convfinqa.llm import LM_SDK_MODEL, sdk_model_slug
+    from convfinqa.tracking import registry
 
+    known = [LM_SDK_MODEL, "claude-haiku-5-5", "claude-haiku-4-5-20251001"]
+    champion_model = (registry.champion_agent() or {}).get("model")
+    if champion_model:
+        known.insert(1, str(champion_model))
+    by_slug = {sdk_model_slug(m): m for m in reversed(known)}
     slugs = {
         slug
         for path in (manifest.get("sources") or {}).values()
         if path and (slug := prior_sdk_model(str(path)))
     }
-    return ",".join(sorted(slugs)) if slugs else LM_SDK_MODEL
+    models = {by_slug.get(slug, slug) for slug in slugs}
+    return ",".join(sorted(models)) if models else LM_SDK_MODEL
 
 
 def build_dataset(

@@ -119,6 +119,39 @@ def test_a_prompt_promotion_keeps_the_champions_model_and_effort(
     assert registry.pipeline_champion() == "v8"
 
 
+def _verdict(**over: Any) -> dict[str, Any]:
+    base = {
+        "outcome": "matches",
+        "reason": "within margin",
+        "version": "sdk_v1",
+        "candidate_model": "claude-haiku-5-5",
+        "candidate_effort": "high",
+    }
+    return {**base, **over}
+
+
+def test_promote_agent_refuses_a_verdict_for_another_configuration(
+    legacy_registry: Path,
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    before = legacy_registry.read_text()
+    bad = [
+        _verdict(candidate_model="claude-haiku-4-5-20251001"),
+        _verdict(candidate_effort="low"),
+        _verdict(version="sdk_v2"),
+        {"outcome": "matches", "reason": "no identity"},
+    ]
+    for verdict in bad:
+        out = registry.promote_agent(
+            model="claude-haiku-5-5", effort="high", verdict=verdict
+        )
+        assert not out.promoted and "not measured" in out.reason
+        assert legacy_registry.read_text() == before
+    assert registry.champion_agent()["model"] == "claude-sonnet-5"  # type: ignore[index]
+
+
 def test_promote_agent_moves_model_and_effort_on_a_passing_verdict(
     legacy_registry: Path,
 ) -> None:
@@ -128,7 +161,7 @@ def test_promote_agent_moves_model_and_effort_on_a_passing_verdict(
     outcome = registry.promote_agent(
         model="claude-haiku-5-5",
         effort="high",
-        verdict={"outcome": "matches", "reason": "within margin"},
+        verdict=_verdict(),
     )
     assert outcome.promoted
     assert registry.champion() == "sdk_v1"
@@ -147,7 +180,7 @@ def test_promote_agent_moves_model_and_effort_on_a_passing_verdict(
 def test_promote_agent_refuses_what_it_should(legacy_registry: Path) -> None:
     from convfinqa.tracking import registry
 
-    verdict = {"outcome": "matches", "reason": "x"}
+    verdict = _verdict(model="m")
     with pytest.raises(ValueError, match="no champion_agent"):
         registry.promote_agent(model="m", effort="high", verdict=verdict)
     _migrate()
@@ -409,6 +442,9 @@ def test_agents_are_keyed_on_model_and_effort() -> None:
 
 def _pair(**over: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
+        "version": "sdk_v1",
+        "candidate_model": "claude-haiku-5-5",
+        "candidate_effort": "high",
         "n_compared": 349,
         "delta_pp": -1.0,
         "ci": [-0.025, 0.005],
@@ -427,6 +463,12 @@ def test_the_verdict_reads_the_s19_rule() -> None:
 
     assert MODEL_SWAP_MARGIN_PP == 3.0
     assert model_swap_verdict(_pair())["outcome"] == "matches"
+    identity = model_swap_verdict(_pair())
+    assert (
+        identity["version"],
+        identity["candidate_model"],
+        identity["candidate_effort"],
+    ) == ("sdk_v1", "claude-haiku-5-5", "high")
     beats = _pair(delta_pp=4.0, ci=[0.01, 0.07], p_better=0.01, p_worse=0.99)
     assert model_swap_verdict(beats)["outcome"] == "beats"
     # Each "matches" condition can sink it on its own.
@@ -498,7 +540,14 @@ def test_the_judge_reads_its_runtime_model_from_the_dataset() -> None:
     slugged = {
         "sources": {"t": "sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_1.csv"}
     }
-    assert runtime_model_of(slugged) == "haiku-5-5"
+    assert runtime_model_of(slugged) == "claude-haiku-5-5"
+    mixed = {
+        "sources": {
+            "a": "sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_1.csv",
+            "b": "sdk-evalloop-test100-sdk_v1·s1-sonnet-5-high-20261015_2.csv",
+        }
+    }
+    assert runtime_model_of(mixed) == "claude-haiku-5-5,claude-sonnet-5"
 
 
 def test_story_check_catches_a_champion_whose_model_moved(

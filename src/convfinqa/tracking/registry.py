@@ -553,7 +553,8 @@ def promote_agent(
     The champion is an agent; a challenger that shares its prompt and changes
     how it runs (s19: Sonnet 5 → Haiku 5.5) is promoted here. `verdict` is the
     model-swap verdict (`story.model_swap_verdict`): it must name an outcome in
-    `AGENT_PROMOTING_OUTCOMES`, and test evidence is required, as for every
+    `AGENT_PROMOTING_OUTCOMES` and carry the `candidate_model`, `candidate_effort`
+    and `version` it was measured for, which must match what is promoted, and test evidence is required, as for every
     other promotion. Refusals are raised, because each is a caller bug: no
     champion record, train evidence, an unknown effort, or a verdict that did
     not pass. The history event is ``promote_agent`` and carries the record
@@ -583,6 +584,24 @@ def promote_agent(
             previous_champion=str(before.get("version")),
             reason=f"model-swap rule refused: {outcome or 'no outcome'} — "
             f"{verdict.get('reason', '')}",
+            comparison=verdict,
+        )
+    mismatch = [
+        f"{field} {verdict.get(key)!r} != {want!r}"
+        for key, field, want in (
+            ("candidate_model", "model", model),
+            ("candidate_effort", "effort", effort),
+            ("version", "version", before.get("version")),
+        )
+        if verdict.get(key) != want
+    ]
+    if mismatch:
+        return PromotionOutcome(
+            promoted=False,
+            version=str(before.get("version")),
+            previous_champion=str(before.get("version")),
+            reason="verdict was not measured for this configuration: "
+            + "; ".join(mismatch),
             comparison=verdict,
         )
     after = {**before, "model": model, "effort": effort}

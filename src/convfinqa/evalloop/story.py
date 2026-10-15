@@ -748,6 +748,7 @@ def sdk_model_comparison(
         if reference is None or arm is reference:
             continue
         pair: dict[str, Any] = {
+            "version": sdk_champion,
             "baseline_model": reference_model,
             "baseline_effort": reference_effort,
             "candidate_model": arm["model"],
@@ -931,8 +932,14 @@ def model_swap_verdict(
     CSV): no verdict is better than one computed on half a pass. Every check
     is listed with its value, so the page can say which one decided.
     """
+    identity = {
+        "version": pair.get("version"),
+        "candidate_model": pair.get("candidate_model"),
+        "candidate_effort": pair.get("candidate_effort"),
+    }
     if pair.get("n_compared") is None or pair.get("delta_pp") is None:
         return {
+            **identity,
             "outcome": None,
             "reason": "test not measured — no complete paired pass yet",
             "margin_pp": margin_pp,
@@ -1020,6 +1027,7 @@ def model_swap_verdict(
         + ("; no train evidence" if train_ok is None else "")
     )
     return {
+        **identity,
         "outcome": outcome,
         "reason": reason,
         "margin_pp": margin_pp,
