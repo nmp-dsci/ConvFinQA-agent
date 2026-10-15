@@ -1,9 +1,24 @@
 {
- "generated_at": "2026-09-08T03:54:37+00:00",
- "champion": "v8",
+ "generated_at": "2026-10-15T07:21:54+00:00",
+ "campaign_record_from": "2026-09-08T03:54:37+00:00",
+ "champion": "sdk_v1",
+ "champion_agent": {
+  "version": "sdk_v1",
+  "runtime": "agent_sdk",
+  "model": "claude-sonnet-5",
+  "effort": "high"
+ },
  "sdk_champion": "sdk_v1",
- "champion_accuracy": 0.816619,
+ "pipeline_champion": "v8",
+ "champion_accuracy": 0.905444,
  "champion_panel": {
+  "triage": 0.974212,
+  "preprocess": 0.875536,
+  "retriever": 0.785693,
+  "calculator": 0.881857
+ },
+ "pipeline_champion_accuracy": 0.816619,
+ "pipeline_champion_panel": {
   "triage": 0.922636,
   "preprocess": null,
   "retriever": 0.768072,
@@ -517,7 +532,8 @@
    "cost": null,
    "wall": 343.55,
    "program_accuracy": 0.392405,
-   "model": null
+   "model": null,
+   "effort": null
   },
   "agent_sdk": {
    "version": "sdk_v1",
@@ -533,10 +549,11 @@
     "retriever": 0.785693,
     "calculator": 0.881857
    },
-   "cost": 27.624373,
+   "cost": 11.825026,
    "wall": 786.8,
    "program_accuracy": 0.409283,
-   "model": "claude-sonnet-5"
+   "model": "claude-sonnet-5",
+   "effort": "high"
   },
   "gate": {
    "delta_pp": 8.8825,
@@ -581,6 +598,8 @@
  "sdk_model_comparison": {
   "version": "sdk_v1",
   "reference_model": "claude-sonnet-5",
+  "reference_effort": "high",
+  "margin_pp": 3.0,
   "models": [
    {
     "version": "sdk_v1",
@@ -596,11 +615,33 @@
      "retriever": 0.785693,
      "calculator": 0.881857
     },
-    "cost": 27.624373,
+    "cost": 11.825026,
     "wall": 786.8,
     "program_accuracy": 0.409283,
     "model": "claude-sonnet-5",
+    "effort": "high",
     "n_scored": null
+   },
+   {
+    "version": "sdk_v1",
+    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+    "accuracy": 0.873926,
+    "by_turn_type": {
+     "number": 0.981982,
+     "program": 0.823529
+    },
+    "panel": {
+     "triage": 0.971347,
+     "preprocess": 0.852679,
+     "retriever": 0.825925,
+     "calculator": 0.822785
+    },
+    "cost": 0.728858,
+    "wall": 606.73,
+    "program_accuracy": 0.388186,
+    "model": "claude-haiku-5-5",
+    "effort": "high",
+    "n_scored": 349
    },
    {
     "version": "sdk_v1",
@@ -616,22 +657,157 @@
      "retriever": 0.778031,
      "calculator": 0.831224
     },
-    "cost": 17.138659,
+    "cost": 7.631322,
     "wall": 882.31,
     "program_accuracy": 0.388186,
     "model": "claude-haiku-4-5-20251001",
+    "effort": "high",
     "n_scored": 349
    }
   ],
   "pairs": [
    {
     "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
+    "candidate_model": "claude-haiku-5-5",
+    "candidate_effort": "high",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+    "n_compared": 349,
+    "delta_pp": -3.1519,
+    "p_value": 0.042906,
+    "p_worse": 0.042906,
+    "p_better": 0.957094,
+    "ci": [
+     -0.067989,
+     0.002833
+    ],
+    "fixed": 7,
+    "broken": 18,
+    "significant": true,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.981982,
+      "delta_pp": 2.7027,
+      "fixed": 4,
+      "broken": 1,
+      "n_flip_clusters": 4,
+      "cluster_z": 1.1339,
+      "cluster_p_one_sided": 0.12842,
+      "mcnemar_p_one_sided": 0.1875
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.823529,
+      "delta_pp": -5.8824,
+      "fixed": 3,
+      "broken": 17,
+      "n_flip_clusters": 16,
+      "cluster_z": -2.6458,
+      "cluster_p_one_sided": 0.995925,
+      "mcnemar_p_one_sided": 0.99979877
+     }
+    },
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 1
+    },
+    "cluster_z": -1.7179,
+    "train": {
+     "by_seed": [
+      {
+       "seed": "2027",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
+       "candidate_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_180335",
+       "n_conversations": 100,
+       "baseline_full": 64,
+       "candidate_full": 63,
+       "fixed": 5,
+       "broken": 6,
+       "p_better": 0.72558594,
+       "p_worse": 0.5,
+       "baseline_mean_right_before_error": 2.78,
+       "candidate_mean_right_before_error": 2.73
+      },
+      {
+       "seed": "2028",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
+       "candidate_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_181237",
+       "n_conversations": 100,
+       "baseline_full": 68,
+       "candidate_full": 61,
+       "fixed": 4,
+       "broken": 11,
+       "p_better": 0.98242188,
+       "p_worse": 0.05923462,
+       "baseline_mean_right_before_error": 2.84,
+       "candidate_mean_right_before_error": 2.74
+      }
+     ],
+     "pooled": {
+      "n_draws": 2,
+      "n_conversations": 200,
+      "baseline_full": 132,
+      "candidate_full": 124,
+      "fixed": 9,
+      "broken": 17,
+      "p_better": 0.96224065,
+      "p_worse": 0.08431877
+     }
+    },
+    "verdict": {
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -3.15pp, CI low -6.7989pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, no_extra_ceiling_errors",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -3.15pp, one-sided cluster p 0.957094"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -6.7989pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": false,
+       "detail": "one-sided p toward worse 0.042906"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.004075"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": true,
+       "detail": "conversations right to the end 132 \u2192 124 of 200, p toward worse 0.08431877"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": false,
+       "detail": "token-ceiling errors 0 \u2192 1"
+      }
+     ]
+    }
+   },
+   {
+    "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
     "candidate_model": "claude-haiku-4-5-20251001",
+    "candidate_effort": "high",
     "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
     "n_compared": 349,
     "delta_pp": -3.1519,
     "p_value": 0.050525,
+    "p_worse": 0.050525,
+    "p_better": 0.949475,
     "ci": [
      -0.069401,
      0.00295
@@ -665,7 +841,54 @@
       "mcnemar_p_one_sided": 0.99871159
      }
     },
-    "cluster_z": -1.6398
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 0
+    },
+    "cluster_z": -1.6398,
+    "train": {
+     "by_seed": [],
+     "pooled": {
+      "n_draws": 0
+     }
+    },
+    "verdict": {
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -3.15pp, CI low -6.9401pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse; no train evidence",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -3.15pp, one-sided cluster p 0.949475"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -6.9401pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": true,
+       "detail": "one-sided p toward worse 0.050525"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.016947"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": null,
+       "detail": "conversations right to the end None \u2192 None of None, p toward worse None"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": true,
+       "detail": "token-ceiling errors 0 \u2192 0"
+      }
+     ]
+    }
    }
   ]
  },

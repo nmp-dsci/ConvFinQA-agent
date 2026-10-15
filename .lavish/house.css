@@ -1,0 +1,300 @@
+/* ============================================================================
+   nmp house UI  v1  — generated artifact, do not edit a vendored copy.
+   Source of truth: nmp-central-ai/agent/house/house.css
+   Refresh a project's copy with:
+       make -C ~/git/nmp-ai-portfolio/nmp-central-ai install-house-ui
+   Check every copy against this one:   make house-ui-check
+
+   Layer 1  tokens   — the 45-name vocabulary tau2-loop, DataAgentBench,
+                       ConvFinQA-agent and nmp-dsci.github.io already share,
+                       plus the per-project accent seam: ONE number, --hue.
+   Layer 2  artifact — the component vocabulary those artifacts use, rebuilt on
+                       Layer 1 so no component declares a literal.
+
+   A project overrides exactly one thing, on the root element:
+       <html style="--hue:80">        or   :root{ --hue:80 }
+   Hues are declared in nmp-central-ai/registry/projects.yaml and must stay 30
+   degrees apart; `make house-ui` refuses a registry that breaks that.
+
+   Nothing below may declare a raw hex outside the :root blocks. Every pair that
+   must stay legible is declared in the @contrast lines at the bottom and
+   verified by scripts/house_ui_audit.py in BOTH themes, for EVERY declared hue.
+
+   Fonts: IBM Plex, self-hosted beside this file (SIL OFL 1.1, see fonts/LICENSE).
+   ========================================================================== */
+
+@import url("fonts/plex.css");
+
+/* ---- Layer 1: tokens ----------------------------------------------------- */
+:root{
+  color-scheme: light dark;
+
+  /* the one number a project overrides. 0-360. Contrast is guaranteed by the
+     fixed L/C stops below, so a project never picks a hex and never fails AA. */
+  --hue:168;
+
+  /* surfaces */
+  --bg:#F7F6F2; --panel:#FFFFFF; --band:#EFEEE8;
+  /* ink: four steps, each one a job */
+  --ink:#1A1D1B; --ink-2:#3B403D; --muted:#4A514D; --faint:#5C635E;
+  /* rules: decorative vs meaningful */
+  --line:#DCDAD2; --line-2:#C7C5BC; --line-3:#8A8880;
+  /* accent, derived from --hue at a fixed lightness/chroma stop */
+  --accent:      oklch(0.48 0.13 var(--hue));
+  --accent-ink:  #FFFFFF;
+  --accent-soft: oklch(0.94 0.045 var(--hue));
+  --accent-wash: oklch(0.48 0.13 var(--hue) / 0.07);   /* tinted table cell */
+  /* status: fixed, never hue-derived — status must not drift with the brand */
+  --amber:#8A5006; --amber-soft:#F6E6CF;
+  --red:#8A2B1D;   --red-soft:#F5DCD7;
+  --blue:#1F5FA8;  --blue-soft:#DEE9F7;
+
+  /* type: one superfamily, three jobs */
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --serif:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  /* scale: 16px base x 1.25 */
+  --t-2:0.8rem; --t-1:0.875rem; --t0:1rem; --t1:1.125rem;
+  --t2:1.406rem; --t3:1.758rem; --t4:2.197rem; --t5:2.75rem; --t6:3.4rem;
+  --lh-body:1.6; --lh-snug:1.35; --lh-tight:1.12;
+  --measure:68ch; --track-label:.08em;
+
+  /* space: one 4/8-point ladder */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px;
+  --s6:32px; --s7:48px; --s8:64px; --s9:96px; --s10:128px;
+  --sec-gap:var(--s9); --sec-pad:var(--s7); --gutter:var(--s5);
+
+  /* shape, elevation, motion */
+  --r:10px; --r-sm:6px;
+  --shadow:0 1px 2px rgb(20 25 22 / .05), 0 12px 28px -18px rgb(20 25 22 / .22);
+  --dur:300ms; --ease:cubic-bezier(.2,.7,.2,1); --focus:var(--accent);
+  --w:1180px; --w-narrow:820px;
+}
+
+/* Dark: colour only. Anything not redefined is inherited — that is what keeps
+   the two themes in step when a token is added. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121614; --panel:#191E1B; --band:#161A18;
+    --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+    --line:#28302B; --line-2:#3A443E; --line-3:#727E77;
+    --accent:      oklch(0.78 0.13 var(--hue));
+    --accent-ink:  #0E1512;
+    --accent-soft: oklch(0.30 0.055 var(--hue));
+    --accent-wash: oklch(0.78 0.13 var(--hue) / 0.09);
+    --amber:#D99A4E; --amber-soft:#3A2A14;
+    --red:#E08A7A;   --red-soft:#3A1E1A;
+    --blue:#7FA9FF;  --blue-soft:#1A2440;
+    --shadow:0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -18px rgb(0 0 0 / .65);
+  }
+}
+/* The explicit choice wins in both directions, declared separately so the
+   audit checks exactly what a visitor who toggles will see. */
+:root[data-theme="dark"]{
+  --bg:#121614; --panel:#191E1B; --band:#161A18;
+  --ink:#E8EBE7; --ink-2:#C9CFC9; --muted:#AEB6B0; --faint:#98A09A;
+  --line:#28302B; --line-2:#3A443E; --line-3:#727E77;
+  --accent:      oklch(0.78 0.13 var(--hue));
+  --accent-ink:  #0E1512;
+  --accent-soft: oklch(0.30 0.055 var(--hue));
+  --accent-wash: oklch(0.78 0.13 var(--hue) / 0.09);
+  --amber:#D99A4E; --amber-soft:#3A2A14;
+  --red:#E08A7A;   --red-soft:#3A1E1A;
+  --blue:#7FA9FF;  --blue-soft:#1A2440;
+  --shadow:0 1px 2px rgb(0 0 0 / .4), 0 12px 28px -18px rgb(0 0 0 / .65);
+}
+
+@media (max-width:900px){ :root{ --sec-gap:var(--s8); --sec-pad:var(--s6); --t4:1.9rem; } }
+@media (max-width:560px){ :root{ --sec-gap:var(--s7); --sec-pad:var(--s5); --gutter:var(--s4); --t3:1.5rem; } }
+@media (prefers-reduced-motion: reduce){ :root{ --dur:0.01ms; } }
+
+/* ---- Layer 2: the artifact vocabulary ------------------------------------ */
+*,*::before,*::after{ box-sizing:border-box; }
+body{
+  margin:0; background:var(--bg); color:var(--ink-2);
+  font-family:var(--sans); font-size:var(--t0); line-height:var(--lh-body);
+  -webkit-text-size-adjust:100%;
+}
+main{ max-width:var(--w); margin:0 auto; padding:var(--s6) var(--gutter) var(--s9); }
+/* overflow discipline at every nesting level */
+:where(.cards,.split,.grid,.kv,.steps,.verdict,.qgrid,.row,.swatches,.rubric-head) > *{ min-width:0; }
+:where(p,h1,h2,h3,h4,li,td,th,dd,figcaption,.badge,.tag,label,summary){ overflow-wrap:anywhere; }
+:where(img,svg,video){ max-width:100%; height:auto; }
+
+h1{ font-family:var(--serif); font-weight:400; font-size:clamp(var(--t4),5vw,var(--t6));
+    line-height:var(--lh-tight); letter-spacing:-0.01em; margin:var(--s2) 0 var(--s3); color:var(--ink); }
+h1 em{ font-style:italic; color:var(--accent); }
+h2{ font-family:var(--serif); font-weight:400; font-size:var(--t3); line-height:var(--lh-snug);
+    letter-spacing:-0.01em; margin:0 0 var(--s1); color:var(--ink); }
+h3{ font-size:var(--t0); font-weight:600; margin:0 0 var(--s2); color:var(--ink); }
+h4{ font-size:var(--t-2); font-weight:600; text-transform:uppercase;
+    letter-spacing:var(--track-label); color:var(--muted); margin:0 0 var(--s2); }
+p{ margin:0 0 var(--s3); max-width:var(--measure); }
+a{ color:var(--accent); text-underline-offset:2px; }
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:var(--r-sm); }
+
+code,pre{ font-family:var(--mono); font-size:var(--t-1); }
+code{ background:var(--band); border:1px solid var(--line); border-radius:4px; padding:1px 5px; }
+pre{ background:var(--band); border:1px solid var(--line); border-radius:var(--r);
+     padding:var(--s3) var(--s4); overflow-x:auto; margin:0 0 var(--s3); line-height:var(--lh-snug); }
+pre code{ background:none; border:0; padding:0; }
+
+.eyebrow{ font-family:var(--mono); font-size:var(--t-2); color:var(--muted);
+          letter-spacing:var(--track-label); text-transform:uppercase; }
+.lede{ font-size:var(--t1); color:var(--muted); max-width:var(--measure); }
+section{ margin-top:var(--sec-gap); padding-top:var(--s5); border-top:1px solid var(--line); }
+section > .eyebrow{ display:block; margin-bottom:var(--s1); }
+.sub{ color:var(--muted); margin-bottom:var(--s4); max-width:var(--measure); }
+
+.cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:var(--s3); }
+.split{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:var(--s4); }
+.card{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r);
+       padding:var(--s4) var(--s4); }
+.card.rec{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-soft) inset; }
+.card .cost{ font-family:var(--mono); font-size:var(--t-2); color:var(--muted); margin-top:var(--s2); }
+.card ul{ padding-left:var(--s4); margin:var(--s1) 0 0; font-size:var(--t-1); }
+
+.badge{ display:inline-block; font-family:var(--mono); font-size:var(--t-2);
+        letter-spacing:.04em; padding:2px var(--s2); border-radius:999px;
+        border:1px solid var(--line-3); color:var(--muted); white-space:nowrap; }
+.badge.ok{   color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+.badge.warn{ color:var(--amber);  border-color:var(--amber);  background:var(--amber-soft); }
+.badge.bad{  color:var(--red);    border-color:var(--red);    background:var(--red-soft); }
+.badge.info{ color:var(--blue);   border-color:var(--blue);   background:var(--blue-soft); }
+.badge.rec{  color:var(--accent-ink); background:var(--accent); border-color:var(--accent); font-weight:600; }
+.tag{ font-family:var(--mono); font-size:var(--t-2); color:var(--muted); }
+
+.verdict{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+          gap:var(--s3); margin:var(--s5) 0 0; }
+.stat{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s3) var(--s4); }
+.stat .n{ font-family:var(--serif); font-size:var(--t4); line-height:1; color:var(--ink); }
+.stat .l{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s1); }
+.stat.accent .n{ color:var(--accent); }
+.stat.amber .n{ color:var(--amber); }
+.stat.red .n{ color:var(--red); }
+
+.callout{ border-left:3px solid var(--accent); background:var(--panel);
+          padding:var(--s3) var(--s4); border-radius:0 var(--r) var(--r) 0; margin:var(--s4) 0; }
+.callout.warn{ border-left-color:var(--amber); }
+.callout.red{ border-left-color:var(--red); }
+.callout > :last-child{ margin-bottom:0; }
+
+.tablewrap{ overflow-x:auto; border:1px solid var(--line-2); border-radius:var(--r);
+            background:var(--panel); margin-bottom:var(--s3); }
+table{ border-collapse:collapse; width:100%; font-size:var(--t-1); }
+th,td{ text-align:left; padding:var(--s2) var(--s3); border-bottom:1px solid var(--line); vertical-align:top; }
+th{ font-size:var(--t-2); text-transform:uppercase; letter-spacing:var(--track-label);
+    color:var(--muted); font-weight:600; background:var(--band); }
+tr:last-child td{ border-bottom:0; }
+td.k{ color:var(--muted); font-family:var(--mono); font-size:var(--t-2); white-space:nowrap; }
+td.n{ font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+td.rec,th.rec{ background:var(--accent-wash); }   /* was a hardcoded rgba() */
+th.rec{ color:var(--accent); }
+
+.steps{ counter-reset:s; display:grid; gap:var(--s2); }
+.step{ position:relative; padding:var(--s3) var(--s3) var(--s3) 52px; background:var(--panel);
+       border:1px solid var(--line-2); border-radius:var(--r); }
+.step::before{ counter-increment:s; content:counter(s); position:absolute; left:var(--s3); top:var(--s3);
+       width:26px; height:26px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+       font-family:var(--mono); font-size:var(--t-2); display:grid; place-items:center; }
+.step b{ display:block; margin-bottom:2px; color:var(--ink); }
+.step .tag{ display:block; margin-top:var(--s1); }
+
+.kv{ display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--s1) var(--s3); font-size:var(--t-1); }
+.kv dt{ color:var(--muted); font-family:var(--mono); font-size:var(--t-2); }
+.kv dd{ margin:0; }
+ul.tight{ margin:0; padding-left:var(--s4); } ul.tight li{ margin:3px 0; }
+figure{ margin:0; } figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); max-width:var(--measure); }
+.fig{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s4); }
+
+/* forms: the review controls */
+.qgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:var(--s3); }
+form.q{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s4); }
+form.q h3{ display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+form.q label{ display:flex; gap:var(--s2); align-items:flex-start; padding:var(--s1) 0;
+              cursor:pointer; font-size:var(--t-1); }
+form.q label input{ margin-top:3px; flex:none; accent-color:var(--accent); }
+form.q label span.d{ color:var(--muted); font-size:var(--t-2); display:block; }
+form.q .row{ display:flex; gap:var(--s2); align-items:center; margin-top:var(--s2); flex-wrap:wrap; }
+input[type=text],textarea{ background:var(--bg); color:var(--ink); border:1px solid var(--line-2);
+  border-radius:var(--r-sm); padding:var(--s1) var(--s2); font-family:var(--mono);
+  font-size:var(--t-1); width:100%; }
+button{ font:inherit; font-size:var(--t-1); font-weight:600; padding:var(--s1) var(--s3);
+  border-radius:var(--r-sm); border:1px solid var(--accent); background:var(--accent);
+  color:var(--accent-ink); cursor:pointer; transition:filter var(--dur) var(--ease); }
+button:hover{ filter:brightness(1.08); }
+button.ghost{ background:transparent; color:var(--accent); }
+.queued{ font-family:var(--mono); font-size:var(--t-2); color:var(--amber); }
+.queued:empty{ display:none; }
+
+/* the per-project swatch strip */
+.swatches{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--s2); }
+.sw{ border:1px solid var(--line-2); border-radius:var(--r); overflow:hidden; background:var(--panel); }
+.sw .chip{ height:52px; background:var(--accent); display:grid; place-items:center;
+           color:var(--accent-ink); font-family:var(--mono); font-size:var(--t-2); font-weight:600; }
+.sw .meta{ padding:var(--s2); font-size:var(--t-2); }
+.sw .meta b{ color:var(--ink); display:block; }
+.sw .meta span{ color:var(--muted); font-family:var(--mono); }
+
+/* print: the reason a dark-only artifact was a bug */
+@media print{
+  :root{ --bg:#fff; --panel:#fff; --band:#f4f4f2; --ink:#000; --ink-2:#1a1a1a;
+         --muted:#3a3a3a; --faint:#4a4a4a; --line:#ccc; --line-2:#bbb; --shadow:none; }
+  body{ font-size:10.5pt; }
+  section{ break-inside:avoid; margin-top:var(--s6); }
+  .card,.stat,.step,.tablewrap,form.q{ break-inside:avoid; box-shadow:none; }
+  form.q,.copyrow{ display:none; }
+  a::after{ content:" (" attr(href) ")"; font-size:var(--t-2); color:var(--muted); }
+}
+
+/* ---- Layer 2b: the names the existing artifacts already use -----------------
+   tau2-loop, DataAgentBench and ConvFinQA-agent share 19 class names with this
+   vocabulary under different spellings. They are aliased rather than renamed so
+   an existing artifact can adopt the house by swapping its <style> block for a
+   <link> without touching a single element. New artifacts should prefer the
+   names in Layer 2 above; these stay for the back catalogue. */
+.wrap{ max-width:var(--w); margin:0 auto; padding:var(--s6) var(--gutter) var(--s9); }
+.wrap-narrow{ max-width:var(--w-narrow); }
+.lead{ font-size:var(--t1); color:var(--muted); max-width:var(--measure); }   /* = .lede */
+.tw{ overflow-x:auto; border:1px solid var(--line-2); border-radius:var(--r);
+     background:var(--panel); margin-bottom:var(--s3); }                       /* = .tablewrap */
+.kpi{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r);
+      padding:var(--s3) var(--s4); }                                           /* = .stat */
+.kpi .n{ font-family:var(--serif); font-size:var(--t4); line-height:1; color:var(--ink); }
+.kpi .l{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s1); }
+.grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:var(--s3); }
+.chips{ display:flex; flex-wrap:wrap; gap:var(--s1); }
+.chip{ display:inline-block; font-family:var(--mono); font-size:var(--t-2); letter-spacing:.04em;
+       padding:2px var(--s2); border-radius:999px; border:1px solid var(--line-3);
+       color:var(--muted); white-space:nowrap; }                               /* = .badge */
+.chip.rec,.v-ok{ color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+.btn{ font:inherit; font-size:var(--t-1); font-weight:600; padding:var(--s1) var(--s3);
+      border-radius:var(--r-sm); border:1px solid var(--accent); background:var(--accent);
+      color:var(--accent-ink); cursor:pointer; text-decoration:none; display:inline-block; }
+.btn-sm{ font-size:var(--t-2); padding:2px var(--s2); }
+.label{ font-size:var(--t-2); font-weight:600; text-transform:uppercase;
+        letter-spacing:var(--track-label); color:var(--muted); }               /* = h4 */
+.small{ font-size:var(--t-2); color:var(--muted); }
+.top{ display:flex; justify-content:space-between; align-items:baseline;
+      gap:var(--s3); flex-wrap:wrap; }
+.dia{ background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r);
+      padding:var(--s4); }                                                     /* = .fig */
+.fig-title{ font-size:var(--t-2); font-weight:600; text-transform:uppercase;
+            letter-spacing:var(--track-label); color:var(--muted); margin-bottom:var(--s2); }
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+          overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+/* ---------------------------------------------------------------------------
+   Contrast contract — read by scripts/house_ui_audit.py in both themes and for
+   every hue declared in registry/projects.yaml.
+   @contrast --ink --bg 4.5 | --ink --panel 4.5 | --ink --band 4.5
+   @contrast --ink-2 --bg 4.5 | --ink-2 --panel 4.5 | --ink-2 --band 4.5
+   @contrast --muted --bg 4.5 | --muted --panel 4.5 | --muted --band 4.5
+   @contrast --faint --bg 4.5 | --faint --panel 4.5 | --faint --band 4.5
+   @contrast --accent --bg 4.5 | --accent --panel 4.5 | --accent --band 4.5
+   @contrast --accent --accent-soft 4.5 | --accent-ink --accent 4.5
+   @contrast --amber --bg 4.5 | --amber --amber-soft 4.5
+   @contrast --red --bg 4.5 | --red --red-soft 4.5
+   @contrast --blue --bg 4.5 | --blue --blue-soft 4.5
+   @contrast --line-3 --bg 3.0 | --line-3 --panel 3.0
+   --------------------------------------------------------------------------- */

@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haiku 5.5 model swap</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .ci-fig svg{ display:block; width:100%; height:auto; color:var(--ink-2); font-family:var(--mono); }
+  .ci-fig .axis{ stroke:var(--line-3); }
+  .ci-fig .zero{ stroke:var(--line-3); stroke-dasharray:4 4; }
+  .ci-fig .zone{ fill:var(--accent-wash); }
+  .ci-fig .margin{ stroke:var(--accent); stroke-width:2; }
+  .ci-fig .bar{ stroke:currentColor; stroke-width:3; stroke-linecap:round; }
+  .ci-fig .pt{ fill:currentColor; }
+  .ci-fig .lo-fail{ fill:var(--red); }
+  .ci-fig .lo-pass{ fill:var(--accent); }
+  .ci-fig .lbl{ fill:var(--ink); font-size:13px; }
+  .ci-fig .sub{ fill:var(--muted); font-size:11px; }
+  .ci-fig .acc{ fill:var(--accent); font-size:11px; }
+  .ci-fig .tick{ fill:var(--muted); font-size:11px; }
+  .only td.diff{ background:var(--accent-wash); color:var(--ink); font-weight:600; }
+  .verdict-card h3{ display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+  .verdict-card ol{ margin:var(--s2) 0 0; padding-left:var(--s5); font-size:var(--t-1); }
+  .verdict-card ol li{ margin:var(--s1) 0; }
+  .copyrow{ display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-top:var(--s4); }
+  .copyrow textarea{ margin-top:var(--s2); }
+  .phase-head{ display:flex; gap:var(--s2); align-items:baseline; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s19 · ConvFinQA-agent · branch <code>haiku55</code> · 2026-10-15 · build complete (uncommitted) · Phase 0 smoke next</div>
+  <h1>Can a Haiku 5.5 challenger hold the champion's line <em>for a fraction of the price</em>?</h1>
+  <p class="lede"><b>Champion</b>: <code>sdk_v1 · claude-sonnet-5 · effort high</code>, made the universal champion. It beat v8 by
+    +8.9pp (p = 0.0003), and its 90.5% on test100 is the bar. <b>Challenger</b>: <code>sdk_v1 · claude-haiku-5-5 · effort high</code>.
+    The prompt, tools, effort, questions and scorer are all the same, and only the model differs. Score the challenger on exactly
+    the test and train questions sdk_v1 already ran on, pair it against those committed runs, and promote it only if it
+    <b>beats or matches</b> the champion under a rule fixed <i>before</i> any Haiku 5.5 number exists. That's three Haiku passes on the
+    subscription, about 45 minutes. Sonnet is never re-run, and nothing goes to the API.</p>
+  <div class="verdict">
+    <div class="stat"><div class="n">90.5%</div><div class="l">the bar: <code>sdk_v1</code> on Sonnet 5, test100 (349 q)</div></div>
+    <div class="stat accent"><div class="n">20×</div><div class="l">cheaper per token: $0.10 / $0.50 vs $2 / $10 per MTok</div></div>
+    <div class="stat amber"><div class="n">−3.2pp</div><div class="l">Haiku 4.5 on the same swap: 7 fixed, 18 broken, all on program turns</div></div>
+    <div class="stat"><div class="n">3 passes</div><div class="l">Haiku only: test100 and both sdk_v1 train draws, at effort high, ≈ $6–17 API-equivalent, billed to the subscription. Zero Sonnet re-runs</div></div>
+  </div>
+</header>
+
+<!-- ======================================================================= -->
+<section id="state">
+  <span class="eyebrow">01 · where we are</span>
+  <h2>Today the champion is a prompt, and the model is a setting. <em>A challenger needs both in one record.</em></h2>
+  <p class="sub">Serving runs <code>sdk_champion</code> (<code>sdk_v1 · s1 · 5e96f2bf</code>) in one Agent SDK session per
+    conversation, with the six calculator tools only. The model comes from <code>settings.sdk_model</code> (<code>config.py:96</code>) and
+    effort is hard-coded. The registry also still has <code>champion = v8</code>. The challenger shares the champion's prompt hash,
+    so as a prompt version it can't even be told apart from the champion. That is why §05 makes the champion an
+    agent configuration: (prompt, model, effort).</p>
+  <div class="callout warn">
+    <p><b>The 90.5% was measured at <code>effort=high</code>, not low.</b> Every committed SDK eval run (2026-09-05/06) predates
+      commit <code>27e11b5</code> (2026-09-10), which pinned <code>effort="low"</code>. Before that pin, effort was unset, and per the
+      commit, <code>ClaudeAgentOptions</code> then defaults to <code>"high"</code>. So Haiku 5.5 at <code>high</code> against the
+      committed Sonnet run is like for like. It also means serving has run Sonnet 5 at <code>low</code> since 09-10, which is not the configuration
+      that won and has never been scored. Making the champion record carry <code>effort: high</code> puts serving back on the measured configuration.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>sdk_v1 on test100</th><th>accuracy</th><th>number</th><th>program</th><th>program acc</th><th>API-equiv. cost</th><th>wall</th></tr></thead>
+      <tbody>
+        <tr><td><b>Sonnet 5</b> <span class="badge ok">champion</span></td><td class="n">90.54%</td><td class="n">95.5%</td><td class="n">88.2%</td><td class="n">0.409</td><td class="n">$27.62</td><td class="n">787 s @ c4</td></tr>
+        <tr><td>Haiku 4.5</td><td class="n">87.39%</td><td class="n">96.4%</td><td class="n">83.2%</td><td class="n">0.388</td><td class="n">$17.14</td><td class="n">882 s @ c8</td></tr>
+        <tr><td><b>Haiku 5.5</b> <span class="badge info">challenger</span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">≈ $2–6 <span class="tag">est.</span></td><td class="n">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="split">
+    <div class="callout warn">
+      <p><b>What the Haiku 4.5 pair said.</b> Δ −3.15pp, cluster bootstrap 95% CI [−6.94, +0.30],
+        one-sided cluster p = 0.051 toward <i>worse</i>. Number turns +0.9pp (3 fixed / 2 broken). Program turns
+        −5.0pp (4 fixed / 16 broken, p = 0.017 toward worse). The loss came from multi-step planning, not
+        from looking values up. That slice is where Haiku 5.5 has to hold.</p>
+    </div>
+    <div class="callout">
+      <p><b>Why the cost estimate is a range.</b> Haiku 4.5 ran $17.14 at $1 / $5, with no thinking. Haiku 5.5 is 10× cheaper
+        per token than that, but it counts about 30% more tokens for the same text. At <code>effort=high</code> it also thinks,
+        and thinking is billed as output. Estimate ≈ $2–6 per 349-question pass, against $27.62 for Sonnet (also at high), so
+        roughly 5–14× cheaper. Phase 0 measures this figure before anything depends on it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="fixed">
+  <span class="eyebrow">02 · the experiment's contract</span>
+  <h2>Exactly one row changes</h2>
+  <p class="sub">If any other row differs between the two arms, the comparison is no longer about the model.
+    Phase 0 exists to confirm the table below is true in practice, not just in the code.</p>
+  <div class="tablewrap only">
+    <table>
+      <thead><tr><th>held</th><th>value</th><th>where it is pinned</th></tr></thead>
+      <tbody>
+        <tr><td class="k">model</td><td class="diff">claude-sonnet-5 → claude-haiku-5-5</td><td><code>run --sdk-model</code>, logged as the <code>sdk_model</code> param + tag, run-name slug <code>haiku-5-5</code> (verified)</td></tr>
+        <tr><td class="k">prompt</td><td><code>sdk_v1</code> · s1 · 5e96f2bf</td><td><code>registry.json → sdk_prompts</code></td></tr>
+        <tr><td class="k">tools</td><td>add · subtract · multiply · divide · exp · greater, nothing else</td><td><code>llm.pipeline_sdk_options</code> refuses any other set</td></tr>
+        <tr><td class="k">effort</td><td><code>high</code>, both arms</td><td>Committed Sonnet test baseline: SDK default (pre-<code>27e11b5</code>). New passes: <code>run --sdk-effort high</code>, added in Phase 1. Today it is hard-coded <code>low</code> at <code>llm.py:547</code></td></tr>
+        <tr><td class="k">turn / token caps</td><td>8 agentic turns per question · 60k new tokens per conversation (cache reads excluded)</td><td><code>settings.sdk_max_turns</code>, <code>sdk_total_tokens_limit</code></td></tr>
+        <tr><td class="k">harness</td><td>claude-agent-sdk 0.2.152 · bundled CLI 2.1.259</td><td><code>uv.lock</code>; the same pin ran the Sonnet baseline on 2026-09-05</td></tr>
+        <tr><td class="k">billing</td><td>subscription</td><td><code>llm.sdk_child_env</code> refuses the API path</td></tr>
+        <tr><td class="k">questions</td><td><b>test100</b>: the 349 q sdk_v1 was scored on, full conversations · <b>train</b>: sdk_v1's own two s01 draws (seeds 2027 and 2028, 100 reports each), stopped at the first wrong answer, exactly as the committed Sonnet runs were</td><td><code>EVAL_MANIFEST=eval_loop_v2</code>. <code>draw_train(seed=2027|2028)</code> reproduces both committed draws id for id (checked today)</td></tr>
+        <tr><td class="k">scoring</td><td>shared scorer, per-stage panel, attribution rule unchanged</td><td><code>stage_scores.attribution_rule_id()</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn">
+    <p><b>One difference can't be removed: the tokenizer.</b> The 60k ceiling counts new input and output tokens, and thinking
+      is output. Haiku 5.5 counts more tokens for the same text, and at <code>effort=high</code> it thinks. Sonnet at high
+      stayed under the ceiling on all 349 questions, but a conversation that fits under Sonnet could still hit it under Haiku,
+      and its remaining turns would be recorded as errors. That would charge a harness limit to the model. Phase 4
+      counts ceiling hits per arm. If they differ, the result is reported as confounded, not as a verdict.</p>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="rule">
+  <span class="eyebrow">03 · the decision rule, fixed before the runs</span>
+  <h2>Three outcomes, <em>written down first</em></h2>
+  <p class="sub">On test, Δ = Haiku 5.5 − Sonnet 5 on the 349 paired questions, computed with the gate's own statistics: the
+    cluster-corrected McNemar test (Durkalski, clustered by conversation) and the cluster bootstrap CI, from
+    <code>tracking/comparator.py</code>. On train both arms stop at the first wrong answer, so later turns have no counterpart.
+    The paired unit there is the <b>conversation</b>: answered right to the end, or not. "Beats" is the existing improvement gate.
+    "Matches" is new: a <b>non-inferiority</b> promotion, which only makes sense because the challenger is cheaper. The verdict is
+    appended to <code>gates.jsonl</code> as a new kind (a trailing column with a default, as the ledger rules allow), so the promotion
+    has a ledger row behind it like every other one.</p>
+
+  <div class="cards">
+    <div class="card verdict-card">
+      <h3><span class="badge ok">beats</span> promote challenger</h3>
+      <ol>
+        <li>Test: Δ &gt; 0 <b>and</b> one-sided cluster p &lt; 0.05.</li>
+        <li>Train doesn't contradict it (rule 4 of "matches").</li>
+      </ol>
+      <p class="tag">The house gate's own rule, so "beats" means what it means everywhere else in this repo.</p>
+    </div>
+    <div class="card verdict-card rec">
+      <h3><span class="badge ok">matches</span> promote challenger</h3>
+      <ol>
+        <li>Test: the 95% CI lower bound ≥ <b>−3pp</b> (δ, decided in D1).</li>
+        <li>Test is <i>not</i> significantly worse (one-sided cluster p toward worse ≥ 0.05).</li>
+        <li>Program turns on test are not significantly worse. This is the slice Haiku 4.5 failed on.</li>
+        <li>Train replication: across both sdk_v1 draws, the conversations Haiku answers right to the end are not significantly fewer
+          than Sonnet's 64 + 68 of 200 (exact one-sided McNemar on conversations, p toward worse ≥ 0.05).</li>
+        <li>Every pass complete: zero unscored rows, and no token-ceiling errors (Sonnet had none).</li>
+      </ol>
+    </div>
+    <div class="card verdict-card">
+      <h3><span class="badge bad">falls short</span> champion holds</h3>
+      <ol>
+        <li>Anything else. The row still lands in the model-swap table, because a measured "no" is a result.</li>
+      </ol>
+      <p class="tag">Next levers are outside this plan: Haiku 5.5 at <code>xhigh</code>, or a prompt campaign run on Haiku.</p>
+    </div>
+  </div>
+
+  <figure class="fig ci-fig" style="margin-top:var(--s5)">
+    <div class="fig-title">The chosen margin, δ = 3pp, on test alone</div>
+    <svg viewBox="0 0 720 190" role="img" aria-labelledby="ci-t ci-d">
+      <title id="ci-t">Two confidence intervals against margins of 3, 4 and 5 points</title>
+      <desc id="ci-d">The measured Haiku 4.5 interval has a lower bound of minus 6.9 and fails every margin. An illustrative model exactly as good as Sonnet has a lower bound of about minus 3.6: it passes margins of 4 and 5 and fails 3.</desc>
+      <g id="zone"><title>non-inferior zone at the chosen δ = 3pp</title>
+        <rect class="zone" x="369.2" y="40" width="320.8" height="110"/></g>
+      <line class="axis" x1="277.5" y1="36" x2="277.5" y2="150" stroke-dasharray="3 4"/>
+      <text class="tick" x="277.5" y="30" text-anchor="middle">δ=5</text>
+      <line class="axis" x1="323.3" y1="36" x2="323.3" y2="150" stroke-dasharray="3 4"/>
+      <text class="tick" x="323.3" y="30" text-anchor="middle">δ=4</text>
+      <line class="margin" x1="369.2" y1="36" x2="369.2" y2="150"/>
+      <text class="acc" x="369.2" y="30" text-anchor="middle">δ=3 · chosen</text>
+      <line class="zero" x1="506.7" y1="40" x2="506.7" y2="150"/>
+      <text class="tick" x="512" y="52">no difference</text>
+
+      <g id="row-h45"><title>Haiku 4.5, measured on test100: −3.15pp, CI −6.94 to +0.30</title>
+        <text class="lbl" x="8" y="76">Haiku 4.5 · test</text>
+        <text class="sub" x="8" y="91">measured · fails all</text>
+        <line class="bar" x1="188.6" y1="80" x2="520.4" y2="80"/>
+        <circle class="pt" cx="362.3" cy="80" r="5"/>
+        <circle class="lo-fail" cx="188.6" cy="80" r="5"/></g>
+
+      <g id="row-equal"><title>A model exactly as good as Sonnet, test only: CI about ±3.6pp</title>
+        <text class="lbl" x="8" y="121">equal to Sonnet</text>
+        <text class="sub" x="8" y="136">illustrative · misses δ=3</text>
+        <line class="bar" x1="341.7" y1="125" x2="671.7" y2="125"/>
+        <circle class="pt" cx="506.7" cy="125" r="5"/>
+        <circle class="lo-fail" cx="341.7" cy="125" r="5"/></g>
+
+      <line class="axis" x1="140" y1="160" x2="690" y2="160"/>
+      <g class="ticks">
+        <line class="axis" x1="140" y1="160" x2="140" y2="165"/><text class="tick" x="140" y="179" text-anchor="middle">−8</text>
+        <line class="axis" x1="231.7" y1="160" x2="231.7" y2="165"/><text class="tick" x="231.7" y="179" text-anchor="middle">−6</text>
+        <line class="axis" x1="323.3" y1="160" x2="323.3" y2="165"/><text class="tick" x="323.3" y="179" text-anchor="middle">−4</text>
+        <line class="axis" x1="415" y1="160" x2="415" y2="165"/><text class="tick" x="415" y="179" text-anchor="middle">−2</text>
+        <line class="axis" x1="506.7" y1="160" x2="506.7" y2="165"/><text class="tick" x="506.7" y="179" text-anchor="middle">0</text>
+        <line class="axis" x1="598.3" y1="160" x2="598.3" y2="165"/><text class="tick" x="598.3" y="179" text-anchor="middle">+2</text>
+        <line class="axis" x1="690" y1="160" x2="690" y2="165"/><text class="tick" x="690" y="179" text-anchor="middle">+4</text>
+      </g>
+    </svg>
+    <figcaption>Δ accuracy in pp, Haiku − Sonnet. The width of the Haiku 4.5 interval (≈ ±3.6pp over 100 conversations) is the only
+      measured input here; the "equal" row assumes the same width. Red dot = lower bound outside the zone. 3pp is the strict choice:
+      on test's 100 conversations, a model exactly as good as Sonnet clears it about 2 times in 5, so to be promoted on "matches" Haiku
+      has to come in roughly level or better. Train adds a veto (rule 4), not width.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================================================================= -->
+<section id="runs">
+  <span class="eyebrow">04 · the runs</span>
+  <h2>Preflight, build, three passes, the verdict, then the write-up</h2>
+  <p class="sub">Every pass logs to the central MLflow (<code>convfinqa</code> experiment) with the model as param and tag.
+    The prediction CSVs get committed, as every evaluation here is. Set once for the session:
+    <code>EVAL_MANIFEST=eval_loop_v2 SDK_BILLING=subscription</code>.</p>
+
+  <div class="steps">
+    <div class="step" id="p0">
+      <div class="phase-head"><b>Phase 0 · Preflight: is the harness really the same?</b> <span class="badge info">≈ 2 min · &lt; $0.10</span></div>
+      <ul class="tight">
+        <li>Central MLflow answers <code>/health</code>. The runner refuses to spend model calls otherwise. <code>make -C ../nmp-central-ai status</code></li>
+        <li>Slug check: <code>sdk_model_slug("claude-haiku-5-5") == "haiku-5-5"</code>. <span class="badge ok">verified today</span></li>
+        <li><b>Bundled CLI 2.1.259 was built on 2026-09-03</b>, and the SDK spawns it, not the system <code>claude</code> 2.1.300.
+          Smoke run on train3 (13 q): there must be zero <code>error</code> rows, zero 400s and zero <code>rate_limited:</code> rows.</li>
+        <li><b>Effort actually applied:</b> the CLI debug log for the smoke run must show <code>effort: high</code> and no <code>budget_tokens</code>.
+          A CLI that dates from Haiku 4.5 (where effort is an error) could strip it for any "haiku" model. Haiku 5.5 would then run at its
+          default <code>medium</code>, a silent confound that undersells Haiku.</li>
+        <li><b>Cost read correctly:</b> <code>sdk_cost_usd</code> ≈ usage tokens × $0.10 / $0.50. If an older price table mis-prices the model,
+          compute cost from the tokens instead.</li>
+        <li>No conversation in the smoke run hits the 60k token ceiling. Record peak tokens per conversation, because high effort is where this would show up first.</li>
+      </ul>
+      <span class="tag">Any failure here stops the plan before a real pass. The fix would be bumping claude-agent-sdk, but then the committed Sonnet runs
+        would no longer share the challenger's harness. That is a new decision for you, not something this plan does on its own.</span>
+    </div>
+
+    <div class="step" id="p1">
+      <div class="phase-head"><b>Phase 1 · Build: an effort knob, plus a train pairing</b> <span class="badge">code · zero model calls</span></div>
+      <p><b>Effort becomes a run parameter, the same way the model is.</b> Add <code>settings.sdk_effort</code> (<code>SDK_EFFORT</code>, default
+        <code>low</code>, so nothing changes until §05 makes serving read effort from the champion record) and <code>run --sdk-effort</code>. It goes into
+        <code>pipeline_sdk_options</code> in place of the literal at <code>llm.py:547</code>, and is logged as the <code>sdk_effort</code> param and tag.
+        The run name gets a slug (<code>…-haiku-5-5-high-…</code>), and <code>--resume-from</code> refuses a mismatched effort.
+        The teacher and judge keep their own <code>low</code> in <code>teacher_options</code>. Runs with no <code>sdk_effort</code> param that predate
+        <code>27e11b5</code> read as <code>high</code>.</p>
+      <p>Today <code>story.sdk_model_comparison</code> pairs <code>sdk-evalloop-test100-*</code> runs only and groups them by model. Extend it:</p>
+      <ul class="tight">
+        <li>Group by <b>(model, effort)</b>, so a later Haiku run at another effort never collapses into this one.</li>
+        <li>Add a <b>train pair</b> that matches runs on <code>train_draw_seed</code> (2027 with 2027, 2028 with 2028) and requires
+          <code>stop_at_first_wrong</code> on both sides. Its unit is the conversation: answered right to the end, and the turn of the first error.
+          It uses an exact paired McNemar on conversations, because with early stop a question-level pairing would be biased toward
+          whichever arm stopped later.</li>
+        <li>Add a <b>verdict</b>: <code>beats · matches · falls_short</code> from §03, with δ held in a named constant pinned by a test.</li>
+        <li>Tests: draws paired only by seed, a mismatched stop flag refused, verdict boundary cases.
+          <code>agent-sdk.html</code> and <code>/optimise/runtimes</code> gain the train column, and <code>story_check</code> covers it.</li>
+      </ul>
+    </div>
+
+    <div class="step" id="p2">
+      <div class="phase-head"><b>Phase 2 · Test pass: the decision evidence</b> <span class="badge info">≈ 15–20 min · ≈ $2–6</span></div>
+      <p>Haiku 5.5 at <code>effort=high</code> on test100, paired against the committed Sonnet 5 CSV
+        <code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv</code>, which also ran at high.</p>
+    </div>
+
+    <div class="step" id="p3">
+      <div class="phase-head"><b>Phase 3 · Train passes: Haiku on sdk_v1's own train draws</b> <span class="badge info">≈ 25–35 min · ≈ $4–11, Haiku only</span></div>
+      <div class="callout">
+        <p><b>The same questions, never re-run for Sonnet.</b> <b>Test</b> is the exact set <code>sdk_v1</code> was scored on: both committed
+          sdk_v1 test CSVs are the manifest's 100 reports and 349 questions, checked id for id. <b>Train</b> is sdk_v1's two committed
+          campaign-s01 runs (<code>s01-e02</code>, seed 2027, 314 rows, 64/100 conversations right to the end; <code>s01-e03</code>,
+          seed 2028, 316 rows, 68/100). <code>--train-seed 2027|2028</code> reproduces both report sets exactly, and
+          <code>--stop-at-first-wrong</code> repeats how they were run. Every Sonnet number in this plan is already committed.</p>
+      </div>
+      <p>Two Haiku passes at <code>effort=high</code>, one per seed, with the same flags as the Sonnet runs they pair against. The paired unit is
+        the conversation (§03 rule 4). The two draws share 4 reports. Each draw is paired on its own, and the pooled count keeps both,
+        because they are separate runs.</p>
+    </div>
+
+    <div class="step" id="p4">
+      <div class="phase-head"><b>Phase 4 · Analyse and decide</b> <span class="badge">zero model calls</span></div>
+      <p><code>story</code> → <code>story.json → sdk_model_comparison</code> → the verdict, read against §03. The report covers Δ, CI and p
+        on test; conversations right to the end and first-error turn on each train draw; number vs program turns; Type I vs II; the per-stage panel; <code>program_accuracy</code>;
+        every fixed and broken question with both answers; cost per pass and per question; wall clock; token-ceiling and refusal counts per arm.
+        Commit the CSVs, <code>story.json</code> and <code>mlflow_snapshot.json</code> on <code>haiku55</code>.</p>
+    </div>
+
+    <div class="step" id="p5">
+      <div class="phase-head"><b>Phase 5 · Promote, only on beats or matches</b> <span class="badge">one registry write · see §05</span></div>
+      <p>Move the universal champion's record from <code>sonnet-5</code> to <code>haiku-5-5</code>. That needs §05's workstream to have landed.
+        Phases 0–4 don't wait for it: the measurement is the same whichever way the champion is stored.</p>
+    </div>
+
+    <div class="step" id="p6">
+      <div class="phase-head"><b>Phase 6 · Write-up: one Lavish page for the whole experiment</b> <span class="badge">zero model calls · runs whatever the verdict</span></div>
+      <p>A results page, <code>.lavish/sNN_haiku55-challenger-results.html</code> (NN = the next free number), in the house UI,
+        and opened in Lavish for review. Every figure is read from <code>story.json</code> and the committed CSVs, never typed by hand,
+        so the page can't disagree with the record. A "falls short" gets the same write-up, because a measured no is a result.</p>
+      <ul class="tight">
+        <li><b>Verdict first:</b> beats, matches or falls short, with the rule from §03, δ and the evidence base as they were fixed before the runs.</li>
+        <li><b>Accuracy, sdk_v1 champion vs Haiku challenger:</b> Δ with the 95% CI and one-sided cluster p on test, drawn as the §03 interval figure
+          with the real interval in place of the illustrative one. Alongside it, conversations answered right to the end on each train draw.</li>
+        <li><b>Where the difference sits:</b> number vs program turns, Type I vs II, the per-stage panel (triage, preprocess, retriever, calculator)
+          and <code>program_accuracy</code>, set beside the Haiku 4.5 precedent.</li>
+        <li><b>Every flip:</b> each fixed and broken question, with the question, gold, the champion's answer, the challenger's answer and the stage that failed.</li>
+        <li><b>Cost and speed:</b> API-equivalent $ per pass and per question, tokens, wall clock, and the measured cost ratio in place of the 5–14× estimate.</li>
+        <li><b>Harness checks:</b> what Phase 0 found (CLI, effort, pricing), token-ceiling hits, refusals and unscored rows per arm.</li>
+        <li><b>Promotion:</b> the gates-ledger row, the registry event and the champion record before and after. If it fell short, what the next lever is.</li>
+        <li><b>Caveats kept attached:</b> contamination, the uncalibrated judge, and serving having run at <code>low</code> since 09-10.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Commands</h3>
+<pre><code># Phase 0
+make -C ../nmp-central-ai status
+export EVAL_MANIFEST=eval_loop_v2 SDK_BILLING=subscription
+uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --n-reports 3 --concurrency 3
+
+# Phase 2 — the decision evidence
+uv run convfinqa-evalloop run --split test  --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --concurrency 4
+
+# Phase 3 — sdk_v1's own train draws, run exactly as the Sonnet runs were
+uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --train-seed 2027 --stop-at-first-wrong --concurrency 4
+uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --train-seed 2028 --stop-at-first-wrong --concurrency 4
+
+# throttled mid-pass? wait for the reset, then finish it. Never switch billing.
+uv run convfinqa-evalloop run ... --resume-from evaluation/predictions/evalloop/&lt;partial&gt;.csv
+
+# Phase 4
+uv run convfinqa-evalloop story && uv run python -m convfinqa.evalloop.story_check
+uv run convfinqa-mlflow snapshot</code></pre>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>pass</th><th>split</th><th>model</th><th>questions</th><th>wall (est.)</th><th>API-equivalent (est.)</th></tr></thead>
+      <tbody>
+        <tr><td>P0 smoke</td><td>train3</td><td>Haiku 5.5 · high</td><td class="n">13</td><td class="n">~1 min</td><td class="n">&lt; $0.25</td></tr>
+        <tr><td>P2</td><td>test100</td><td>Haiku 5.5 · high</td><td class="n">349</td><td class="n">~15–20 min</td><td class="n">$2–6</td></tr>
+        <tr><td>P3a</td><td>train · seed 2027 · stop at first wrong</td><td>Haiku 5.5 · high</td><td class="n">≈ 315</td><td class="n">~12–17 min</td><td class="n">$2–5.5</td></tr>
+        <tr><td>P3b</td><td>train · seed 2028 · stop at first wrong</td><td>Haiku 5.5 · high</td><td class="n">≈ 315</td><td class="n">~12–17 min</td><td class="n">$2–5.5</td></tr>
+        <tr><td><i>Sonnet 5 · high</i></td><td>test100 + both train draws</td><td>already committed</td><td class="n">—</td><td class="n">0</td><td class="n">$0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tag">Wall times come from the Sonnet test pass at high (787 s at concurrency 4) and the Haiku 4.5 pass (882 s at concurrency 8, no thinking). Haiku 5.5's thinking at high is unmeasured, hence the range.
+    Dollar figures are what <code>ResultMessage.total_cost_usd</code> reports, i.e. what the pass would cost on the API. On the subscription the cost is usage limits.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="switch">
+  <span class="eyebrow">05 · the universal champion</span>
+  <h2>One champion, and it is <em>an agent, not a prompt</em></h2>
+  <p class="sub">Today the registry holds <code>champion = v8</code> and <code>sdk_champion = sdk_v1</code>. Guards keep them apart:
+    <code>registry.promote</code> refuses sdk versions and <code>set_alias</code> refuses a cross-runtime pair, because serving built four
+    agents from <code>champion</code>. The workstream below collapses them into one record, so that "promote the Haiku challenger" is a single,
+    recorded registry write.</p>
+
+  <div class="split">
+    <div class="card">
+      <h4>today</h4>
+      <pre><code>"aliases": {
+  "champion":       "v8",
+  "sdk_champion":   "sdk_v1",
+  "judge_champion": "judge_j1"
+}
+# model  ← settings.sdk_model (live default)
+# effort ← "low", hard-coded since 09-10</code></pre>
+    </div>
+    <div class="card rec">
+      <h4>proposed</h4>
+      <pre><code>"champion": {
+  "version": "sdk_v1",           # prompt s1@5e96f2bf
+  "runtime": "agent_sdk",
+  "model":   "claude-sonnet-5",  # → claude-haiku-5-5 on promotion
+  "effort":  "high"
+}
+# v8 stays in history; the judge keeps its own alias</code></pre>
+    </div>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table>
+      <thead><tr><th>#</th><th>where</th><th>what changes</th></tr></thead>
+      <tbody>
+        <tr><td class="k">U1</td><td><code>tracking/registry.py</code> (<code>champion</code>, <code>set_alias</code>, <code>promote</code>, <code>promote_sdk</code>, <code>sdk_champion</code>)</td><td>The champion becomes a record of (version, runtime, model, effort). <code>promote</code> accepts an sdk agent and moves the whole record. <code>sdk_champion()</code> becomes a read of it, so the ~19 call sites keep working. The cross-runtime refusal retires, because nothing builds four agents from the champion any more.</td></tr>
+        <tr><td class="k">U2</td><td>serving (<code>serving/sdk_session.py:44</code>, <code>app.py</code>, <code>models.py</code>)</td><td>Model and effort come from the champion record instead of <code>settings.sdk_model</code> and a literal. Serving goes back to <code>high</code>, the configuration that actually won.</td></tr>
+        <tr><td class="k">U3</td><td><code>evalloop/story.py:323</code> <code>sdk_reference_model()</code></td><td>Returns the live default today. Read the champion record instead. The <code>runtime_comparison</code> arm stays pinned to the run its gate (<code>g-20260905080150-00fce8a3</code>) measured, so a promotion never re-labels the v8-vs-sdk_v1 verdict.</td></tr>
+        <tr><td class="k">U4</td><td><code>evalloop/judge.py:1584</code></td><td><code>judge-score</code> logs <code>runtime_model</code> from the live setting. Read it from the dataset manifest, so re-scoring Sonnet trails is never labelled Haiku.</td></tr>
+        <tr><td class="k">U5</td><td>UI (<code>LampStrip.tsx</code>, <code>Runtimes.tsx</code>, <code>runtimeStory.ts</code>, <code>types.ts</code>) and <code>scripts/demo_smoke.sh</code></td><td>Show one champion with its model and effort. <code>demo_smoke</code> asserts the served agent equals the champion record.</td></tr>
+        <tr><td class="k">U6</td><td><code>CLAUDE.md</code>, <code>evaluation/readiness.json</code>, tests (<code>test_agent_sdk_backend.py:863</code> and the alias-refusal tests)</td><td>The invariants that say "<code>sdk_champion</code>, never <code>champion</code>" get rewritten to say this instead. Rebuild <code>story</code> and pass <code>story_check</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn">
+    <p><b>The judge comes along uncalibrated.</b> <code>judge_j1</code> learned its bands on Sonnet 5 trails, and its high-band
+      precision on Haiku 5.5 trails is unmeasured. <code>JUDGE_MODE=advisory</code> means it only adds a caveat and never withholds
+      an answer, so this doesn't block a promotion. Re-scoring the calibrate split on Haiku trails is the first follow-up.</p>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="risks">
+  <span class="eyebrow">06 · what could make the answer wrong</span>
+  <h2>Risks, and what catches each one</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>risk</th><th>what it would look like</th><th>caught by</th></tr></thead>
+      <tbody>
+        <tr><td>Bundled CLI predates Haiku 5.5</td><td>400s, effort silently dropped, or cost mis-priced</td><td>Phase 0. Escalation: bump the SDK and re-run both arms</td></tr>
+        <tr><td>Tokenizer trips the 60k ceiling</td><td>Late turns recorded as errors and read as wrong answers</td><td>Ceiling hits counted per arm. Unequal counts mean confounded, not a verdict</td></tr>
+        <tr><td>Subscription limit mid-pass</td><td>Refusal text instead of answers</td><td>Already handled: the turn is unscored, the pass is refused as incomplete, and <code>--resume-from</code> finishes it</td></tr>
+        <tr><td>Safety classifier refusal</td><td>A non-answer on a finance question. Haiku 5.5 has no server-side fallback</td><td>Phase 4 greps <code>pred_answer</code> for refusals and reports them separately</td></tr>
+        <tr><td>Contamination</td><td>90.5% is above human-expert Exe Acc (89.44%)</td><td>Not excludable. The comparison is relative, but two models can be contaminated to different degrees. Say so in the write-up</td></tr>
+        <tr><td>The train draws have been read before</td><td>s01 diagnosed draws 2027 and 2028, and their failures fed the rejected <code>sdk_v2</code> rewrite</td><td><code>sdk_v1</code> itself was never tuned on them, and both arms share it. That makes them a fair replication, and train still only vetoes</td></tr>
+        <tr><td>Months between the arms</td><td>Sonnet ran on 2026-09-05. Haiku runs today, and server-side behaviour can drift in between</td><td>Same SDK and CLI pin on both sides. Residual drift can't be removed without a Sonnet re-run, which this plan deliberately doesn't do. Say so in the write-up</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="decisions">
+  <span class="eyebrow">07 · settled</span>
+  <h2>Every decision is made. <em>Build is under way.</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>decision</th><th>effect on the plan</th></tr></thead>
+      <tbody>
+        <tr><td class="k">D1</td><td>Margin δ = <b>3pp</b></td><td>"Matches" needs test's 95% CI lower bound ≥ −3pp. This is the strict option, so Haiku has to come in roughly level or better.</td></tr>
+        <tr><td class="k">D2</td><td>Test decides, train vetoes</td><td>Sonnet is never re-run, so only test is paired question by question. Train is paired per conversation on sdk_v1's own draws.</td></tr>
+        <tr><td class="k">D3</td><td>Reuse the committed Sonnet runs</td><td>Test: <code>…-20260905_174627.csv</code>. Train: s01-e02 (seed 2027) and s01-e03 (seed 2028).</td></tr>
+        <tr><td class="k">D4</td><td>Universal champion lands on <code>haiku55</code></td><td>§05 (U1–U6) is built here alongside Phase 1, in one branch and one PR.</td></tr>
+        <tr><td class="k">—</td><td>Champion and challenger</td><td>The universal champion is <code>sdk_v1 · claude-sonnet-5 · high</code>, and the challenger is <code>sdk_v1 · claude-haiku-5-5 · high</code>. The pipeline and DeepSeek are out of scope.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+
+</body>
+</html>

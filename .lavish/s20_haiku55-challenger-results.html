@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haiku 5.5 challenger results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .ci-fig svg{ display:block; width:100%; height:auto; color:var(--ink-2); font-family:var(--mono); }
+  .ci-fig .axis{ stroke:var(--line-3); }
+  .ci-fig .zero{ stroke:var(--line-3); stroke-dasharray:4 4; }
+  .ci-fig .zone{ fill:var(--accent-wash); }
+  .ci-fig .margin{ stroke:var(--accent); stroke-width:2; }
+  .ci-fig .bar{ stroke:currentColor; stroke-width:3; stroke-linecap:round; }
+  .ci-fig .pt{ fill:currentColor; }
+  .ci-fig .lo-fail{ fill:var(--red); }
+  .ci-fig .lbl{ fill:var(--ink); font-size:13px; }
+  .ci-fig .sub{ fill:var(--muted); font-size:11px; }
+  .ci-fig .acc{ fill:var(--accent); font-size:11px; }
+  .ci-fig .tick{ fill:var(--muted); font-size:11px; }
+  .checks{ list-style:none; margin:var(--s3) 0 0; padding:0; display:grid; gap:var(--s2); }
+  .checks li{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s3); align-items:baseline; }
+  .checks li .why{ font-size:var(--t-1); color:var(--ink-2); min-width:0; overflow-wrap:anywhere; }
+  td.up{ color:var(--accent-ink); font-weight:600; }
+  td.down{ color:var(--red); font-weight:600; }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; }
+  .phase-head{ display:flex; gap:var(--s2); align-items:baseline; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s20 · ConvFinQA-agent · branch <code>haiku55</code> · 2026-10-15 · results of the s19 plan · verdict <b>falls short</b> · champion unchanged</div>
+  <h1>Haiku 5.5 runs the champion's prompt for a sixteenth of the price, <em>and falls 3.2 points short of it</em></h1>
+  <p class="lede">The challenger <code>sdk_v1 · claude-haiku-5-5 · effort high</code> was scored on exactly the questions the
+    champion <code>sdk_v1 · claude-sonnet-5 · effort high</code> was scored on, and paired against the champion's committed runs.
+    Sonnet was not re-run. On test100 it got <b>87.4% against 90.5%</b>. The whole loss is on program turns, it is
+    significantly worse, and its 95% interval reaches −6.8pp, more than twice the 3pp margin agreed before any Haiku 5.5 number existed.
+    <code>registry.promote_agent</code> refused it, and the registry is byte-identical. The pass cost <b>$0.73 against $11.83</b>,
+    and measuring that honestly meant fixing how every SDK pass had been priced.</p>
+  <div class="verdict">
+    <div class="stat red"><div class="n">−3.15pp</div><div class="l">test100, 349 q: 87.39% vs 90.54% · 95% CI [−6.80, +0.28] · p toward worse 0.043</div></div>
+    <div class="stat amber"><div class="n">−5.9pp</div><div class="l">program turns: 82.4% vs 88.2% · 3 fixed / 17 broken · p toward worse 0.004</div></div>
+    <div class="stat accent"><div class="n">16×</div><div class="l">cheaper: $0.73 vs $11.83 per test pass · $2.01 vs $32.28 for all three passes</div></div>
+    <div class="stat"><div class="n">sdk_v1 · Sonnet 5</div><div class="l">stays the universal champion, at effort high, as recorded</div></div>
+  </div>
+</header>
+
+<!-- ======================================================================= -->
+<section id="verdict">
+  <span class="eyebrow">01 · the verdict</span>
+  <h2>Four of the six checks fail, <em>and the margin check fails by more than double</em></h2>
+  <p class="sub">The rule (s19, D1 = 3pp, D2 = test decides and train only vetoes) was fixed before scoring.
+    <code>story.model_swap_verdict</code> computed it from the two committed CSVs. The figure shows the test interval
+    against the margin, beside two sensitivity readings and the Haiku 4.5 swap for reference.</p>
+
+  <div class="split">
+    <div class="card verdict-card">
+      <h3>falls_short <span class="badge bad">not promoted</span></h3>
+      <ul class="checks">
+        <li><span class="badge bad">fail</span><span class="why"><b>beats on test.</b> Δ −3.15pp, one-sided cluster p toward better 0.957</span></li>
+        <li><span class="badge bad">fail</span><span class="why"><b>CI lower bound ≥ −3pp.</b> −6.80pp</span></li>
+        <li><span class="badge bad">fail</span><span class="why"><b>Not significantly worse on test.</b> p toward worse 0.043 &lt; 0.05</span></li>
+        <li><span class="badge bad">fail</span><span class="why"><b>Program turns not worse.</b> p toward worse 0.004 (3 fixed / 17 broken in 16 conversations)</span></li>
+        <li><span class="badge ok">pass</span><span class="why"><b>Train not worse</b> (veto only). 132 → 124 of 200 conversations right to the end, p toward worse 0.084</span></li>
+        <li><span class="badge warn">fail · moot</span><span class="why"><b>No extra token-ceiling errors.</b> 0 → 1. A harness effect both arms paid, on a question both got wrong (§06)</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>The promotion record</h3>
+      <p><code>registry.promote_agent(model="claude-haiku-5-5", effort="high", verdict=…, evidence_split="test")</code> returned
+        <code>promoted=False</code>: <i>"model-swap rule refused: falls_short — Δ −3.15pp, CI low −6.7989pp (margin −3.0pp)"</i>.
+        <code>evaluation/registry.json</code> is unchanged byte for byte. <code>champion_agent</code> is still
+        <code>{sdk_v1, agent_sdk, claude-sonnet-5, high}</code>.</p>
+      <p class="sub">The verdict is robust to how answers are formatted. Crediting Haiku's three unrounded answers
+        moves Δ to −2.29pp, but the lower bound is still −5.68pp. Crediting <i>both</i> arms' format misses (Sonnet lost three the same way)
+        leaves Δ at −3.15pp with the whole interval below zero.</p>
+    </div>
+  </div>
+
+  <figure class="fig ci-fig" aria-label="Test-split 95% intervals against the 3pp margin">
+    <svg viewBox="0 0 720 250" role="img">
+      <rect class="zone" x="425" y="28" width="275" height="182"/>
+      <line class="margin" x1="425" y1="24" x2="425" y2="214"/>
+      <text class="acc" x="429" y="22">margin −3pp: lower bound must sit right of this</text>
+      <line class="zero" x1="590" y1="28" x2="590" y2="214"/>
+      <line class="axis" x1="150" y1="214" x2="700" y2="214"/>
+      <text class="tick" x="150" y="232" text-anchor="middle">−8</text>
+      <text class="tick" x="260" y="232" text-anchor="middle">−6</text>
+      <text class="tick" x="370" y="232" text-anchor="middle">−4</text>
+      <text class="tick" x="480" y="232" text-anchor="middle">−2</text>
+      <text class="tick" x="590" y="232" text-anchor="middle">0</text>
+      <text class="tick" x="700" y="232" text-anchor="middle">+2 pp</text>
+
+      <text class="lbl" x="8" y="60">Haiku 5.5 · test</text>
+      <text class="sub" x="8" y="75">as scored</text>
+      <line class="bar" x1="216" y1="62" x2="605" y2="62"/>
+      <circle class="pt" cx="417" cy="62" r="6"/>
+      <circle class="lo-fail" cx="216" cy="62" r="5"/>
+      <text class="sub" x="216" y="50" text-anchor="middle">−6.80</text>
+
+      <text class="lbl" x="8" y="110">Haiku 5.5 · test</text>
+      <text class="sub" x="8" y="125">3 rounding misses credited</text>
+      <line class="bar" x1="278" y1="112" x2="639" y2="112"/>
+      <circle class="pt" cx="464" cy="112" r="6"/>
+      <circle class="lo-fail" cx="278" cy="112" r="5"/>
+      <text class="sub" x="278" y="100" text-anchor="middle">−5.68</text>
+
+      <text class="lbl" x="8" y="160">Haiku 5.5 · test</text>
+      <text class="sub" x="8" y="175">both arms' format credited</text>
+      <line class="bar" x1="239" y1="162" x2="575" y2="162"/>
+      <circle class="pt" cx="417" cy="162" r="6"/>
+      <circle class="lo-fail" cx="239" cy="162" r="5"/>
+      <text class="sub" x="239" y="150" text-anchor="middle">−6.38</text>
+
+      <text class="lbl" x="8" y="200">Haiku 4.5 · test</text>
+      <line class="bar" x1="208" y1="202" x2="607" y2="202"/>
+      <circle class="pt" cx="417" cy="202" r="6"/>
+      <circle class="lo-fail" cx="208" cy="202" r="5"/>
+    </svg>
+    <figcaption>Cluster-bootstrap 95% CI on Δ accuracy vs the committed Sonnet 5 run. Dot = point estimate, red = lower bound.
+      No reading reaches the shaded zone.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================================================================= -->
+<section id="accuracy">
+  <span class="eyebrow">02 · the three agents on test100</span>
+  <h2>Same overall score as Haiku 4.5, <em>reached a different way</em></h2>
+  <p class="sub">The prompt (<code>sdk_v1 · s1 · 5e96f2bf</code>), tools, questions (349 q / 100 reports), scorer and harness pin
+    (claude-agent-sdk 0.2.152, bundled CLI 2.1.259) are the same in every row. Haiku 5.5 and Haiku 4.5 both answered 305 of 349 questions correctly,
+    but with different mixes: Haiku 5.5 is the best of the three at looking numbers up and the worst at carrying a computation through.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>sdk_v1 on test100</th><th>accuracy</th><th>number (111)</th><th>program (238)</th><th>program match</th>
+        <th>triage</th><th>plan</th><th>retriever recall</th><th>calculator</th><th>cost paid</th><th>wall</th></tr></thead>
+      <tbody>
+        <tr><td><b>Sonnet 5 · high</b> <span class="badge ok">champion</span></td><td class="n">90.54%</td><td class="n">95.5%</td><td class="n">88.2%</td><td class="n">0.409</td>
+          <td class="n">97.4%</td><td class="n">87.6%</td><td class="n">78.6%</td><td class="n">88.2%</td><td class="n">$11.83</td><td class="n">787 s · c4</td></tr>
+        <tr><td><b>Haiku 5.5 · high</b> <span class="badge info">challenger</span></td><td class="n down">87.39%</td><td class="n up">98.2%</td><td class="n down">82.4%</td><td class="n">0.388</td>
+          <td class="n">97.1%</td><td class="n down">85.3%</td><td class="n up">82.6%</td><td class="n down">82.3%</td><td class="n up">$0.73</td><td class="n up">607 s · c4</td></tr>
+        <tr><td>Haiku 4.5 <span class="tag">2026-09-06</span></td><td class="n">87.39%</td><td class="n">96.4%</td><td class="n">83.2%</td><td class="n">0.388</td>
+          <td class="n">97.4%</td><td class="n">84.1%</td><td class="n">77.8%</td><td class="n">83.1%</td><td class="n">$7.63</td><td class="n">882 s · c8</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Panel columns are the gold-derived per-stage scores (<code>stage_scores</code>, zero API calls). Program match is
+    <code>program_accuracy</code>. Costs are the price actually paid (§05), not the figures previously recorded. Haiku 4.5's effort is labelled
+    <code>high</code> by date only: it ran before effort was pinned, and it predates the effort parameter.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="loss">
+  <span class="eyebrow">03 · where the loss lives</span>
+  <h2>Haiku 5.5 gives up on values that are there, <em>and runs subtractions backwards</em></h2>
+  <p class="sub">On test there are 25 flips: 7 fixed and 18 broken. Five of the 18 are cascades, wrong because an earlier Haiku turn in the
+    same conversation was wrong. Grouped by what went wrong:</p>
+  <div class="cards">
+    <div class="card"><h3>Gave up · 7</h3><p>Answered <code>unavailable</code> where Sonnet found the operands (BLK, PNC ×2, GIS, IP ×2, ECL).
+      Retriever recall on these was 0–0.5. This is the distinctive Haiku 5.5 failure, and it holds on train too (below).</p></div>
+    <div class="card"><h3>Sign / direction · 5</h3><p>Right magnitude, wrong direction of a subtraction or change (MMM ×2, RE, ETR/2017, SNA):
+      <code>-18</code> for 18, <code>42.8</code> for −42.8.</p></div>
+    <div class="card"><h3>Unrounded output · 3</h3><p>The exact value where gold is a rounded percent (C ×2, UNP/2008): <code>1.7843…</code> for 178%.
+      The scorer compares at 3 dp once a <code>%</code> is on one side, so these miss. Sonnet loses 3 the same way in the other direction (CB ×2 <code>4.2 billion</code>, JPM <code>67.5%</code>).</p></div>
+    <div class="card"><h3>Other · 3</h3><p>A wrong lookup and its cascade (BDX: 5146502 for 2223245, twice), and a wrong plan (ETR/2008: 3.8% for 76.5%).</p></div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>"unavailable" / "not available" answers</th><th>test100</th><th>train seed 2027</th><th>train seed 2028</th></tr></thead>
+      <tbody>
+        <tr><td>Sonnet 5 · high</td><td class="n">0</td><td class="n">1</td><td class="n">2</td></tr>
+        <tr><td>Haiku 5.5 · high</td><td class="n down">8</td><td class="n down">8</td><td class="n down">12</td></tr>
+        <tr><td>Haiku 4.5</td><td class="n">2</td><td class="n">—</td><td class="n">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Every one of those answers is scored wrong. The pattern repeats in all three passes, so it is a behaviour and not test-split noise.
+    It is also the kind of failure a prompt can address (§07).</p>
+
+  <details>
+    <summary>All 25 test flips</summary>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>conversation · turn</th><th>type</th><th>gold</th><th>Sonnet 5</th><th>Haiku 5.5</th><th>class</th></tr></thead>
+        <tbody>
+          <tr><td>Double_BLK/2016 · q2</td><td>program</td><td class="n">49.4%</td><td class="n">49.4%</td><td class="n down">unavailable</td><td>gave up</td></tr>
+          <tr><td>Double_C/2009 · q3</td><td>program</td><td class="n">178%</td><td class="n">1.78</td><td class="n down">1.7843…</td><td>unrounded</td></tr>
+          <tr><td>Double_C/2009 · q6</td><td>program</td><td class="n">−72%</td><td class="n">−0.72</td><td class="n down">−0.7187…</td><td>unrounded</td></tr>
+          <tr><td>Single_ETR/2008 · q4</td><td>program</td><td class="n">76.5%</td><td class="n">76.5%</td><td class="n down">3.8%</td><td>wrong plan</td></tr>
+          <tr><td>Single_PNC/2007 · q0</td><td>program</td><td class="n">114.96</td><td class="n">114.96</td><td class="n down">unavailable</td><td>gave up</td></tr>
+          <tr><td>Single_PNC/2007 · q1</td><td>program</td><td class="n">57.48</td><td class="n">57.48</td><td class="n down">unavailable</td><td>gave up · cascade</td></tr>
+          <tr><td>Single_BDX/2016 · q1</td><td>number</td><td class="n">2223245</td><td class="n">2223245</td><td class="n down">5146502</td><td>wrong lookup</td></tr>
+          <tr><td>Single_BDX/2016 · q2</td><td>program</td><td class="n">9412897</td><td class="n">9412897</td><td class="n down">5146502</td><td>cascade</td></tr>
+          <tr><td>Single_UNP/2008 · q3</td><td>program</td><td class="n">24%</td><td class="n">0.24</td><td class="n down">0.2431…</td><td>unrounded</td></tr>
+          <tr><td>Single_MMM/2007 · q2</td><td>program</td><td class="n">18</td><td class="n">18</td><td class="n down">−18</td><td>sign</td></tr>
+          <tr><td>Single_MMM/2007 · q3</td><td>program</td><td class="n">52.9%</td><td class="n">52.9%</td><td class="n down">−52.9%</td><td>sign · cascade</td></tr>
+          <tr><td>Single_GIS/2017 · q0</td><td>program</td><td class="n">−69.3</td><td class="n">−69.3</td><td class="n down">unavailable</td><td>gave up</td></tr>
+          <tr><td>Single_RE/2010 · q1</td><td>program</td><td class="n">2.48</td><td class="n">2.48</td><td class="n down">−2.5</td><td>sign</td></tr>
+          <tr><td>Single_IP/2007 · q0</td><td>program</td><td class="n">3500</td><td class="n">3500</td><td class="n down">not available</td><td>gave up</td></tr>
+          <tr><td>Single_IP/2007 · q1</td><td>program</td><td class="n">54%</td><td class="n">0.54</td><td class="n down">not available</td><td>gave up · cascade</td></tr>
+          <tr><td>Double_ECL/2017 · q2</td><td>program</td><td class="n">−108</td><td class="n">−108</td><td class="n down">unavailable</td><td>gave up</td></tr>
+          <tr><td>Single_ETR/2017 · q0</td><td>program</td><td class="n">2.3</td><td class="n">2.3</td><td class="n down">−2.3</td><td>sign</td></tr>
+          <tr><td>Single_SNA/2007 · q0</td><td>program</td><td class="n">−42.8</td><td class="n">−42.8</td><td class="n down">42.8</td><td>sign</td></tr>
+          <tr><td>Double_AES/2016 · q0</td><td>number</td><td class="n">3</td><td class="n">6</td><td class="n up">3</td><td>fixed</td></tr>
+          <tr><td>Double_AES/2016 · q2</td><td>program</td><td class="n">5%</td><td class="n">10.0%</td><td class="n up">5%</td><td>fixed · Sonnet cascade</td></tr>
+          <tr><td>Double_CB/2010 · q0</td><td>number</td><td class="n">4.2</td><td class="n">4.2 billion</td><td class="n up">4.2</td><td>fixed · format</td></tr>
+          <tr><td>Double_CB/2010 · q1</td><td>number</td><td class="n">3.2</td><td class="n">3.2 billion</td><td class="n up">3.2</td><td>fixed · format</td></tr>
+          <tr><td>Single_JPM/2014 · q2</td><td>program</td><td class="n">67.48%</td><td class="n">67.5%</td><td class="n up">0.6748</td><td>fixed · format</td></tr>
+          <tr><td>Single_UNP/2006 · q3</td><td>number</td><td class="n">1916</td><td class="n">1236.0</td><td class="n up">1916</td><td>fixed</td></tr>
+          <tr><td>Single_UNP/2006 · q4</td><td>program</td><td class="n">26%</td><td class="n">0.17</td><td class="n up">0.2599…</td><td>fixed · Sonnet cascade</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ======================================================================= -->
+<section id="train">
+  <span class="eyebrow">04 · train: sdk_v1's own two draws</span>
+  <h2>Train points the same way, <em>just not far enough to veto</em></h2>
+  <p class="sub"><code>--train-seed 2027|2028 --stop-at-first-wrong</code> reproduces the champion's s01 draws report for report (the paired sets
+    matched, 100 conversations each). Early stopping means a later turn only exists for an arm that got every earlier turn right, so
+    the paired unit is the conversation: answered right to the end, or not. The test is an exact McNemar.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>draw</th><th>right to the end · Sonnet</th><th>· Haiku 5.5</th><th>fixed</th><th>broken</th><th>p toward worse</th>
+        <th>mean turns right before first error</th><th>cost paid</th><th>wall</th></tr></thead>
+      <tbody>
+        <tr><td>seed 2027 (s01-e02)</td><td class="n">64 / 100</td><td class="n">63 / 100</td><td class="n">5</td><td class="n">6</td><td class="n">0.50</td><td class="n">2.78 → 2.73</td><td class="n">$10.36 → $0.64</td><td class="n">702 → 530 s</td></tr>
+        <tr><td>seed 2028 (s01-e03)</td><td class="n">68 / 100</td><td class="n down">61 / 100</td><td class="n">4</td><td class="n">11</td><td class="n">0.059</td><td class="n">2.84 → 2.74</td><td class="n">$10.09 → $0.64</td><td class="n">665 → 531 s</td></tr>
+        <tr><td><b>pooled</b></td><td class="n"><b>132 / 200</b></td><td class="n down"><b>124 / 200</b></td><td class="n">9</td><td class="n">17</td><td class="n"><b>0.084</b></td><td class="n">—</td><td class="n">$20.46 → $1.28</td><td class="n">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Not significant, so no veto, which is moot anyway because test already decided. Haiku 5.5 is behind on both draws, and the
+    gave-up answers recur (8 and 12). Per-question accuracy on the turns each arm reached was 88.1% vs 88.5% (2027) and 87.5% vs 89.9% (2028).
+    Those figures are not paired, because each arm reaches a different set of turns.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="cost">
+  <span class="eyebrow">05 · cost and speed</span>
+  <h2>Every SDK cost on record was overstated, <em>and the CLI did not know the new model's price</em></h2>
+  <p class="sub">Measuring cost properly turned up two errors, both now fixed in code (<code>tracking/cost.py</code>,
+    <code>tracking/sdk_cost.py</code>, <code>convfinqa-evalloop backfill-sdk-cost</code>, pinned by <code>tests/test_sdk_cost.py</code>).</p>
+  <div class="split">
+    <div class="callout warn">
+      <p><b>1 · Running totals were summed.</b> The CLI's <code>total_cost_usd</code> is the <i>session's running total</i>
+        (one Single_RE conversation: $0.015 → $0.040 → $0.066 → $0.093), but <code>sdk_cost_usd</code> summed it over every turn. That overstated
+        every SDK pass 2.2–2.6×. sdk_v1's test pass was recorded at $27.62, and the price paid was $11.83 (the last total of each of its 100 conversations,
+        read from the archived traces).</p>
+    </div>
+    <div class="callout warn">
+      <p><b>2 · Haiku 5.5 was priced at 50×.</b> The bundled CLI 2.1.259 predates the model. It prints <code>unrecognized_model</code>,
+        still sends the model, effort and thinking as asked, and prices the model on a fallback card of $5 / $25 per MTok, with
+        1-hour cache writes at 2× and reads at 0.1×. That reproduces a recorded turn to the micro-dollar ($0.2168665). Haiku 5.5's rate card is
+        exactly 1/50 of that on every component while each prompt is ≤100K tokens. The largest call here was 46K.</p>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>pass</th><th>recorded <code>sdk_cost_usd</code></th><th>paid <code>sdk_session_cost_usd</code></th><th>per question</th></tr></thead>
+      <tbody>
+        <tr><td>Sonnet 5 · test100</td><td class="n">$27.62</td><td class="n">$11.83</td><td class="n">3.39¢</td></tr>
+        <tr><td>Haiku 4.5 · test100</td><td class="n">$17.14</td><td class="n">$7.63</td><td class="n">2.19¢</td></tr>
+        <tr><td><b>Haiku 5.5 · test100</b></td><td class="n down">$83.52</td><td class="n up"><b>$0.73</b></td><td class="n up"><b>0.21¢</b></td></tr>
+        <tr><td>Sonnet 5 · train 2027 + 2028</td><td class="n">$46.96</td><td class="n">$20.46</td><td class="n">3.25¢</td></tr>
+        <tr><td><b>Haiku 5.5 · train 2027 + 2028</b></td><td class="n down">$145.12</td><td class="n up"><b>$1.28</b></td><td class="n up"><b>0.21¢</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Read with the old figure, Haiku 5.5 would have looked <b>three times more expensive</b> than Sonnet ($83.52 vs $27.62).
+    The two passes that started after the fix log the paid figure themselves. Every older SDK pass got it from its own traces
+    (archived store → committed snapshot, central store → metric), and none was estimated. Old <code>sdk_cost_usd</code> values stay under that name.
+    The story and both pages now price an SDK arm by the paid figure alone, which corrects the published v8-vs-sdk_v1 page as well.
+    Everything ran on the subscription, so these are API-equivalent prices. Haiku 5.5 was also about 20–25% faster at the same concurrency.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="harness">
+  <span class="eyebrow">06 · harness checks</span>
+  <h2>Only the model changed, <em>and the one asymmetry did not move the result</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>check</th><th>how</th><th>result</th></tr></thead>
+      <tbody>
+        <tr><td>Haiku 5.5 is what answered</td><td>Phase 0 smoke (3 reports) then 3 passes; every API call returned 200</td><td><span class="badge ok">ok</span> 0 errors besides the one ceiling row, 0 rate-limited, 0 unscored</td></tr>
+        <tr><td>effort high and adaptive thinking reach the model</td><td>a local logging proxy in front of the bundled CLI, request fields only</td><td><span class="badge ok">ok</span> <code>output_config.effort: high</code>, <code>thinking: adaptive</code>, the same as for Sonnet 5</td></tr>
+        <tr><td>same harness as the baseline</td><td><code>uv.lock</code> history</td><td><span class="badge ok">ok</span> claude-agent-sdk 0.2.152 / CLI 2.1.259, the same pin as 2026-09-05</td></tr>
+        <tr><td><code>max_tokens</code></td><td>proxy</td><td><span class="badge info">differs</span> 32,000 for the unrecognised model vs 64,000. Turns used ≤3.7K output, so it never bound</td></tr>
+        <tr><td>same questions</td><td>report sets compared</td><td><span class="badge ok">ok</span> test 349 = 349 · both train draws id-for-id</td></tr>
+        <tr><td>rate card</td><td>per-call prompt size from spans</td><td><span class="badge ok">ok</span> median 29K, max 46K tokens: all ≤100K, so the $0.10 / $0.50 card applies</td></tr>
+        <tr><td>token ceiling (60k new tokens per conversation)</td><td>per-turn cache writes, both arms</td><td><span class="badge warn">harness effect</span> see below</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <p><b>The one ceiling error is a first-batch effect that both arms paid.</b> A session's first API call carries 7 tools and every later call
+      carries 65. The conversations that open a pass together each write that ~50k prefix to the cache in a single turn, against their own 60k ceiling,
+      before any of them can read it. In Sonnet's baseline, three of the first four conversations (INTC, IPG, STZ) wrote 55–57k in one turn and peaked at
+      59–61k. Its IPG crossed 60k only after its last turn. Haiku's IPG crossed one turn earlier (its newer tokenizer counts more), so q2 was not attempted.
+      Sonnet got that question wrong too, so the pair is unaffected.</p>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="caveats">
+  <span class="eyebrow">07 · caveats and what next</span>
+  <h2>What this does and does not show</h2>
+  <div class="split">
+    <div class="card">
+      <h3>Caveats</h3>
+      <ul>
+        <li><b>One pass per arm.</b> There is no run-to-run variance estimate. The CI is over conversations, not over reruns.</li>
+        <li><b>The two arms ran six weeks apart</b> (2026-09-05 vs 2026-10-15). Sonnet was deliberately not re-run, per the owner's rule.</li>
+        <li><b>The prompt was written for Sonnet.</b> <code>sdk_v1</code> was distilled and validated on Sonnet. This measures the model swap alone, not the
+          best Haiku 5.5 agent.</li>
+        <li><b>The scorer's 3 dp comparison</b> touches a handful of flips on each side. §01 shows the verdict survives either reading.</li>
+        <li><b>Serving changed in this build.</b> It now runs the champion record, Sonnet 5 at <code>high</code>. It had been on an unscored <code>low</code> since 09-10.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Options, none taken</h3>
+      <ul>
+        <li><b>A Haiku-tuned prompt.</b> The two dominant failures, giving up on values that are present and backwards subtractions, are rules a prompt
+          can state. A teacher pass over Haiku 5.5's train failures would produce a candidate. It would change prompt <i>and</i> model at once, so it needs
+          a gate against the champion on test, not the model-swap rule.</li>
+        <li><b>Haiku 5.5 at <code>xhigh</code> / <code>max</code>.</b> Effort is part of the agent and is cheap to try at ≈ $1 a pass. Same rule, same pairing.</li>
+        <li><b>Keep Sonnet 5.</b> This is the default, because the rule says so.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="record">
+  <span class="eyebrow">08 · the record</span>
+  <h2>Where every number on this page comes from</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>what</th><th>where</th></tr></thead>
+      <tbody>
+        <tr><td>champion test run</td><td><code>evaluation/predictions/evalloop/sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv</code></td></tr>
+        <tr><td>challenger test run</td><td><code>sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310.csv</code> · MLflow <code>0fc31feb…</code></td></tr>
+        <tr><td>challenger train runs</td><td><code>…train100-sdk_v1·s1-haiku-5-5-high-20261015_180335.csv</code> (seed 2027) · <code>…_181237.csv</code> (seed 2028)</td></tr>
+        <tr><td>champion train runs</td><td><code>…train100-sdk_v1·s1-20260905_180924.csv</code> (2027) · <code>…_184211.csv</code> (2028)</td></tr>
+        <tr><td>verdict and pairs</td><td><code>evaluation/story.json → sdk_model_comparison</code>, rendered on <code>docs/optimization/agent-sdk.html</code> and <code>/optimise/runtimes</code></td></tr>
+        <tr><td>paid cost</td><td><code>sdk_session_cost_usd</code> on each run (snapshot for pre-09-21 runs, central store after)</td></tr>
+        <tr><td>the rule and plan</td><td><code>.lavish/s19_haiku55-model-swap-plan.html</code> · <code>story.model_swap_verdict</code> · <code>MODEL_SWAP_MARGIN_PP = 3.0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Reproduce: <code>EVAL_MANIFEST=eval_loop_v2 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
+    --sdk-model claude-haiku-5-5 --sdk-effort high --concurrency 4</code>, then the same with <code>--split train --train-seed 2027|2028
+    --stop-at-first-wrong --n-reports 100</code>, then <code>convfinqa-evalloop story</code>.</p>
+</section>
+
+</main>
+</body>
+</html>

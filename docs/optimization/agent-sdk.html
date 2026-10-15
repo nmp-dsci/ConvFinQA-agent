@@ -112,7 +112,7 @@ the same split the pipeline campaigns gate on</div></div>
 <div class="sub"><span class="mono">sdk_v1</span> · sdk-evalloop-test100-sdk_v1·s1-20260905_174627</div>
 <p class="sub">one Claude session per conversation, calculator tools only, one prompt; stages reported by the agent so the same panel applies.</p>
 <table><tbody><tr><td>number turns</td><td class="num">95.5%</td></tr><tr><td>program turns</td><td class="num">88.2%</td></tr><tr><td>triage</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">87.6%</td></tr><tr><td>retriever</td><td class="num">78.6%</td></tr><tr><td>calculator</td><td class="num">88.2%</td></tr>
-<tr><td>cost</td><td class="num">$27.62</td></tr>
+<tr><td>cost</td><td class="num">$11.83</td></tr>
 <tr><td>wall</td><td class="num">13 min</td></tr></tbody></table></div>
 </div>
 <h3>The verdict between them</h3>
@@ -139,27 +139,30 @@ because an average over the two describes neither.</p>
 <th class="num">one-sided clustered p</th><th>verdict</th></tr></thead>
 <tbody><tr><td>program</td><td class="num">238</td><td class="num">75.2%</td><td class="num">88.2%</td><td class="num good">+13.03pp</td><td class="num">35&thinsp;/&thinsp;4</td><td class="num">4.7e-05</td><td><span class="pill ok">significant</span></td></tr><tr><td>number</td><td class="num">111</td><td class="num">95.5%</td><td class="num">95.5%</td><td class="num ">+0.00pp</td><td class="num">3&thinsp;/&thinsp;3</td><td class="num">0.5</td><td><span class="pill no">no effect</span></td></tr></tbody></table></div>
 
-<h2>The model-swap check: one prompt, two models</h2>
+<h2>The model-swap check: one prompt, several agents</h2>
 <p class="sub">The same <span class="mono">sdk_v1</span> prompt, the same six
-calculator tools, the same 2 runs' worth of gate split, the same
-scoring — only the model differs. This is a scoring pass, not an experiment:
-no prompt was optimised for the second model, nothing was promoted, and the
-paired verdict below is the gate's own test (cluster-corrected McNemar,
-cluster bootstrap CI) read against the reference model's run, with the
-one-sided p taken in the direction of the observed delta — the gate only
-ever looks towards improvement, and a scoring pass has no such bias.</p>
+calculator tools, the same questions, the same scoring — only the agent's model
+(and, where shown, its effort) differs. Each challenger is paired against the
+champion's own committed runs: on the gate split question by question (the
+gate's cluster-corrected McNemar and cluster bootstrap CI, one-sided p in the
+direction of the delta), and on sdk_v1's two early-stopped train draws
+conversation by conversation. The verdict is the s19 rule: <em>beats</em> is
+the house gate; <em>matches</em> is non-inferiority within
+3pp on the gate split's 95% CI,
+with test, program turns and train all not significantly worse.</p>
 <div class="scroll"><table>
-<thead><tr><th>model</th><th class="num">accuracy</th><th class="num">number turns</th>
+<thead><tr><th>agent (model · effort)</th><th class="num">accuracy</th><th class="num">number turns</th>
 <th class="num">program turns</th><th class="num">program acc.</th><th class="num">cost</th>
-<th class="num">wall</th><th class="num">delta vs reference</th>
-<th class="num">clustered p (direction of delta)</th><th>verdict</th></tr></thead>
-<tbody><tr><td><span class="mono">claude-sonnet-5</span><br><span class="sub">sdk-evalloop-test100-sdk_v1·s1-20260905_174627</span></td><td class="num"><strong>90.5%</strong></td><td class="num">95.5%</td><td class="num">88.2%</td><td class="num">40.9%</td><td class="num">$27.62</td><td class="num">13 min</td><td class="num">reference</td><td class="num">—</td><td>—</td></tr><tr><td><span class="mono">claude-haiku-4-5-20251001</span><br><span class="sub">sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_090517</span></td><td class="num"><strong>87.4%</strong></td><td class="num">96.4%</td><td class="num">83.2%</td><td class="num">38.8%</td><td class="num">$17.14</td><td class="num">15 min</td><td class="num bad">-3.15pp<br><span class="sub">CI [-6.94pp, +0.29pp]</span></td><td class="num">0.0505<br><span class="sub">7&thinsp;/&thinsp;18 flips</span></td><td><span class="pill no">no significant difference</span></td></tr></tbody></table></div>
+<th class="num">wall</th><th class="num">delta vs champion</th>
+<th class="num">clustered p (direction of delta)</th>
+<th class="num">train: conversations right to the end</th><th>verdict</th></tr></thead>
+<tbody><tr><td><span class="mono">claude-sonnet-5</span> · high<br><span class="sub">sdk-evalloop-test100-sdk_v1·s1-20260905_174627</span></td><td class="num"><strong>90.5%</strong></td><td class="num">95.5%</td><td class="num">88.2%</td><td class="num">40.9%</td><td class="num">$11.83</td><td class="num">13 min</td><td class="num">champion</td><td class="num">—</td><td class="num">—</td><td>—</td></tr><tr><td><span class="mono">claude-haiku-5-5</span> · high<br><span class="sub">sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310</span></td><td class="num"><strong>87.4%</strong></td><td class="num">98.2%</td><td class="num">82.4%</td><td class="num">38.8%</td><td class="num">$0.73</td><td class="num">10 min</td><td class="num bad">-3.15pp<br><span class="sub">CI [-6.80pp, +0.28pp]</span></td><td class="num">0.0429<br><span class="sub">7&thinsp;/&thinsp;18 flips · significantly worse</span></td><td class="num">132 → 124 / 200<br><span class="sub">p worse 0.0843</span></td><td><span class="pill no">falls short</span></td></tr><tr><td><span class="mono">claude-haiku-4-5-20251001</span> · high<br><span class="sub">sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_090517</span></td><td class="num"><strong>87.4%</strong></td><td class="num">96.4%</td><td class="num">83.2%</td><td class="num">38.8%</td><td class="num">$7.63</td><td class="num">15 min</td><td class="num bad">-3.15pp<br><span class="sub">CI [-6.94pp, +0.29pp]</span></td><td class="num">0.0505<br><span class="sub">7&thinsp;/&thinsp;18 flips · no significant difference</span></td><td class="num">—</td><td><span class="pill no">falls short</span></td></tr></tbody></table></div>
 <div class="note"><strong>What this does and does not settle.</strong>
-<p>A gap between the two models on the same prompt is the model's contribution
-at this prompt — the prompt was distilled from four DeepSeek agents and then
-scored on both models with no further optimisation, so neither model's figure
-is its ceiling. It still leaves the cross-runtime confound half-open: the
-pipeline was never run on either of these models.</p></div>
+<p>A gap between two agents on the same prompt is the agent's contribution at
+this prompt — the prompt was distilled from four DeepSeek agents and scored
+with no further optimisation, so no row is its model's ceiling. The champion's
+runs are the committed ones and are never re-run, so the two sides of a pair
+can be weeks apart; both ran on the same SDK and CLI pin.</p></div>
 <h2>The confidence judge: answer when the trace can be verified</h2>
 <p>A second, cheaper model (claude-haiku-4-5) reads each finished turn — the question,
 the filing, the session's sub-questions, retrieved cells with their cited sources, the
@@ -272,10 +275,10 @@ both arms.</p></div>
 
 </div></details>
 
-<footer>Generated 2026-09-08T03:54:37+00:00 from
+<footer>Generated 2026-10-15T07:21:54+00:00 from
 <code>evaluation/registry.json</code>, the three ledgers under
 <code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "v8", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-09-08T03:54:37+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "sdk_v1", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-10-15T07:21:54+00:00"}</script>
 </footer>
 </div></body></html>

@@ -1,7 +1,625 @@
 {
   "snapshot_version": 1,
-  "exported_at": "2026-09-05T23:20:24.387293+00:00",
+  "exported_at": "2026-10-15T07:21:50.858309+00:00",
   "runs": [
+    {
+      "run_id": "95fa72c263eb4b449542aec9409bde27",
+      "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_181237",
+      "kind": "evalloop",
+      "bundle_id": "76091fff4ed3",
+      "status": "FINISHED",
+      "start_time": 1792048358338,
+      "end_time": 1792048890198,
+      "params": {
+        "prompts_version": "sdk_v1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "13faf07",
+        "composition": "s1",
+        "v_sdk": "s1@5e96f2bf",
+        "split": "train",
+        "manifest": "eval_loop_v2",
+        "n_reports": "100",
+        "n_questions": "375",
+        "concurrency": "4",
+        "environment": "dev",
+        "stop_at_first_wrong": "True",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high",
+        "billing": "subscription",
+        "max_turns": "8",
+        "sdk_total_tokens_limit": "60000",
+        "train_draw_seed": "2028"
+      },
+      "metrics": {
+        "accuracy": 0.875399,
+        "n_questions": 313.0,
+        "n_scored": 313.0,
+        "n_unscored": 0.0,
+        "n_rate_limited": 0.0,
+        "complete": 1.0,
+        "n_conversations": 100.0,
+        "n_wrong": 39.0,
+        "n_cascade": 0.0,
+        "n_turns_skipped": 62.0,
+        "wall_seconds": 531.34,
+        "questions_per_minute": 35.34,
+        "program_accuracy": 0.382199,
+        "n_program_correct": 73.0,
+        "n_program_turns": 191.0,
+        "acc_triage_turn_type": 0.977636,
+        "acc_preprocess_skeleton": 0.513089,
+        "acc_preprocess_plan": 0.882682,
+        "retriever_operand_recall": 0.826241,
+        "acc_calculator_exec": 0.853403,
+        "calculator_acc_given_full_recall": 0.917808,
+        "sdk_turns_answered": 313.0,
+        "sdk_stage_skips": 5.0,
+        "sdk_inline_arithmetic": 3.0,
+        "sdk_cost_usd": 71.939747,
+        "sdk_turns_mean": 2.9649,
+        "sdk_tool_calls_mean": 0.9649,
+        "sdk_cache_read_share": 0.999957,
+        "sdk_session_cost_usd": 0.640528,
+        "accuracy_gold_turn_type_Number": 0.909836,
+        "accuracy_gold_turn_type_Program": 0.853403,
+        "accuracy_gold_conv_type_Type_I": 0.883392,
+        "accuracy_gold_conv_type_Type_II": 0.8
+      },
+      "tags": {
+        "kind": "evalloop",
+        "bundle_id": "76091fff4ed3",
+        "split": "train",
+        "environment": "dev",
+        "loop": "evalloop",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high"
+      }
+    },
+    {
+      "run_id": "10a88d31bc4141748d65c481681bd970",
+      "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_180335",
+      "kind": "evalloop",
+      "bundle_id": "76091fff4ed3",
+      "status": "FINISHED",
+      "start_time": 1792047815736,
+      "end_time": 1792048346453,
+      "params": {
+        "prompts_version": "sdk_v1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "13faf07",
+        "composition": "s1",
+        "v_sdk": "s1@5e96f2bf",
+        "split": "train",
+        "manifest": "eval_loop_v2",
+        "n_reports": "100",
+        "n_questions": "362",
+        "concurrency": "4",
+        "environment": "dev",
+        "stop_at_first_wrong": "True",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high",
+        "billing": "subscription",
+        "max_turns": "8",
+        "sdk_total_tokens_limit": "60000",
+        "train_draw_seed": "2027"
+      },
+      "metrics": {
+        "n_scored": 310.0,
+        "n_wrong": 37.0,
+        "program_accuracy": 0.411168,
+        "acc_preprocess_plan": 0.893617,
+        "sdk_stage_skips": 4.0,
+        "sdk_cache_read_share": 0.999957,
+        "accuracy_gold_conv_type_Type_II": 0.846154,
+        "n_questions": 310.0,
+        "n_conversations": 100.0,
+        "questions_per_minute": 35.07,
+        "acc_preprocess_skeleton": 0.527919,
+        "sdk_turns_answered": 310.0,
+        "sdk_tool_calls_mean": 0.9258,
+        "accuracy_gold_conv_type_Type_I": 0.885609,
+        "accuracy": 0.880645,
+        "complete": 1.0,
+        "wall_seconds": 530.32,
+        "acc_triage_turn_type": 0.977419,
+        "calculator_acc_given_full_recall": 0.95,
+        "sdk_turns_mean": 2.9258,
+        "accuracy_gold_turn_type_Program": 0.845,
+        "n_unscored": 0.0,
+        "n_cascade": 0.0,
+        "n_program_correct": 81.0,
+        "retriever_operand_recall": 0.836112,
+        "sdk_inline_arithmetic": 2.0,
+        "sdk_session_cost_usd": 0.643625,
+        "n_rate_limited": 0.0,
+        "n_turns_skipped": 52.0,
+        "n_program_turns": 197.0,
+        "acc_calculator_exec": 0.852792,
+        "sdk_cost_usd": 73.1765,
+        "accuracy_gold_turn_type_Number": 0.945455
+      },
+      "tags": {
+        "kind": "evalloop",
+        "bundle_id": "76091fff4ed3",
+        "split": "train",
+        "environment": "dev",
+        "loop": "evalloop",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high"
+      }
+    },
+    {
+      "run_id": "0fc31febec374ba5ad08f68c476f0691",
+      "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+      "kind": "evalloop",
+      "bundle_id": "76091fff4ed3",
+      "status": "FINISHED",
+      "start_time": 1792047191004,
+      "end_time": 1792047798177,
+      "params": {
+        "prompts_version": "sdk_v1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "13faf07",
+        "composition": "s1",
+        "v_sdk": "s1@5e96f2bf",
+        "split": "test",
+        "manifest": "eval_loop_v2",
+        "n_reports": "100",
+        "n_questions": "349",
+        "concurrency": "4",
+        "environment": "dev",
+        "stop_at_first_wrong": "False",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high",
+        "billing": "subscription",
+        "max_turns": "8",
+        "sdk_total_tokens_limit": "60000"
+      },
+      "metrics": {
+        "n_wrong": 44.0,
+        "accuracy": 0.873926,
+        "n_questions": 349.0,
+        "n_scored": 349.0,
+        "n_unscored": 0.0,
+        "n_cascade": 28.0,
+        "n_program_correct": 92.0,
+        "retriever_operand_recall": 0.825925,
+        "sdk_inline_arithmetic": 5.0,
+        "accuracy_gold_turn_type_Number": 0.981982,
+        "n_rate_limited": 0.0,
+        "n_turns_skipped": 0.0,
+        "n_program_turns": 237.0,
+        "acc_calculator_exec": 0.822785,
+        "sdk_cost_usd": 83.520314,
+        "accuracy_gold_turn_type_Program": 0.823529,
+        "complete": 1.0,
+        "wall_seconds": 606.73,
+        "acc_triage_turn_type": 0.971347,
+        "calculator_acc_given_full_recall": 0.913978,
+        "sdk_turns_mean": 3.0115,
+        "accuracy_gold_conv_type_Type_I": 0.883333,
+        "n_conversations": 100.0,
+        "questions_per_minute": 34.51,
+        "acc_preprocess_skeleton": 0.510549,
+        "sdk_turns_answered": 348.0,
+        "sdk_tool_calls_mean": 1.0086,
+        "accuracy_gold_conv_type_Type_II": 0.816327,
+        "program_accuracy": 0.388186,
+        "acc_preprocess_plan": 0.852679,
+        "sdk_stage_skips": 8.0,
+        "sdk_cache_read_share": 0.999958,
+        "sdk_session_cost_usd": 0.728858
+      },
+      "tags": {
+        "sdk_session_cost_source": "backfill:traces",
+        "kind": "evalloop",
+        "bundle_id": "76091fff4ed3",
+        "split": "test",
+        "environment": "dev",
+        "loop": "evalloop",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high"
+      }
+    },
+    {
+      "run_id": "a1cc3e31c2854504b5fe15d93fadc170",
+      "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-haiku-5-5-high-20261015_174508",
+      "kind": "evalloop",
+      "bundle_id": "76091fff4ed3",
+      "status": "FINISHED",
+      "start_time": 1792046708935,
+      "end_time": 1792046742542,
+      "params": {
+        "prompts_version": "sdk_v1",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "13faf07",
+        "composition": "s1",
+        "v_sdk": "s1@5e96f2bf",
+        "split": "train",
+        "manifest": "eval_loop_v2",
+        "n_reports": "3",
+        "n_questions": "13",
+        "concurrency": "3",
+        "environment": "dev",
+        "stop_at_first_wrong": "False",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high",
+        "billing": "subscription",
+        "max_turns": "8",
+        "sdk_total_tokens_limit": "60000"
+      },
+      "metrics": {
+        "accuracy": 0.692308,
+        "n_questions": 13.0,
+        "n_scored": 13.0,
+        "n_unscored": 0.0,
+        "n_rate_limited": 0.0,
+        "complete": 1.0,
+        "n_conversations": 3.0,
+        "n_wrong": 4.0,
+        "n_cascade": 2.0,
+        "n_turns_skipped": 0.0,
+        "wall_seconds": 33.28,
+        "questions_per_minute": 23.44,
+        "program_accuracy": 0.333333,
+        "n_program_correct": 3.0,
+        "n_program_turns": 9.0,
+        "acc_triage_turn_type": 0.692308,
+        "acc_preprocess_skeleton": 0.333333,
+        "acc_preprocess_plan": 1.0,
+        "retriever_operand_recall": 0.727273,
+        "acc_calculator_exec": 0.555556,
+        "calculator_acc_given_full_recall": 1.0,
+        "sdk_turns_answered": 11.0,
+        "sdk_stage_skips": 0.0,
+        "sdk_inline_arithmetic": 0.0,
+        "sdk_cost_usd": 3.944499,
+        "sdk_turns_mean": 2.8182,
+        "sdk_tool_calls_mean": 0.8182,
+        "sdk_cache_read_share": 0.999954,
+        "accuracy_gold_turn_type_Number": 1.0,
+        "accuracy_gold_turn_type_Program": 0.555556,
+        "accuracy_gold_conv_type_Type_I": 0.888889,
+        "accuracy_gold_conv_type_Type_II": 0.25,
+        "sdk_session_cost_usd": 0.034487
+      },
+      "tags": {
+        "sdk_session_cost_source": "backfill:traces",
+        "kind": "evalloop",
+        "bundle_id": "76091fff4ed3",
+        "split": "train",
+        "environment": "dev",
+        "loop": "evalloop",
+        "runtime": "agent_sdk",
+        "sdk_model": "claude-haiku-5-5",
+        "sdk_effort": "high"
+      }
+    },
+    {
+      "run_id": "c4e0bd0d0a494872924882c4238fc901",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "50aa6f303c24",
+      "status": "FINISHED",
+      "start_time": 1790824610449,
+      "end_time": 1790824616935,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "92bb393",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "50aa6f303c24",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "67fb7f8ee8654101b19bf454c51a894b",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "5405574051f1",
+      "status": "FINISHED",
+      "start_time": 1790395252458,
+      "end_time": 1790395252675,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6bb1a1c",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "5405574051f1",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "d4b13457f19f400c824080d68215904c",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "5405574051f1",
+      "status": "FINISHED",
+      "start_time": 1790049824639,
+      "end_time": 1790049825316,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6bb1a1c",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "5405574051f1",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "4d217b73630d4eae93a3016d237b8782",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "5405574051f1",
+      "status": "FINISHED",
+      "start_time": 1790044675693,
+      "end_time": 1790044675895,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6bb1a1c",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "5405574051f1",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "6cf39993646a472abfe08d7e5bd14324",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "5405574051f1",
+      "status": "FINISHED",
+      "start_time": 1790042457466,
+      "end_time": 1790042457694,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6bb1a1c",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "5405574051f1",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "61d466c3d87448d5be054285361294cf",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "5405574051f1",
+      "status": "FINISHED",
+      "start_time": 1790040820828,
+      "end_time": 1790040821388,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "6bb1a1c",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "5405574051f1",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "0ed7e7727d1745b59bb219a30118a88e",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "fdb24afbf92c",
+      "status": "FINISHED",
+      "start_time": 1789955855277,
+      "end_time": 1789955855480,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0821637",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "fdb24afbf92c",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "b1cb7013a88240608c3eda01e08ffa88",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "fdb24afbf92c",
+      "status": "FINISHED",
+      "start_time": 1789955473549,
+      "end_time": 1789955473706,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "0821637",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "fdb24afbf92c",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "9f2a4f23dfe84ab2a6657ec035009ea9",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "75a017fd0b42",
+      "status": "FINISHED",
+      "start_time": 1789955381979,
+      "end_time": 1789955382174,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "8fe74a1",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "75a017fd0b42",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
+    {
+      "run_id": "6b7a737aae624dfeb4c62d9fcb4bd58f",
+      "run_name": "central-smoke",
+      "kind": "smoke",
+      "bundle_id": "75a017fd0b42",
+      "status": "FINISHED",
+      "start_time": 1789955016525,
+      "end_time": 1789955016717,
+      "params": {
+        "prompts_version": "v8",
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "8fe74a1",
+        "composition": "t2.p2.r5.c2",
+        "v_triage": "t2@f028a9ed",
+        "v_preprocess": "p2@2341df56",
+        "v_retriever": "r5@1d504dc7",
+        "v_calculator": "c2@ba740497",
+        "note": "no-llm smoke"
+      },
+      "metrics": {
+        "accuracy": 1.0
+      },
+      "tags": {
+        "kind": "smoke",
+        "bundle_id": "75a017fd0b42",
+        "environment": "dev",
+        "source": "central-migration-smoke"
+      }
+    },
     {
       "run_id": "4edad254f7d04f5f8c1d31cd112c1113",
       "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
@@ -64,7 +682,8 @@
         "accuracy_gold_turn_type_Number": 0.963964,
         "accuracy_gold_turn_type_Program": 0.831933,
         "accuracy_gold_conv_type_Type_I": 0.88,
-        "accuracy_gold_conv_type_Type_II": 0.836735
+        "accuracy_gold_conv_type_Type_II": 0.836735,
+        "sdk_session_cost_usd": 7.631322
       },
       "tags": {
         "kind": "evalloop",
@@ -73,7 +692,8 @@
         "environment": "dev",
         "loop": "evalloop",
         "runtime": "agent_sdk",
-        "sdk_model": "claude-haiku-4-5-20251001"
+        "sdk_model": "claude-haiku-4-5-20251001",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -140,7 +760,8 @@
         "accuracy_gold_turn_type_Number": 0.915254,
         "accuracy_gold_turn_type_Program": 0.888889,
         "accuracy_gold_conv_type_Type_I": 0.900709,
-        "accuracy_gold_conv_type_Type_II": 0.882353
+        "accuracy_gold_conv_type_Type_II": 0.882353,
+        "sdk_session_cost_usd": 10.090934
       },
       "tags": {
         "kind": "evalloop",
@@ -149,7 +770,8 @@
         "environment": "dev",
         "loop": "evalloop",
         "runtime": "agent_sdk",
-        "campaign": "s01"
+        "campaign": "s01",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -215,7 +837,8 @@
         "accuracy_gold_turn_type_Number": 0.945946,
         "accuracy_gold_turn_type_Program": 0.844538,
         "accuracy_gold_conv_type_Type_I": 0.893333,
-        "accuracy_gold_conv_type_Type_II": 0.77551
+        "accuracy_gold_conv_type_Type_II": 0.77551,
+        "sdk_session_cost_usd": 11.821277
       },
       "tags": {
         "kind": "evalloop",
@@ -224,7 +847,8 @@
         "environment": "dev",
         "loop": "evalloop",
         "runtime": "agent_sdk",
-        "campaign": "s01"
+        "campaign": "s01",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -291,7 +915,8 @@
         "accuracy_gold_turn_type_Number": 0.963303,
         "accuracy_gold_turn_type_Program": 0.843902,
         "accuracy_gold_conv_type_Type_I": 0.887273,
-        "accuracy_gold_conv_type_Type_II": 0.871795
+        "accuracy_gold_conv_type_Type_II": 0.871795,
+        "sdk_session_cost_usd": 10.364764
       },
       "tags": {
         "kind": "evalloop",
@@ -300,7 +925,8 @@
         "environment": "dev",
         "loop": "evalloop",
         "runtime": "agent_sdk",
-        "campaign": "s01"
+        "campaign": "s01",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -360,7 +986,8 @@
         "accuracy_gold_turn_type_Number": 0.954955,
         "accuracy_gold_turn_type_Program": 0.882353,
         "accuracy_gold_conv_type_Type_I": 0.91,
-        "accuracy_gold_conv_type_Type_II": 0.877551
+        "accuracy_gold_conv_type_Type_II": 0.877551,
+        "sdk_session_cost_usd": 11.825026
       },
       "tags": {
         "kind": "evalloop",
@@ -368,7 +995,8 @@
         "split": "test",
         "environment": "dev",
         "loop": "evalloop",
-        "runtime": "agent_sdk"
+        "runtime": "agent_sdk",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -428,7 +1056,8 @@
         "accuracy_gold_turn_type_Number": 0.513514,
         "accuracy_gold_turn_type_Program": 0.411765,
         "accuracy_gold_conv_type_Type_I": 0.446667,
-        "accuracy_gold_conv_type_Type_II": 0.428571
+        "accuracy_gold_conv_type_Type_II": 0.428571,
+        "sdk_session_cost_usd": 5.249737
       },
       "tags": {
         "kind": "evalloop",
@@ -436,7 +1065,8 @@
         "split": "test",
         "environment": "dev",
         "loop": "evalloop",
-        "runtime": "agent_sdk"
+        "runtime": "agent_sdk",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -496,7 +1126,8 @@
         "accuracy_gold_turn_type_Number": 0.75,
         "accuracy_gold_turn_type_Program": 0.666667,
         "accuracy_gold_conv_type_Type_I": 0.888889,
-        "accuracy_gold_conv_type_Type_II": 0.25
+        "accuracy_gold_conv_type_Type_II": 0.25,
+        "sdk_session_cost_usd": 0.347859
       },
       "tags": {
         "kind": "evalloop",
@@ -504,7 +1135,8 @@
         "split": "train",
         "environment": "dev",
         "loop": "evalloop",
-        "runtime": "agent_sdk"
+        "runtime": "agent_sdk",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -564,7 +1196,8 @@
         "accuracy_gold_turn_type_Number": 0.75,
         "accuracy_gold_turn_type_Program": 0.222222,
         "accuracy_gold_conv_type_Type_I": 0.555556,
-        "accuracy_gold_conv_type_Type_II": 0.0
+        "accuracy_gold_conv_type_Type_II": 0.0,
+        "sdk_session_cost_usd": 0.431351
       },
       "tags": {
         "kind": "evalloop",
@@ -572,7 +1205,8 @@
         "split": "train",
         "environment": "dev",
         "loop": "evalloop",
-        "runtime": "agent_sdk"
+        "runtime": "agent_sdk",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -627,7 +1261,8 @@
         "accuracy_gold_turn_type_Number": 0.0,
         "accuracy_gold_turn_type_Program": 0.0,
         "accuracy_gold_conv_type_Type_I": 0.0,
-        "accuracy_gold_conv_type_Type_II": 0.0
+        "accuracy_gold_conv_type_Type_II": 0.0,
+        "sdk_session_cost_usd": 0.0
       },
       "tags": {
         "kind": "evalloop",
@@ -635,7 +1270,8 @@
         "split": "train",
         "environment": "dev",
         "loop": "evalloop",
-        "runtime": "agent_sdk"
+        "runtime": "agent_sdk",
+        "sdk_session_cost_source": "backfill:archive-traces"
       }
     },
     {
@@ -2279,10 +2915,53 @@
   "registry": {
     "model": "convfinqa-pipeline",
     "aliases": {
-      "champion": "v8",
-      "sdk_champion": "sdk_v1"
+      "champion": "sdk_v1",
+      "judge_champion": "judge_j1",
+      "pipeline_champion": "v8"
     },
     "versions": [
+      {
+        "version": "judge_j2",
+        "registered_at": "2026-09-07T05:49:28.771240+00:00",
+        "source": "judge_distil",
+        "bundle_id": "8bb8d002bfd9",
+        "bundle": {
+          "prompts_version": "judge_j2",
+          "gepa_overlay": null,
+          "lm_mini": "deepseek-v4-flash",
+          "lm_max": "deepseek-v4-pro",
+          "dataset_hash": "d012d251fcb9",
+          "code_sha": "91d81e2",
+          "composition": "j2",
+          "v_judge": "j2@ac0f3f92"
+        },
+        "runs": [
+          "ba0c14e85b144e86a94175f7892272ba"
+        ],
+        "metrics": {},
+        "notes": "confidence judge \u00b7 j2 \u00b7 calibrated to sdk_v1"
+      },
+      {
+        "version": "judge_j1",
+        "registered_at": "2026-09-07T05:08:53.855110+00:00",
+        "source": "judge_distil",
+        "bundle_id": "d5ccd8e2b57a",
+        "bundle": {
+          "prompts_version": "judge_j1",
+          "gepa_overlay": null,
+          "lm_mini": "deepseek-v4-flash",
+          "lm_max": "deepseek-v4-pro",
+          "dataset_hash": "d012d251fcb9",
+          "code_sha": "4a3f5da",
+          "composition": "j1",
+          "v_judge": "j1@7c7ff9dc"
+        },
+        "runs": [
+          "4eb01f0587814d0fa57085fad8041ad3"
+        ],
+        "metrics": {},
+        "notes": "confidence judge \u00b7 j1 \u00b7 calibrated to sdk_v1"
+      },
       {
         "version": "sdk_v2",
         "registered_at": "2026-09-05T08:41:12.249264+00:00",
@@ -2308,14 +2987,14 @@
         "version": "sdk_v1",
         "registered_at": "2026-09-05T03:21:07.518128+00:00",
         "source": "evalloop",
-        "bundle_id": "889f791655bd",
+        "bundle_id": "76091fff4ed3",
         "bundle": {
           "prompts_version": "sdk_v1",
           "gepa_overlay": null,
           "lm_mini": "deepseek-v4-flash",
           "lm_max": "deepseek-v4-pro",
           "dataset_hash": "d012d251fcb9",
-          "code_sha": "14c7825",
+          "code_sha": "13faf07",
           "composition": "s1",
           "v_sdk": "s1@5e96f2bf"
         },
@@ -2327,7 +3006,11 @@
           "5344cc1fc70f4237ab13691b7feffb7a",
           "07970a312c7d4ee2b4566e4429eb5055",
           "862eb34c8bdc402b85751d432b453f2f",
-          "4edad254f7d04f5f8c1d31cd112c1113"
+          "4edad254f7d04f5f8c1d31cd112c1113",
+          "a1cc3e31c2854504b5fe15d93fadc170",
+          "0fc31febec374ba5ad08f68c476f0691",
+          "10a88d31bc4141748d65c481681bd970",
+          "95fa72c263eb4b449542aec9409bde27"
         ],
         "metrics": {},
         "notes": ""
@@ -2723,6 +3406,35 @@
       }
     ],
     "history": [
+      {
+        "at": "2026-10-15T04:57:39.405361+00:00",
+        "event": "universal_champion",
+        "alias": "champion",
+        "version": "sdk_v1",
+        "previous_champion": "v8",
+        "champion_agent_after": {
+          "version": "sdk_v1",
+          "runtime": "agent_sdk",
+          "model": "claude-sonnet-5",
+          "effort": "high"
+        },
+        "actor": "owner",
+        "forced": false,
+        "reason": "owner's decision 2026-10-15: sdk_v1 is the universal champion \u2014 it beat the pipeline champion v8 on the gate split (+8.88pp, 38 fixed / 7 broken, one-sided cluster p=0.000286, gate g-20260905080150-00fce8a3). Recorded as an agent: claude-sonnet-5 at effort high, the configuration that gate measured (the run predates the effort=low pin, commit 27e11b5). v8 stays the pipeline lineage's best as pipeline_champion."
+      },
+      {
+        "at": "2026-09-07T05:08:53.857066+00:00",
+        "event": "promote_judge",
+        "alias": "judge_champion",
+        "version": "judge_j1",
+        "previous_champion": null,
+        "runtime_version": "sdk_v1",
+        "actor": "evalloop-judge-distil",
+        "forced": false,
+        "reason": "first judge becomes judge_champion by default",
+        "evidence_split": "calibrate",
+        "comparison": null
+      },
       {
         "at": "2026-09-05T08:01:16.760415+00:00",
         "event": "promote_sdk",
