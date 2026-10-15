@@ -299,6 +299,13 @@ function deltaClass(effect: string): string {
       : 'num';
 }
 
+/** The s19 rule's three outcomes, as the table says them. */
+const VERDICT_LABEL: Record<'beats' | 'matches' | 'falls_short', string> = {
+  beats: 'beats the champion',
+  matches: 'matches the champion',
+  falls_short: 'falls short',
+};
+
 export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
   if (!rows.length) {
     return (
@@ -313,27 +320,32 @@ export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
       <table data-testid="model-swap-table" className="rt-table">
         <Heads
           cols={[
-            ['model', false],
+            ['agent (model · effort)', false],
             ['accuracy', true],
             ['number turns', true],
             ['program turns', true],
             ['program acc.', true],
             ['cost', true],
             ['wall', true],
-            ['delta vs reference', true],
+            ['delta vs champion', true],
             ['clustered p (direction of delta)', true],
+            ['train: right to the end', true],
             ['verdict', false],
           ]}
         />
         <tbody>
           {rows.map((row) => (
             <tr
-              key={row.model}
+              key={`${row.model}|${row.effort ?? ''}`}
               data-model={row.shortName}
               data-effect={row.effect}
+              data-verdict={row.verdict ?? undefined}
             >
               <td className="sub">
-                <span className="mono">{row.shortName}</span>
+                <span className="mono">
+                  {row.shortName}
+                  {row.effort ? ` · ${row.effort}` : ''}
+                </span>
                 <span className="path wrap-any">{row.model}</span>
               </td>
               <td className="num rt-strong">{formatPercent(row.accuracy)}</td>
@@ -344,7 +356,7 @@ export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
               <td className="num">{formatWall(row.wall)}</td>
               <td className={deltaClass(row.effect)}>
                 {row.isReference ? (
-                  'reference'
+                  'champion'
                 ) : (
                   <>
                     {formatPp(row.deltaPp)}
@@ -364,8 +376,28 @@ export function ModelSwapTable({ rows }: { rows: ModelRow[] }) {
                   </span>
                 )}
               </td>
+              <td className="num">
+                {row.trainConversations === null ? (
+                  NO_VALUE
+                ) : (
+                  <>
+                    {formatCount(row.trainBaselineFull)} → {formatCount(row.trainCandidateFull)} /{' '}
+                    {formatCount(row.trainConversations)}
+                    <span className="path">p worse {formatP(row.trainPWorse)}</span>
+                  </>
+                )}
+              </td>
               <td>
-                <Status tone={effectTone(row.effect)}>{row.effectLabel}</Status>
+                {row.verdict ? (
+                  <Status
+                    tone={row.verdict === 'falls_short' ? effectTone('worse') : effectTone('better')}
+                  >
+                    {VERDICT_LABEL[row.verdict]}
+                  </Status>
+                ) : (
+                  <Status tone={effectTone(row.effect)}>{row.effectLabel}</Status>
+                )}
+                {row.verdict && <span className="path">{row.effectLabel}</span>}
               </td>
             </tr>
           ))}
@@ -638,9 +670,18 @@ export default function Runtimes() {
       >
         <p className="small muted">
           champion{' '}
-          <span className="mono">{data?.champion ? versionLabel(data.champion) : NO_VALUE}</span> ·
-          sdk_champion{' '}
-          <span className="mono">{data?.sdk_champion ? versionLabel(data.sdk_champion) : NO_VALUE}</span>
+          <span className="mono">{data?.champion ? versionLabel(data.champion) : NO_VALUE}</span>
+          {data?.champion_agent && (
+            <>
+              {' '}
+              on <span className="mono">{data.champion_agent.model}</span> · effort{' '}
+              {data.champion_agent.effort}
+            </>
+          )}{' '}
+          · pipeline champion{' '}
+          <span className="mono">
+            {data?.pipeline_champion ? versionLabel(data.pipeline_champion) : NO_VALUE}
+          </span>
         </p>
         <TwoUp className="rt-arms">
           <ArmCard desc={ARMS.pipeline} arm={comparison?.pipeline} recommended={false} />
@@ -697,9 +738,9 @@ export default function Runtimes() {
         n={4}
         label="The model swap"
         claim={
-          swapRows.length ? `one prompt, ${swapRows.length} models` : 'one prompt, one model so far'
+          swapRows.length ? `one prompt, ${swapRows.length} agents` : 'one prompt, one agent so far'
         }
-        lead="The same sdk champion prompt, the same calculator tools, the same gate split and the same scoring — only the model differs. A scoring pass, not an experiment: nothing was tuned for the second model and nothing was promoted. The p is one-sided in the direction of the observed delta."
+        lead="The same champion prompt, the same calculator tools, the same questions and the same scoring — only the agent (model, effort) differs. Each challenger is paired against the champion's own committed runs: on the gate split question by question, on its two early-stopped train draws conversation by conversation. The verdict is the s19 rule — beats is the house gate, matches is non-inferiority within the margin — and only a passing verdict can move the champion's model. The p is one-sided in the direction of the observed delta."
       >
         <ModelSwapTable rows={swapRows} />
         {swapRows.length > 0 && (

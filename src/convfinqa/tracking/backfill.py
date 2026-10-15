@@ -203,6 +203,6 @@ def backfill(champion: str | None = None) -> dict[str, Any]:
         "evals": evals,
         "gepa": gepa,
         "s7": s7,
-        "champion": registry.champion(),
+        "champion": registry.pipeline_champion(),
         "snapshot": str(snapshot_path),
     }

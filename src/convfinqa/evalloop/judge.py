@@ -469,6 +469,29 @@ def _balanced_optimise(
     return ids, stats
 
 
+def runtime_model_of(manifest: dict[str, Any]) -> str:
+    """The model whose trails a judge dataset holds — read from the dataset itself.
+
+    Never the live setting: the champion's model can move (`promote_agent`)
+    after a dataset was cut, and a re-score of the old trails must still say
+    which model produced them. A manifest that records it wins; otherwise the
+    source CSVs' run-name slugs, and a name from before slugs existed ran the
+    default of its day, `llm.LM_SDK_MODEL`.
+    """
+    recorded = manifest.get("runtime_model")
+    if recorded:
+        return str(recorded)
+    from convfinqa.evalloop.runner import prior_sdk_model
+    from convfinqa.llm import LM_SDK_MODEL
+
+    slugs = {
+        slug
+        for path in (manifest.get("sources") or {}).values()
+        if path and (slug := prior_sdk_model(str(path)))
+    }
+    return ",".join(sorted(slugs)) if slugs else LM_SDK_MODEL
+
+
 def build_dataset(
     *,
     optimise_csv: Path | str,
@@ -517,6 +540,15 @@ def build_dataset(
         if "model_version_id" in opt
         else "",
         "attribution_rule": stage_scores.attribution_rule_id(),
+        "runtime_model": runtime_model_of(
+            {
+                "sources": {
+                    "o": str(optimise_csv),
+                    "c": str(calibrate_csv),
+                    "t": str(test_csv),
+                }
+            }
+        ),
         "sources": {
             "optimise": str(optimise_csv),
             "calibrate": str(calibrate_csv),
@@ -1562,7 +1594,7 @@ async def score_split(
     """
     from convfinqa.evalloop import teacher
     from convfinqa.evalloop.sdk import TeacherRateLimitError
-    from convfinqa.llm import judge_model_name, sdk_model_name
+    from convfinqa.llm import judge_model_name
     from convfinqa.tracking import mlflow_log, prompt_ledger
 
     manifest = load_dataset(manifest_path)
@@ -1581,7 +1613,7 @@ async def score_split(
         params={
             "runtime": RUNTIME,
             "runtime_version": manifest.get("runtime_version", ""),
-            "runtime_model": sdk_model_name(),
+            "runtime_model": runtime_model_of(manifest),
             "judge_version": version,
             "judge_seq": seq,
             "judge_model": model,

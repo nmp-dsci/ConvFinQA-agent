@@ -720,14 +720,20 @@ def gate_row(
 
     `stats` is the dict `gate_runs` returns (``accuracy_delta`` as a fraction,
     ``fail_to_pass``/``pass_to_fail``, ``cluster_p_one_sided``, ``delta_ci_*``).
-    `champion_after` defaults to the registry's current champion — pass it
-    explicitly when the row is written before the promotion is applied.
+    `champion_after` defaults to the registry's current champion of the row's
+    lineage — `pipeline_champion` for a pipeline row, the champion's sdk prompt
+    for an agent_sdk row — pass it explicitly when the row is written before
+    the promotion is applied.
     """
     if champion_after is None:
         try:
             from convfinqa.tracking import registry
 
-            champion_after = registry.champion() or ""
+            champion_after = (
+                registry.sdk_champion()
+                if runtime == "agent_sdk"
+                else registry.pipeline_champion()
+            ) or ""
         except Exception:  # noqa: BLE001 — no registry is an empty cell, not a crash
             champion_after = ""
     by_class = (

@@ -94,14 +94,14 @@ export const ARMS: Record<RuntimeKey, ArmDescription> = {
     title: 'four DeepSeek agents',
     architecture:
       'triage → preprocess → retriever → calculator, in that fixed order, one prompt and one model call each.',
-    aliasNote: 'champion — the alias the pipeline campaigns move',
+    aliasNote: 'pipeline_champion — the alias the pipeline campaigns move',
   },
   agent_sdk: {
     key: 'agent_sdk',
     title: 'one Claude session',
     architecture:
       'one Claude Agent SDK session per conversation, the six calculator functions as its only tools, one prompt; it reports the same four stages so the same panel applies.',
-    aliasNote: 'sdk_champion — never the pipeline champion',
+    aliasNote: 'champion — the universal champion since 2026-10-15; the pipeline keeps pipeline_champion',
   },
 };
 
@@ -508,6 +508,8 @@ export type ModelEffect = 'reference' | 'better' | 'worse' | 'no-difference' | '
 
 export interface ModelRow {
   model: string;
+  /** The effort the agent ran at — with the model, what the agent is. */
+  effort: string | null;
   /** `haiku-4-5` — the slug the run name carries; what the table leads with. */
   shortName: string;
   runName: string | null;
@@ -527,6 +529,14 @@ export interface ModelRow {
   broken: number | null;
   effect: ModelEffect;
   effectLabel: string;
+  /** The s19 verdict on a challenger: beats / matches / falls_short; null = not decided. */
+  verdict: 'beats' | 'matches' | 'falls_short' | null;
+  verdictReason: string | null;
+  /** Train, per conversation: right to the end, champion → challenger, of n. */
+  trainBaselineFull: number | null;
+  trainCandidateFull: number | null;
+  trainConversations: number | null;
+  trainPWorse: number | null;
 }
 
 /** `claude-haiku-4-5-20251001` → `haiku-4-5`, the same rule the run name uses. */
@@ -550,12 +560,19 @@ export function modelShortName(model: string): string {
 export function modelRows(comparison: SdkModelComparison | null | undefined): ModelRow[] {
   const models = comparison?.models ?? [];
   if (models.length < 2) return [];
-  const reference = comparison?.reference_model ?? '';
-  const pairs = new Map((comparison?.pairs ?? []).map((p) => [p.candidate_model, p]));
+  // An agent is (model, effort): two efforts of one model are two rows.
+  const key = (model: string | null | undefined, effort: string | null | undefined) =>
+    `${model ?? ''}|${effort ?? ''}`;
+  const referenceKey = key(comparison?.reference_model, comparison?.reference_effort);
+  const pairs = new Map(
+    (comparison?.pairs ?? []).map((p) => [key(p.candidate_model, p.candidate_effort), p]),
+  );
   return models.map((arm) => {
     const model = arm.model ?? '';
-    const isReference = model === reference;
-    const pair = pairs.get(model) ?? null;
+    const effort = arm.effort ?? null;
+    const isReference = key(model, effort) === referenceKey;
+    const pair = pairs.get(key(model, effort)) ?? null;
+    const pooled = pair?.train?.pooled ?? null;
     const deltaPp = numberOrNull(pair?.delta_pp);
     let effect: ModelEffect;
     if (isReference) effect = 'reference';
@@ -571,6 +588,7 @@ export function modelRows(comparison: SdkModelComparison | null | undefined): Mo
     }[effect];
     return {
       model,
+      effort,
       shortName: modelShortName(model),
       runName: arm.run_name ?? null,
       accuracy: numberOrNull(arm.accuracy),
@@ -588,6 +606,12 @@ export function modelRows(comparison: SdkModelComparison | null | undefined): Mo
       broken: numberOrNull(pair?.broken),
       effect,
       effectLabel,
+      verdict: pair?.verdict?.outcome ?? null,
+      verdictReason: pair?.verdict?.reason ?? null,
+      trainBaselineFull: numberOrNull(pooled?.baseline_full),
+      trainCandidateFull: numberOrNull(pooled?.candidate_full),
+      trainConversations: numberOrNull(pooled?.n_conversations),
+      trainPWorse: numberOrNull(pooled?.p_worse),
     };
   });
 }

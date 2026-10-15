@@ -39,7 +39,7 @@ import pandas as pd
 from convfinqa.backends.agent_sdk import RATE_LIMIT_ERROR_PREFIX
 from convfinqa.config import EVAL_ROOT
 from convfinqa.evalloop.splits import draw_train, load_manifest, split_report_ids
-from convfinqa.tracking import tracing
+from convfinqa.tracking import cost, tracing
 
 PREDICTIONS_DIR = EVAL_ROOT / "predictions" / "evalloop"
 
@@ -143,13 +143,18 @@ def pipeline_conversation_fn(agents: dict[str, Any]) -> ConversationFn:
 
 
 def sdk_conversation_fn(
-    system_prompt: str, version: str, model: str | None = None
+    system_prompt: str,
+    version: str,
+    model: str | None = None,
+    effort: str | None = None,
 ) -> ConversationFn:
-    """`backends.agent_sdk.run_conversation` with the prompt and model bound.
+    """`backends.agent_sdk.run_conversation` with the prompt, model and effort bound.
 
     `model` is the one thing a model-swap pass changes: the prompt, the tools,
     the split and the scoring are identical, so two passes that differ only
-    here are a paired comparison of the models.
+    here are a paired comparison of the models. `effort` is bound beside it
+    because it is part of what the agent is, and two passes at different
+    efforts are not a comparison of the models.
     """
     from convfinqa.backends import agent_sdk
 
@@ -162,29 +167,48 @@ def sdk_conversation_fn(
             system_prompt=system_prompt,
             version=version,
             model=model,
+            effort=effort,
             **kw,
         )
 
     return run
 
 
+def _name_slug_parts(path: Path | str) -> list[str]:
+    """The tokens between the composition and the stamp of an sdk run name."""
+    stem = Path(path).stem
+    if "·" not in stem:
+        return []
+    tail = stem.rsplit("·", 1)[1]  # s1-haiku-5-5-high-20261015_101500
+    parts = tail.split("-")
+    if len(parts) < 3:
+        return []
+    return parts[1:-1]
+
+
 def prior_sdk_model(path: Path | str) -> str | None:
     """The model slug an sdk run name carries, or None for a pre-slug name.
 
-    `sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_101500` → `haiku-4-5`.
-    A name from before the slug existed (`…·s1-20260905_174627`) returns None:
-    those runs all ran the default model, and their MLflow `sdk_model` param
-    is the record.
+    `sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_101500` → `haiku-4-5`,
+    and `…·s1-haiku-5-5-high-20261015_101500` → `haiku-5-5` (the trailing
+    effort is not part of the model). A name from before the slug existed
+    (`…·s1-20260905_174627`) returns None: those runs all ran the default
+    model, and their MLflow `sdk_model` param is the record.
     """
-    stem = Path(path).stem
-    if "·" not in stem:
-        return None
-    tail = stem.rsplit("·", 1)[1]  # s1-haiku-4-5-20260906_101500
-    parts = tail.split("-")
-    if len(parts) < 3:
-        return None
-    middle = parts[1:-1]
+    from convfinqa.llm import SDK_EFFORTS
+
+    middle = _name_slug_parts(path)
+    if middle and middle[-1] in SDK_EFFORTS:
+        middle = middle[:-1]
     return "-".join(middle) if middle else None
+
+
+def prior_sdk_effort(path: Path | str) -> str | None:
+    """The effort an sdk run name carries, or None for a name from before it did."""
+    from convfinqa.llm import SDK_EFFORTS
+
+    middle = _name_slug_parts(path)
+    return middle[-1] if middle and middle[-1] in SDK_EFFORTS else None
 
 
 async def _run_conversations(
@@ -370,6 +394,7 @@ def check_resume(
     report_ids: list[str],
     train_seed: int | None,
     sdk_model_slug: str | None = None,
+    sdk_effort: str | None = None,
 ) -> None:
     """Refuse a resume that would silently change the question set.
 
@@ -380,9 +405,19 @@ def check_resume(
     the two would produce a CSV that is not any split. For the sdk runtime a
     fifth: a different model, read from the prior run name's slug — reused
     conversations answered by one model and fresh ones by another would be no
-    model's evidence. A pre-slug name is accepted as the default model.
+    model's evidence. A pre-slug name is accepted as the default model. A
+    sixth, the same way: a different effort, read from the name's trailing
+    effort token; a name from before that token existed is accepted.
     """
     name = Path(path).name
+    if sdk_effort is not None:
+        was_effort = prior_sdk_effort(path)
+        if was_effort is not None and was_effort != sdk_effort:
+            raise ValueError(
+                f"--resume-from {name} ran at effort {was_effort!r}; this pass is "
+                f"{sdk_effort!r}. A pass is one agent's evidence; resume with the "
+                "same --sdk-effort or start a fresh pass."
+            )
     if sdk_model_slug is not None:
         was_model = prior_sdk_model(path)
         if was_model is not None and was_model != sdk_model_slug:
@@ -447,6 +482,8 @@ def sdk_run_metrics(captures: list[dict[str, Any]]) -> dict[str, float]:
         "sdk_inline_arithmetic": float(
             sum(1 for r in rows if r.get("inline_arithmetic"))
         ),
+        # The CLI's figure is the session's running total, so this sum
+        # overstates a pass; `cost.sdk_session_cost_usd` is the price paid.
         "sdk_cost_usd": round(sum(float(r.get("cost_usd") or 0.0) for r in rows), 6),
     }
     if rows:
@@ -478,6 +515,7 @@ async def run_split(
     runtime: str = "pipeline",
     resume_from: str | Path | None = None,
     sdk_model: str | None = None,
+    sdk_effort: str | None = None,
 ) -> dict[str, Any]:
     """Run one split × version pass; return a summary with the CSV and run id.
 
@@ -486,7 +524,9 @@ async def run_split(
     with nothing else changed. The model's slug goes into the run name and the
     CSV name, and the full id is the `sdk_model` param and tag on the run. It
     is refused on the pipeline runtime, whose four agents take their model
-    from `llm.py` and not from a pass.
+    from `llm.py` and not from a pass. `sdk_effort` is the same for effort
+    (default `llm.sdk_effort_name()`, the champion's): the run name carries it
+    after the model slug, and it is the `sdk_effort` param and tag.
 
     `train_seed` replaces the manifest's train list with a fresh stratified draw
     from ``pool − gate`` — resampling train every cycle is what stops the teacher
@@ -552,11 +592,25 @@ async def run_split(
             f"--sdk-model {sdk_model!r} applies to --runtime agent_sdk only: the "
             "pipeline's agents take their model from llm.py, not from a pass"
         )
+    if sdk_effort is not None and runtime != "agent_sdk":
+        raise ValueError(
+            f"--sdk-effort {sdk_effort!r} applies to --runtime agent_sdk only"
+        )
     model_slug: str | None = None
     if runtime == "agent_sdk":
-        from convfinqa.llm import sdk_model_name, sdk_model_slug
+        from convfinqa.llm import (
+            SDK_EFFORTS,
+            sdk_effort_name,
+            sdk_model_name,
+            sdk_model_slug,
+        )
 
         sdk_model = sdk_model or sdk_model_name()
+        sdk_effort = sdk_effort or sdk_effort_name()
+        if sdk_effort not in SDK_EFFORTS:
+            raise ValueError(
+                f"unknown effort {sdk_effort!r}; expected one of {SDK_EFFORTS}"
+            )
         model_slug = sdk_model_slug(sdk_model)
     examples = examples_for(report_ids)
     n_questions = sum(len(ex.questions) for ex in examples)
@@ -573,6 +627,7 @@ async def run_split(
             report_ids=report_ids,
             train_seed=train_seed,
             sdk_model_slug=model_slug,
+            sdk_effort=sdk_effort if runtime == "agent_sdk" else None,
         )
         reused = reusable_conversations(prior, examples)
     to_run = [ex for ex in examples if str(ex.report_id) not in reused]
@@ -589,10 +644,13 @@ async def run_split(
         composition = prompt_ledger.sdk_composition_string(
             prompt_ledger.ensure_sdk(version)  # register the prompt hash first
         )
-        run_conversation = sdk_conversation_fn(system_prompt, version, sdk_model)
+        run_conversation = sdk_conversation_fn(
+            system_prompt, version, sdk_model, sdk_effort
+        )
         runtime_params.update(
             {
                 "sdk_model": sdk_model,
+                "sdk_effort": sdk_effort,
                 "billing": settings.sdk_billing,
                 "max_turns": settings.sdk_max_turns,
                 "sdk_total_tokens_limit": settings.sdk_total_tokens_limit,
@@ -601,6 +659,7 @@ async def run_split(
         # A tag as well as a param: the model is a search key (every run of
         # one model, across versions), and MLflow's run search filters on tags.
         runtime_tags["sdk_model"] = str(sdk_model)
+        runtime_tags["sdk_effort"] = str(sdk_effort)
         # The slug sits between the composition and the stamp, so a listing
         # sorted by name groups a prompt's runs and reads the model off each.
         prefix = "sdk-evalloop"
@@ -620,7 +679,8 @@ async def run_split(
     run_name = (
         f"{prefix}-{split}{len(report_ids)}-{version}"
         f"·{composition.replace('.', '')}"
-        f"{'-' + model_slug if model_slug else ''}-{stamp}"
+        f"{'-' + model_slug if model_slug else ''}"
+        f"{'-' + str(sdk_effort) if model_slug else ''}-{stamp}"
     )
 
     print(  # noqa: T201
@@ -851,6 +911,15 @@ async def run_split(
         if runtime == "agent_sdk":
             metrics.update(
                 sdk_run_metrics([c for out in results for c in out.captures])
+            )
+            # The price paid: `sdk_cost_usd` above sums the CLI's running
+            # totals and is kept only so new runs read like old ones.
+            metrics["sdk_session_cost_usd"] = cost.sdk_session_cost_usd(
+                (
+                    [(c.get("sdk") or {}).get("cost_usd") for c in out.captures]
+                    for out in results
+                ),
+                sdk_model,
             )
         for column in ("gold_turn_type", "gold_conv_type"):
             for value, group in scored.groupby(column):

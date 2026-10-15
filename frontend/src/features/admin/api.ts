@@ -154,10 +154,54 @@ export interface RuntimeComparison {
   gate: RuntimeGate | null;
 }
 
-/** The sdk champion scored on one model — an arm plus the model it ran on. */
+/** The sdk champion scored as one agent — an arm plus the model and effort it ran at. */
 export interface SdkModelArm extends RuntimeArm {
   model: string | null;
+  /** Part of what the agent is; dated against the effort pin for older runs. */
+  effort?: string | null;
   n_scored?: number | null;
+}
+
+/**
+ * The champion as an agent (2026-10-15): one prompt version, the runtime that
+ * runs it, and the model and effort it runs at. Serving runs exactly this.
+ */
+export interface ChampionAgent {
+  version: string;
+  runtime: 'agent_sdk' | 'pipeline';
+  model: string;
+  effort: string;
+}
+
+/** One early-stopped train draw, paired per conversation (right to the end, or not). */
+export interface SdkTrainDraw {
+  seed: string;
+  baseline_run: string | null;
+  candidate_run: string | null;
+  n_conversations?: number;
+  baseline_full?: number;
+  candidate_full?: number;
+  fixed?: number;
+  broken?: number;
+  p_better?: number;
+  p_worse?: number;
+  baseline_mean_right_before_error?: number;
+  candidate_mean_right_before_error?: number;
+}
+
+export interface SdkTrainPair {
+  by_seed: SdkTrainDraw[];
+  pooled: Partial<Omit<SdkTrainDraw, 'seed' | 'baseline_run' | 'candidate_run'>> & {
+    n_draws: number;
+  };
+}
+
+/** The s19 rule's verdict on a challenger agent; `outcome` null = test not measured. */
+export interface ModelSwapVerdict {
+  outcome: 'beats' | 'matches' | 'falls_short' | null;
+  reason: string;
+  margin_pp: number;
+  checks: Array<{ name: string; ok: boolean | null; detail: string }>;
 }
 
 /**
@@ -168,6 +212,8 @@ export interface SdkModelArm extends RuntimeArm {
 export interface SdkModelPair {
   baseline_model: string;
   candidate_model: string;
+  baseline_effort?: string | null;
+  candidate_effort?: string | null;
   baseline_run: string | null;
   candidate_run: string | null;
   n_compared: number | null;
@@ -180,6 +226,11 @@ export interface SdkModelPair {
   broken: number | null;
   significant: boolean | null;
   by_turn_type?: Partial<Record<'number' | 'program', RuntimeSlice>> | null;
+  p_worse?: number | null;
+  p_better?: number | null;
+  ceiling_errors?: { baseline: number; candidate: number } | null;
+  train?: SdkTrainPair | null;
+  verdict?: ModelSwapVerdict | null;
 }
 
 /**
@@ -189,6 +240,9 @@ export interface SdkModelPair {
 export interface SdkModelComparison {
   version: string | null;
   reference_model: string;
+  reference_effort?: string;
+  /** The non-inferiority margin a challenger must hold, in pp (s19: 3). */
+  margin_pp?: number;
   models: SdkModelArm[];
   pairs: SdkModelPair[];
 }
@@ -203,7 +257,16 @@ export interface ChampionPoint {
 }
 
 export interface CampaignsResponse {
+  /** The universal champion (2026-10-15): the agent that serves. */
   champion: string | null;
+  champion_agent?: ChampionAgent | null;
+  /**
+   * The four-agent pipeline lineage's best — what the pipeline campaigns'
+   * track and progression are about. Not served.
+   */
+  pipeline_champion?: string | null;
+  pipeline_champion_accuracy?: number | null;
+  pipeline_champion_panel?: Record<string, number | null>;
   /**
    * The champion's accuracy on the fixed gate split — the figure the campaign
    * optimises and gates against, and what the status board leads with. Null

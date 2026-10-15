@@ -91,7 +91,7 @@ export function LampStrip({ board }: { board: BoardData }) {
         to="/optimise/runtimes"
         tooltip={
           health
-            ? `${servingRuntime === 'agent_sdk' ? 'One Claude Agent SDK session per conversation, the six calculator tools as its only tools' : 'Four prompted agents in a fixed order'} · sdk_champion ${health.sdk_champion ?? 'unset'} · pipeline champion ${health.champion ?? 'unset'} · dataset ${health.bundle.dataset_hash} · code ${health.bundle.code_sha}.`
+            ? `${servingRuntime === 'agent_sdk' ? 'One Claude Agent SDK session per conversation, the six calculator tools as its only tools' : 'Four prompted agents in a fixed order'} · champion ${health.champion ?? 'unset'}${health.champion_agent ? ` on ${health.champion_agent.model} at effort ${health.champion_agent.effort}` : ''} · pipeline champion ${health.pipeline_champion ?? 'unset'} · dataset ${health.bundle.dataset_hash} · code ${health.bundle.code_sha}.`
             : 'The version currently serving.'
         }
       />

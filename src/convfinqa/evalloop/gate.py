@@ -177,7 +177,7 @@ def promote_winner(
     return {
         "winner": result.baseline_version,
         "promoted": False,
-        "previous_champion": registry.champion(),
+        "previous_champion": registry.pipeline_champion(),
         "reason": f"baseline retained — {gate_reason(stats)}",
         "cluster_p_one_sided": stats["cluster_p_one_sided"],
         "comparison": result.as_dict(),

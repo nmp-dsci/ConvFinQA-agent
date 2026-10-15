@@ -35,6 +35,15 @@ def problems() -> list[str]:
             f"story.json names champion {story.get('champion')!r} but the registry "
             f"says {champion!r} — rebuild with `convfinqa-evalloop story`"
         )
+    # The champion is an agent: a promotion that moved only its model or effort
+    # (`registry.promote_agent`) leaves the version alone, so the version check
+    # above cannot see it. The record has to match too.
+    agent = registry.champion_agent()
+    if agent and story.get("champion_agent") != agent:
+        out.append(
+            f"story.json records the champion as {story.get('champion_agent')!r} but "
+            f"the registry says {agent!r} — rebuild with `convfinqa-evalloop story`"
+        )
 
     page = DOCS_DIR / "index.html"
     if not page.exists():

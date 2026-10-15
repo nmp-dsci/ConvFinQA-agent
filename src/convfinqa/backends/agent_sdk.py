@@ -409,6 +409,7 @@ def result_to_capture(
         "input_tokens": metrics.get("input_tokens"),
         "output_tokens": metrics.get("output_tokens"),
         "cache_read_input_tokens": metrics.get("cache_read_input_tokens"),
+        "cache_creation_input_tokens": metrics.get("cache_creation_input_tokens"),
     }
     return capture
 
@@ -642,6 +643,7 @@ async def run_conversation(
     billing: str | None = None,
     max_turns: int | None = None,
     version: str = "",
+    effort: str | None = None,
 ) -> tuple[list[str], list[str]]:
     """Walk one conversation in one SDK session; return (preds, programs).
 
@@ -680,6 +682,7 @@ async def run_conversation(
         max_turns=turns,
         billing=billing,
         model=model_name,
+        effort=effort,
     )
     refs = prompt_refs.sdk_prompt_ref(version, system_prompt) if version else {}
     document = _DOCS[report_id]

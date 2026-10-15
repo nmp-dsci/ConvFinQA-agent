@@ -185,11 +185,21 @@ export interface Health {
   sdk_champion?: string | null;
   judge_champion?: string | null;
   /**
-   * The alias that actually answers a turn here: `sdk_champion` under the
-   * `agent_sdk` runtime, `champion` under the pipeline. Resolved by the backend
-   * so the top bar, the landing lamp and the pages do not each re-derive it.
+   * The version that actually answers a turn here: the champion under the
+   * `agent_sdk` runtime, `pipeline_champion` under the pipeline. Resolved by
+   * the backend so the top bar, the landing lamp and the pages do not each
+   * re-derive it.
    */
   serving_champion?: string | null;
+  /** The pipeline lineage's best bundle — what `bundle` describes. */
+  pipeline_champion?: string | null;
+  /** The champion as an agent: version, runtime, model, effort. */
+  champion_agent?: {
+    version: string;
+    runtime: 'agent_sdk' | 'pipeline';
+    model: string;
+    effort: string;
+  } | null;
 }
 
 export interface DemoQuestion {

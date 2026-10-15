@@ -412,7 +412,7 @@ def test_prompts_version_follows_the_champion_not_the_newest_file(
     from convfinqa.tracking import bundle, registry
 
     monkeypatch.setattr(settings, "prompts_version", None, raising=False)
-    monkeypatch.setattr(registry, "champion", lambda *a, **k: "v2")
+    monkeypatch.setattr(registry, "pipeline_champion", lambda *a, **k: "v2")
     assert bundle.prompts_version() == "v2"
 
 
@@ -437,7 +437,9 @@ def test_prompts_version_falls_back_when_champion_has_no_module(
     from convfinqa.tracking import bundle, registry
 
     monkeypatch.setattr(settings, "prompts_version", None, raising=False)
-    monkeypatch.setattr(registry, "champion", lambda *a, **k: "v99_nonexistent")
+    monkeypatch.setattr(
+        registry, "pipeline_champion", lambda *a, **k: "v99_nonexistent"
+    )
     assert bundle.prompts_version() == prompts_pkg.latest()
 
 

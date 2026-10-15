@@ -13,6 +13,7 @@ year-old run must not silently reprice it.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 # USD per 1M tokens. Update deliberately, and treat a change as a new bundle —
@@ -93,3 +94,51 @@ def aggregate(captures: list[dict[str, Any]]) -> dict[str, float]:
     totals["latency_ms_per_turn"] = round(totals["latency_ms"] / n, 1)
     totals["cost_usd"] = round(totals["cost_usd"], 6)
     return totals
+
+
+# --- Agent SDK passes ---------------------------------------------------------
+#
+# An sdk pass is priced by the Claude CLI itself (`ResultMessage.total_cost_usd`),
+# with two corrections, both found on 2026-10-15 (s19):
+#
+# 1. The figure is the *session's running total*, not the turn's, so a
+#    conversation costs its last turn's figure. `sdk_cost_usd` summed every
+#    turn's and overstated sdk_v1's test pass 2.3x: $27.62 recorded against
+#    $11.83 spent. It stays on the runs that logged it, under its own name.
+# 2. The CLI bundled with the SDK prices a model it does not know (it prints
+#    `unrecognized_model`) on a fallback card: $5 / $25 per MTok, 1-hour cache
+#    writes at 2x and reads at 0.1x, reproduced to the micro-dollar on a Haiku
+#    5.5 turn. Every part of the bill scales with the input rate, so the real
+#    figure is the CLI's times (real input rate / fallback input rate). That
+#    holds while each prompt stays at or under 100K tokens, the edge of Haiku
+#    5.5's first rate card. The table is only true of the bundled CLI it was
+#    measured on: `tests/test_sdk_cost.py` pins the SDK version, so an upgrade
+#    that teaches the CLI the model fails a test instead of dividing twice.
+SDK_CLI_FALLBACK_INPUT_PER_MTOK = 5.0
+SDK_UNPRICED_INPUT_PER_MTOK: dict[str, float] = {
+    # model the bundled CLI does not price: its published input rate (≤100K prompt)
+    "claude-haiku-5-5": 0.10,
+}
+
+
+def sdk_cli_cost_factor(model: str | None) -> float:
+    """What the CLI's figure for `model` is multiplied by to be the price paid."""
+    rate = SDK_UNPRICED_INPUT_PER_MTOK.get(model or "")
+    return 1.0 if rate is None else rate / SDK_CLI_FALLBACK_INPUT_PER_MTOK
+
+
+def sdk_session_cost_usd(
+    running_totals: Iterable[Iterable[float | None]], model: str | None
+) -> float:
+    """What an sdk pass cost: each conversation's last running total, repriced.
+
+    `running_totals` holds one sequence per conversation — the CLI's
+    `total_cost_usd` after each turn, `None` for a turn with no reply. The
+    largest is the session's total (the figure only grows).
+    """
+    spent = 0.0
+    for totals in running_totals:
+        seen = [float(t) for t in totals if t is not None]
+        if seen:
+            spent += max(seen)
+    return round(spent * sdk_cli_cost_factor(model), 6)

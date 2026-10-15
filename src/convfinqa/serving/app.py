@@ -160,6 +160,7 @@ def create_app(
         fingerprint = bundle_fingerprint()
         champion = registry.champion()
         sdk_champion = registry.sdk_champion()
+        pipeline_champion = registry.pipeline_champion()
         return HealthResponse(
             ok=True,
             mode="demo" if demo_mode_enabled() else "dev",
@@ -175,8 +176,10 @@ def create_app(
             serving_champion=(
                 (sdk_champion or champion)
                 if settings.serving_runtime == "agent_sdk"
-                else champion
+                else pipeline_champion
             ),
+            pipeline_champion=pipeline_champion,
+            champion_agent=registry.champion_agent(),
         )
 
     app.include_router(chat.router)

@@ -394,14 +394,14 @@
       "version": "sdk_v1",
       "registered_at": "2026-09-05T03:21:07.518128+00:00",
       "source": "evalloop",
-      "bundle_id": "889f791655bd",
+      "bundle_id": "76091fff4ed3",
       "bundle": {
         "prompts_version": "sdk_v1",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "14c7825",
+        "code_sha": "13faf07",
         "composition": "s1",
         "v_sdk": "s1@5e96f2bf"
       },
@@ -413,7 +413,11 @@
         "5344cc1fc70f4237ab13691b7feffb7a",
         "07970a312c7d4ee2b4566e4429eb5055",
         "862eb34c8bdc402b85751d432b453f2f",
-        "4edad254f7d04f5f8c1d31cd112c1113"
+        "4edad254f7d04f5f8c1d31cd112c1113",
+        "a1cc3e31c2854504b5fe15d93fadc170",
+        "0fc31febec374ba5ad08f68c476f0691",
+        "10a88d31bc4141748d65c481681bd970",
+        "95fa72c263eb4b449542aec9409bde27"
       ],
       "metrics": {},
       "notes": ""
@@ -483,9 +487,9 @@
     }
   ],
   "aliases": {
-    "champion": "v8",
-    "sdk_champion": "sdk_v1",
-    "judge_champion": "judge_j1"
+    "champion": "sdk_v1",
+    "judge_champion": "judge_j1",
+    "pipeline_champion": "v8"
   },
   "history": [
     {
@@ -1792,6 +1796,22 @@
       "reason": "first judge becomes judge_champion by default",
       "evidence_split": "calibrate",
       "comparison": null
+    },
+    {
+      "at": "2026-10-15T04:57:39.405361+00:00",
+      "event": "universal_champion",
+      "alias": "champion",
+      "version": "sdk_v1",
+      "previous_champion": "v8",
+      "champion_agent_after": {
+        "version": "sdk_v1",
+        "runtime": "agent_sdk",
+        "model": "claude-sonnet-5",
+        "effort": "high"
+      },
+      "actor": "owner",
+      "forced": false,
+      "reason": "owner's decision 2026-10-15: sdk_v1 is the universal champion \u2014 it beat the pipeline champion v8 on the gate split (+8.88pp, 38 fixed / 7 broken, one-sided cluster p=0.000286, gate g-20260905080150-00fce8a3). Recorded as an agent: claude-sonnet-5 at effort high, the configuration that gate measured (the run predates the effort=low pin, commit 27e11b5). v8 stays the pipeline lineage's best as pipeline_champion."
     }
   ],
   "agent_prompts": {
@@ -2032,5 +2052,11 @@
       "registered_at": "2026-09-07T05:49:28.768573+00:00",
       "run_id": "ba0c14e85b144e86a94175f7892272ba"
     }
-  ]
+  ],
+  "champion_agent": {
+    "version": "sdk_v1",
+    "runtime": "agent_sdk",
+    "model": "claude-sonnet-5",
+    "effort": "high"
+  }
 }

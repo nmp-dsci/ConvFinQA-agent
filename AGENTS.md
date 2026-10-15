@@ -214,7 +214,8 @@ uv run convfinqa-evalloop judge-score --version judge_j1 --split calibrate
 uv run convfinqa-evalloop judge-gate --baseline-scores a.csv --candidate-scores b.csv \
   --baseline-version judge_j1 --candidate-version judge_j2 --promote
 # Serving: SERVING_RUNTIME=agent_sdk (default) + JUDGE_ENABLED=1 (default); pipeline
-# via SERVING_RUNTIME=pipeline. /healthz reports runtime, sdk_champion, judge_champion.
+# via SERVING_RUNTIME=pipeline. /healthz reports runtime, champion, champion_agent
+# (model + effort the champion runs at), pipeline_champion, judge_champion.
 ```
 
 ### Agent SDK experiment (s10)
@@ -250,7 +251,8 @@ uv run convfinqa-evalloop propose --diagnoses <d.jsonl> --base-version sdk_v1 --
   --runtime agent_sdk [--max-areas 1]
 uv run convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> \
   --baseline-csv A.csv --candidate-csv B.csv --baseline-version sdk_v1 --candidate-version sdk_v2 --promote
-  # judges overall accuracy; --promote moves sdk_champion, refused on train evidence
+  # judges overall accuracy; --promote moves the champion's prompt (registry.promote_sdk),
+  # keeping its model and effort; refused on train evidence
 
 # The ledgers
 uv run convfinqa-evalloop backfill-ledgers [--no-mlflow]      # seed the three files from per-run diagnoses + MLflow
@@ -259,7 +261,8 @@ uv run convfinqa-evalloop ledger-trace --edit-id <id>         # one edit, the ca
 uv run convfinqa-evalloop story                               # also renders docs/optimization/agent-sdk.html
 ```
 
-`story.json` gains `sdk_champion`, `sdk_campaigns` (targets are failure
+`story.json` carries `champion` + `champion_agent` (the universal champion, 2026-10-15),
+`pipeline_champion`, `sdk_champion`, `sdk_campaigns` (targets are failure
 classes) and `runtime_comparison` (`pipeline` / `agent_sdk` arms on the gate
 split + the cross-runtime `gate` row, every field `None` until an SDK run
 exists); `GET /eval/campaigns` serves them as additive keys.

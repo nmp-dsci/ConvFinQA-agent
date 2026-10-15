@@ -490,6 +490,44 @@ describe('the model swap', () => {
     expect(html).toContain('-5.50pp');
   });
 
+  it('keys agents on model and effort, and shows the s19 verdict with the train pairing', () => {
+    const agents: SdkModelComparison = {
+      ...swap,
+      reference_effort: 'high',
+      models: [
+        { ...swap.models[0], effort: 'high' },
+        { ...swap.models[1], model: 'claude-haiku-5-5', effort: 'high' },
+        { ...swap.models[1], model: 'claude-haiku-5-5', effort: 'low' },
+      ],
+      pairs: [
+        {
+          ...swap.pairs[0],
+          candidate_model: 'claude-haiku-5-5',
+          candidate_effort: 'high',
+          delta_pp: -0.5,
+          significant: false,
+          train: {
+            by_seed: [],
+            pooled: { n_draws: 2, n_conversations: 200, baseline_full: 132, candidate_full: 130, p_worse: 0.4 },
+          },
+          verdict: { outcome: 'matches', reason: 'within margin', margin_pp: 3, checks: [] },
+        },
+      ],
+    };
+    const rows = modelRows(agents);
+    expect(rows.map((r) => [r.shortName, r.effort])).toEqual([
+      ['sonnet-5', 'high'],
+      ['haiku-5-5', 'high'],
+      ['haiku-5-5', 'low'],
+    ]);
+    expect(rows[1].verdict).toBe('matches');
+    expect(rows[2].effect).toBe('not-measured');
+    const html = renderToStaticMarkup(<ModelSwapTable rows={rows} />);
+    expect(html).toContain('data-verdict="matches"');
+    expect(html).toContain('matches the champion');
+    expect(html).toContain('132 → 130');
+  });
+
   it('prints the interval in points, like the delta beside it (ci is stored as a fraction)', () => {
     const html = renderToStaticMarkup(<ModelSwapTable rows={modelRows(swap)} />);
     // fixture ci [-0.09, -0.02] → -9.0pp … -2.0pp, never -0.09pp

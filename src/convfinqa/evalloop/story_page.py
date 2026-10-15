@@ -372,9 +372,12 @@ def render_page(data: dict[str, Any]) -> str:
     last_acc = track[-1]["accuracy"] if track else None
     if first_acc is not None and last_acc is not None:
         moved = f"gate accuracy {_pct(first_acc)} → {_pct(last_acc)}"
-    elif data.get("champion_accuracy") is not None:
+    elif (
+        data.get("pipeline_champion_accuracy", data.get("champion_accuracy"))
+        is not None
+    ):
         moved = (
-            f"{_pct(data['champion_accuracy'])} on the gate split — "
+            f"{_pct(data.get('pipeline_champion_accuracy', data.get('champion_accuracy')))} on the gate split — "
             "not yet moved by an experiment"
         )
     else:
@@ -413,9 +416,13 @@ store that recorded the runs — nothing on this page is typed by hand.</p>
 </header>
 
 <div class="grid g3">
-<div class="card"><div class="k">champion</div>
-<div class="stat">{_e(data.get("champion") or "—")}</div>
-<div class="sub">{moved}</div></div>
+<div class="card"><div class="k">pipeline champion</div>
+<div class="stat">{
+        _e(data.get("pipeline_champion") or data.get("champion") or "—")
+    }</div>
+<div class="sub">{moved} · the project's champion is {
+        _e(data.get("champion") or "—")
+    }, on the <a href="agent-sdk.html">Agent SDK runtime</a></div></div>
 <div class="card"><div class="k">experiments run</div>
 <div class="stat">{len(experiments)}</div>
 <div class="sub">{len(promoted)} promoted · {
@@ -563,59 +570,86 @@ because an average over the two describes neither.</p>
 <tbody>{"".join(rows)}</tbody></table></div>"""
 
 
-def _model_swap(comparison: dict[str, Any] | None) -> str:
-    """The sdk champion on each model it was scored on, paired against the reference.
+_VERDICT_PILL = {
+    "beats": '<span class="pill ok">beats the champion</span>',
+    "matches": '<span class="pill ok">matches the champion</span>',
+    "falls_short": '<span class="pill no">falls short</span>',
+}
 
-    The cross-runtime comparison changed model and architecture in one step and
-    could not separate them. This block is the half that *can* be measured
-    without an API endpoint: the same prompt, the same tools, the same split,
-    the same scoring, and only the model swapped — so a delta here is the
-    model's alone. It renders only once a second model has been scored; a page
-    with one model has nothing to compare.
+
+def _model_swap(comparison: dict[str, Any] | None) -> str:
+    """The sdk champion as each agent it was scored as, paired against the champion's.
+
+    An agent is (model, effort). The same prompt, the same tools, the same
+    questions, the same scoring — so a delta here is the agent's alone. Each
+    challenger row carries the test pair, the train pair (conversations right to
+    the end, on sdk_v1's own early-stopped draws) and the s19 verdict. It
+    renders only once a second agent has been scored.
     """
     comparison = comparison or {}
     models = comparison.get("models") or []
     if len(models) < 2:
         return ""
-    reference = comparison.get("reference_model") or ""
-    pairs = {p.get("candidate_model"): p for p in comparison.get("pairs") or []}
+    reference = (
+        comparison.get("reference_model") or "",
+        comparison.get("reference_effort") or "",
+    )
+    margin = comparison.get("margin_pp")
+    pairs = {
+        (str(p.get("candidate_model") or ""), str(p.get("candidate_effort") or "")): p
+        for p in comparison.get("pairs") or []
+    }
     rows = []
     for arm in models:
         model = str(arm.get("model") or "")
+        effort = str(arm.get("effort") or "")
         by_type = arm.get("by_turn_type") or {}
         cost = arm.get("cost")
         wall = arm.get("wall")
-        is_ref = model == reference
-        pair = pairs.get(model) or {}
+        is_ref = (model, effort) == reference
+        pair = pairs.get((model, effort)) or {}
         if is_ref:
             delta_cell = (
-                '<td class="num">reference</td><td class="num">—</td><td>—</td>'
+                '<td class="num">champion</td><td class="num">—</td>'
+                '<td class="num">—</td><td>—</td>'
             )
         elif pair.get("delta_pp") is None:
             delta_cell = (
-                '<td class="num">—</td><td class="num">—</td>'
+                '<td class="num">—</td><td class="num">—</td><td class="num">—</td>'
                 '<td><span class="pill no">not measured</span></td>'
             )
         else:
             d = float(pair["delta_pp"])
             p = pair.get("p_value")
             ci = pair.get("ci") or [None, None]
-            sig = pair.get("significant")
             cls = "good" if d > 0 else ("bad" if d < 0 else "")
             direction = "better" if d > 0 else "worse"
-            verdict = (
-                f'<span class="pill {"ok" if d > 0 else "no"}">significantly {direction}</span>'
-                if sig
-                else '<span class="pill no">no significant difference</span>'
+            significance = (
+                f"significantly {direction}"
+                if pair.get("significant")
+                else "no significant difference"
+            )
+            pooled = (pair.get("train") or {}).get("pooled") or {}
+            train_cell = (
+                "—"
+                if not pooled.get("n_conversations")
+                else f"{pooled.get('baseline_full')} → {pooled.get('candidate_full')}"
+                f' / {pooled.get("n_conversations")}<br><span class="sub">'
+                f"p worse {float(pooled.get('p_worse') or 0):.3g}</span>"
+            )
+            outcome = (pair.get("verdict") or {}).get("outcome")
+            verdict = _VERDICT_PILL.get(
+                str(outcome), '<span class="pill no">not decided</span>'
             )
             delta_cell = (
                 f'<td class="num {cls}">{d:+.2f}pp<br><span class="sub">CI [{_pp(ci[0])}, {_pp(ci[1])}]</span></td>'
                 f'<td class="num">{"—" if p is None else f"{float(p):.3g}"}<br>'
-                f'<span class="sub">{pair.get("fixed")}&thinsp;/&thinsp;{pair.get("broken")} flips</span></td>'
+                f'<span class="sub">{pair.get("fixed")}&thinsp;/&thinsp;{pair.get("broken")} flips · {significance}</span></td>'
+                f'<td class="num">{train_cell}</td>'
                 f"<td>{verdict}</td>"
             )
         rows.append(
-            f'<tr><td><span class="mono">{_e(model)}</span>'
+            f'<tr><td><span class="mono">{_e(model)}</span> · {_e(effort or "—")}'
             f'<br><span class="sub">{_e(arm.get("run_name") or "")}</span></td>'
             f'<td class="num"><strong>{_pct(arm.get("accuracy"))}</strong></td>'
             f'<td class="num">{_pct(by_type.get("number"))}</td>'
@@ -626,27 +660,30 @@ def _model_swap(comparison: dict[str, Any] | None) -> str:
             f"{delta_cell}</tr>"
         )
     version = comparison.get("version") or "the sdk champion"
-    return f"""<h2>The model-swap check: one prompt, two models</h2>
+    return f"""<h2>The model-swap check: one prompt, several agents</h2>
 <p class="sub">The same <span class="mono">{_e(version)}</span> prompt, the same six
-calculator tools, the same {len(models)} runs' worth of gate split, the same
-scoring — only the model differs. This is a scoring pass, not an experiment:
-no prompt was optimised for the second model, nothing was promoted, and the
-paired verdict below is the gate's own test (cluster-corrected McNemar,
-cluster bootstrap CI) read against the reference model's run, with the
-one-sided p taken in the direction of the observed delta — the gate only
-ever looks towards improvement, and a scoring pass has no such bias.</p>
+calculator tools, the same questions, the same scoring — only the agent's model
+(and, where shown, its effort) differs. Each challenger is paired against the
+champion's own committed runs: on the gate split question by question (the
+gate's cluster-corrected McNemar and cluster bootstrap CI, one-sided p in the
+direction of the delta), and on sdk_v1's two early-stopped train draws
+conversation by conversation. The verdict is the s19 rule: <em>beats</em> is
+the house gate; <em>matches</em> is non-inferiority within
+{"—" if margin is None else f"{float(margin):g}pp"} on the gate split's 95% CI,
+with test, program turns and train all not significantly worse.</p>
 <div class="scroll"><table>
-<thead><tr><th>model</th><th class="num">accuracy</th><th class="num">number turns</th>
+<thead><tr><th>agent (model · effort)</th><th class="num">accuracy</th><th class="num">number turns</th>
 <th class="num">program turns</th><th class="num">program acc.</th><th class="num">cost</th>
-<th class="num">wall</th><th class="num">delta vs reference</th>
-<th class="num">clustered p (direction of delta)</th><th>verdict</th></tr></thead>
+<th class="num">wall</th><th class="num">delta vs champion</th>
+<th class="num">clustered p (direction of delta)</th>
+<th class="num">train: conversations right to the end</th><th>verdict</th></tr></thead>
 <tbody>{"".join(rows)}</tbody></table></div>
 <div class="note"><strong>What this does and does not settle.</strong>
-<p>A gap between the two models on the same prompt is the model's contribution
-at this prompt — the prompt was distilled from four DeepSeek agents and then
-scored on both models with no further optimisation, so neither model's figure
-is its ceiling. It still leaves the cross-runtime confound half-open: the
-pipeline was never run on either of these models.</p></div>"""
+<p>A gap between two agents on the same prompt is the agent's contribution at
+this prompt — the prompt was distilled from four DeepSeek agents and scored
+with no further optimisation, so no row is its model's ceiling. The champion's
+runs are the committed ones and are never re-run, so the two sides of a pair
+can be weeks apart; both ran on the same SDK and CLI pin.</p></div>"""
 
 
 def _sdk_experiment(exp: dict[str, Any]) -> str:
@@ -895,7 +932,7 @@ def render_sdk_page(data: dict[str, Any]) -> str:
 <div class="sub">α = 0.05</div></div>
 <div class="card"><div class="k">flips</div>
 <div class="stat">{gate.get("fixed") if gate.get("fixed") is not None else "—"}&thinsp;/&thinsp;{gate.get("broken") if gate.get("broken") is not None else "—"}</div>
-<div class="sub">fixed / broken · {_e(gate.get("candidate_version") or "")} vs {_e(pipeline.get("version") or data.get("champion") or "—")}</div></div>
+<div class="sub">fixed / broken · {_e(gate.get("candidate_version") or "")} vs {_e(pipeline.get("version") or data.get("pipeline_champion") or "—")}</div></div>
 </div>"""
     else:
         verdict_html = (
