@@ -76,6 +76,15 @@ def _make_parser() -> argparse.ArgumentParser:
     p_challenger = sub.add_parser("challenger", help="Point the challenger alias.")
     p_challenger.add_argument("version")
 
+    p_evidence = sub.add_parser(
+        "champion-evidence",
+        help="Record the test pass that measured the champion: the CI gate's floor.",
+    )
+    p_evidence.add_argument(
+        "csv", help="The champion's complete test-split predictions CSV (or run name)."
+    )
+    p_evidence.add_argument("--reason", default=None)
+
     return parser
 
 
@@ -143,6 +152,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "challenger":
         registry.set_alias(registry.CHALLENGER, args.version)
         _print(registry.summary()["aliases"])
+        return 0
+
+    if args.command == "champion-evidence":
+        try:
+            record = registry.record_champion_evidence(args.csv, reason=args.reason)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"refused: {exc}", file=sys.stderr)
+            return 1
+        _print(record)
         return 0
 
     return 1

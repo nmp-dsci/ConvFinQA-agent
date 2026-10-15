@@ -44,6 +44,59 @@ def _migrate() -> None:
     )
 
 
+SONNET_RUN = "sdk-evalloop-test100-sdk_v1·s1-20260905_174627"
+HAIKU_RUN = "sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310"
+
+
+@pytest.fixture
+def evidence_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """An empty predictions tree: no legacy CSVs, and evalloop CSVs written per test."""
+    from convfinqa.tracking import comparator
+
+    root = tmp_path / "predictions"
+    (root / "evalloop").mkdir(parents=True)
+    monkeypatch.setattr(comparator, "PREDICTIONS_DIR", root)
+    monkeypatch.setattr(comparator, "EVALLOOP_PREDICTIONS_DIR", root / "evalloop")
+    return root / "evalloop"
+
+
+def _pass(
+    directory: Path,
+    run: str,
+    outcomes: list[bool],
+    *,
+    split: str = "test",
+    unscored: bool = False,
+) -> str:
+    """A committed pass whose `correct` column agrees with re-scoring."""
+    pd.DataFrame(
+        [
+            {
+                "report_id": f"r{i // 3}",
+                "turn_index": i % 3,
+                "question": f"q{i}",
+                "gold_answer": "1",
+                "pred_answer": "1" if ok else "2",
+                "correct": ok,
+                "split": split,
+                "unscored": unscored and i == 0,
+            }
+            for i, ok in enumerate(outcomes)
+        ]
+    ).to_csv(directory / f"{run}.csv", index=False)
+    return run
+
+
+class _Passing:
+    promotable_significant = True
+
+    def reason(self) -> str:
+        return "passes"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"ok": True}
+
+
 def test_migration_makes_the_sdk_champion_the_one_champion(
     legacy_registry: Path,
 ) -> None:
@@ -126,6 +179,7 @@ def _verdict(**over: Any) -> dict[str, Any]:
         "version": "sdk_v1",
         "candidate_model": "claude-haiku-5-5",
         "candidate_effort": "high",
+        "candidate_run": HAIKU_RUN,
     }
     return {**base, **over}
 
@@ -141,6 +195,7 @@ def test_promote_agent_refuses_a_verdict_for_another_configuration(
         _verdict(candidate_model="claude-haiku-4-5-20251001"),
         _verdict(candidate_effort="low"),
         _verdict(version="sdk_v2"),
+        _verdict(candidate_run=None),
         {"outcome": "matches", "reason": "no identity"},
     ]
     for verdict in bad:
@@ -153,11 +208,12 @@ def test_promote_agent_refuses_a_verdict_for_another_configuration(
 
 
 def test_promote_agent_moves_model_and_effort_on_a_passing_verdict(
-    legacy_registry: Path,
+    legacy_registry: Path, evidence_dir: Path
 ) -> None:
     from convfinqa.tracking import registry
 
     _migrate()
+    _pass(evidence_dir, HAIKU_RUN, [True] * 7 + [False])
     outcome = registry.promote_agent(
         model="claude-haiku-5-5",
         effort="high",
@@ -165,11 +221,14 @@ def test_promote_agent_moves_model_and_effort_on_a_passing_verdict(
     )
     assert outcome.promoted
     assert registry.champion() == "sdk_v1"
+    # The floor moves with the agent: the challenger's own test pass.
     assert registry.champion_agent() == {
         "version": "sdk_v1",
         "runtime": "agent_sdk",
         "model": "claude-haiku-5-5",
         "effort": "high",
+        "evidence_run": HAIKU_RUN,
+        "accuracy": 0.875,
     }
     event = registry.load().history[-1]
     assert event["event"] == "promote_agent"
@@ -197,6 +256,133 @@ def test_promote_agent_refuses_what_it_should(legacy_registry: Path) -> None:
     )
     assert not refused.promoted and "falls_short" in refused.reason
     assert registry.champion_agent()["model"] == "claude-sonnet-5"  # type: ignore[index]
+
+
+# ---------------------------------------------------------------------------
+# The champion's floor: what the CI eval-regression gate holds it to
+# ---------------------------------------------------------------------------
+
+
+def _gate(capsys: pytest.CaptureFixture[str]) -> tuple[int, str]:
+    from convfinqa.tracking import gate
+
+    code = gate.main()
+    return code, capsys.readouterr().out
+
+
+def test_the_gate_fails_a_champion_with_no_recorded_floor(
+    legacy_registry: Path, evidence_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The regression: sdk_v1's version entry has no metrics, and the gate read
+    # that as a 0.00% floor and passed, with the champion's CSV right there.
+    _migrate()
+    _pass(evidence_dir, SONNET_RUN, [True] * 9 + [False])
+    code, out = _gate(capsys)
+    assert code == 1
+    assert "champion sdk_v1: no recorded floor" in out
+    assert "eval-gate FAILED" in out
+
+
+def test_the_gate_holds_the_champion_to_the_pass_that_measured_it(
+    legacy_registry: Path, evidence_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    _pass(evidence_dir, SONNET_RUN, [True] * 9 + [False])
+    # A later pass of the same prompt and model, which a "latest CSV" lookup
+    # would pick up instead of the champion's evidence.
+    _pass(evidence_dir, "sdk-evalloop-test100-sdk_v1·s1-20261101_000000", [True, False])
+    record = registry.record_champion_evidence(SONNET_RUN)
+    assert record["accuracy"] == 0.9 and record["evidence_run"] == SONNET_RUN
+    assert registry.load().history[-1]["event"] == "champion_evidence"
+
+    code, out = _gate(capsys)
+    assert code == 0
+    assert "champion sdk_v1: 90.00% (registered 90.00%, floor 89.50%)" in out
+
+    # A floor the evidence no longer meets fails.
+    doc = registry.load()
+    doc.champion_agent = {**doc.champion_agent, "accuracy": 0.99}  # type: ignore[dict-item]
+    registry.save(doc)
+    code, out = _gate(capsys)
+    assert code == 1
+    assert "below its registered floor" in out
+
+
+@pytest.mark.parametrize(
+    ("run", "kwargs", "why"),
+    [
+        (HAIKU_RUN, {}, "ran haiku-5-5, not claude-sonnet-5"),
+        ("sdk-evalloop-test100-sdk_v2·s2-20260905_182812", {}, "not a sdk_v1 run"),
+        (
+            "sdk-evalloop-test100-sdk_v1·s1-sonnet-5-low-20261101_000000",
+            {},
+            "effort low",
+        ),
+        (SONNET_RUN, {"split": "train"}, "outside the 'test' split"),
+        (SONNET_RUN, {"unscored": True}, "unscored rows"),
+    ],
+)
+def test_champion_evidence_refuses_a_pass_of_another_agent(
+    legacy_registry: Path,
+    evidence_dir: Path,
+    run: str,
+    kwargs: dict[str, Any],
+    why: str,
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    before = legacy_registry.read_text()
+    _pass(evidence_dir, run, [True, True, False], **kwargs)
+    with pytest.raises(ValueError, match=why):
+        registry.record_champion_evidence(run)
+    assert legacy_registry.read_text() == before
+
+
+def test_a_prompt_promotion_takes_its_own_floor_or_none(
+    legacy_registry: Path, evidence_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    registry.record_champion_evidence(_pass(evidence_dir, SONNET_RUN, [True] * 4))
+    sdk_v2 = _pass(
+        evidence_dir,
+        "sdk-evalloop-test100-sdk_v2·s2-20261101_000000",
+        [True] * 3 + [False],
+    )
+    # Evidence of another agent is a caller bug, refused before anything is written.
+    with pytest.raises(ValueError, match="not sdk_v2's gate pass"):
+        registry.promote_sdk(
+            "sdk_v2",
+            comparison=_Passing(),  # type: ignore[arg-type]
+            evidence_csv=evidence_dir / f"{SONNET_RUN}.csv",
+        )
+    assert registry.champion() == "sdk_v1"
+
+    outcome = registry.promote_sdk(
+        "sdk_v2",
+        comparison=_Passing(),  # type: ignore[arg-type]
+        evidence_csv=evidence_dir / f"{sdk_v2}.csv",
+    )
+    assert outcome.promoted
+    agent = registry.champion_agent() or {}
+    assert (agent["version"], agent["evidence_run"], agent["accuracy"]) == (
+        "sdk_v2",
+        sdk_v2,
+        0.75,
+    )
+    assert _gate(capsys)[0] == 0
+
+    # Promoted with no evidence: sdk_v1's floor measured another prompt, so it
+    # is dropped, and the gate fails until the new champion's is recorded.
+    registry.register("sdk_v3", source="test")
+    registry.promote_sdk("sdk_v3", comparison=_Passing())  # type: ignore[arg-type]
+    assert not {"accuracy", "evidence_run"} & set(registry.champion_agent() or {})
+    code, out = _gate(capsys)
+    assert code == 1 and "no recorded floor" in out
 
 
 def test_the_champion_alias_takes_either_runtime_but_never_a_judge(

@@ -671,6 +671,7 @@ def main() -> None:
                     args.candidate_version,
                     comparison=comparison,
                     evidence_split=str(verdict["evidence_split"]),
+                    evidence_csv=args.candidate_csv,
                     actor="evalloop-teacher-sdk",
                     reason=verdict["reason"],
                 )

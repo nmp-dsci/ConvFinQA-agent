@@ -1812,6 +1812,28 @@
       "actor": "owner",
       "forced": false,
       "reason": "owner's decision 2026-10-15: sdk_v1 is the universal champion \u2014 it beat the pipeline champion v8 on the gate split (+8.88pp, 38 fixed / 7 broken, one-sided cluster p=0.000286, gate g-20260905080150-00fce8a3). Recorded as an agent: claude-sonnet-5 at effort high, the configuration that gate measured (the run predates the effort=low pin, commit 27e11b5). v8 stays the pipeline lineage's best as pipeline_champion."
+    },
+    {
+      "at": "2026-10-15T08:16:03.327181+00:00",
+      "event": "champion_evidence",
+      "alias": "champion",
+      "version": "sdk_v1",
+      "actor": "owner",
+      "reason": "the test pass gate g-20260905080150-00fce8a3 measured (candidate_eval_run_id 5344cc1f): sdk_v1 on claude-sonnet-5 at effort high, 349 q. The CI gate read sdk_v1's empty version metrics as a 0.00% floor.",
+      "champion_agent_before": {
+        "version": "sdk_v1",
+        "runtime": "agent_sdk",
+        "model": "claude-sonnet-5",
+        "effort": "high"
+      },
+      "champion_agent_after": {
+        "version": "sdk_v1",
+        "runtime": "agent_sdk",
+        "model": "claude-sonnet-5",
+        "effort": "high",
+        "evidence_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+        "accuracy": 0.905444
+      }
     }
   ],
   "agent_prompts": {
@@ -2057,6 +2079,8 @@
     "version": "sdk_v1",
     "runtime": "agent_sdk",
     "model": "claude-sonnet-5",
-    "effort": "high"
+    "effort": "high",
+    "evidence_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "accuracy": 0.905444
   }
 }

@@ -422,6 +422,7 @@ async def run_sdk_cycle(
             challenger,
             comparison=comparison,
             evidence_split=str(verdict["evidence_split"]),
+            evidence_csv=cand_run["csv"],
             reason=f"{verdict['reason']} | {_edit_summary(proposal)}",
         )
         steps["promotion"] = outcome.as_dict()

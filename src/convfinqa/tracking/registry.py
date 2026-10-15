@@ -435,6 +435,92 @@ def sdk_champion(path: Path | None = None) -> str | None:
     return _sdk_champion_of(load(path))
 
 
+def champion_evidence_of(evidence_csv: Path | str) -> dict[str, Any]:
+    """The champion's floor, measured: the test pass it stands on and its accuracy there.
+
+    The CI gate floor-checks the champion against this exact run. It is a
+    property of the champion *agent*, not of its prompt version: sdk_v1 scores
+    90.5% on Sonnet 5 and 87.4% on Haiku 5.5, so a floor kept on the version
+    entry — empty for every sdk version, which let the gate pass at "registered
+    0.00%" — would be wrong as soon as `promote_agent` moved the model.
+    """
+    from convfinqa.tracking.comparator import load_evalloop_csv
+
+    frame = load_evalloop_csv(evidence_csv, split="test")
+    return {
+        "evidence_run": Path(str(evidence_csv)).name.removesuffix(".csv"),
+        "accuracy": round(float(frame["correct"].mean()), 6),
+    }
+
+
+def _ran_as(run_name: str, agent: dict[str, Any]) -> list[str]:
+    """Why `run_name` is not a pass of `agent` — empty when it is.
+
+    The name carries the prompt version, the model slug (absent on a run from
+    before slugs, which ran the default model) and the effort token.
+    """
+    from convfinqa.evalloop.runner import prior_sdk_effort, prior_sdk_model
+    from convfinqa.llm import LM_SDK_MODEL, sdk_model_slug
+
+    problems: list[str] = []
+    version = str(agent.get("version"))
+    if f"-{version}·" not in run_name:
+        problems.append(f"it is not a {version} run")
+    slug = prior_sdk_model(run_name)
+    model = str(agent.get("model"))
+    if (slug or sdk_model_slug(LM_SDK_MODEL)) != sdk_model_slug(model):
+        problems.append(f"it ran {slug or LM_SDK_MODEL}, not {model}")
+    effort = prior_sdk_effort(run_name)
+    if effort is not None and effort != agent.get("effort"):
+        problems.append(f"it ran at effort {effort}, not {agent.get('effort')}")
+    return problems
+
+
+def record_champion_evidence(
+    evidence_csv: Path | str,
+    *,
+    actor: str = "owner",
+    reason: str | None = None,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Put the champion's floor on its record, from the test pass that measured it.
+
+    Refused (raised) when there is no champion record, when the CSV is not a
+    complete test pass, or when its name says it ran a different version,
+    model or effort from the champion. Appends a ``champion_evidence`` event.
+    """
+    doc = load(path)
+    if not doc.champion_agent:
+        raise ValueError(
+            "the registry has no champion_agent record; run "
+            "migrate_to_universal_champion first"
+        )
+    evidence = champion_evidence_of(evidence_csv)
+    problems = _ran_as(evidence["evidence_run"], doc.champion_agent)
+    if problems:
+        raise ValueError(
+            f"{evidence['evidence_run']} is not the champion's evidence: "
+            + "; ".join(problems)
+        )
+    before = dict(doc.champion_agent)
+    doc.champion_agent = {**before, **evidence}
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "champion_evidence",
+            "alias": CHAMPION,
+            "version": before.get("version"),
+            "actor": actor,
+            "reason": reason
+            or "record the floor the CI gate checks the champion against",
+            "champion_agent_before": before,
+            "champion_agent_after": doc.champion_agent,
+        }
+    )
+    save(doc, path)
+    return dict(doc.champion_agent)
+
+
 def promote_sdk(
     version: str,
     *,
@@ -442,9 +528,15 @@ def promote_sdk(
     reason: str | None = None,
     evidence_split: str = "test",
     actor: str = "evalloop-cycle-sdk",
+    evidence_csv: Path | str | None = None,
     path: Path | None = None,
 ) -> PromotionOutcome:
     """Move the champion's prompt to sdk `version`, and record why.
+
+    `evidence_csv` is the candidate's gate pass: on a registry with a champion
+    record it becomes the new champion's floor (`champion_evidence_of`). With
+    none, the old floor is dropped rather than kept — it measured a different
+    prompt — and the CI gate fails until one is recorded.
 
     On a registry with a `champion_agent` record this moves the universal
     `champion` and the record's version; the record's model and effort stay,
@@ -507,7 +599,23 @@ def promote_sdk(
 
     doc.aliases[alias] = version
     if doc.champion_agent:
-        doc.champion_agent = {**doc.champion_agent, "version": version}
+        kept = {
+            k: v
+            for k, v in doc.champion_agent.items()
+            if k not in ("accuracy", "evidence_run")
+        }
+        evidence = champion_evidence_of(evidence_csv) if evidence_csv else {}
+        problems = (
+            _ran_as(evidence["evidence_run"], {**kept, "version": version})
+            if evidence
+            else []
+        )
+        if problems:
+            raise ValueError(
+                f"{evidence['evidence_run']} is not {version}'s gate pass: "
+                + "; ".join(problems)
+            )
+        doc.champion_agent = {**kept, "version": version, **evidence}
     doc.history.append(
         {
             "at": _now(),
@@ -595,6 +703,8 @@ def promote_agent(
         )
         if verdict.get(key) != want
     ]
+    if not verdict.get("candidate_run"):
+        mismatch.append("candidate_run missing: no test pass to floor-check")
     if mismatch:
         return PromotionOutcome(
             promoted=False,
@@ -605,7 +715,7 @@ def promote_agent(
             comparison=verdict,
         )
     after = {**before, "model": model, "effort": effort}
-    if after == before:
+    if (after["model"], after["effort"]) == (before.get("model"), before.get("effort")):
         return PromotionOutcome(
             promoted=False,
             version=str(before.get("version")),
@@ -616,6 +726,7 @@ def promote_agent(
     reason = (
         reason or f"model-swap rule passed ({outcome}): {verdict.get('reason', '')}"
     )
+    after.update(champion_evidence_of(str(verdict["candidate_run"])))
     doc.champion_agent = after
     doc.history.append(
         {

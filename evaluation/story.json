@@ -1,12 +1,14 @@
 {
- "generated_at": "2026-10-15T07:49:29+00:00",
+ "generated_at": "2026-10-15T08:18:55+00:00",
  "campaign_record_from": "2026-09-08T03:54:37+00:00",
  "champion": "sdk_v1",
  "champion_agent": {
   "version": "sdk_v1",
   "runtime": "agent_sdk",
   "model": "claude-sonnet-5",
-  "effort": "high"
+  "effort": "high",
+  "evidence_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+  "accuracy": 0.905444
  },
  "sdk_champion": "sdk_v1",
  "pipeline_champion": "v8",
@@ -763,6 +765,7 @@
      "version": "sdk_v1",
      "candidate_model": "claude-haiku-5-5",
      "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
      "outcome": "falls_short",
      "reason": "falls_short: \u0394 -3.15pp, CI low -6.7989pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, no_extra_ceiling_errors",
      "margin_pp": 3.0,
@@ -861,6 +864,7 @@
      "version": "sdk_v1",
      "candidate_model": "claude-haiku-4-5-20251001",
      "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
      "outcome": "falls_short",
      "reason": "falls_short: \u0394 -3.15pp, CI low -6.9401pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse; no train evidence",
      "margin_pp": 3.0,
@@ -976,8 +980,8 @@
       "n_false_alarms": 30,
       "meets_target": false,
       "auroc": 0.6209245742092457,
-      "brier": 0.12587945476973683,
-      "ece": 0.12734046052631576,
+      "brier": 0.1258794547697372,
+      "ece": 0.1273404605263182,
       "coverage_at_target": 0.006578947368421052,
       "threshold_at_target": 0.997,
       "high_band_accuracy_ci": [
@@ -1008,8 +1012,8 @@
       "n_false_alarms": 27,
       "meets_target": false,
       "auroc": 0.5242136555427694,
-      "brier": 0.11811411174785101,
-      "ece": 0.11113180515759319,
+      "brier": 0.11811411174785175,
+      "ece": 0.11113180515759728,
       "coverage_at_target": 0.0,
       "threshold_at_target": null,
       "high_band_accuracy_ci": [
@@ -1045,8 +1049,8 @@
       "n_false_alarms": 8,
       "meets_target": false,
       "auroc": 0.5481481481481482,
-      "brier": 0.1295822463768116,
-      "ece": 0.13760869565217387,
+      "brier": 0.12958224637681157,
+      "ece": 0.13760869565217396,
       "coverage_at_target": 0.08695652173913043,
       "threshold_at_target": 0.995,
       "high_band_accuracy_ci": [

@@ -1,6 +1,6 @@
 {
   "snapshot_version": 1,
-  "exported_at": "2026-10-15T07:21:50.858309+00:00",
+  "exported_at": "2026-10-15T08:18:51.941882+00:00",
   "runs": [
     {
       "run_id": "95fa72c263eb4b449542aec9409bde27",
@@ -3406,6 +3406,28 @@
       }
     ],
     "history": [
+      {
+        "at": "2026-10-15T08:16:03.327181+00:00",
+        "event": "champion_evidence",
+        "alias": "champion",
+        "version": "sdk_v1",
+        "actor": "owner",
+        "reason": "the test pass gate g-20260905080150-00fce8a3 measured (candidate_eval_run_id 5344cc1f): sdk_v1 on claude-sonnet-5 at effort high, 349 q. The CI gate read sdk_v1's empty version metrics as a 0.00% floor.",
+        "champion_agent_before": {
+          "version": "sdk_v1",
+          "runtime": "agent_sdk",
+          "model": "claude-sonnet-5",
+          "effort": "high"
+        },
+        "champion_agent_after": {
+          "version": "sdk_v1",
+          "runtime": "agent_sdk",
+          "model": "claude-sonnet-5",
+          "effort": "high",
+          "evidence_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+          "accuracy": 0.905444
+        }
+      },
       {
         "at": "2026-10-15T04:57:39.405361+00:00",
         "event": "universal_champion",

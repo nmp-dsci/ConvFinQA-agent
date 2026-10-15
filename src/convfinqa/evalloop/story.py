@@ -936,6 +936,9 @@ def model_swap_verdict(
         "version": pair.get("version"),
         "candidate_model": pair.get("candidate_model"),
         "candidate_effort": pair.get("candidate_effort"),
+        # The test pass the verdict measured: `promote_agent` floors the new
+        # champion on it, so the CI gate checks the agent that was promoted.
+        "candidate_run": pair.get("candidate_run"),
     }
     if pair.get("n_compared") is None or pair.get("delta_pp") is None:
         return {

@@ -85,6 +85,7 @@ make -C ../nmp-central-ai up              # central MLflow server; UI at http://
 uv run convfinqa-mlflow status            # tracking config, aliases, versions
 uv run convfinqa-mlflow compare v2 v3_1   # exit 1 when not promotable
 uv run convfinqa-mlflow promote v3_1      # refused unless the comparator passes
+uv run convfinqa-mlflow champion-evidence <test csv>  # the CI gate's floor for the champion agent
 uv run convfinqa-mlflow backfill          # rebuild history from committed artifacts
 uv run convfinqa-mlflow snapshot          # export what the demo image reads
 uv run convfinqa-mlflow traces-snapshot   # export the trace store the demo image seeds from
@@ -150,6 +151,16 @@ The invariants, all pinned by tests:
   **Serving and eval passes run the record**: `llm.sdk_model_name()` / `sdk_effort_name()`
   resolve setting → `champion_agent` → constant, so `SDK_MODEL`/`SDK_EFFORT` override one
   process and nothing else. Pinned by `tests/test_universal_champion.py`.
+  **The CI gate's floor is on the record too** (2026-10-15): `champion_agent` carries
+  `accuracy` and `evidence_run`, the exact test pass that measured the champion, and
+  `tracking/gate.py` re-scores that pass against that floor. Before, the gate read the
+  sdk version entry's metrics — empty for every sdk version — as a 0.00% floor and passed.
+  A floor is a property of the agent, not the prompt (sdk_v1 is 90.5% on Sonnet 5, 87.4%
+  on Haiku 5.5), so `promote_agent` re-floors on the verdict's `candidate_run`,
+  `promote_sdk` on its `evidence_csv` (dropping the old floor when given none), and
+  `convfinqa-mlflow champion-evidence <csv>` records one by hand; each refuses a pass
+  whose name says it ran another version, model or effort, or an incomplete one. A
+  champion with no recorded floor fails the gate — a missing floor is not a floor of zero.
 - **Effort is part of the agent** (2026-10-15). Commit `27e11b5` (2026-09-10) pinned
   `effort="low"` on every SDK call, *after* the committed sdk_v1 evidence was measured with
   effort unset — i.e. the SDK default, `high`. So the 90.5% is a `high` figure, and serving
