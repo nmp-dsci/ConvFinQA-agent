@@ -94,7 +94,9 @@ def prompts_version() -> str:
     # here would be a cycle.
     from convfinqa.tracking import registry
 
-    champion = registry.champion()
+    # The bundle is a pipeline concept: the champion is an agent_sdk agent
+    # since 2026-10-15, so the default bundle is the pipeline lineage's best.
+    champion = registry.pipeline_champion()
     if champion and champion in prompts_pkg.latest_all():
         return champion
     return prompts_pkg.latest()

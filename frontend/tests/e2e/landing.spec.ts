@@ -29,8 +29,8 @@ const SEED_RID = 'Single_VLO/2011/page_126.pdf-1';
  * tile.
  */
 const TILES = [
-  'hud-tile-gate-accuracy',
-  'hud-tile-runtime-accuracy',
+  'hud-tile-champion-accuracy',
+  'hud-tile-pipeline-accuracy',
   'hud-tile-p50-latency',
   'hud-tile-cost-per-turn',
 ] as const;
@@ -173,9 +173,9 @@ test.describe('status board at /', () => {
     // board says so in words rather than implying it with an empty tile — the
     // two populations are never averaged.
     await expect(
-      page.getByTestId('hud-tile-gate-accuracy').getByTestId('hud-value')
+      page.getByTestId('hud-tile-champion-accuracy').getByTestId('hud-value')
     ).not.toHaveText(NO_VALUE);
-    await expect(page.getByTestId('hud-tile-gate-accuracy')).toHaveAttribute(
+    await expect(page.getByTestId('hud-tile-champion-accuracy')).toHaveAttribute(
       'data-absent',
       'false'
     );

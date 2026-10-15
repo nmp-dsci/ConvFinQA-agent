@@ -27,21 +27,26 @@ class SdkSession:
         *,
         version: str | None = None,
         model: str | None = None,
+        effort: str | None = None,
     ) -> None:
         import convfinqa.prompts as prompts_pkg
         from convfinqa.config import settings
-        from convfinqa.llm import sdk_model_name
+        from convfinqa.llm import sdk_effort_name, sdk_model_name
         from convfinqa.tracking import registry
 
         resolved = version or registry.sdk_champion()
         if not resolved:
             raise agent_sdk.SdkRuntimeUnavailableError(
-                "no sdk_champion is registered, so there is no single-session prompt to serve"
+                "the champion is not a single-session prompt, so there is nothing to serve"
             )
         self.report_id = report_id
         self.version = resolved
         self.system_prompt = prompts_pkg.load_sdk(resolved)
+        # The champion is an agent: its model and effort come from the record
+        # (`llm.sdk_model_name` / `sdk_effort_name` read it), so what serves is
+        # what was measured.
         self.model = model or sdk_model_name()
+        self.effort = effort or sdk_effort_name()
         self.max_turns = settings.sdk_max_turns
         self.tokens_total = 0
         self._sdk: Any = None
@@ -69,6 +74,7 @@ class SdkSession:
             output_schema=SdkTurnResult.model_json_schema(),
             max_turns=self.max_turns,
             model=self.model,
+            effort=self.effort,
         )
         client = agent_sdk.new_client(sdk, options)
         await client.connect()

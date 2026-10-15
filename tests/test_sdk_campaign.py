@@ -415,7 +415,11 @@ def test_runtime_comparison_reads_the_latest_sdk_run_and_gate_row() -> None:
         _eval("evalloop-test100-v8·t3-1", "v8", "pipeline", 1),
         _eval("evalloop-test100-v8·t3-2", "v8", "pipeline", 5, accuracy=0.71),
         _eval(
-            "sdk-evalloop-test100-sdk_v1-1", "sdk_v1", "agent_sdk", 2, sdk_cost_usd=3.5
+            "sdk-evalloop-test100-sdk_v1-1",
+            "sdk_v1",
+            "agent_sdk",
+            2,
+            sdk_session_cost_usd=3.5,
         ),
         _eval("sdk-evalloop-test100-sdk_v2-1", "sdk_v2", "agent_sdk", 9, accuracy=0.74),
         _eval("sdk-evalloop-train100-sdk_v2-1", "sdk_v2", "agent_sdk", 10),
@@ -608,6 +612,8 @@ def test_story_check_covers_the_sdk_page(
     # These stories predate the judge; the registry under test must too, or the
     # repo's own judge champion leaks into a fixture that never mentions one.
     monkeypatch.setattr(registry, "judge_champion", lambda path=None: None)
+    # …and the champion record, which these stories also predate.
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: None)
 
     data = _story(sdk_champion="sdk_v1")
     text = json.dumps(data, indent=1) + "\n"
@@ -645,6 +651,8 @@ def test_story_check_catches_a_stripped_caveat(
     # These stories predate the judge; the registry under test must too, or the
     # repo's own judge champion leaks into a fixture that never mentions one.
     monkeypatch.setattr(registry, "judge_champion", lambda path=None: None)
+    # …and the champion record, which these stories also predate.
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: None)
 
     data = _story(sdk_champion="sdk_v1")
     text = json.dumps(data, indent=1) + "\n"

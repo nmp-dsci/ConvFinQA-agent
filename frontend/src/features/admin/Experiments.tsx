@@ -719,8 +719,12 @@ export default function Experiments() {
   const nPromoted = allExperiments.filter((e) => e.promoted).length;
   const track = (campaignData?.champion_track ?? []).filter((p) => p.accuracy !== null && p.accuracy !== undefined);
   const firstPoint = track[0] ?? null;
-  const champ = campaignData?.champion ?? null;
-  const champAcc = campaignData?.champion_accuracy ?? null;
+  // This page is the pipeline's own campaigns, so its champion is the pipeline
+  // lineage's best. The project's champion (an agent_sdk agent since
+  // 2026-10-15) is on the Runtimes page.
+  const champ = campaignData?.pipeline_champion ?? campaignData?.champion ?? null;
+  const champAcc =
+    campaignData?.pipeline_champion_accuracy ?? campaignData?.champion_accuracy ?? null;
 
   const title: ReactNode = campaignsQuery.isLoading ? (
     <>

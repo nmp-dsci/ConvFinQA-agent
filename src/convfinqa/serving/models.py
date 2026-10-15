@@ -26,15 +26,18 @@ class HealthResponse(BaseModel):
     runtime: str = "pipeline"
     sdk_champion: str | None = None
     judge_champion: str | None = None
-    # Which of the two aliases above actually answers a turn on this
-    # deployment. The registry keeps them apart on purpose — `promote` refuses
-    # to point `champion` at an sdk version, because serving builds four agents
-    # from it and an sdk version there is a champion nothing can construct — so
-    # "the champion" is only well defined once you know the runtime. Resolved
-    # here rather than in each caller: the top bar, the landing lamp and the
-    # write-up were each re-deriving it, and one of them was still naming the
-    # pipeline bundle long after the runtime decision moved serving to the SDK.
+    # Which version actually answers a turn on this deployment. Since the
+    # universal champion (2026-10-15) `champion` is the agent that serves, and
+    # this equals it whenever the runtime is agent_sdk; a deployment pinned to
+    # the pipeline serves `pipeline_champion` instead. Resolved here rather than
+    # in each caller: the top bar, the landing lamp and the write-up were each
+    # re-deriving it once.
     serving_champion: str | None = None
+    # The pipeline lineage's best bundle — what `bundle` describes. Not served
+    # by an agent_sdk deployment.
+    pipeline_champion: str | None = None
+    # The champion as an agent: {version, runtime, model, effort}.
+    champion_agent: dict[str, Any] | None = None
 
 
 class ReportSummary(BaseModel):
@@ -321,9 +324,17 @@ class CampaignsResponse(BaseModel):
     protocol, and its newest committed version is one the campaign rolled back.
     """
 
+    # The universal champion (2026-10-15): one agent, its accuracy on the gate
+    # split and its per-stage panel. `champion_agent` says how it runs.
     champion: str | None = None
     champion_accuracy: float | None = None
     champion_panel: dict[str, float | None] = {}
+    champion_agent: dict[str, Any] | None = None
+    # The four-agent pipeline lineage's best and its gate figures — what the
+    # pipeline campaigns' own views (track, progression) are about.
+    pipeline_champion: str | None = None
+    pipeline_champion_accuracy: float | None = None
+    pipeline_champion_panel: dict[str, float | None] = {}
     rule: str = ""
     generated_at: str = ""
     split: dict[str, Any] = {}
@@ -335,9 +346,10 @@ class CampaignsResponse(BaseModel):
     # campaigns whose targets are failure classes rather than subagents.
     sdk_champion: str | None = None
     runtime_comparison: dict[str, Any] | None = None
-    # The sdk champion scored on each model it has been run on, paired against
-    # the reference model (`models`, `pairs`). A scoring pass, not an
-    # experiment: nothing in it promotes.
+    # The sdk champion scored as each agent (model, effort) it has been run as,
+    # paired against the champion's own runs (`models`, `pairs`), each pair
+    # with its train pairing and the s19 verdict. Nothing in it promotes;
+    # `registry.promote_agent` is handed a verdict from here.
     sdk_model_comparison: dict[str, Any] | None = None
     # The confidence judge (s12): `judge.summary()` — dataset, champion, every
     # version's selective metrics per split, and the gate verdicts.

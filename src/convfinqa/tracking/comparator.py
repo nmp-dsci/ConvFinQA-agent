@@ -16,6 +16,7 @@ and makes zero API calls, which is what lets it run on every pull request.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -340,11 +341,17 @@ def evalloop_champion_csv_path(version: str, split: str = "test") -> Path:
     which sorts lexicographically) is used.
     """
     candidates = []
-    for path in EVALLOOP_PREDICTIONS_DIR.glob(f"evalloop-{split}*-{version}·*.csv"):
+    # The leading `*` admits the sdk runtime's `sdk-evalloop-…` names.
+    for path in EVALLOOP_PREDICTIONS_DIR.glob(f"*evalloop-{split}*-{version}·*.csv"):
         # "evalloop-test50-v5" -> ["evalloop", "test50", "v5"]; require an exact
         # version segment so "v5" never matches a differently-named "v50".
-        before_composition = path.stem.split("·")[0]
-        if before_composition.split("-")[-1] == version:
+        before_composition, _, after = path.stem.partition("·")
+        # `<composition>-<stamp>` only: a run pinned to another model carries a
+        # slug between the two (`s1-haiku-5-5-high-<stamp>`) and is a challenger's
+        # evidence, never the champion's.
+        if before_composition.split("-")[-1] == version and re.fullmatch(
+            r"[^-]+-\d{8}_\d{6}", after
+        ):
             candidates.append(path)
     if not candidates:
         raise FileNotFoundError(

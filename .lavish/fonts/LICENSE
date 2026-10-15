@@ -1,0 +1,8 @@
+The IBM Plex font files in this directory (*.woff2) are subsets of IBM Plex,
+Copyright (c) 2017 IBM Corp., licensed under the SIL Open Font License, Version 1.1.
+
+Full licence text: https://github.com/IBM/plex/blob/master/LICENSE.txt
+Upstream project:  https://github.com/IBM/plex
+
+Only the latin subset is vendored, to keep the house UI small enough to ship
+beside every artifact. No modification has been made beyond subsetting.

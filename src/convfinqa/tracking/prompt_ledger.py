@@ -144,7 +144,7 @@ def mirror_to_mlflow(version: str) -> dict[str, str]:
 
     prompts = prompts_pkg.load(version)
     comp = resolve(version)
-    is_champion = registry.champion() == version
+    is_champion = registry.pipeline_champion() == version
     out: dict[str, str] = {}
     try:
         mlflow_log._mlflow()

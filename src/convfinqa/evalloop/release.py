@@ -33,9 +33,11 @@ async def run_release(
     from convfinqa.tracking import registry
 
     doc = registry.load()
-    candidate = doc.aliases.get("champion")
+    # The release gate runs the four-agent pipeline on the holdout, so its
+    # candidate is the pipeline lineage's best, not the universal champion.
+    candidate = registry.pipeline_champion()
     if not candidate:
-        raise SystemExit("no champion to release")
+        raise SystemExit("no pipeline champion to release")
     baseline = baseline or doc.aliases.get("released")
     if baseline == candidate:
         raise SystemExit(f"{candidate} is already the released version")

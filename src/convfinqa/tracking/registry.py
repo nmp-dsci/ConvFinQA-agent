@@ -38,12 +38,21 @@ from convfinqa.tracking.comparator import ComparisonResult, accuracy, load_predi
 
 REGISTRY_PATH = EVAL_ROOT / "registry.json"
 
+# The universal champion (2026-10-15, owner's decision): one champion for the
+# whole project, and it is an *agent* — a prompt version plus the runtime, model
+# and effort it runs at, held in `champion_agent` beside the alias. sdk_v1 won it
+# by beating the pipeline champion v8 on the gate split (+8.88pp, p=0.0003), so
+# serving and every "the champion" on the page mean this one.
 CHAMPION = "champion"
+# The four-agent pipeline lineage keeps its own best under its own alias. It is
+# not served; it is what pipeline campaigns gate against and what `promote`
+# moves, so a pipeline improvement can never dethrone the champion by beating
+# only the pipeline's previous best.
+PIPELINE_CHAMPION = "pipeline_champion"
 CHALLENGER = "challenger"
-# The single-session runtime's own champion alias. It is a separate alias and
-# not a second value of `champion` because the two runtimes are not
-# interchangeable: serving reads `champion` to pick a four-agent bundle, and an
-# sdk_vN name there would be a version nothing can serve.
+# Retired. Until 2026-10-15 the single-session runtime had its own alias beside
+# a pipeline `champion`; the universal champion replaced both. Still read from a
+# registry that predates the migration, never written.
 SDK_CHAMPION = "sdk_champion"
 
 # The confidence judge's alias (s12). Serving reads it to decide which judge
@@ -73,6 +82,10 @@ class RegistryDoc:
     # ``j1, j2, …``. A judge prompt answers nothing, so it lives in neither of
     # the answering lineages.
     judge_prompts: list[dict[str, Any]] | None = None
+    # The universal champion as an agent: {version, runtime, model, effort}.
+    # The alias names the prompt; this names how it runs. None before the
+    # 2026-10-15 migration.
+    champion_agent: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Serialisable form."""
@@ -84,6 +97,7 @@ class RegistryDoc:
             "agent_prompts": self.agent_prompts or {},
             "sdk_prompts": self.sdk_prompts or [],
             "judge_prompts": self.judge_prompts or [],
+            **({"champion_agent": self.champion_agent} if self.champion_agent else {}),
         }
 
 
@@ -100,6 +114,9 @@ def load(path: Path | None = None) -> RegistryDoc:
         agent_prompts=dict(raw.get("agent_prompts", {})),
         sdk_prompts=list(raw.get("sdk_prompts", [])),
         judge_prompts=list(raw.get("judge_prompts", [])),
+        champion_agent=dict(raw["champion_agent"])
+        if raw.get("champion_agent")
+        else None,
     )
 
 
@@ -186,8 +203,48 @@ def record_evaluation(
 
 
 def champion(path: Path | None = None) -> str | None:
-    """The version currently aliased `champion`, if any."""
+    """The universal champion's prompt version, if any."""
     return load(path).aliases.get(CHAMPION)
+
+
+def pipeline_champion(path: Path | None = None) -> str | None:
+    """The four-agent pipeline lineage's best bundle, if any.
+
+    Falls back to `champion` for a registry that predates the universal
+    champion, when `champion` still named a pipeline bundle.
+    """
+    return _pipeline_champion_of(load(path))
+
+
+def _pipeline_champion_of(doc: RegistryDoc) -> str | None:
+    """`pipeline_champion` for an already-loaded registry."""
+    named = doc.aliases.get(PIPELINE_CHAMPION)
+    if named:
+        return named
+    legacy = doc.aliases.get(CHAMPION)
+    if legacy and not is_sdk_version(legacy) and not is_judge_version(legacy):
+        return legacy
+    return None
+
+
+def _sdk_champion_of(doc: RegistryDoc) -> str | None:
+    """The champion's sdk prompt version for an already-loaded registry."""
+    named = doc.aliases.get(CHAMPION)
+    if named and is_sdk_version(named):
+        return named
+    return doc.aliases.get(SDK_CHAMPION)
+
+
+def champion_agent(path: Path | None = None) -> dict[str, Any] | None:
+    """The universal champion as an agent: {version, runtime, model, effort}.
+
+    None for a registry that predates the record. Readers that need a model or
+    an effort fall back to `llm`'s constants then, as they did before.
+    """
+    doc = load(path)
+    if not doc.champion_agent:
+        return None
+    return dict(doc.champion_agent)
 
 
 def is_sdk_version(version: str) -> bool:
@@ -213,26 +270,38 @@ def _alias_family(name: str) -> str:
     return "pipeline"
 
 
+def _alias_accepts(alias: str, version: str) -> bool:
+    """Whether `alias` may name `version`.
+
+    The universal champion may be either answering runtime — its record says
+    which — but never a judge. Every other alias stays within its lineage.
+    """
+    if alias == CHAMPION:
+        return _alias_family(version) != "judge"
+    return _alias_family(alias) == _alias_family(version)
+
+
 def set_alias(alias: str, version: str, path: Path | None = None) -> RegistryDoc:
     """Point `alias` at `version` without recording a promotion event.
 
     Used for `challenger`, which moves freely. Champion moves go through
     `promote`, which requires a verdict.
 
-    The pipeline aliases and the single-session alias are kept apart in both
-    directions: an `sdk_vN` version can only take an `sdk_`-prefixed alias, and
-    a bundle version can never take one. Serving reads `champion` to build four
-    agents, so an sdk version there would be a champion nothing can serve — and
-    an sdk run must never be able to move the pipeline's alias by accident.
+    Lineage aliases stay within their lineage: `pipeline_champion` and
+    `challenger` take bundles only, `judge_`-prefixed aliases take judge
+    versions only. The universal `champion` takes either answering runtime and
+    never a judge; its runtime, model and effort live in `champion_agent`, which
+    only the promotion paths write.
     """
     doc = load(path)
     if find_version(doc, version) is None:
         raise ValueError(f"Cannot alias unregistered version {version!r}")
-    if _alias_family(alias) != _alias_family(version):
+    if not _alias_accepts(alias, version):
         raise ValueError(
             f"alias {alias!r} and version {version!r} belong to different "
-            "runtimes: sdk_vN versions take sdk_-prefixed aliases only, "
-            "judge_jN versions judge_-prefixed ones, and bundles neither"
+            "runtimes or lineages: the champion takes an answering agent (vN or "
+            "sdk_vN), pipeline aliases take bundles, judge_ aliases take judge_jN "
+            "versions"
         )
     doc.aliases[alias] = version
     save(doc, path)
@@ -269,10 +338,12 @@ def promote(
     reason: str | None = None,
     path: Path | None = None,
 ) -> PromotionOutcome:
-    """Promote `version` to champion if the comparator allows it.
+    """Promote bundle `version` to `pipeline_champion` if the comparator allows it.
 
-    The first registered version becomes champion by default — there is nothing
-    to compare it against, and a system with no champion cannot serve. Every
+    This is the pipeline lineage's promotion. It moves `pipeline_champion`, not
+    the universal `champion`: a bundle that beats the previous bundle has not
+    beaten the champion, which is an agent_sdk agent since 2026-10-15. The
+    first registered bundle becomes the pipeline champion by default. Every
     promotion after that needs a passing comparison.
 
     `force` exists for the deliberate override (a rollback to a known-good
@@ -283,18 +354,18 @@ def promote(
         raise ValueError(f"Cannot promote unregistered version {version!r}")
     if is_sdk_version(version):
         raise ValueError(
-            f"{version!r} is a single-session prompt; `promote` moves the "
-            f"pipeline's champion, which cannot be an sdk version. Use "
-            f"set_alias({SDK_CHAMPION!r}, ...) for the sdk lineage."
+            f"{version!r} is a single-session prompt; `promote` moves "
+            f"{PIPELINE_CHAMPION!r}, which cannot be an sdk version. Use "
+            "promote_sdk(...) to move the champion's prompt."
         )
     if is_judge_version(version):
         raise ValueError(
-            f"{version!r} is a confidence-judge prompt; `promote` moves the "
-            f"pipeline's champion, which cannot be a judge version. Use "
+            f"{version!r} is a confidence-judge prompt; `promote` moves "
+            f"{PIPELINE_CHAMPION!r}, which cannot be a judge version. Use "
             f"promote_judge(...) for the judge lineage."
         )
 
-    previous = doc.aliases.get(CHAMPION)
+    previous = _pipeline_champion_of(doc)
 
     if previous is None:
         reason = reason or "first registered version becomes champion by default"
@@ -303,7 +374,7 @@ def promote(
             promoted=False,
             version=version,
             previous_champion=previous,
-            reason=f"{version} is already the champion",
+            reason=f"{version} is already the {PIPELINE_CHAMPION}",
             comparison=comparison.as_dict() if comparison else None,
         )
     elif force:
@@ -323,13 +394,18 @@ def promote(
             )
         reason = f"comparator passed: {comparison.reason()}"
 
-    doc.aliases[CHAMPION] = version
+    doc.aliases[PIPELINE_CHAMPION] = version
+    if doc.aliases.get(CHAMPION) == previous and not doc.champion_agent:
+        # A registry that predates the universal champion: `champion` was the
+        # pipeline's alias, so it moves with it until the migration runs.
+        doc.aliases[CHAMPION] = version
     if doc.aliases.get(CHALLENGER) == version:
         doc.aliases.pop(CHALLENGER, None)
     doc.history.append(
         {
             "at": _now(),
             "event": "promote",
+            "alias": PIPELINE_CHAMPION,
             "version": version,
             "previous_champion": previous,
             "actor": actor,
@@ -350,8 +426,13 @@ def promote(
 
 
 def sdk_champion(path: Path | None = None) -> str | None:
-    """The version currently aliased `sdk_champion`, if any."""
-    return load(path).aliases.get(SDK_CHAMPION)
+    """The champion's single-session prompt version, if the champion is one.
+
+    Since the universal champion this is `champion` whenever it names an
+    `sdk_vN`; a registry that predates it still answers from the retired
+    `sdk_champion` alias.
+    """
+    return _sdk_champion_of(load(path))
 
 
 def promote_sdk(
@@ -363,13 +444,15 @@ def promote_sdk(
     actor: str = "evalloop-cycle-sdk",
     path: Path | None = None,
 ) -> PromotionOutcome:
-    """Move ONLY the `sdk_champion` alias to `version`, and record why.
+    """Move the champion's prompt to sdk `version`, and record why.
 
-    The single-session lineage has its own champion and its own promotion
-    path, kept apart from `promote` so that neither can move the other's
-    alias: serving reads `champion` to build four agents, and an `sdk_vN` there
-    would be a champion nothing can serve. Three refusals, all raised rather
-    than returned, because each is a caller bug and not a verdict:
+    On a registry with a `champion_agent` record this moves the universal
+    `champion` and the record's version; the record's model and effort stay,
+    because a prompt challenger is gated on the champion's model and effort. On
+    a registry that predates the record it moves the retired `sdk_champion`
+    alias, as it always did. Either way `promote` cannot reach it, and it
+    cannot reach `pipeline_champion`. Three refusals, all raised rather than
+    returned, because each is a caller bug and not a verdict:
 
     - a version outside the `sdk_vN` lineage;
     - evidence from any split but the gate split (`evidence_split != "test"`)
@@ -378,7 +461,7 @@ def promote_sdk(
       when one is given. The first sdk version becomes `sdk_champion` by
       default, as the first bundle becomes `champion`.
 
-    The history event is ``promote_sdk`` with ``alias: sdk_champion`` so a
+    The history event is ``promote_sdk`` and names the alias it moved, so a
     reader of `registry.json` can never mistake it for a pipeline promotion.
     """
     doc = load(path)
@@ -395,17 +478,18 @@ def promote_sdk(
             f"comparison ran on {evidence_split!r}. Train runs optimise; test "
             "runs promote."
         )
-    previous = doc.aliases.get(SDK_CHAMPION)
+    alias = CHAMPION if doc.champion_agent else SDK_CHAMPION
+    previous = _sdk_champion_of(doc)
     if previous == version:
         return PromotionOutcome(
             promoted=False,
             version=version,
             previous_champion=previous,
-            reason=f"{version} is already the {SDK_CHAMPION}",
+            reason=f"{version} is already the {alias}",
             comparison=comparison.as_dict() if comparison else None,
         )
     if previous is None and comparison is None:
-        reason = reason or f"first sdk version becomes {SDK_CHAMPION} by default"
+        reason = reason or f"first sdk version becomes {alias} by default"
     elif comparison is not None and not comparison.promotable_significant:
         return PromotionOutcome(
             promoted=False,
@@ -416,17 +500,19 @@ def promote_sdk(
         )
     elif comparison is None:
         raise ValueError(
-            f"{SDK_CHAMPION} is {previous!r}; moving it needs a passing gate comparison"
+            f"{alias} is {previous!r}; moving it needs a passing gate comparison"
         )
     else:
         reason = reason or f"campaign rule passed: {comparison.reason()}"
 
-    doc.aliases[SDK_CHAMPION] = version
+    doc.aliases[alias] = version
+    if doc.champion_agent:
+        doc.champion_agent = {**doc.champion_agent, "version": version}
     doc.history.append(
         {
             "at": _now(),
             "event": "promote_sdk",
-            "alias": SDK_CHAMPION,
+            "alias": alias,
             "version": version,
             "previous_champion": previous,
             "actor": actor,
@@ -444,6 +530,171 @@ def promote_sdk(
         reason=reason or "",
         comparison=comparison.as_dict() if comparison else None,
     )
+
+
+#: The verdicts that may move the champion's model or effort. "beats" is the
+#: house gate (net positive, one-sided cluster p < 0.05); "matches" is the
+#: non-inferiority rule for a cheaper agent (s19).
+AGENT_PROMOTING_OUTCOMES = ("beats", "matches")
+
+
+def promote_agent(
+    *,
+    model: str,
+    effort: str,
+    verdict: dict[str, Any],
+    evidence_split: str = "test",
+    actor: str = "owner",
+    reason: str | None = None,
+    path: Path | None = None,
+) -> PromotionOutcome:
+    """Move the champion's model and effort, keeping its prompt, and record why.
+
+    The champion is an agent; a challenger that shares its prompt and changes
+    how it runs (s19: Sonnet 5 → Haiku 5.5) is promoted here. `verdict` is the
+    model-swap verdict (`story.model_swap_verdict`): it must name an outcome in
+    `AGENT_PROMOTING_OUTCOMES` and carry the `candidate_model`, `candidate_effort`
+    and `version` it was measured for, which must match what is promoted, and test evidence is required, as for every
+    other promotion. Refusals are raised, because each is a caller bug: no
+    champion record, train evidence, an unknown effort, or a verdict that did
+    not pass. The history event is ``promote_agent`` and carries the record
+    before and after.
+    """
+    from convfinqa.llm import SDK_EFFORTS
+
+    doc = load(path)
+    if not doc.champion_agent:
+        raise ValueError(
+            "the registry has no champion_agent record; run "
+            "migrate_to_universal_champion first"
+        )
+    if evidence_split != "test":
+        raise ValueError(
+            "promotion evidence must come from the unseen test split — this "
+            f"verdict ran on {evidence_split!r}. Train runs optimise; test runs promote."
+        )
+    if effort not in SDK_EFFORTS:
+        raise ValueError(f"unknown effort {effort!r}; expected one of {SDK_EFFORTS}")
+    outcome = str(verdict.get("outcome") or "")
+    before = dict(doc.champion_agent)
+    if outcome not in AGENT_PROMOTING_OUTCOMES:
+        return PromotionOutcome(
+            promoted=False,
+            version=str(before.get("version")),
+            previous_champion=str(before.get("version")),
+            reason=f"model-swap rule refused: {outcome or 'no outcome'} — "
+            f"{verdict.get('reason', '')}",
+            comparison=verdict,
+        )
+    mismatch = [
+        f"{field} {verdict.get(key)!r} != {want!r}"
+        for key, field, want in (
+            ("candidate_model", "model", model),
+            ("candidate_effort", "effort", effort),
+            ("version", "version", before.get("version")),
+        )
+        if verdict.get(key) != want
+    ]
+    if mismatch:
+        return PromotionOutcome(
+            promoted=False,
+            version=str(before.get("version")),
+            previous_champion=str(before.get("version")),
+            reason="verdict was not measured for this configuration: "
+            + "; ".join(mismatch),
+            comparison=verdict,
+        )
+    after = {**before, "model": model, "effort": effort}
+    if after == before:
+        return PromotionOutcome(
+            promoted=False,
+            version=str(before.get("version")),
+            previous_champion=str(before.get("version")),
+            reason="the champion already runs on this model and effort",
+            comparison=verdict,
+        )
+    reason = (
+        reason or f"model-swap rule passed ({outcome}): {verdict.get('reason', '')}"
+    )
+    doc.champion_agent = after
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "promote_agent",
+            "alias": CHAMPION,
+            "version": after.get("version"),
+            "previous_champion": before.get("version"),
+            "champion_agent_before": before,
+            "champion_agent_after": after,
+            "actor": actor,
+            "forced": False,
+            "reason": reason,
+            "evidence_split": evidence_split,
+            "verdict": verdict,
+        }
+    )
+    save(doc, path)
+    return PromotionOutcome(
+        promoted=True,
+        version=str(after.get("version")),
+        previous_champion=str(before.get("version")),
+        reason=reason,
+        comparison=verdict,
+    )
+
+
+def migrate_to_universal_champion(
+    *,
+    model: str,
+    effort: str,
+    reason: str,
+    actor: str = "owner",
+    path: Path | None = None,
+) -> RegistryDoc:
+    """Make the sdk champion the one champion, as an agent. Idempotent.
+
+    Before: `champion` names the pipeline's bundle, `sdk_champion` the
+    single-session prompt. After: `champion` names the sdk prompt,
+    `champion_agent` records how it runs, `pipeline_champion` keeps the bundle,
+    and the retired `sdk_champion` alias is gone. One ``universal_champion``
+    history event records the move; the history itself is never rewritten.
+    """
+    from convfinqa.llm import SDK_EFFORTS
+
+    if effort not in SDK_EFFORTS:
+        raise ValueError(f"unknown effort {effort!r}; expected one of {SDK_EFFORTS}")
+    doc = load(path)
+    if doc.champion_agent:
+        return doc
+    sdk = _sdk_champion_of(doc)
+    if not sdk:
+        raise ValueError("no sdk champion to make universal")
+    pipeline = _pipeline_champion_of(doc)
+    if pipeline:
+        doc.aliases[PIPELINE_CHAMPION] = pipeline
+    doc.aliases[CHAMPION] = sdk
+    doc.aliases.pop(SDK_CHAMPION, None)
+    doc.champion_agent = {
+        "version": sdk,
+        "runtime": "agent_sdk",
+        "model": model,
+        "effort": effort,
+    }
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "universal_champion",
+            "alias": CHAMPION,
+            "version": sdk,
+            "previous_champion": pipeline,
+            "champion_agent_after": dict(doc.champion_agent),
+            "actor": actor,
+            "forced": False,
+            "reason": reason,
+        }
+    )
+    save(doc, path)
+    return doc
 
 
 def judge_champion(path: Path | None = None) -> str | None:

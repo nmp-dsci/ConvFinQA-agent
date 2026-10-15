@@ -38,7 +38,7 @@ uv run pytest
 - **Traces store prompts by reference, never raw text** (`evalloop/prompt_refs.py`). A system prompt is a constant repeated on every span of a run and the writer's prompt carries a whole subagent prompt plus its failure history, so dumping text put megabytes of duplication in the store and — at the old 20k cap — still recorded a *truncated* prompt, which is neither cheap nor faithful. Four ref kinds: `teacher_prompt` (module constant, by name), `agent_prompt` (the ledger's own `p2@4bc21f75` identity), `run_artifact` (text logged once on the run — `diagnose_memory.txt` is identical for every case in a pass, `writer_prompt.txt` is one per cycle), `diagnose_case` (a committed CSV row, rebuilt through `case_payload`). **Every ref carries the sha256 of what it stands for and `resolve` refuses on mismatch** — two kinds resolve against code, so without the check an edited `TEACHER_PROMPT` would be handed back as though it were the one that ran. The writer's user prompt is deliberately an artifact, not an id: `ledger_text` reads MLflow live, so that prompt is genuinely not reconstructible from ids. Read any of it back with `convfinqa-evalloop show-prompt --trace tr-…`. `refs` is a **required argument with no default** on `run_structured`: since spans no longer carry text, a call site that omitted it would record a prompt neither stored nor recoverable — worse than the dump this replaced — so mypy rejects it at the call site. `ClaudeSDKClient` may only be constructed in `evalloop/sdk.py`; a test pins both. Note this covers the Agent SDK only — the pydantic-ai pipeline traces are autologged with full text and are where the store's bulk actually is (~1.2 MB per conversation trace against ~0.4 KB for a teacher span).
 - **Diagnosis runs concurrently** under the same semaphore the eval runner uses (`--concurrency`, default 8), and results are reassembled in case order so the JSONL artifact and the printed log never depend on completion order. It was ~70% of a cycle's wall clock as sequential calls, for no reason — no diagnosis reads another's result.
 - **MLflow logging lives inside the runners**, not beside them. An operator who forgets to wrap a run produces an unrecorded result, and a history with silent gaps is worse than none.
-- **Tracking goes to the central platform** (2026-09-21): `settings.mlflow_tracking_uri` defaults to `http://localhost:5000`, the `nmp-central-ai` server (`make -C ../nmp-central-ai up`; `MLFLOW_TRACKING_URI` overrides, `http://mlflow:5000` inside compose). This repo runs no MLflow of its own any more — the compose `mlflow` service is gone. Because every write in `mlflow_log` is best-effort-silent, the evalloop runner calls `mlflow_log.assert_reachable()` first and refuses to spend model calls against a server that does not answer `/health`; serving never does, so the demo stays server-free. `_mlflow()` also probes `/health` (2s) before touching the REST client: without it a stopped server cost every caller MLflow's retry ladder — **measured 247s per call** — which the demo container's `/admin/experiments` would have paid on every request, since its default URI is now a server it can never reach. Old stores (`mlruns/mlflow.db`, `.mlflow/`) are archived read-only, not migrated.
+- **Tracking goes to the central platform** (2026-09-21): `settings.mlflow_tracking_uri` defaults to `http://localhost:5000`, the `nmp-central-ai` server (`make -C ../nmp-central-ai up`; `MLFLOW_TRACKING_URI` overrides, `http://mlflow:5000` inside compose). This repo runs no MLflow of its own any more — the compose `mlflow` service is gone. Because every write in `mlflow_log` is best-effort-silent, the evalloop runner calls `mlflow_log.assert_reachable()` first and refuses to spend model calls against a server that does not answer `/health`; serving never does, so the demo stays server-free. `_mlflow()` also probes `/health` (2s) before touching the REST client: without it a stopped server cost every caller MLflow's retry ladder — **measured 247s per call** — which the demo container's `/admin/experiments` would have paid on every request, since its default URI is now a server it can never reach. Old stores (`mlruns/mlflow.db`, `.mlflow/`) are archived read-only, not migrated. **So the central store does not hold the pre-migration record** — the champion's own evidence included — and two readers must merge rather than replace: `story.collect()` unions the store's eval runs with the committed `mlflow_snapshot.json` (`_with_snapshot_runs`) and carries the committed campaign sections forward when the store has no gate runs (`campaign_record_from` says from when), and `snapshot.build_snapshot()` keeps every committed run the store lacks (`merge_runs`). Rebuilding either from the store alone silently deleted the record.
 - **MLflow tracing follows the same rule** (added 2026-09-02): `tracking/tracing.py` owns it. The evalloop runner always calls `tracing.enable()` — every LLM call lands as a span (run → report → question → named agent stage → `Agent.run`) linked to the MLflow run; serving opts in with `MLFLOW_TRACING=1`. `tracing.span()` is a free no-op until `enable()` succeeds, so imports stay cheap and the demo container needs no tracking server. Never set `MLFLOW_USE_DEFAULT_TRACER_PROVIDER=false` to merge MLflow into Logfire's tracer provider — it crashes pydantic-ai runs; the two providers coexist by staying separate.
 - **Vite proxy** (`frontend/vite.config.ts`'s `BACKEND_PREFIXES`) must list every backend path prefix (`/healthz`, `/reports`, `/sessions`, `/eval`, `/admin`, `/traces`, `/demo`, `/metrics`). Missing entries cause silent HTML-404 failures in the browser. The UI's own pages (`/filings`, `/scoring`, `/leaderboard`, `/runs`, `/optimise`, `/agent`, `/gold`) must never collide with one.
 - **`pred_program` column** must be present in every predictions CSV. `evaluate_cached` auto-detects its absence and forces a re-run.
@@ -133,12 +133,48 @@ The invariants, all pinned by tests:
   `sdk_v1` is distilled from a bundle by `convfinqa-evalloop sdk-distil`; every later
   version is written by the SDK teacher. Never hand-edit one. `next_version("sdk_v3")`
   is `sdk_v4` — the lineage never shares a number with a pipeline `vN`.
-- **`sdk_champion`, never `champion`.** `registry.promote_sdk` moves only the
-  `sdk_champion` alias (history event `promote_sdk`, actor `evalloop-cycle-sdk`); it
-  refuses a non-sdk version, refuses train evidence, and never touches `champion`.
-  `registry.promote` still refuses sdk versions and `set_alias` refuses a cross-runtime
-  pair. Serving reads `champion` to build four agents; an sdk version there would be a
-  champion nothing can serve.
+- **One champion, and it is an agent** (universal champion, owner's decision 2026-10-15;
+  supersedes "`sdk_champion`, never `champion`"). `aliases.champion` is `sdk_v1` and
+  `registry.json → champion_agent` records how it runs: `{version, runtime: agent_sdk,
+  model: claude-sonnet-5, effort: high}` — the configuration gate
+  `g-20260905080150-00fce8a3` measured. The pipeline lineage keeps its best as
+  `pipeline_champion` (`v8`): `registry.promote` moves only that alias, and every
+  pipeline reader (cycle, gate, ledgers, bundle, prompt_ledger, release, demo pack) reads
+  `registry.pipeline_champion()`, so a bundle that beats the previous bundle can never
+  dethrone an agent it never faced. Three ways the champion moves, each a history event:
+  `promote_sdk` (a new prompt; the record's model and effort stay), `promote_agent` (a new
+  model/effort on the same prompt — needs a `story.model_swap_verdict` of `beats` or
+  `matches` on test evidence), and the one-off `migrate_to_universal_champion`.
+  `registry.sdk_champion()` still exists and returns the champion when it is an sdk
+  version (the retired `sdk_champion` alias is read only from a pre-migration registry).
+  **Serving and eval passes run the record**: `llm.sdk_model_name()` / `sdk_effort_name()`
+  resolve setting → `champion_agent` → constant, so `SDK_MODEL`/`SDK_EFFORT` override one
+  process and nothing else. Pinned by `tests/test_universal_champion.py`.
+- **Effort is part of the agent** (2026-10-15). Commit `27e11b5` (2026-09-10) pinned
+  `effort="low"` on every SDK call, *after* the committed sdk_v1 evidence was measured with
+  effort unset — i.e. the SDK default, `high`. So the 90.5% is a `high` figure, and serving
+  ran an unscored `low` configuration from 09-10 until the champion record put it back on
+  `high`. `run --sdk-effort` pins a pass; the run name carries it after the model slug
+  (`…·s1-haiku-5-5-high-<stamp>`), it is the `sdk_effort` param and tag, `--resume-from`
+  refuses a mismatch, and a run with no `sdk_effort` param is dated against
+  `llm.SDK_EFFORT_PINNED_LOW_AT`. The teacher and judge keep their own `low`.
+- **An sdk pass's price is `sdk_session_cost_usd`** (2026-10-15). The CLI's
+  `total_cost_usd` is the session's *running total*, so `sdk_cost_usd` — the sum over
+  turns — overstated every sdk pass 2.2–2.6×: sdk_v1's test pass recorded $27.62 and
+  cost $11.83. And the CLI bundled with SDK 0.2.152 (2.1.259) does not know
+  `claude-haiku-5-5`: it prints `unrecognized_model` (the API still serves the model,
+  with `effort` and adaptive thinking as sent) and prices it on a $5/$25 fallback card,
+  50× Haiku 5.5's ≤100K rate. `tracking/cost.py` corrects both;
+  `convfinqa-evalloop backfill-sdk-cost` derived the figure for older passes from their
+  traces (archived store → committed snapshot, central store → metric), and
+  `story._arm` prices an sdk arm by it alone, showing no cost rather than the inflated
+  one. `tests/test_sdk_cost.py` pins the SDK version the repricing table was measured
+  on. One harness effect to know: a session's first API call carries 7 tools and every
+  later one 65, so the conversations that open a pass together each write that ~50k
+  prefix to the cache in one turn, against their own 60k ceiling, before any of them
+  can read it. Both arms of s19 paid it — sdk_v1's Sonnet test pass had three such
+  conversations peak at 59–61k — and a ceiling error in a pass's first batch is this,
+  not the model looping.
 - **Calculator tools only.** Arithmetic happens inside the tool server, never inline;
   the trajectory is what the calculator column is scored on.
 - **Ledgers are append-only.** `evaluation/diagnostics/evalloop/{diagnoses,rewrites,gates}.jsonl`
@@ -211,19 +247,28 @@ The invariants, all pinned by tests:
   the stamp (`sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-<stamp>`, `llm.sdk_model_slug`), the
   full id is the `sdk_model` param **and** tag (a search key), and `--resume-from` refuses a
   CSV whose name carries a different slug. Runs named before the slug existed ran the default
-  model, which their `sdk_model` param records. **A model swap is a scoring pass, not an
-  experiment**: `story.sdk_model_comparison` reports every model the sdk champion has been
-  scored on and pairs each against the *reference* model (`llm.sdk_model_name()`) with the
-  gate's own test, read from the two committed CSVs; nothing promotes and nothing is written
-  to the gates ledger. `runtime_comparison` pins the sdk arm to the reference model, so a
-  Haiku pass appears as a row in the model-swap table and never becomes the arm the
-  cross-runtime gate was measured on. The page (`docs/optimization/agent-sdk.html`) and
+  model, which their `sdk_model` param records. **A challenger agent is paired against the
+  champion's own committed runs, never a re-run of the champion** (owner's rule, s19):
+  `story.sdk_model_comparison` keys agents on **(model, effort)** and pairs each against the
+  champion's record — on test question by question (the gate's test, from the two committed
+  CSVs), and on sdk_v1's own early-stopped train draws (`--train-seed 2027|2028
+  --stop-at-first-wrong`, reproduced id for id) **per conversation**, since early stop leaves
+  later turns with no counterpart. Each pair carries `story.model_swap_verdict`: `beats` (the
+  house gate), `matches` (test 95% CI lower bound ≥ −`MODEL_SWAP_MARGIN_PP` = 3pp, test and
+  program turns not significantly worse, no extra token-ceiling errors) or `falls_short`;
+  train is a veto, never a substitute. Only `registry.promote_agent` acts on it.
+  `runtime_comparison` pins the sdk arm to the run its gate measured
+  (`candidate_eval_run_id`), so no later pass — or promotion — re-labels the v8-vs-sdk_v1
+  verdict. The page (`docs/optimization/agent-sdk.html`) and
   `/optimise/runtimes` both show the table once a second model exists; `story_check` fails a
   page that hides it.
 
 ```bash
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
   --sdk-model claude-haiku-4-5-20251001      # one scoring pass, model swapped, all else equal
+uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high \
+  --train-seed 2027 --stop-at-first-wrong   # s19: a challenger on the champion's own train draw
 uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \

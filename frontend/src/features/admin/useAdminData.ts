@@ -50,7 +50,10 @@ export function useVersionRows(): {
   /** Whether the payload came from live MLflow or the committed snapshot. */
   experimentsSource: string | undefined;
 } {
-  const champion = useMode((s) => s.health?.champion) ?? null;
+  // These rows are the pipeline's bundle versions, so the marked row is the
+  // pipeline lineage's best; the project's champion is an agent_sdk agent.
+  const champion =
+    useMode((s) => s.health?.pipeline_champion ?? s.health?.champion) ?? null;
   const versions = useQuery({ queryKey: qk.versions, queryFn: listVersions });
   const experiments = useQuery({ queryKey: qk.experiments, queryFn: getExperiments });
 

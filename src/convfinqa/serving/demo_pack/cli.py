@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     if not version:
         from convfinqa.tracking import registry
 
-        version = registry.champion() or "v2"
+        version = registry.pipeline_champion() or "v2"
 
     report_ids = [r.strip() for r in args.reports.split(",") if r.strip()] or None
     pack = build_pack(version, report_ids=report_ids, n=args.n)

@@ -20,17 +20,27 @@ echo "$health" | grep -q '"mode":"demo"' || fail "mode is not demo: $health"
 #    promotion story has nothing to show.
 echo "$health" | grep -q '"champion":"' || fail "no champion registered: $health"
 
-# 2b. Deploy binding (M3): what the container serves IS the champion. The
-#     bundle's prompts_version and the registry champion are two fields
-#     describing the same deployment — if they disagree, the image was built
-#     from a stale registry or the resolver drifted (it has, twice).
+# 2b. Deploy binding (M3): what the container serves IS the champion. Since
+#     the universal champion (2026-10-15) the champion is an agent_sdk agent:
+#     on that runtime `serving_champion` must be it. The bundle is a pipeline
+#     concept and must still name the pipeline lineage's best — if either pair
+#     disagrees, the image was built from a stale registry or the resolver
+#     drifted (it has, twice).
 echo "$health" | python3 -c '
 import json, sys
 body = json.load(sys.stdin)
 champion = body.get("champion")
+if body.get("runtime") == "agent_sdk":
+    serving = body.get("serving_champion")
+    if champion and serving != champion:
+        sys.exit(f"serving {serving!r} is not the champion {champion!r}")
+    agent = body.get("champion_agent") or {}
+    if champion and agent.get("version") != champion:
+        sys.exit(f"champion_agent {agent!r} does not name the champion {champion!r}")
+pipeline = body.get("pipeline_champion")
 served = (body.get("bundle") or {}).get("prompts_version")
-if champion and served and champion != served:
-    sys.exit(f"served bundle {served!r} is not the champion {champion!r}")
+if pipeline and served and pipeline != served:
+    sys.exit(f"served bundle {served!r} is not the pipeline champion {pipeline!r}")
 ' || fail "served version != champion: $health"
 
 # 3. The committed evidence is served.

@@ -21,6 +21,7 @@ and ``sdk_vN`` versions; ``gate-targeted`` then takes ``--target-class``:
         --new-version sdk_v2 --runtime agent_sdk
     convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> ...
     convfinqa-evalloop backfill-ledgers [--no-mlflow]
+    convfinqa-evalloop backfill-sdk-cost [--dry-run]
     convfinqa-evalloop ledger-trace --question-id <id> | --edit-id <id>
 """
 
@@ -173,6 +174,16 @@ def build_parser() -> argparse.ArgumentParser:
             "param and tag."
         ),
     )
+    rn.add_argument(
+        "--sdk-effort",
+        default=None,
+        choices=("low", "medium", "high", "xhigh", "max"),
+        help=(
+            "Effort for --runtime agent_sdk (default: SDK_EFFORT, else the "
+            "champion record's). Part of what the agent is, so it goes into the "
+            "run name after the model slug and is the sdk_effort param and tag."
+        ),
+    )
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
     gt.add_argument("--baseline-csv", required=True)
@@ -293,6 +304,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Recompute and check against each verdict, but write nothing.",
+    )
+
+    bc = sub.add_parser(
+        "backfill-sdk-cost",
+        help=(
+            "Add sdk_session_cost_usd (the price paid) to sdk passes that only "
+            "carry sdk_cost_usd, from their traces."
+        ),
+    )
+    bc.add_argument(
+        "--archive",
+        default=None,
+        help="The archived pre-2026-09-21 store (default .mlflow/store/mlflow.db).",
+    )
+    bc.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Compute and report, but write neither the snapshot nor a metric.",
     )
 
     ba = sub.add_parser(
@@ -506,6 +535,8 @@ def main() -> None:
         check_runtime(ap, args.runtime, args.version)
         if args.sdk_model and args.runtime != "agent_sdk":
             ap.error("--sdk-model applies to --runtime agent_sdk only")
+        if args.sdk_effort and args.runtime != "agent_sdk":
+            ap.error("--sdk-effort applies to --runtime agent_sdk only")
         summary = asyncio.run(
             run_split(
                 args.split,
@@ -520,6 +551,7 @@ def main() -> None:
                 runtime=args.runtime,
                 resume_from=args.resume_from,
                 sdk_model=args.sdk_model,
+                sdk_effort=args.sdk_effort,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201
@@ -803,6 +835,19 @@ def main() -> None:
         kwargs = {"experiment": args.experiment} if args.experiment else {}
         print(  # noqa: T201
             json.dumps(ledger.backfill_flips(dry_run=args.dry_run, **kwargs), indent=2)
+        )
+
+    elif args.cmd == "backfill-sdk-cost":
+        from pathlib import Path
+
+        from convfinqa.tracking import sdk_cost
+
+        archive = Path(args.archive) if args.archive else sdk_cost.ARCHIVE_DB
+        print(  # noqa: T201
+            json.dumps(
+                sdk_cost.backfill_sdk_cost(archive=archive, dry_run=args.dry_run),
+                indent=2,
+            )
         )
 
     elif args.cmd == "backfill-attribution":

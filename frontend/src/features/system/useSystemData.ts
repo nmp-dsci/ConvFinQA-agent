@@ -88,7 +88,8 @@ export function useSystemData(): SystemData {
 
   const versions = versionsQuery.data;
   const championVersion =
-    versions?.find((v) => v.version === health?.champion) ?? versions?.[versions.length - 1];
+    versions?.find((v) => v.version === (health?.pipeline_champion ?? health?.champion)) ??
+    versions?.[versions.length - 1];
   const championName = championVersion?.version;
 
   // The slice table is the champion's, not "the latest run's". Asking for a

@@ -384,6 +384,7 @@ async def test_a_two_turn_conversation_writes_the_pipelines_capture(
         "input_tokens",
         "output_tokens",
         "cache_read_input_tokens",
+        "cache_creation_input_tokens",
     }
 
     # The shared row builder and scorer read it without knowing the runtime.
@@ -743,20 +744,31 @@ def test_the_sdk_lineage_registers_once_and_composes_as_s1(
 def test_sdk_aliases_never_touch_the_pipelines_champion(
     sdk_prompt_module: str, registry_tmp: Path
 ) -> None:
+    """The pipeline lineage's alias stays bundle-only; the universal champion does not.
+
+    Since 2026-10-15 `champion` is the one champion and may name an sdk agent,
+    while `pipeline_champion` (what `promote` moves and the bundle reads) still
+    refuses one — so an sdk run can never move the pipeline's alias, and a
+    pipeline promotion can never move an sdk champion.
+    """
     from convfinqa.tracking import registry
 
-    champion_before = registry.champion()
+    pipeline_before = registry.pipeline_champion()
     registry.register(SDK_VERSION, source="evalloop")
     doc = registry.set_alias(registry.SDK_CHAMPION, SDK_VERSION)
     assert doc.aliases["sdk_champion"] == SDK_VERSION
-    assert registry.champion() == champion_before
+    assert registry.pipeline_champion() == pipeline_before
     with pytest.raises(ValueError, match="different runtimes"):
-        registry.set_alias(registry.CHAMPION, SDK_VERSION)
+        registry.set_alias(registry.PIPELINE_CHAMPION, SDK_VERSION)
     with pytest.raises(ValueError, match="different runtimes"):
         registry.set_alias(registry.SDK_CHAMPION, "v2")
     with pytest.raises(ValueError, match="single-session"):
         registry.promote(SDK_VERSION, force=True)
-    assert registry.champion() == champion_before
+    # The universal champion takes an answering agent of either runtime.
+    registry.set_alias(registry.CHAMPION, SDK_VERSION)
+    assert registry.champion() == SDK_VERSION
+    assert registry.sdk_champion() == SDK_VERSION
+    assert registry.pipeline_champion() == pipeline_before
 
 
 def test_pipeline_sdk_options_are_gated_by_demo_mode(demo_mode: None) -> None:

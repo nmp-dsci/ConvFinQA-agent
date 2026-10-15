@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import Awaitable, Callable
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import httpx
 from pydantic_ai.models.openai import OpenAIChatModel
@@ -359,10 +359,22 @@ def teacher_options(
 # triage → preprocess → retrieve → calculate job, with the six calculator
 # functions as its only tools. A different model from the teacher on purpose —
 # the teacher judges a few dozen cases per cycle; this runs on every turn of an
-# eval pass, so its cost has to stay measurable per question. `settings.sdk_model`
-# overrides the constant so a run can be pinned to a different model without a
-# code change, and the run records which one it used.
+# eval pass, so its cost has to stay measurable per question.
+#
+# The model and effort normally come from the champion record
+# (`registry.champion_agent()`): the champion is an agent, and serving and eval
+# passes run it as recorded. `settings.sdk_model` / `settings.sdk_effort`
+# override that for a process, and a pass can pin either; every run records
+# which it used. The constants are the fallback for a registry with no record.
 LM_SDK_MODEL = "claude-sonnet-5"
+SdkEffort = Literal["low", "medium", "high", "xhigh", "max"]
+LM_SDK_EFFORT: SdkEffort = "low"
+SDK_EFFORTS: tuple[SdkEffort, ...] = ("low", "medium", "high", "xhigh", "max")
+# Commit 27e11b5 pinned `effort="low"` on every Agent SDK call. A run started
+# before it left effort unset, and `ClaudeAgentOptions` then defaults to
+# "high" — so the committed sdk_v1 evidence (2026-09-05/06) was measured at
+# high. Readers of a run with no `sdk_effort` param date it against this.
+SDK_EFFORT_PINNED_LOW_AT = "2026-09-10T04:04:46+00:00"
 
 # The one MCP server the runtime registers, and the only tools it may call.
 # Restricting `tools`/`allowed_tools` to exactly these six is what makes
@@ -374,9 +386,46 @@ SDK_CALCULATOR_TOOLS = ("add", "subtract", "multiply", "divide", "exp", "greater
 SDK_ALLOWED_TOOLS = [f"mcp__{SDK_MCP_SERVER}__{name}" for name in SDK_CALCULATOR_TOOLS]
 
 
+def _champion_agent() -> dict[str, Any]:
+    """The champion record, or {} when the registry has none or cannot be read."""
+    try:
+        from convfinqa.tracking import registry
+
+        return registry.champion_agent() or {}
+    except Exception:  # noqa: BLE001 — a missing registry falls back to the constants
+        return {}
+
+
 def sdk_model_name() -> str:
-    """The model the qa_agent runtime runs on: the setting, else the constant."""
-    return settings.sdk_model or LM_SDK_MODEL
+    """The model the qa_agent runtime runs on: the setting, else the champion's, else the constant."""
+    return settings.sdk_model or _champion_agent().get("model") or LM_SDK_MODEL
+
+
+def sdk_effort_name() -> str:
+    """The effort the qa_agent runtime runs at: the setting, else the champion's, else low."""
+    effort = settings.sdk_effort or _champion_agent().get("effort") or LM_SDK_EFFORT
+    if effort not in SDK_EFFORTS:
+        raise ValueError(f"unknown effort {effort!r}; expected one of {SDK_EFFORTS}")
+    return str(effort)
+
+
+def sdk_effort_of_run(params: dict[str, Any], start_time_ms: float | None) -> str:
+    """The effort a recorded sdk run ran at.
+
+    New runs carry it as the `sdk_effort` param. Older ones do not, and their
+    effort depends on when they ran: before `SDK_EFFORT_PINNED_LOW_AT` the SDK
+    default (`high`), after it the pinned `low`. A run with no start time is
+    read as pinned, the conservative answer for anything recent.
+    """
+    recorded = params.get("sdk_effort")
+    if recorded:
+        return str(recorded)
+    if start_time_ms is None:
+        return LM_SDK_EFFORT
+    from datetime import datetime
+
+    pinned = datetime.fromisoformat(SDK_EFFORT_PINNED_LOW_AT).timestamp() * 1000
+    return "high" if float(start_time_ms) < pinned else LM_SDK_EFFORT
 
 
 def sdk_model_slug(model: str | None = None) -> str:
@@ -506,6 +555,7 @@ def pipeline_sdk_options(
     max_turns: int,
     billing: str | None = None,
     model: str | None = None,
+    effort: str | None = None,
 ) -> Any:
     """Options for one qa_agent session. Sibling of `teacher_options`.
 
@@ -524,6 +574,10 @@ def pipeline_sdk_options(
     `allowed_tools` is checked against `SDK_ALLOWED_TOOLS` rather than trusted:
     a caller that widened it would widen what the model can do without any
     trace of it in the run's params.
+
+    `effort` defaults to `sdk_effort_name()` — the champion's recorded effort.
+    The teacher and judge keep their own `low` in `teacher_options`; only the
+    answering agent's effort is part of what the champion is.
     """
     guard_llm_call()
     from claude_agent_sdk import ClaudeAgentOptions
@@ -544,5 +598,14 @@ def pipeline_sdk_options(
         allowed_tools=list(SDK_ALLOWED_TOOLS),
         mcp_servers={SDK_MCP_SERVER: mcp_server},
         output_format={"type": "json_schema", "schema": output_schema},
-        effort="low",
+        effort=_checked_effort(effort),
     )
+
+
+def _checked_effort(effort: str | None) -> SdkEffort:
+    """`effort`, or the resolved default, refused when it is not a known level."""
+    resolved = effort or sdk_effort_name()
+    for level in SDK_EFFORTS:
+        if resolved == level:
+            return level
+    raise ValueError(f"unknown effort {resolved!r}; expected one of {SDK_EFFORTS}")

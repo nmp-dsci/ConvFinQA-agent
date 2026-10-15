@@ -51,10 +51,25 @@ def build_snapshot() -> dict[str, Any]:
     return {
         "snapshot_version": SNAPSHOT_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "runs": mlflow_log.search_runs(limit=500),
+        "runs": merge_runs(mlflow_log.search_runs(limit=500), read_snapshot()["runs"]),
         "registry": registry.summary(),
         "versions": versions,
     }
+
+
+def merge_runs(
+    live: list[dict[str, Any]], committed: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The store's runs, plus every committed run the store does not hold.
+
+    The snapshot is an export, and since the move to the central server
+    (2026-09-21) the store it exports from no longer holds the runs recorded
+    before the move. Rebuilding it from the store alone would silently delete
+    that history from what the demo ships — the champion's own evidence among
+    it. The store wins on a run both hold; the rest of the record is kept.
+    """
+    have = {str(r.get("run_id")) for r in live if r.get("run_id")}
+    return [*live, *(r for r in committed if str(r.get("run_id")) not in have)]
 
 
 def _slices(df: Any) -> dict[str, dict[str, float]]:

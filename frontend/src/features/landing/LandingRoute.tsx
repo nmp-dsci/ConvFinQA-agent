@@ -157,7 +157,6 @@ function TheRecord({ board }: { board: BoardData }) {
     campaigns?.sdk_experiments ?? [],
     campaigns?.sdk_model_comparison,
   );
-  const sdkArm = comparison?.agent_sdk ?? null;
   const gate = comparison?.gate ?? null;
   const story = landingStory(campaigns, isDemo);
   const judge = judgeSentence(campaigns);
@@ -187,46 +186,24 @@ function TheRecord({ board }: { board: BoardData }) {
       {/* --- Four numbers, each with its baseline ----------------------- */}
       <div className="kpis">
         <HudTile
-          label="gate accuracy"
+          label="champion accuracy"
           value={formatPercent(campaigns?.champion_accuracy)}
           loading={!campaigns && board.loading}
-          reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
-          tone="plain"
-          to="/optimise"
-          drill="optimise · the campaigns"
-          meta={
-            campaigns?.champion_accuracy != null && (
-              <>
-                four-agent pipeline · <span className="num">{versionLabel(campaigns.champion)}</span>
-                {campaignMove && (
-                  <>
-                    <br />
-                    <span className={`num ${campaignMove.delta >= 0 ? 'v-ok' : 'v-fail'}`}>
-                      {formatPointsDelta(campaignMove.delta)}
-                    </span>{' '}
-                    vs {versionLabel(campaignMove.from)} · {campaignMove.nPromoted} promotion
-                    {campaignMove.nPromoted === 1 ? '' : 's'} in{' '}
-                    {(campaigns.experiments ?? []).length} tries
-                  </>
-                )}
-              </>
-            )
-          }
-        />
-
-        <HudTile
-          label="runtime accuracy"
-          value={formatPercent(sdkArm?.accuracy)}
-          loading={!campaigns && board.loading}
-          reason="the Claude Agent SDK arm has no run on the gate split yet"
+          reason="no gate run recorded for the champion — run it on the gate split, then `convfinqa-evalloop story`"
           tone={gate?.promoted ? 'good' : 'plain'}
           to="/optimise/runtimes"
           drill="optimise · runtimes"
           meta={
-            sdkArm?.accuracy != null && (
+            campaigns?.champion_accuracy != null && (
               <>
-                one Claude session ·{' '}
-                <span className="num">{sdkArm.version ? versionLabel(sdkArm.version) : NO_VALUE}</span>
+                champion · <span className="num">{versionLabel(campaigns.champion)}</span>
+                {campaigns.champion_agent && (
+                  <>
+                    {' '}
+                    · <span className="mono">{campaigns.champion_agent.model}</span> · effort{' '}
+                    {campaigns.champion_agent.effort}
+                  </>
+                )}
                 {gate?.ci?.[0] != null && gate?.ci?.[1] != null && (
                   <>
                     <br />
@@ -239,6 +216,34 @@ function TheRecord({ board }: { board: BoardData }) {
                       ? versionLabel(comparison.pipeline.version)
                       : 'the pipeline'}
                     , paired
+                  </>
+                )}
+              </>
+            )
+          }
+        />
+
+        <HudTile
+          label="pipeline accuracy"
+          value={formatPercent(campaigns?.pipeline_champion_accuracy)}
+          loading={!campaigns && board.loading}
+          reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
+          tone="plain"
+          to="/optimise"
+          drill="optimise · the campaigns"
+          meta={
+            campaigns?.pipeline_champion_accuracy != null && (
+              <>
+                four-agent pipeline · <span className="num">{versionLabel(campaigns.pipeline_champion)}</span>
+                {campaignMove && (
+                  <>
+                    <br />
+                    <span className={`num ${campaignMove.delta >= 0 ? 'v-ok' : 'v-fail'}`}>
+                      {formatPointsDelta(campaignMove.delta)}
+                    </span>{' '}
+                    vs {versionLabel(campaignMove.from)} · {campaignMove.nPromoted} promotion
+                    {campaignMove.nPromoted === 1 ? '' : 's'} in{' '}
+                    {(campaigns.experiments ?? []).length} tries
                   </>
                 )}
               </>

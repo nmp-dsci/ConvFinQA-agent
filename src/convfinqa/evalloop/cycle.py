@@ -112,9 +112,9 @@ async def run_cycle(
     past = camp.history(campaign, runtime="pipeline")
     camp.check_capacity(campaign, past)
     label = f"{campaign}-e{len(past) + 1:02d}"
-    baseline = baseline_version or registry.champion()
+    baseline = baseline_version or registry.pipeline_champion()
     if not baseline:
-        raise SystemExit("no champion registered — nothing to challenge")
+        raise SystemExit("no pipeline champion registered — nothing to challenge")
     if registry.is_sdk_version(baseline):
         raise SystemExit(
             f"{baseline!r} is a single-session prompt — run it with "

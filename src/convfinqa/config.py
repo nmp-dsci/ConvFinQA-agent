@@ -93,7 +93,13 @@ class Settings(BaseSettings):
     # retrieval and calculation for a whole conversation, with the calculator
     # functions as its only tools. Env names follow the field names: SDK_MODEL,
     # SDK_BILLING, SDK_MAX_TURNS, SDK_TOTAL_TOKENS_LIMIT.
-    sdk_model: str = "claude-sonnet-5"
+    # Both default to None, meaning "whatever the champion record says"
+    # (`registry.champion_agent()`): the champion is an agent — prompt, model
+    # and effort — and serving and eval passes run it as recorded. Setting
+    # SDK_MODEL / SDK_EFFORT overrides it for one process; `run --sdk-model`
+    # / `--sdk-effort` override it for one pass.
+    sdk_model: str | None = None
+    sdk_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
     # "api" bills ANTHROPIC_API_KEY per token — measurable per question, which
     # is what an eval needs. "subscription" reuses the CLI's login the way the
     # teacher does; the child environment for each is built in `llm.py` only.

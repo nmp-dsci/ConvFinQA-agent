@@ -106,7 +106,7 @@
       "short": "Loop",
       "question": "How does the system get better — and is each change traceable to one lever?",
       "status": "shipped",
-      "how": "A teacher on Opus 5 blames one agent per first-wrong turn; the challenger rewrites only that prompt; a campaign is up to five experiments, target rotated off after two rejections. Three campaigns, seven experiments, one promotion (v8). The runtime arm promoted sdk_v1 to sdk_champion and rejected sdk_v2. Holdout release gate built, never opened.",
+      "how": "A teacher on Opus 5 blames one agent per first-wrong turn; the challenger rewrites only that prompt; a campaign is up to five experiments, target rotated off after two rejections. Three campaigns, seven experiments, one promotion (v8). The runtime arm promoted sdk_v1, which became the universal champion (an agent: prompt, model, effort), and rejected sdk_v2. Holdout release gate built, never opened.",
       "proof": [
         "src/convfinqa/evalloop/teacher.py",
         "src/convfinqa/evalloop/campaign.py",

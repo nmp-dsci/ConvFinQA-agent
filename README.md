@@ -253,8 +253,9 @@ per-agent panel doing its job), then for real on 50 reports: the teacher found
 `gold_suspect` rows), a preprocess-only challenger `v5` was proposed, and it
 promoted on the sealed-from-optimisation test split (77.5% → 79.7%, +2.14pp,
 12 fixed vs. 8 broken, McNemar p=0.503) — the first fully-protocol promotion.
-Later campaigns (below) moved the champion again; **`v8` is current**
-(`evaluation/registry.json → aliases.champion`).
+Later campaigns (below) moved the pipeline's best again; **`v8` is the pipeline
+champion** (`evaluation/registry.json → aliases.pipeline_champion`). The
+overall champion is now an agent configuration — see the Agent SDK section.
 
 The **Dataset page** (`/admin/dataset`, backed by `GET /eval/dataset?split=`)
 lists every split's `report_id` / question / gold answer / gold program /
@@ -291,8 +292,10 @@ tools and one system prompt (`prompts/sdk_vN.py`, distilled from the pipeline
 champion's four). It runs through the same loop — train draw, a diagnosis
 agent that files each first-wrong case under a failure class, a teacher that
 edits the one prompt in tagged areas, the same one-sided cluster-corrected
-McNemar gate on the same fixed split — and promotes to its own alias,
-`sdk_champion`, never `champion`. Every diagnosis, edit and verdict from
+McNemar gate on the same fixed split — and promotes the one `champion`
+alias (an agent: prompt + runtime + model + effort, recorded in
+`registry.json → champion_agent`); the pipeline keeps its best as
+`pipeline_champion`. Every diagnosis, edit and verdict from
 both arms lands in three append-only ledgers under
 `evaluation/diagnostics/evalloop/`, joined by id.
 
@@ -307,7 +310,8 @@ The write-up lives at [`docs/optimization/agent-sdk.html`](docs/optimization/age
 beside the campaign page and built from the same `story.json`: the two runtimes
 side by side on the gate split, the verdict between them, and every SDK
 experiment including the rejected ones. `sdk_v1` was gated against pipeline
-champion `v8` on 349 paired questions and promoted to `sdk_champion`: 90.54%
+champion `v8` on 349 paired questions and became the universal champion
+(`claude-sonnet-5`, effort `high`): 90.54%
 vs 81.66% (+8.88pp, p=0.0003), the gain concentrated on program turns
 (+13.03pp) with number turns unchanged. The page documents two caveats
 alongside that figure — a public-dataset contamination risk and a
@@ -320,6 +324,12 @@ claude-sonnet-5 for claude-haiku-4-5-20251001 measured the model's share of the
 confound above: 87.39% vs 90.54% (−3.15pp), still +5.73pp over the optimised
 pipeline — the architecture half stays open, since running the four-agent pipeline
 on a Claude model needs an API endpoint this project deliberately does not use.
+
+The champion's model is swapped only on a `story.model_swap_verdict` of `beats`
+or `matches` (test 95% CI lower bound ≥ −3pp, train a veto), via
+`registry.promote_agent`, with the challenger paired against sdk_v1's committed
+runs, never a re-run. Claude Haiku 5.5 at effort `high` measured 87.39% vs
+90.54% (−3.15pp) and `falls_short`, so the champion stayed on Sonnet 5.
 
 ## Demo mode
 
