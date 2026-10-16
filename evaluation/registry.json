@@ -484,6 +484,30 @@
       ],
       "metrics": {},
       "notes": "confidence judge \u00b7 j2 \u00b7 calibrated to sdk_v1"
+    },
+    {
+      "version": "sdk_v3",
+      "registered_at": "2026-10-15T09:52:48.930589+00:00",
+      "source": "evalloop",
+      "bundle_id": "a188e02f1ff1",
+      "bundle": {
+        "prompts_version": "sdk_v3",
+        "gepa_overlay": null,
+        "lm_mini": "deepseek-v4-flash",
+        "lm_max": "deepseek-v4-pro",
+        "dataset_hash": "d012d251fcb9",
+        "code_sha": "da9f26b",
+        "composition": "s3",
+        "v_sdk": "s3@88c33c70"
+      },
+      "runs": [
+        "c76eeb2606344ba38473ed2184be50b9",
+        "0b23f5dc4ef84ad09fd1856279f47f36",
+        "f59496221605404694c12544c14b39ba",
+        "ec3e9691673d460d9d64477439ff403c"
+      ],
+      "metrics": {},
+      "notes": ""
     }
   ],
   "aliases": {
@@ -2053,6 +2077,15 @@
       "source": "sdk_teacher",
       "registered_at": "2026-09-05T08:28:11.865511+00:00",
       "run_id": "5970fd3c29804bc99d9829c21c0a7fe0"
+    },
+    {
+      "seq": "s3",
+      "hash": "88c33c70",
+      "first_seen_in": "sdk_v3",
+      "parent": "s1",
+      "source": "sdk_teacher",
+      "registered_at": "2026-10-15T09:52:15.338313+00:00",
+      "run_id": "8e5e5b40a5634a65b24b617e85bcf7a9"
     }
   ],
   "judge_prompts": [

@@ -90,8 +90,8 @@ read out of the record; nothing here is typed by hand.</p>
 <div class="stat">sdk_v1</div>
 <div class="sub">alias <code>sdk_champion</code> — never <code>champion</code></div></div>
 <div class="card"><div class="k">sdk experiments</div>
-<div class="stat">2</div>
-<div class="sub">1 promoted · 1 rejected</div></div>
+<div class="stat">3</div>
+<div class="sub">1 promoted · 2 rejected</div></div>
 <div class="card"><div class="k">gate split</div>
 <div class="stat">349</div>
 <div class="sub">questions across 100 conversations —
@@ -229,7 +229,29 @@ happens only inside the tools, so the calculator column means the same thing in
 both arms.</p></div>
 
 <h2>Every SDK experiment, including the ones that failed</h2>
-<h3>s01 — 2 experiments, 1 promoted</h3><details class="exp">
+<h3>h01 — 1 experiments, 0 promoted</h3><details class="exp">
+<summary><span class="label">h01-e01</span>
+<span class="pill no">rejected</span><span class="pill cls">preprocess/wrong-operation</span>
+<span class="head-delta">-4.87pp&nbsp;·&nbsp;p=0.989</span></summary>
+<div class="body">
+<p><strong>sdk_v1 → sdk_v3</strong> — no summary recorded</p>
+<div class="grid g3">
+<div class="card"><div class="k">paired delta</div>
+<div class="stat bad">-4.87pp</div>
+<div class="sub">95% CI [-9.20pp, -0.88pp]</div></div>
+<div class="card"><div class="k">one-sided clustered p</div>
+<div class="stat amber">0.989</div>
+<div class="sub">α = 0.05</div></div>
+<div class="card"><div class="k">flips</div>
+<div class="stat">7&thinsp;/&thinsp;24</div>
+<div class="sub">fixed / broken of 349</div></div>
+</div>
+
+<h3>Per-stage panel on the gate split</h3>
+<div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">97.4%</td><td class="num">97.1%</td></tr><tr><td>preprocess</td><td class="num">87.6%</td><td class="num">83.9%</td></tr><tr><td>retriever</td><td class="num">78.6%</td><td class="num">81.1%</td></tr><tr><td>calculator</td><td class="num">88.2%</td><td class="num">81.0%</td></tr></tbody></table></div>
+
+</div></details><h3>s01 — 2 experiments, 1 promoted</h3><details class="exp">
 <summary><span class="label">P3 diagnostic: unoptimised SDK vs optimised pipeline</span>
 <span class="pill ok">promoted</span><span class="pill cls">baseline</span>
 <span class="head-delta">+8.88pp&nbsp;·&nbsp;p=0.000</span></summary>
@@ -249,7 +271,7 @@ both arms.</p></div>
 
 <h3>Per-stage panel on the gate split</h3>
 <div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
-<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">92.3%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">—</td><td class="num">84.1%</td></tr><tr><td>retriever</td><td class="num">76.8%</td><td class="num">77.8%</td></tr><tr><td>calculator</td><td class="num">75.1%</td><td class="num">83.1%</td></tr></tbody></table></div>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">92.3%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">78.7%</td><td class="num">87.6%</td></tr><tr><td>retriever</td><td class="num">74.6%</td><td class="num">78.6%</td></tr><tr><td>calculator</td><td class="num">75.1%</td><td class="num">88.2%</td></tr></tbody></table></div>
 
 </div></details><details class="exp">
 <summary><span class="label">s01-e02</span>
@@ -271,14 +293,14 @@ both arms.</p></div>
 
 <h3>Per-stage panel on the gate split</h3>
 <div class="scroll"><table><thead><tr><th>stage</th><th class="num">before</th>
-<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">97.4%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">84.1%</td><td class="num">84.6%</td></tr><tr><td>retriever</td><td class="num">77.8%</td><td class="num">77.7%</td></tr><tr><td>calculator</td><td class="num">83.1%</td><td class="num">84.4%</td></tr></tbody></table></div>
+<th class="num">after</th></tr></thead><tbody><tr><td>triage</td><td class="num">97.4%</td><td class="num">97.4%</td></tr><tr><td>preprocess</td><td class="num">87.6%</td><td class="num">84.6%</td></tr><tr><td>retriever</td><td class="num">78.6%</td><td class="num">77.7%</td></tr><tr><td>calculator</td><td class="num">88.2%</td><td class="num">84.4%</td></tr></tbody></table></div>
 
 </div></details>
 
-<footer>Generated 2026-10-15T08:18:55+00:00 from
+<footer>Generated 2026-10-15T10:23:31+00:00 from
 <code>evaluation/registry.json</code>, the three ledgers under
 <code>evaluation/diagnostics/evalloop/</code> and the MLflow tracking store ·
 rebuild with <code>convfinqa-evalloop story</code>
-<script type="application/json" id="story-data">{"champion": "sdk_v1", "sdk_champion": "sdk_v1", "n_sdk_experiments": 2, "generated_at": "2026-10-15T08:18:55+00:00"}</script>
+<script type="application/json" id="story-data">{"champion": "sdk_v1", "sdk_champion": "sdk_v1", "n_sdk_experiments": 3, "generated_at": "2026-10-15T10:23:31+00:00"}</script>
 </footer>
 </div></body></html>
