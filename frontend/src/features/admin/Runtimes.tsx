@@ -617,7 +617,15 @@ export default function Runtimes() {
     comparison,
     sdkExperiments,
     data?.sdk_model_comparison,
+    {
+      // A story built before s21 has no `challengers`: fall back to the one
+      // model-swap stage rather than drawing none.
+      challengers: data?.challengers ?? null,
+      timeline: data?.test_timeline,
+      championAgent: data?.champion_agent ?? null,
+    },
   );
+  const challengerCount = stages.filter((s) => s.key === 'challenger').length;
   const campaign = sdkCampaign(data?.sdk_campaigns);
   const sdkArm = comparison?.agent_sdk ?? null;
   const nGateReads =
@@ -727,7 +735,11 @@ export default function Runtimes() {
       >
         <Figure
           title="fig 1 · execution accuracy on the unseen gate split, by stage"
-          caption="Each stage in the order the work happened, on one zero-based axis. The pipeline points are the champion track's first and last."
+          caption={`Each stage in the order the work happened, on one zero-based axis. The pipeline points are the champion track's first and last${
+            challengerCount
+              ? `; the last ${challengerCount === 1 ? 'column is the challenger agent' : `${challengerCount} columns are every challenger agent`} — another model or effort than the champion's — each judged against the champion's own committed runs.`
+              : '.'
+          }`}
           source={SOURCE}
         >
           <ProgressionChart points={stages} pipelineBaseline={comparison?.pipeline?.accuracy ?? null} />

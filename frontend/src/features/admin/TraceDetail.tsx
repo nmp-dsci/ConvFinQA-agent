@@ -308,7 +308,7 @@ function EvalTraceView({ trace }: { trace: EvalTraceDetail }) {
           label="version"
           value={trace.version}
           tone="info"
-          to={`/runs?version=${trace.version}`}
+          to={`/runs/legacy?version=${trace.version}`}
         />
       </LampRow>
 
@@ -405,7 +405,7 @@ export default function TraceDetail() {
 
   const crumbs = isEval ? (
     <>
-      <Link to="/runs">runs</Link> / <Link to={`/runs?version=${encodeURIComponent(version)}`}>{versionLabel(version) || 'scored turn'}</Link> /{' '}
+      <Link to="/runs">runs</Link> / <Link to={`/runs/legacy?version=${encodeURIComponent(version)}`}>{versionLabel(version) || 'scored turn'}</Link> /{' '}
       <span className="mono">
         {reportId ? `${formatFilingId(reportId)} · turn ${turnIndex}` : 'scored turn'}
       </span>

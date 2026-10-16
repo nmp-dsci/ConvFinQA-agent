@@ -63,7 +63,7 @@ async function health(request: APIRequestContext): Promise<{
 // ---------------------------------------------------------------------------
 
 test.describe('status board at /', () => {
-  test('shows the three lamps, four HUD tiles, the progression and three recorded conversations', async ({
+  test('shows the three lamps, four HUD tiles, the record and three recorded conversations', async ({
     page,
     request,
   }) => {
@@ -92,9 +92,9 @@ test.describe('status board at /', () => {
       await expect(page.getByTestId('lamp-champion')).toContainText(versionLabel(resolvedChampion));
     }
 
-    // --- the star: the five-stage progression on a zero baseline ----------
+    // --- the star: every test pass on the gate split, with the champion line (s21)
     await expect(page.getByTestId('landing-star')).toBeVisible();
-    await expect(page.getByTestId('progression-chart')).toBeVisible();
+    await expect(page.getByTestId('landing-star').getByTestId('timeline-chart')).toBeVisible();
     // The readiness strip: nine cells from the committed scorecard, each a
     // link to the page that proves it.
     const strip = page.getByTestId('readiness-strip');

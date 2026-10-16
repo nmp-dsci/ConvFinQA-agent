@@ -9,7 +9,20 @@ import type { StatusTone } from '@/kit/ui';
 import { fmtPp } from '@/kit/format';
 import { formatPercent } from '../landing/format';
 import { getCampaigns } from './api';
-import type { CampaignExperiment, ChampionPoint } from './api';
+import type { ChampionPoint } from './api';
+import {
+  SPLIT_FILTERS,
+  campaignHeadline,
+  campaignNames,
+  championOf,
+  experimentRows,
+  runAgent,
+  runsForSplit,
+  splitFilterLabel,
+  trackDates,
+} from './campaignStory';
+import type { ExperimentRow, SplitFilter } from './campaignStory';
+import { formatDay, modelShortName } from './runtimeStory';
 import { CHAMPION_ROW, InstrumentTable } from './InstrumentTable';
 import { bundleLine, clip, formatCount, formatEpochMs, formatRunDuration, formatStamp, versionLabel } from './lib';
 import {
@@ -44,10 +57,13 @@ import type { ExperimentRun, PromotionEvent, RegistryVersion } from '../../types
  * write on this page and is wrapped in a real disabled fieldset with the reason
  * printed beside it; the server refuses the same call independently.
  *
- * Campaigns group runs into the experiments they belong to (one subagent's
- * prompt rewritten and gated per experiment); this is pipeline-only by design
- * — the single-session challenger runs a separate cap and gate. See Runtimes
- * for that comparison and the runtime recommendation.
+ * Campaigns group runs into the experiments they belong to: a pipeline
+ * experiment rewrites one subagent's prompt, a single-session one edits the one
+ * prompt by failure class (cap 2, its own gate). Both arms' experiments share
+ * the table, each row saying which arm it is; the per-subagent track is the
+ * pipeline's alone, because a single session has no subagents to plot. The
+ * headline is the champion *agent* — prompt, model and effort — against the
+ * pipeline champion. Runtimes carries the cross-runtime recommendation.
  */
 
 const AGENTS = ['triage', 'preprocess', 'retriever', 'calculator'] as const;
@@ -87,13 +103,23 @@ function runStatusTone(status: string): StatusTone {
  * over a handful of points does not justify a charting dependency, and this way
  * the shape is the same in the app and on the published page.
  */
-function ChampionChart({ track }: { track: ChampionPoint[] }) {
-  const points = track.filter((p) => p.accuracy !== null && p.accuracy !== undefined);
+export function ChampionChart({
+  track,
+  dates = [],
+}: {
+  track: ChampionPoint[];
+  /** The day each point's version ran its gate-split pass (`trackDates`), aligned with `track`. */
+  dates?: Array<string | null>;
+}) {
+  const indexed = track
+    .map((p, i) => ({ p, date: dates[i] ?? null }))
+    .filter(({ p }) => p.accuracy !== null && p.accuracy !== undefined);
+  const points = indexed.map(({ p }) => p);
   if (points.length < 2) return null;
 
   const w = 900;
-  const h = 310;
-  const [left, right, top, bottom] = [58, 132, 24, 56];
+  const h = 326;
+  const [left, right, top, bottom] = [58, 132, 24, 72];
   const series: Array<{ name: 'overall' | Agent; values: Array<number | null> }> = [
     { name: 'overall', values: points.map((p) => p.accuracy ?? null) },
     ...AGENTS.map((a) => ({ name: a, values: points.map((p) => p.panel?.[a] ?? null) })),
@@ -156,6 +182,9 @@ function ChampionChart({ track }: { track: ChampionPoint[] }) {
                 ↑ {p.target_agent}
               </text>
             )}
+            <text className="tx s" x={xOf(i)} y={h - bottom + 58} textAnchor="middle" data-date>
+              {formatDay(indexed[i].date)}
+            </text>
           </g>
         ))}
         {series.map((s) => {
@@ -212,16 +241,20 @@ function DiffBlock({ diff }: { diff: string }) {
   );
 }
 
-function ExperimentOpen({ exp }: { exp: CampaignExperiment }) {
+function ExperimentOpen({ exp }: { exp: ExperimentRow }) {
   const [step, setStep] = useState<Step>('gate');
   const p = exp.cluster_p_one_sided;
   const n = exp.n_compared ?? 0;
+  const session = exp.runtime === 'agent_sdk';
+  const target = (session ? exp.target_class || exp.target_agent : exp.target_agent) || '—';
   const steps: Array<{ key: Step; n: string; title: string; body: string }> = [
     {
       key: 'target',
       n: '1',
       title: 'Target',
-      body: `${exp.target_agent}, the subagent the pooled attribution ranked first against ${versionLabel(exp.baseline_version)}`,
+      body: session
+        ? `${target}, the failure class the pooled ranking put first against ${versionLabel(exp.baseline_version)}`
+        : `${target}, the subagent the pooled attribution ranked first against ${versionLabel(exp.baseline_version)}`,
     },
     {
       key: 'rewrite',
@@ -270,10 +303,17 @@ function ExperimentOpen({ exp }: { exp: CampaignExperiment }) {
       </div>
       {step === 'target' && (
         <>
-          <p>
-            One subagent&rsquo;s prompt per experiment: this one rewrote <b>{exp.target_agent}</b>, so any
-            move in the champion has a named cause.
-          </p>
+          {session ? (
+            <p>
+              One prompt, one tagged edit per failure class: this one was aimed at <b>{target}</b>
+              {exp.edits?.length ? ` and made ${exp.edits.length} edit${exp.edits.length === 1 ? '' : 's'}` : ''}.
+            </p>
+          ) : (
+            <p>
+              One subagent&rsquo;s prompt per experiment: this one rewrote <b>{target}</b>, so any
+              move in the champion has a named cause.
+            </p>
+          )}
           {exp.rationale ? <p className="small">{exp.rationale}</p> : <p className="small muted">— no rationale recorded</p>}
         </>
       )}
@@ -306,25 +346,28 @@ function ExperimentOpen({ exp }: { exp: CampaignExperiment }) {
   );
 }
 
-function ExperimentTable({
+export function ExperimentTable({
   experiments,
-  champion,
+  championFor,
 }: {
-  experiments: CampaignExperiment[];
-  champion: string | null | undefined;
+  experiments: ExperimentRow[];
+  /** The champion of a row's own arm: the agent's prompt for the session, the bundle for the pipeline. */
+  championFor: (row: ExperimentRow) => string | null;
 }) {
   const [open, setOpen] = useState<string | null>(null);
-  const keyOf = (e: CampaignExperiment) => `${e.campaign}-${e.label}-${e.candidate_version}`;
+  const keyOf = (e: ExperimentRow) => `${e.runtime}-${e.campaign}-${e.label}-${e.candidate_version}`;
   return (
     <div className="tw opt-exp">
       <table style={{ minWidth: 760 }}>
         <caption>
-          Every challenger, promoted or not, newest campaign last. Click a row to open it as target → rewrite → gate.
-          Source: /eval/campaigns.
+          Every challenger of both runtimes, promoted or not, pipeline campaigns first. A pipeline target is a
+          subagent, a session target a failure class. Click a row to open it as target → rewrite → gate. Source:
+          /eval/campaigns.
         </caption>
         <thead>
           <tr>
             <th>Experiment</th>
+            <th>Runtime</th>
             <th>Target</th>
             <th>Verdict</th>
             <th className="num">Accuracy</th>
@@ -339,7 +382,7 @@ function ExperimentTable({
             const isOpen = open === k;
             const p = exp.cluster_p_one_sided;
             const toggle = () => setOpen(isOpen ? null : k);
-            const cls = ['click', isOpen ? 'on' : exp.candidate_version === champion ? CHAMPION_ROW : '']
+            const cls = ['click', isOpen ? 'on' : exp.candidate_version === championFor(exp) ? CHAMPION_ROW : '']
               .filter(Boolean)
               .join(' ');
             return (
@@ -361,7 +404,12 @@ function ExperimentTable({
                       {exp.campaign} · {versionLabel(exp.baseline_version)} → {versionLabel(exp.candidate_version)}
                     </span>
                   </td>
-                  <td className="mono">{exp.target_agent}</td>
+                  <td className="mono" data-runtime={exp.runtime}>
+                    {exp.runtime === 'agent_sdk' ? 'session' : 'pipeline'}
+                  </td>
+                  <td className="mono">
+                    {(exp.runtime === 'agent_sdk' ? exp.target_class || exp.target_agent : exp.target_agent) || '—'}
+                  </td>
                   <td>
                     <Verdict ok={exp.promoted}>{exp.promoted ? 'promoted' : 'rejected'}</Verdict>
                   </td>
@@ -376,7 +424,7 @@ function ExperimentTable({
                 </tr>
                 {isOpen && (
                   <tr className="detail">
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <ExperimentOpen exp={exp} />
                     </td>
                   </tr>
@@ -457,6 +505,9 @@ export default function Experiments() {
 
   const [openRun, setOpenRun] = useState<string | null>(null);
   const [kindFilter, setKindFilter] = useState('');
+  // Test first: it is the split that promotes. Train passes write versions and
+  // never promote them, so they are one click away, not mixed in by default.
+  const [splitFilter, setSplitFilter] = useState<SplitFilter>('test');
   const [target, setTarget] = useState('');
   const [writeError, setWriteError] = useState<string | null>(null);
   const [writeOk, setWriteOk] = useState<string | null>(null);
@@ -469,13 +520,15 @@ export default function Experiments() {
   });
   const campaignData = campaignsQuery.data;
   const shownExperiments = useMemo(
-    () => (campaignData?.experiments ?? []).filter((e) => !campaignOnly || e.campaign === campaignOnly),
+    () => experimentRows(campaignData).filter((e) => !campaignOnly || e.campaign === campaignOnly),
     [campaignData, campaignOnly],
   );
+  const names = campaignNames(campaignData);
 
   const runs = experiments.data?.runs ?? [];
   const kinds = useMemo(() => [...new Set(runs.map((r) => r.kind))].sort(), [runs]);
-  const shownRuns = kindFilter ? runs.filter((r) => r.kind === kindFilter) : runs;
+  const splitRuns = runsForSplit(runs, splitFilter);
+  const shownRuns = kindFilter ? splitRuns.filter((r) => r.kind === kindFilter) : splitRuns;
 
   const canPromote = registry.data?.can_promote ?? false;
   const versionNames = rows.map((r) => r.version);
@@ -555,6 +608,70 @@ export default function Experiments() {
         header: 'kind',
         accessorFn: (r) => r.kind,
         meta: { align: 'left', width: '58px' },
+      },
+      {
+        id: 'split',
+        header: 'split',
+        accessorFn: (r) => runAgent(r).split ?? '',
+        meta: { align: 'left', width: '52px' },
+        cell: ({ row }) =>
+          runAgent(row.original).split ?? (
+            <span className="muted" title="this run scored no split">
+              —
+            </span>
+          ),
+      },
+      {
+        id: 'runtime',
+        header: 'runtime',
+        accessorFn: (r) => runAgent(r).runtime ?? '',
+        meta: { align: 'left', width: '64px' },
+        cell: ({ row }) => {
+          const rt = runAgent(row.original).runtime;
+          if (!rt) {
+            return (
+              <span className="muted" title="this run answered no questions">
+                —
+              </span>
+            );
+          }
+          return rt === 'agent_sdk' ? 'session' : 'pipeline';
+        },
+      },
+      {
+        id: 'model',
+        header: 'model',
+        accessorFn: (r) => runAgent(r).model ?? '',
+        meta: { align: 'left', width: '96px' },
+        cell: ({ row }) => {
+          const { model, runtime } = runAgent(row.original);
+          if (!model) {
+            return (
+              <span className="muted" title={runtime ? 'not recorded on the run' : 'this run answered no questions'}>
+                —
+              </span>
+            );
+          }
+          return (
+            <span title={model}>{runtime === 'pipeline' ? `${modelShortName(model)} ×4` : modelShortName(model)}</span>
+          );
+        },
+      },
+      {
+        id: 'effort',
+        header: 'effort',
+        accessorFn: (r) => runAgent(r).effort ?? '',
+        meta: { align: 'left', width: '52px' },
+        cell: ({ row }) => {
+          const { effort, effortWhy } = runAgent(row.original);
+          return (
+            effort ?? (
+              <span className="muted" title={effortWhy ?? 'this run answered no questions'}>
+                —
+              </span>
+            )
+          );
+        },
       },
       {
         id: 'status',
@@ -715,32 +832,29 @@ export default function Experiments() {
   const history = [...(registry.data?.history ?? [])].reverse();
 
   // ---- the headline, computed from what the page already holds -------------
-  const allExperiments = campaignData?.experiments ?? [];
-  const nPromoted = allExperiments.filter((e) => e.promoted).length;
+  // The champion is an agent (prompt, model, effort) since 2026-10-15, so the
+  // headline leads with it and sets it against the pipeline lineage's best,
+  // which is what this page's track and most of its experiments are about.
+  const head = campaignHeadline(campaignData);
   const track = (campaignData?.champion_track ?? []).filter((p) => p.accuracy !== null && p.accuracy !== undefined);
   const firstPoint = track[0] ?? null;
-  // This page is the pipeline's own campaigns, so its champion is the pipeline
-  // lineage's best. The project's champion (an agent_sdk agent since
-  // 2026-10-15) is on the Runtimes page.
-  const champ = campaignData?.pipeline_champion ?? campaignData?.champion ?? null;
-  const champAcc =
-    campaignData?.pipeline_champion_accuracy ?? campaignData?.champion_accuracy ?? null;
+  const champ = campaignData?.pipeline_champion ?? null;
+  const dates = trackDates(campaignData?.champion_track ?? [], campaignData?.test_timeline);
 
   const title: ReactNode = campaignsQuery.isLoading ? (
     <>
       Reading the <em>campaign</em> record…
     </>
-  ) : allExperiments.length === 0 ? (
+  ) : head.nExperiments === 0 ? (
     <>
       No experiment has been <em>gated</em> yet
     </>
   ) : (
     <>
-      {allExperiments.length} pipeline experiments gated, {nPromoted} promoted: the champion{' '}
-      {champ ? versionLabel(champ) : '—'} scores <em>{pct(champAcc)}</em> on the gate split
-      {firstPoint && track.length > 1 && firstPoint.version !== champ
-        ? `, against ${pct(firstPoint.accuracy)} for ${versionLabel(firstPoint.version)}`
-        : ''}
+      The champion {head.champion ?? '—'} scores <em>{pct(head.championAccuracy)}</em> on the gate split, against{' '}
+      {pct(head.pipelineAccuracy)} for the pipeline champion{' '}
+      {head.pipelineChampion ? versionLabel(head.pipelineChampion) : '—'} — {head.nExperiments} experiments gated
+      across both runtimes, {head.nPromoted} promoted
     </>
   );
 
@@ -755,9 +869,9 @@ export default function Experiments() {
   return (
     <AdminPage
       testId="admin-experiments"
-      eyebrow={`optimise · campaigns · ${formatCount(campaignData?.campaigns?.length ?? 0)} campaigns · champion ${champ ? versionLabel(champ) : '—'}`}
+      eyebrow={`optimise · campaigns · ${formatCount(names.length)} campaigns · champion ${head.champion ?? '—'} · pipeline champion ${champ ? versionLabel(champ) : '—'}`}
       title={title}
-      sub="A campaign rewrites one subagent's prompt per experiment and promotes it only when a one-sided, cluster-corrected McNemar test on the fixed gate split says it helped. Every attempt is below, rejected ones included, with the runs, registry and promotion record behind them."
+      sub="A pipeline campaign rewrites one subagent's prompt per experiment; a single-session campaign edits its one prompt by failure class. Either promotes only when the gate on the fixed split says it helped — a one-sided, cluster-corrected McNemar test, or for a challenger on another model the s19 rule against the champion's own runs. Every attempt is below, rejected ones included, with the runs, registry and promotion record behind them."
     >
       <LampRow>
         <Lamp
@@ -793,9 +907,10 @@ export default function Experiments() {
 
       <Section testId="experiments-campaign-track" n={1} label="Track" claim={trackClaim}>
         <p>
-          Every point is a four-agent pipeline version with its per-subagent accuracy. A single Claude
-          session has no subagents to plot; its own campaign (capped at 2 experiments, not 5) and the
-          sdk_v1-vs-pipeline comparison are on <Link to="/optimise/runtimes">Runtimes</Link>.
+          Every point is a four-agent pipeline version with its per-subagent accuracy — the pipeline
+          champion&rsquo;s track, not the champion&rsquo;s. A single Claude session has no subagents
+          to plot; its experiments are in the table below, and the champion-vs-pipeline comparison is
+          on <Link to="/optimise/runtimes">Runtimes</Link>.
         </p>
         {campaignsQuery.isLoading ? (
           <LoadingRows rows={6} />
@@ -809,7 +924,7 @@ export default function Experiments() {
           </EmptyState>
         ) : (
           <Figure
-            title="Fig 1 · the champion at every promotion: overall gate accuracy and each subagent's own gold-derived metric"
+            title="Fig 1 · the pipeline champion at every promotion: overall gate accuracy and each subagent's own gold-derived metric"
             caption={
               <>
                 <span className="opt-key">
@@ -820,12 +935,13 @@ export default function Experiments() {
                   ))}
                 </span>
                 Only promoted experiments move these lines; the arrow under a version names the one
-                subagent that experiment rewrote. {campaignData.rule}
+                subagent that experiment rewrote, and the date is the day that version&rsquo;s gate-split
+                pass ran. {campaignData.rule}
               </>
             }
             source={<code>/eval/campaigns</code>}
           >
-            <ChampionChart track={campaignData.champion_track} />
+            <ChampionChart track={campaignData.champion_track} dates={dates} />
           </Figure>
         )}
       </Section>
@@ -836,9 +952,9 @@ export default function Experiments() {
         label="Experiments"
         claim={`${shownExperiments.length} gated, ${nShownPromoted} promoted${campaignOnly ? ` in ${campaignOnly}` : ''}`}
       >
-        {(campaignData?.campaigns?.length ?? 0) > 1 && (
+        {names.length > 1 && (
           <div className="chips" role="group" aria-label="filter by campaign">
-            {['', ...(campaignData?.campaigns ?? []).map((c) => c.name)].map((name) => (
+            {['', ...names].map((name) => (
               <button
                 key={name || 'all'}
                 type="button"
@@ -854,7 +970,7 @@ export default function Experiments() {
         {shownExperiments.length === 0 ? (
           <EmptyState>Nothing gated yet.</EmptyState>
         ) : (
-          <ExperimentTable experiments={shownExperiments} champion={champ} />
+          <ExperimentTable experiments={shownExperiments} championFor={(row) => championOf(row, campaignData)} />
         )}
       </Section>
 
@@ -923,8 +1039,22 @@ export default function Experiments() {
         label="Runs"
         claim={`${formatCount(runs.length)} recorded ${
           experiments.data?.source === 'snapshot' ? 'in the committed MLflow snapshot' : 'in the live MLflow store'
-        }`}
+        }, ${formatCount(splitRuns.length)} ${splitFilter ? `on ${splitFilter}` : 'shown'}`}
       >
+        <div className="chips" role="group" aria-label="filter by split">
+          {SPLIT_FILTERS.map((split) => (
+            <button
+              key={split || 'all'}
+              type="button"
+              aria-pressed={splitFilter === split}
+              onClick={() => setSplitFilter(split)}
+              className={`chip${splitFilter === split ? ' on' : ''}`}
+              data-testid={`runs-split-${split || 'all'}`}
+            >
+              {splitFilterLabel(split)}
+            </button>
+          ))}
+        </div>
         {kinds.length > 0 && (
           <div className="chips" role="group" aria-label="filter by run kind">
             {['', ...kinds].map((kind) => (
@@ -942,10 +1072,15 @@ export default function Experiments() {
         )}
         {experiments.isLoading ? (
           <LoadingRows rows={5} />
-        ) : shownRuns.length === 0 ? (
+        ) : runs.length === 0 ? (
           <EmptyState>
             No runs recorded. `uv run convfinqa-mlflow backfill` rebuilds the history from the
             committed artifacts.
+          </EmptyState>
+        ) : shownRuns.length === 0 ? (
+          <EmptyState>
+            No {splitFilter ? `${splitFilter} ` : ''}run{kindFilter ? ` of kind ${kindFilter}` : ''} in this store —
+            the {formatCount(runs.length)} recorded runs are under another filter.
           </EmptyState>
         ) : (
           <>
@@ -954,7 +1089,7 @@ export default function Experiments() {
               columns={runColumns}
               rowKey={(r) => r.run_id}
               rowClass={(r) => (r.run_id === openRun ? 'on' : undefined)}
-              minWidth={720}
+              minWidth={980}
               initialSorting={[{ id: 'started', desc: true }]}
               caption={
                 <>
@@ -983,7 +1118,7 @@ export default function Experiments() {
           testId="experiments-registry"
           n={4}
           label="Registry"
-          claim={`${formatCount(registry.data?.versions?.length ?? 0)} versions, champion ${champion ? versionLabel(champion) : '—'}`}
+          claim={`${formatCount(registry.data?.versions?.length ?? 0)} versions, pipeline champion ${champion ? versionLabel(champion) : '—'}`}
         >
           {registry.isLoading ? (
             <LoadingRows rows={3} />

@@ -2,9 +2,9 @@ import { useId } from 'react';
 import './optimise.css';
 import { EmptyState } from './ui';
 import { versionLabel } from './lib';
-import { ARMS, PAPER_HUMAN } from './runtimeStory';
+import { ARMS, PAPER_HUMAN, agentShortName, formatDay, outcomeWord } from './runtimeStory';
 import type { ProgressionPoint } from './runtimeStory';
-import { formatPercent } from '../landing/format';
+import { NO_VALUE, formatPercent } from '../landing/format';
 
 /**
  * One or two words per stage, on both widths.
@@ -21,7 +21,32 @@ const STAGE_LABEL: Record<ProgressionPoint['key'], string> = {
   sdk_distilled: 'distilled',
   sdk_optimised: 'loop attempt',
   sdk_model_swap: 'model swap',
+  challenger: 'challenger',
 };
+
+/**
+ * The full chart's lines under one column, top to bottom: what happened, the
+ * version, the agent, its effort, the day and the verdict. Each is short by
+ * construction — a version head, a model slug, one effort word, a date, a
+ * status word — so no line is wider than `SLOT_CHARS`, which is what keeps
+ * neighbouring columns from touching however many challengers the record
+ * holds: the chart widens, the labels never do.
+ */
+export function columnLines(p: ProgressionPoint): string[] {
+  const absent = !p.present || p.accuracy === null;
+  return [
+    p.key === 'challenger' ? p.stage : STAGE_LABEL[p.key],
+    p.version ? versionLabel(p.version).split(' · ')[0] : 'no version',
+    absent && !p.model ? NO_VALUE : agentShortName(p),
+    p.runtime === 'pipeline' ? NO_VALUE : (p.effort ?? NO_VALUE),
+    formatDay(p.date),
+    absent ? '○ not yet run' : outcomeWord(p),
+  ];
+}
+
+/** The widest a column label may be, in characters of 13px type, at `SLOT` units a column. */
+export const SLOT_CHARS = 15;
+const SLOT = 112;
 
 /**
  * Accuracy across the stages of the story, as bars on a zero baseline.
@@ -72,13 +97,16 @@ export function ProgressionChart({
     return <EmptyState>not yet run — no stage of the progression has been scored</EmptyState>;
   }
 
-  const w = compact ? 600 : 940;
-  const h = compact ? 304 : 350;
   const left = 52;
   // Wide enough for the longest reference caption at 13px.
-  const right = compact ? 20 : 236;
+  const right = compact ? 20 : 200;
+  // The full chart grows a column per agent rather than squeezing them: its
+  // labels are fixed-width by construction (`columnLines`), so a narrower slot
+  // is the only way two could touch.
+  const w = compact ? 600 : Math.max(940, left + right + SLOT * points.length);
   const top = 26;
-  const bottom = compact ? 68 : 88;
+  const bottom = compact ? 68 : 150;
+  const h = compact ? 304 : 404;
   const plotW = w - left - right;
   const plotH = h - top - bottom;
   const slot = plotW / points.length;
@@ -105,6 +133,12 @@ export function ProgressionChart({
       sub: 'measured on this gate split',
     });
   }
+  const pipelineIdx = points.flatMap((p, i) => (p.runtime === 'pipeline' ? [i] : []));
+  const sessionIdx = points.flatMap((p, i) => (p.runtime === 'agent_sdk' ? [i] : []));
+  const groups = [
+    { label: ARMS.pipeline.title, idx: pipelineIdx },
+    { label: ARMS.agent_sdk.title, idx: sessionIdx },
+  ].filter((g) => g.idx.length);
 
   return (
     <figure className="prog">
@@ -112,19 +146,24 @@ export function ProgressionChart({
         data-testid="progression-chart"
         data-compact={compact ? 'true' : 'false'}
         viewBox={`0 0 ${w} ${h}`}
-        className={`dia${className ? ` ${className}` : ''}`}
+        className={`dia${compact ? '' : ' prog-wide'}${className ? ` ${className}` : ''}`}
         role="img"
         aria-labelledby="progression-title progression-desc"
       >
         <title id="progression-title">
-          Accuracy across five stages: multi-agent raw, multi-agent optimised, single-session SDK
-          distilled, the SDK optimisation attempt, and the same SDK prompt on a second model.
+          {`Execution accuracy on the gate split across ${points.length} stages, from the raw four-agent pipeline to the single-session agent and every challenger agent scored against it.`}
         </title>
         <desc id="progression-desc">
           {drawable
             .map(
               (p) =>
-                `${p.stage}${p.version ? ` (${versionLabel(p.version)})` : ''} ${formatPercent(p.accuracy)}`,
+                `${p.stage}${p.version ? ` (${versionLabel(p.version)}` : ''}${
+                  p.model && p.runtime === 'agent_sdk'
+                    ? ` on ${p.model}${p.effort ? ` · ${p.effort}` : ''}`
+                    : ''
+                }${p.version ? ')' : ''} ${formatPercent(p.accuracy)}${
+                  p.date ? `, ${formatDay(p.date)}` : ''
+                } — ${outcomeWord(p).slice(2)}`,
             )
             .join('; ')}
           . Reference lines: {references.map((r) => `${r.label} — ${r.sub}`).join('; ')}.
@@ -136,7 +175,13 @@ export function ProgressionChart({
             : ''}
         </desc>
         <defs>
-          <pattern id={hatchId} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <pattern
+            id={hatchId}
+            width="6"
+            height="6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
             <line className="hatch" x1="0" y1="0" x2="0" y2="6" />
           </pattern>
         </defs>
@@ -203,9 +248,14 @@ export function ProgressionChart({
         {points.map((p, i) => {
           const x = xOf(i) - barW / 2;
           const absent = !p.present || p.accuracy === null;
-          const rejected = p.promoted === false;
+          const failed = p.tone === 'fail';
           return (
-            <g key={p.key} data-stage={p.key} data-present={absent ? 'false' : 'true'}>
+            <g
+              key={p.id}
+              data-stage={p.key}
+              data-present={absent ? 'false' : 'true'}
+              data-tone={absent ? 'absent' : p.tone}
+            >
               {absent ? (
                 <>
                   <rect className="slot" x={x} y={top} width={barW} height={plotH} rx={2} />
@@ -216,16 +266,21 @@ export function ProgressionChart({
               ) : (
                 <>
                   <rect
-                    className={`bar ${p.key}${rejected ? ' rejected' : ''}`}
+                    className={`bar ${p.key} t-${p.tone}`}
                     x={x}
                     y={yOf(p.accuracy as number)}
                     width={barW}
                     height={plotH - (yOf(p.accuracy as number) - top)}
                     // CSS outranks a presentation attribute, so the per-render pattern id goes inline.
-                    style={rejected ? { fill: `url(#${hatchId})` } : undefined}
+                    style={failed ? { fill: `url(#${hatchId})` } : undefined}
                     rx={2}
                   />
-                  <text className="tx num" x={xOf(i)} y={yOf(p.accuracy as number) - 8} textAnchor="middle">
+                  <text
+                    className="tx num"
+                    x={xOf(i)}
+                    y={yOf(p.accuracy as number) - 8}
+                    textAnchor="middle"
+                  >
                     {formatPercent(p.accuracy)}
                   </text>
                 </>
@@ -252,29 +307,28 @@ export function ProgressionChart({
                   </text>
                 </>
               ) : (
-                <>
-                  <text className="tx" x={xOf(i)} y={h - bottom + 20} textAnchor="middle">
-                    {STAGE_LABEL[p.key]}
+                columnLines(p).map((line, k) => (
+                  <text
+                    key={k}
+                    className={`tx${k === 0 ? '' : k === 5 ? ` st t-${absent ? 'absent' : p.tone}` : ' k'}`}
+                    x={xOf(i)}
+                    y={h - bottom + 20 + k * 16}
+                    textAnchor="middle"
+                  >
+                    {line}
                   </text>
-                  <text className="tx k" x={xOf(i)} y={h - bottom + 37} textAnchor="middle">
-                    {p.version ? versionLabel(p.version) : 'no version'}
-                    {rejected ? ' · rejected' : ''}
-                  </text>
-                </>
+                ))
               )}
             </g>
           );
         })}
 
-        {/* Which runtime each pair belongs to, bracketed under the labels. */}
+        {/* Which runtime each run of columns belongs to, bracketed under the labels. */}
         {!compact &&
-          [
-            { label: ARMS.pipeline.title, from: 0, to: 1 },
-            { label: ARMS.agent_sdk.title, from: 2, to: points.length - 1 },
-          ].map((group) => {
-            const x1 = left + slot * group.from + 6;
-            const x2 = left + slot * (group.to + 1) - 6;
-            const y = h - bottom + 52;
+          groups.map((group) => {
+            const x1 = left + slot * Math.min(...group.idx) + 6;
+            const x2 = left + slot * (Math.max(...group.idx) + 1) - 6;
+            const y = h - bottom + 118;
             return (
               <g key={group.label}>
                 <line className="ax" x1={x1} y1={y} x2={x2} y2={y} />
@@ -285,6 +339,51 @@ export function ProgressionChart({
             );
           })}
       </svg>
+      {!compact && (
+        // Under 760px the columns would shrink their 13px labels to a few
+        // pixels, so the same points are listed as rows instead (CSS swaps the
+        // two): one agent per row, every word of its column on one line.
+        <>
+          {references.length > 0 && (
+            // The rows draw no reference lines, so the two figures are said in words.
+            <p className="prog-rows-ref">
+              {references.map((r) => `${r.label} (${r.sub})`).join(' · ')}
+            </p>
+          )}
+          <ol className="prog-rows" data-testid="progression-rows">
+            {points.map((p) => {
+              const absent = !p.present || p.accuracy === null;
+              const [what, version, agent, effort, day] = columnLines(p);
+              return (
+                <li key={p.id} data-tone={absent ? 'absent' : p.tone}>
+                  <span className="prog-row-head">
+                    <span className="mono">{version}</span> · {what}
+                  </span>
+                  <span className="prog-row-sub mono">
+                    {p.runtime === 'pipeline' ? agent : `${agent} · ${effort}`} · {day}
+                  </span>
+                  <span className="prog-row-bar">
+                    <span className="track">
+                      {!absent && (
+                        <i
+                          className={`t-${p.tone}`}
+                          style={{ width: `${(p.accuracy as number) * 100}%` }}
+                        />
+                      )}
+                    </span>
+                    <span className="mono">
+                      {absent ? 'not yet run' : formatPercent(p.accuracy)}
+                    </span>
+                  </span>
+                  <span className={`prog-row-st st t-${absent ? 'absent' : p.tone}`}>
+                    {absent ? '○ not yet run' : outcomeWord(p)}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </>
+      )}
       <figcaption>
         {compact && references.length > 0 && (
           <span className="opt-key">
@@ -299,8 +398,11 @@ export function ProgressionChart({
         human-expert execution accuracy reported by {PAPER_HUMAN.citation} on a{' '}
         {PAPER_HUMAN.evaluatedOn || 'sample of the paper’s test set'} — a published figure about a
         different question set, not a measurement of this system. The dashed grey line is the
-        incumbent pipeline champion measured here. A hatched bar was gated and rejected: it is what
-        the loop tried, not what the runtime does.
+        incumbent pipeline champion measured here. The accent bar is the agent serving today; a
+        green bar passed its gate; a red hatched bar was rejected or fell short of the champion — it
+        is what was tried, not what the runtime does.
+        {!compact &&
+          ' Effort applies to the Claude agents only, so the pipeline’s columns print — for it. Each date is the day the pass’s own run name stamps.'}
       </figcaption>
     </figure>
   );

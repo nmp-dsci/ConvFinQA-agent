@@ -161,7 +161,7 @@ export function EvaluationSection({ data, index = 1 }: { data: SystemData; index
           <Mono>/admin/versions</Mono> recomputes execution and program accuracy from the committed
           CSVs on each request; <Mono>/admin/experiments</Mono> supplies the never-seen split, which{' '}
           <Mono>/admin/versions</Mono> deliberately cannot compute.{' '}
-          <Link to="/runs">Open the rows behind these figures →</Link>
+          <Link to="/runs/legacy">Open the rows behind these figures →</Link>
         </Provenance>
       </div>
 
@@ -280,7 +280,7 @@ export function PromotionSection({ data, index = 2 }: { data: SystemData; index?
         <Provenance origin="live">
           computed on request from the committed prediction CSVs — the same function the CLI and CI
           call, not a re-implementation.{' '}
-          <Link to="/optimise">See the flips →</Link>
+          <Link to="/optimise/campaigns">See the flips →</Link>
         </Provenance>
       </Panel>
 

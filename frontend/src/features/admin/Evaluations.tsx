@@ -347,7 +347,7 @@ export default function Evaluations() {
   return (
     <AdminPage
       testId="admin-evaluations"
-      eyebrow="runs · versions"
+      eyebrow="runs · legacy v1–v3_1"
       title={title}
       sub="The legacy 770-question scoring of the early versions (v1–v3_1): which questions each was measured on, how it scored by slice, what it answered beside gold, and every result that changed between two. Versions from v4 on are gated on the 349-question split — see Experiments for the pipeline track and Runtimes for the single-session challenger."
     >

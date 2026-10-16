@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   ARMS,
   PAPER_HUMAN,
+  formatDay,
   formatP,
   formatWall,
   modelRows,
@@ -13,13 +14,15 @@ import {
   sliceRows,
 } from './runtimeStory';
 import { ArmCard, ModelSwapTable, SliceTable, VerdictBanner } from './Runtimes';
-import { ProgressionChart } from './ProgressionChart';
+import { ProgressionChart, SLOT_CHARS, columnLines } from './ProgressionChart';
 import type {
   CampaignExperiment,
   ChampionPoint,
+  Challengers,
   RuntimeArm,
   RuntimeComparison,
   SdkModelComparison,
+  TestPass,
 } from './api';
 
 /**
@@ -58,7 +61,12 @@ const PIPELINE_ARM: RuntimeArm = {
   run_name: 'evalloop-test100-v8·t2p2r5c2',
   accuracy: 0.816619,
   by_turn_type: { number: 0.954955, program: 0.752101 },
-  panel: { triage: 0.922636, preprocess: null, retriever: 0.768072, calculator: 0.751055 },
+  panel: {
+    triage: 0.922636,
+    preprocess: null,
+    retriever: 0.768072,
+    calculator: 0.751055,
+  },
   cost: null,
   wall: 343.55,
   program_accuracy: 0.392405,
@@ -69,7 +77,12 @@ const SDK_ARM: RuntimeArm = {
   run_name: 'sdk-evalloop-test100-sdk_v1·s1',
   accuracy: 0.905444,
   by_turn_type: { number: 0.954955, program: 0.882353 },
-  panel: { triage: 0.974212, preprocess: 0.875536, retriever: 0.785693, calculator: 0.881857 },
+  panel: {
+    triage: 0.974212,
+    preprocess: 0.875536,
+    retriever: 0.785693,
+    calculator: 0.881857,
+  },
   cost: 27.624373,
   wall: 786.8,
   program_accuracy: 0.409283,
@@ -116,7 +129,14 @@ function comparison(overrides: Partial<RuntimeComparison> = {}): RuntimeComparis
 const SPLIT = { name: 'eval_loop_v2', gate_reports: 100, gate_questions: 349 };
 
 const TRACK: ChampionPoint[] = [
-  { version: 'v2', at: 1, accuracy: 0.770774, panel: {}, moved_by: null, target_agent: null },
+  {
+    version: 'v2',
+    at: 1,
+    accuracy: 0.770774,
+    panel: {},
+    moved_by: null,
+    target_agent: null,
+  },
   {
     version: 'v8',
     at: 2,
@@ -208,7 +228,9 @@ describe('the recommendation is derived from the gate, not written down', () => 
 
 describe('the verdict banner reflects gate.promoted', () => {
   it('states the move when the gate promoted', () => {
-    const html = renderToStaticMarkup(<VerdictBanner verdict={runtimeVerdict(comparison(), SPLIT)} />);
+    const html = renderToStaticMarkup(
+      <VerdictBanner verdict={runtimeVerdict(comparison(), SPLIT)} />,
+    );
     expect(html).toContain('data-recommendation="adopt-agent-sdk"');
     expect(html).toMatch(/Move the runtime to the Claude Agent SDK/);
     expect(html).toContain('+8.88pp');
@@ -218,7 +240,9 @@ describe('the verdict banner reflects gate.promoted', () => {
   it('states the opposite when it did not, on the same payload', () => {
     const c = comparison();
     const html = renderToStaticMarkup(
-      <VerdictBanner verdict={runtimeVerdict({ ...c, gate: { ...c.gate!, promoted: false } }, SPLIT)} />,
+      <VerdictBanner
+        verdict={runtimeVerdict({ ...c, gate: { ...c.gate!, promoted: false } }, SPLIT)}
+      />,
     );
     expect(html).toContain('data-recommendation="stay-on-pipeline"');
     expect(html).not.toMatch(/Move the runtime/);
@@ -410,7 +434,11 @@ describe('the progression chart', () => {
   });
 
   it('says so rather than drawing axes when nothing has been scored at all', () => {
-    const stages = progression([], { ...comparison(), pipeline: EMPTY_ARM, agent_sdk: EMPTY_ARM }, []);
+    const stages = progression(
+      [],
+      { ...comparison(), pipeline: EMPTY_ARM, agent_sdk: EMPTY_ARM },
+      [],
+    );
     const html = renderToStaticMarkup(<ProgressionChart points={stages} pipelineBaseline={null} />);
     expect(html).not.toContain('<svg');
     expect(html).toMatch(/not yet run/);
@@ -508,9 +536,20 @@ describe('the model swap', () => {
           significant: false,
           train: {
             by_seed: [],
-            pooled: { n_draws: 2, n_conversations: 200, baseline_full: 132, candidate_full: 130, p_worse: 0.4 },
+            pooled: {
+              n_draws: 2,
+              n_conversations: 200,
+              baseline_full: 132,
+              candidate_full: 130,
+              p_worse: 0.4,
+            },
           },
-          verdict: { outcome: 'matches', reason: 'within margin', margin_pp: 3, checks: [] },
+          verdict: {
+            outcome: 'matches',
+            reason: 'within margin',
+            margin_pp: 3,
+            checks: [],
+          },
         },
       ],
     };
@@ -534,5 +573,283 @@ describe('the model swap', () => {
     expect(html).toContain('-9.0pp');
     expect(html).toContain('-2.0pp');
     expect(html).not.toContain('-0.09pp');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The progression with every challenger agent (s21)
+// ---------------------------------------------------------------------------
+
+const CHAMPION_AGENT = {
+  version: 'sdk_v1',
+  runtime: 'agent_sdk' as const,
+  model: 'claude-sonnet-5',
+  effort: 'high',
+};
+
+function pair(
+  version: string,
+  model: string,
+  outcome: 'beats' | 'matches' | 'falls_short',
+  at: number,
+  accuracy: number,
+  run: string,
+): Challengers['pairs'][number] {
+  return {
+    version,
+    baseline_version: 'sdk_v1',
+    baseline_model: 'claude-sonnet-5',
+    candidate_model: model,
+    baseline_effort: 'high',
+    candidate_effort: 'high',
+    baseline_run: 'sdk-evalloop-test100-sdk_v1·s1-20260905_174627',
+    candidate_run: run,
+    n_compared: 349,
+    delta_pp: (accuracy - 0.905444) * 100,
+    p_value: 0.04,
+    ci: [-0.068, 0.003],
+    fixed: 10,
+    broken: 21,
+    significant: false,
+    at,
+    candidate_accuracy: accuracy,
+    verdict: { outcome, reason: `${outcome}: …`, margin_pp: 3, checks: [] },
+  };
+}
+
+// Out of order on purpose: the points must come out in the order they ran.
+const CHALLENGERS: Challengers = {
+  champion: {
+    version: 'sdk_v1',
+    model: 'claude-sonnet-5',
+    effort: 'high',
+    run_name: 'sdk-evalloop-test100-sdk_v1·s1-20260905_174627',
+    accuracy: 0.905444,
+  },
+  margin_pp: 3,
+  pairs: [
+    pair(
+      'sdk_v3',
+      'claude-haiku-5-5',
+      'matches',
+      30,
+      0.896,
+      'sdk-evalloop-test100-sdk_v3·s3-haiku-5-5-high-20261015_205249',
+    ),
+    pair(
+      'sdk_v1',
+      'claude-haiku-4-5-20251001',
+      'falls_short',
+      10,
+      0.873926,
+      'sdk-evalloop-test100-sdk_v1·s1-haiku-4-5-20260906_090517',
+    ),
+    pair(
+      'sdk_v1',
+      'claude-haiku-5-5',
+      'falls_short',
+      20,
+      0.873926,
+      'sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310',
+    ),
+  ],
+};
+
+function pass(
+  run_name: string,
+  version: string,
+  date: string,
+  extra: Partial<TestPass> = {},
+): TestPass {
+  return {
+    at_ms: null,
+    date,
+    run_id: null,
+    run_name,
+    version,
+    runtime: version.startsWith('sdk') ? 'agent_sdk' : 'pipeline',
+    model: version.startsWith('sdk') ? 'claude-sonnet-5' : 'deepseek-v4-flash',
+    effort: version.startsWith('sdk') ? 'high' : null,
+    accuracy: 0.8,
+    n_scored: 349,
+    n_questions: 349,
+    complete: true,
+    cost: null,
+    champion_run: false,
+    label: null,
+    outcome: 'scored',
+    reason: '',
+    vs: null,
+    ...extra,
+  };
+}
+
+const TIMELINE: TestPass[] = [
+  pass('evalloop-test100-v2·t2p2r2c2-20260904_032533', 'v2', '2026-09-04', {
+    champion_run: true,
+  }),
+  pass('evalloop-test100-v8·t2p2r5c2-20260904_052739', 'v8', '2026-09-04', {
+    outcome: 'promoted',
+  }),
+  pass('sdk-evalloop-test100-sdk_v1·s1', 'sdk_v1', '2026-09-05', {
+    outcome: 'promoted',
+  }),
+  pass('sdk-evalloop-test100-sdk_v2·s2-20260905_182812', 'sdk_v2', '2026-09-05', {
+    outcome: 'rejected',
+  }),
+  pass(CHALLENGERS.pairs[1].candidate_run as string, 'sdk_v1', '2026-09-06', {
+    model: 'claude-haiku-4-5-20251001',
+  }),
+  pass(CHALLENGERS.pairs[2].candidate_run as string, 'sdk_v1', '2026-10-15', {
+    model: 'claude-haiku-5-5',
+  }),
+  pass(CHALLENGERS.pairs[0].candidate_run as string, 'sdk_v3', '2026-10-15', {
+    model: 'claude-haiku-5-5',
+  }),
+];
+
+const SDK_ARM_AGENT: RuntimeArm = {
+  ...SDK_ARM,
+  model: 'claude-sonnet-5',
+  effort: 'high',
+};
+
+function withChallengers(champion = CHAMPION_AGENT) {
+  return progression(
+    TRACK,
+    comparison({ agent_sdk: SDK_ARM_AGENT }),
+    [BASELINE_EXPERIMENT, experiment()],
+    SWAP,
+    { challengers: CHALLENGERS, timeline: TIMELINE, championAgent: champion },
+  );
+}
+
+describe('the progression with every challenger agent (s21)', () => {
+  it('draws one dated point per challenger, in the order they ran', () => {
+    const stages = withChallengers();
+    expect(stages.map((s) => s.key)).toEqual([
+      'pipeline_raw',
+      'pipeline_optimised',
+      'sdk_distilled',
+      'sdk_optimised',
+      'challenger',
+      'challenger',
+      'challenger',
+    ]);
+    expect(new Set(stages.map((s) => s.id)).size).toBe(stages.length);
+    const challengers = stages.slice(4);
+    expect(challengers.map((s) => [s.version, s.model])).toEqual([
+      ['sdk_v1', 'claude-haiku-4-5-20251001'],
+      ['sdk_v1', 'claude-haiku-5-5'],
+      ['sdk_v3', 'claude-haiku-5-5'],
+    ]);
+    expect(challengers.map((s) => s.date)).toEqual(['2026-09-06', '2026-10-15', '2026-10-15']);
+    expect(stages[0].date).toBe('2026-09-04');
+    expect(stages[2].date).toBe('2026-09-05');
+    // The single model-swap stage is gone: the challengers replace it.
+    expect(stages.some((s) => s.key === 'sdk_model_swap')).toBe(false);
+  });
+
+  it('tones each bar by what the record says, not by its position', () => {
+    const stages = withChallengers();
+    const tone = Object.fromEntries(stages.map((s) => [s.id, s.tone]));
+    expect(tone.sdk_distilled).toBe('current');
+    expect(tone.sdk_optimised).toBe('fail');
+    expect(tone['challenger:sdk_v1|claude-haiku-4-5-20251001|high']).toBe('fail');
+    expect(tone['challenger:sdk_v1|claude-haiku-5-5|high']).toBe('fail');
+    expect(tone['challenger:sdk_v3|claude-haiku-5-5|high']).toBe('ok');
+    expect(tone.pipeline_optimised).toBe('ok');
+    expect(tone.pipeline_raw).toBe('neutral');
+  });
+
+  it('names a challenger with its own prompt as one, not as a model swap', () => {
+    const stages = withChallengers();
+    const v3 = stages.find((s) => s.version === 'sdk_v3');
+    const swap = stages.find((s) => s.model === 'claude-haiku-5-5' && s.version === 'sdk_v1');
+    expect(v3?.stage).toBe('new prompt');
+    expect(v3?.note).toMatch(/a prompt the loop wrote for claude-haiku-5-5/);
+    expect(swap?.stage).toBe('model swap');
+  });
+
+  it('moves the accent to a challenger the registry promoted', () => {
+    const stages = withChallengers({
+      ...CHAMPION_AGENT,
+      version: 'sdk_v3',
+      model: 'claude-haiku-5-5',
+    });
+    expect(stages.find((s) => s.version === 'sdk_v3')?.tone).toBe('current');
+    // The distilled prompt on Sonnet still passed its gate; it just no longer serves.
+    expect(stages.find((s) => s.key === 'sdk_distilled')?.tone).toBe('ok');
+  });
+
+  it('draws a falls-short challenger hatched in red, never in the pass colour', () => {
+    const html = renderToStaticMarkup(
+      <ProgressionChart points={withChallengers()} pipelineBaseline={PIPELINE_ARM.accuracy} />,
+    );
+    const failBars = html.match(/class="bar [a-z_]+ t-fail"[^>]*style="fill:url\(#hatch-/g) ?? [];
+    // sdk_v2 rejected, and both Haiku swaps falling short.
+    expect(failBars).toHaveLength(3);
+    expect(html.match(/data-tone="fail"/g) ?? []).toHaveLength(3 * 2); // svg column + row
+    expect(html).toContain('✕ falls short');
+    expect(html).toContain('✕ rejected');
+    expect(html).toContain('● champion');
+    expect(html).toContain('● matches');
+  });
+
+  it('keeps every column label inside its slot, however many challengers there are', () => {
+    const stages = withChallengers();
+    for (const p of stages) {
+      for (const line of columnLines(p)) expect(line.length).toBeLessThanOrEqual(SLOT_CHARS);
+    }
+    const many = [...stages, ...stages.slice(4), ...stages.slice(4)];
+    const html = renderToStaticMarkup(<ProgressionChart points={many} pipelineBaseline={null} />);
+    const width = Number(/viewBox="0 0 (\d+)/.exec(html)?.[1]);
+    // The chart widens a slot per column instead of squeezing them.
+    expect((width - 52 - 200) / many.length).toBeGreaterThanOrEqual(112);
+  });
+
+  it('dates and labels every column, with the pipeline effort said to be absent', () => {
+    const [raw, , distilled] = withChallengers();
+    expect(columnLines(raw)).toEqual([
+      'raw',
+      'llm-v2',
+      'deepseek ×4',
+      '—',
+      '4 Sep 2026',
+      '○ baseline',
+    ]);
+    expect(columnLines(distilled)).toEqual([
+      'distilled',
+      'sdk-v1',
+      'sonnet-5',
+      'high',
+      '5 Sep 2026',
+      '● champion',
+    ]);
+  });
+
+  it('turns a falls-short model swap red on the pre-s21 record too', () => {
+    const swap: SdkModelComparison = {
+      ...SWAP,
+      pairs: SWAP.pairs.map((p) => ({
+        ...p,
+        verdict: {
+          outcome: 'falls_short',
+          reason: 'falls_short: …',
+          margin_pp: 3,
+          checks: [],
+        },
+      })),
+    };
+    const stages = progression(TRACK, comparison(), [BASELINE_EXPERIMENT, experiment()], swap);
+    expect(stages[4].key).toBe('sdk_model_swap');
+    expect(stages[4].tone).toBe('fail');
+  });
+
+  it('formats a run day as written, whatever the timezone', () => {
+    expect(formatDay('2026-09-06')).toBe('6 Sep 2026');
+    expect(formatDay('2026-10-15', false)).toBe('15 Oct');
+    expect(formatDay(null)).toBe('—');
+    expect(formatDay('not a date')).toBe('—');
   });
 });
