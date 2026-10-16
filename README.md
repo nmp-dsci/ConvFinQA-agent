@@ -110,8 +110,8 @@ vendored in `frontend/src/kit/`; the brief is `DESIGN.md`.
 | **Filings & questions** · `/filings` | What the benchmark is: every split's questions beside gold answer and gold program. |
 | **Scoring** · `/scoring` | How a turn is judged: execution accuracy, gold-derived attribution, the one-sided cluster McNemar gate, and the confidence judge that was tried and not adopted. |
 | **Leaderboard** · `/leaderboard` | The paper's FinQANet, GPT-3 and human-expert rows beside our two runtimes, on one axis, with the caveats. |
-| **Runs** · `/runs`, `/runs/traces`, `/runs/traces/:id` | Every version by slice, two compared with their flips, and every served turn stage by stage. |
-| **Optimise** · `/optimise`, `/optimise/runtimes`, `/optimise/research` | Campaigns and the append-only promotion history; how we got to `sdk_v1`; the retired s7 rule research. |
+| **Runs** · `/runs`, `/runs/legacy`, `/runs/traces`, `/runs/traces/:id` | Every test pass of every agent (train behind `?train=1`), the older per-version slice table, and every served turn stage by stage. |
+| **Optimise** · `/optimise`, `/optimise/campaigns`, `/optimise/runtimes`, `/optimise/research` | The Story: test accuracy over time for champion and challengers; campaigns and the append-only promotion history; how we got to `sdk_v1`; the retired s7 rule research. |
 | **Agent** · `/agent`, `/agent/readiness`, `/agent/chat/*` | The pipeline, the one place a model is built, the bundle fingerprint, deploy and open work; the R1–R9 scorecard; and the chat itself. |
 | **Gold review** · `/gold` | Gold labels the loop flagged as suspect or could not settle, and how each was adjudicated. |
 
@@ -276,7 +276,7 @@ uv run convfinqa-evalloop campaign-status --campaign c01   # used / promoted / b
 uv run convfinqa-evalloop story                            # evaluation/story.json + docs/optimization/index.html
 ```
 
-The **Experiments page** (`/admin/experiments`, backed by `GET /eval/campaigns`)
+The **Experiments page** (`/optimise/campaigns`, backed by `GET /eval/campaigns`)
 and the published `docs/optimization/index.html` write-up both read
 `evaluation/story.json`, so rebuild both with `story` after a cycle.
 Promotion requires net-positive **and** one-sided cluster-corrected McNemar
