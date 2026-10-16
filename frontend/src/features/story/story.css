@@ -1,0 +1,54 @@
+/* Optimise › Story (/optimise), Runs › Every test pass (/runs) and the Overview's compact record:
+   the test-only timeline and the ledger of every pass (s21). Tokens only; everything else is kit
+   vocabulary (.dia, .figscroll, .tw, .chip, .status, .tag). */
+
+/* ── the timeline: one point per complete pass, the champion as a step line ─────────────── */
+.tl{min-width:0}
+.tl .figscroll{margin-top:var(--s2)}
+.tl-svg .band{fill:var(--panel)}
+.tl-svg .band.alt{fill:var(--band)}
+.tl-svg .brk{stroke:var(--line-3);stroke-width:1.2;stroke-dasharray:3 3}
+.tl-svg .brk-z{fill:none;stroke:var(--line-3);stroke-width:1.4}
+.tl-svg .lead{stroke:var(--line-2);stroke-width:1}
+.tl .champ{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linejoin:round}
+.tl .mark{stroke-width:1.6}
+.tl .m-lead{fill:var(--accent);stroke:var(--panel)}
+.tl .m-plain{fill:var(--panel);stroke:var(--ink-2)}
+.tl .m-ok{fill:var(--ok);stroke:var(--panel)}
+.tl .m-short{stroke:var(--red)}
+.tl .hatch{stroke:var(--red);stroke-width:1.6}
+.tl-svg .pt .mark{transition:opacity var(--dur) var(--ease)}
+.tl-svg .pt:hover .mark{opacity:.75}
+
+/* the key under the figure: each mark in words */
+.tl-key{margin-top:var(--s3)}
+.tl-key ul{list-style:none;padding:0;margin:0 0 var(--s2);display:flex;flex-wrap:wrap;gap:var(--s2) var(--s5);font-size:var(--t-1);color:var(--ink-2)}
+.tl-key li{display:inline-flex;align-items:flex-start;gap:var(--s2);min-width:0}
+.tl-key li>span{min-width:0}
+.tl-key .sub{color:var(--muted)}
+.tl-key .glyph{width:20px;height:16px;flex:none;overflow:visible}
+.tl-key p{max-width:var(--measure);margin:0}
+
+/* ── the ledger: every pass, filterable ───────────────────────────────────────────────────── */
+.ledger-filters{display:grid;gap:var(--s2);margin-top:var(--s3)}
+.ledger-filters .chips{margin-top:0;align-items:center}
+.ledger-filters .label{min-width:5.5rem}
+.ledger td .path{white-space:normal;max-width:30rem;overflow-wrap:anywhere}
+.ledger td.day,.ledger td.nowrap{white-space:nowrap}
+.ledger td.sub{min-width:15rem;white-space:normal}
+.ledger td.wrap{white-space:normal;min-width:12rem}
+.ledger td.splitcell{min-width:10rem;white-space:normal}
+.ledger tr.train td{background:var(--band)}
+.ledger .split{text-transform:uppercase;letter-spacing:var(--track-label)}
+.ledger-note{margin-top:var(--s3);font-size:var(--t-1);color:var(--muted);max-width:var(--measure)}
+
+/* the train toggle: a real checkbox, labelled in words */
+.train-toggle{display:inline-flex;align-items:center;gap:var(--s2);font:500 var(--t-1)/1.4 var(--mono);color:var(--ink-2);cursor:pointer;min-height:24px}
+.train-toggle input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+
+/* ── the story's step history and the challengers since ──────────────────────────────────── */
+.story-steps{list-style:none;padding:0;margin:var(--s4) 0 0;display:grid;gap:var(--s3)}
+.story-steps li{display:grid;grid-template-columns:minmax(6rem,auto) minmax(0,1fr);gap:var(--s1) var(--s4);align-items:baseline}
+.story-steps .when{font:500 var(--t-1)/1.4 var(--mono);color:var(--faint)}
+.story-steps .what{min-width:0;overflow-wrap:anywhere}
+.story-steps .why{display:block;font-size:var(--t-1);color:var(--muted);margin-top:var(--s1)}

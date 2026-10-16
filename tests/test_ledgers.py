@@ -69,6 +69,7 @@ def test_columns_are_pinned_literally() -> None:
         "fix_hint", "confidence", "gold_suspect", "attribution_disputed",
         "adjudicated", "adjudication_reason",
         "input_tokens", "output_tokens", "cost_usd", "latency_s",
+        "sdk_model", "sdk_effort",
     )  # fmt: skip
     assert ledgers.REWRITES_COLUMNS == (
         "edit_id", "rewrite_id", "proposed_at", "runtime", "campaign",
@@ -79,6 +80,7 @@ def test_columns_are_pinned_literally() -> None:
         "change_kind", "edit_text", "diff", "rationale", "prompt_chars_before",
         "prompt_chars_after", "validate_ok",
         "input_tokens", "output_tokens", "cost_usd", "latency_s",
+        "target_model", "target_effort",
     )  # fmt: skip
     assert ledgers.GATES_COLUMNS == (
         "gate_id", "gated_at", "runtime", "campaign", "experiment_n", "rewrite_id",
@@ -88,6 +90,9 @@ def test_columns_are_pinned_literally() -> None:
         "p_value", "ci_low", "ci_high", "flips_by_class", "panel_baseline",
         "panel_candidate",
         "promoted", "reason", "consecutive_rejections", "champion_after",
+        "gate_passed", "verdict_rule", "verdict_outcome",
+        "baseline_sdk_model", "baseline_sdk_effort",
+        "candidate_sdk_model", "candidate_sdk_effort",
     )  # fmt: skip
     assert set(ledgers.COLUMNS) == {"diagnoses", "rewrites", "gates"}
 

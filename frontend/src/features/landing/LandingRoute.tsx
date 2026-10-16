@@ -3,9 +3,10 @@ import { Figure, Status } from '@/kit/ui';
 import { HudTile } from './HudTile';
 import { LampStrip } from './LampStrip';
 import { RecordedConversations } from './RecordedConversations';
-import { ProgressionChart } from '../admin/ProgressionChart';
 import { versionLabel } from '../admin/lib';
-import { progression, runtimeVerdict } from '../admin/runtimeStory';
+import { runtimeVerdict } from '../admin/runtimeStory';
+import { TimelineChart } from '../story/TimelineChart';
+import { recordSentence, storySummary, timelineModel } from '../story/timeline';
 import { NO_VALUE, formatLatency, formatPercent, formatPointsDelta, formatUsd } from './format';
 import { judgeSentence, landingStory } from './landingStory';
 import type { ProofStat } from './landingStory';
@@ -21,8 +22,8 @@ import './landing.css';
  *
  * Eyebrow → the outcome as a claim with its baseline and its caveat → the lead → the one way in →
  * four tiles with a baseline on every number → the lamps → then numbered sections, each headed by a
- * claim computed from the data it shows: the progression, the readiness scorecard, the recorded
- * conversations, and the judge tried last.
+ * claim computed from the data it shows: the record of every test pass, the readiness scorecard,
+ * the recorded conversations, and the judge tried last.
  *
  * Three rules this file must not break:
  *
@@ -151,12 +152,7 @@ function TheRecord({ board }: { board: BoardData }) {
   }
 
   const comparison = campaigns?.runtime_comparison ?? null;
-  const stages = progression(
-    campaigns?.champion_track,
-    comparison,
-    campaigns?.sdk_experiments ?? [],
-    campaigns?.sdk_model_comparison,
-  );
+  const record = storySummary(timelineModel(campaigns?.test_timeline, campaigns?.champion_steps));
   const gate = comparison?.gate ?? null;
   const story = landingStory(campaigns, isDemo);
   const judge = judgeSentence(campaigns);
@@ -229,7 +225,7 @@ function TheRecord({ board }: { board: BoardData }) {
           loading={!campaigns && board.loading}
           reason="no gate run recorded for the pipeline champion — run a cycle, then `convfinqa-evalloop story`"
           tone="plain"
-          to="/optimise"
+          to="/optimise/campaigns"
           drill="optimise · the campaigns"
           meta={
             campaigns?.pipeline_champion_accuracy != null && (
@@ -300,24 +296,26 @@ function TheRecord({ board }: { board: BoardData }) {
 
       <LampStrip board={board} />
 
-      {/* --- 01 · the star: the record as one figure -------------------- */}
+      {/* --- 01 · the star: the whole record as one figure ---------------- */}
       <section className="doc-section" data-testid="landing-star">
-        <p className="label">01 · progression</p>
-        <h2>{progressionClaim(stages, gateQuestions)}</h2>
+        <p className="label">01 · the record</p>
+        <h2 data-testid="landing-record-claim">{recordSentence(record, gateQuestions)}</h2>
         <Figure
-          title="accuracy on the unseen gate split, in the order the work happened"
+          title="test accuracy on the unseen gate split, every complete pass, in the order it was scored"
           caption={
             <>
-              Every version scored on the same {gateQuestions ?? 'fixed'} held-back questions, from
-              the raw four-agent pipeline to the single-session agent serving today.{' '}
-              <Link to="/optimise/runtimes">Read the comparison →</Link>
+              Every pass of every agent on the same {gateQuestions ?? 'fixed'} held-back questions, from
+              the raw four-agent pipeline to the challengers tried against the champion since; the line
+              is the champion of its day and moves only on a promotion.{' '}
+              <Link to="/optimise">Read the whole story →</Link>
             </>
           }
           source={<code>evaluation/story.json</code>}
         >
-          <ProgressionChart
-            points={stages}
-            pipelineBaseline={comparison?.pipeline?.accuracy ?? null}
+          <TimelineChart
+            passes={campaigns?.test_timeline}
+            steps={campaigns?.champion_steps}
+            gateQuestions={gateQuestions}
             compact
           />
         </Figure>
@@ -400,26 +398,6 @@ function TheRecord({ board }: { board: BoardData }) {
       </div>
     </>
   );
-}
-
-/** Section 01's claim: the move from the first scored stage to the last, on its denominator. */
-function progressionClaim(
-  stages: ReturnType<typeof progression>,
-  gateQuestions: number | null,
-): string {
-  const scored = stages.filter((s) => s.present && s.accuracy != null);
-  const on = gateQuestions != null ? ` on the same ${gateQuestions} questions` : '';
-  if (scored.length < 2) {
-    return scored.length === 1
-      ? `One version scored on the gate split so far, at ${formatPercent(scored[0].accuracy)}${on}`
-      : 'No version has been scored on the gate split yet';
-  }
-  const first = scored[0];
-  const last = scored[scored.length - 1];
-  const best = scored.reduce((a, b) => ((b.accuracy ?? 0) > (a.accuracy ?? 0) ? b : a));
-  return `From ${formatPercent(first.accuracy)} to ${formatPercent(best.accuracy)}${on}, across ${scored.length} scored stages${
-    best !== last ? `; the last, ${last.stage}, reads ${formatPercent(last.accuracy)}` : ''
-  }`;
 }
 
 /** Section 02's claim, from the same committed scorecard the strip renders. */

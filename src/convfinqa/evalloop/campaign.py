@@ -110,6 +110,9 @@ def _history_from_ledger(campaign: str) -> list[dict[str, Any]] | None:
                 "target_class": failure_class if runtime == "agent_sdk" else "",
                 "label": label,
                 "promoted": bool(g.promoted),
+                # The rule's verdict. Rows before 2026-10-15 wrote the rule
+                # into `promoted`, so that is the fallback.
+                "gate_passed": _passed(g.gate_passed, g.promoted),
                 "accuracy_delta": (
                     None
                     if g.delta_pp is None or str(g.delta_pp) == "nan"
@@ -123,6 +126,19 @@ def _history_from_ledger(campaign: str) -> list[dict[str, Any]] | None:
             }
         )
     return out
+
+
+def _passed(gate_passed: Any, promoted: Any) -> bool:
+    if gate_passed is None or (
+        isinstance(gate_passed, float) and gate_passed != gate_passed
+    ):
+        return bool(promoted)
+    return bool(gate_passed)
+
+
+def _gate_passed(exp: dict[str, Any]) -> bool:
+    """Whether an experiment passed its rule, whatever the registry then did."""
+    return bool(exp.get("gate_passed", exp.get("promoted")))
 
 
 def history(
@@ -187,6 +203,10 @@ def _history_from_mlflow(
                 "target_class": target_class if runtime == "agent_sdk" else "",
                 "label": r.data.params.get("experiment_label", ""),
                 "promoted": r.data.tags.get("promoted") == "true",
+                "gate_passed": (
+                    r.data.tags.get("gate_passed", r.data.tags.get("promoted"))
+                    == "true"
+                ),
                 "accuracy_delta": r.data.metrics.get("accuracy_delta"),
                 "cluster_p_one_sided": r.data.metrics.get("cluster_p_one_sided"),
             }
@@ -201,7 +221,7 @@ def blocked_agents(past: list[dict[str, Any]]) -> set[str]:
         theirs = [e for e in past if e["target_agent"] == agent]
         recent = theirs[-MAX_CONSECUTIVE_REJECTIONS:]
         if len(recent) == MAX_CONSECUTIVE_REJECTIONS and not any(
-            e["promoted"] for e in recent
+            _gate_passed(e) for e in recent
         ):
             out.add(agent)
     return out
@@ -221,7 +241,7 @@ def single_area_mode(past: list[dict[str, Any]]) -> bool:
     """
     streak = 0
     for exp in past:
-        streak = 0 if exp.get("promoted") else streak + 1
+        streak = 0 if _gate_passed(exp) else streak + 1
         if streak >= MAX_CONSECUTIVE_REJECTIONS:
             return True
     return False
@@ -231,7 +251,7 @@ def consecutive_rejections(past: list[dict[str, Any]]) -> int:
     """Rejections since the lineage's last promotion in this campaign."""
     streak = 0
     for exp in reversed(past):
-        if exp.get("promoted"):
+        if _gate_passed(exp):
             break
         streak += 1
     return streak

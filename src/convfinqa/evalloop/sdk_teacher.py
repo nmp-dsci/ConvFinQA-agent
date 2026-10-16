@@ -12,10 +12,11 @@ them per experiment. The single-session runtime (`backends/agent_sdk.py`) has
   the diagnosis can say *no tool was called* or *the answer matches no tool
   return* — failures the pipeline cannot have.
 - *Rank* — failure classes, not agents, are the unit of targeting. Every ledger
-  row filed against the exact prompt text is pooled (keyed on the sdk prompt
-  hash, so SDK draws never pool with pipeline draws) and classes are ranked on
-  the Wilson lower bound of their share of attributed cases — `ledger._score`'s
-  formula, not a second one.
+  row filed against the exact prompt text **on the same model and effort** is
+  pooled (keyed on the sdk prompt hash, so SDK draws never pool with pipeline
+  draws, and on the answering agent, so Sonnet's failures never steer a rewrite
+  for Haiku) and classes are ranked on the Wilson lower bound of their share of
+  attributed cases — `ledger._score`'s formula, not a second one.
 - *Rewrite* — the prompt is split by its seven stable headings and the teacher
   agent returns one **edit per failure class** it addresses, each naming the
   section it changes and the diagnoses behind it. Edits replace section bodies;
@@ -124,6 +125,112 @@ def taxonomy_text() -> str:
 
 
 TAXONOMY = taxonomy_text()
+
+#: The class a turn the agent gave up on is ranked under (2026-10-15). The
+#: frozen taxonomy has no "declined a value the document contains", so the
+#: diagnoser files each such case under its own ``new:`` label and the class is
+#: split a dozen ways — Haiku 5.5 answered "unavailable" on 20 of its 76
+#: first-wrong train turns, the biggest single failure it has. The diagnosis
+#: keeps the label it was given; only ranking and grouping read this one.
+GAVE_UP_CLASS = "new:declined-available-value"
+_DECLINED_ANSWER = re.compile(
+    r"^\s*(unavailable|not available|n/?a|none|unknown|cannot\b|insufficient"
+    r"|not (?:stated|disclosed|provided|reported|found|given))",
+    re.IGNORECASE,
+)
+_DECLINED_LABEL = re.compile(
+    r"declin|gave[-_ ]?up|give[-_ ]?up|refus|abstain|unavailab|not[-_ ]available",
+    re.IGNORECASE,
+)
+
+
+def declined(answer: Any) -> bool:
+    """Whether an answer is a refusal ("unavailable", "not available", …), not a value."""
+    if answer is None or (isinstance(answer, float) and answer != answer):
+        return False
+    return bool(_DECLINED_ANSWER.match(str(answer)))
+
+
+def stable_class(label: Any, pred_answer: Any = "") -> str:
+    """The class a diagnosis is ranked under: its label, or `GAVE_UP_CLASS`.
+
+    A refusal is the gave-up class whatever the diagnoser called it — the fix
+    is the same rule ("the value is in the report; find it") whether it was
+    filed as a retrieval miss or a new label — and so is any ``new:`` label
+    that names a refusal.
+    """
+    text = str(label or "")
+    if declined(pred_answer):
+        return GAVE_UP_CLASS
+    if text.startswith("new:") and _DECLINED_LABEL.search(text):
+        return GAVE_UP_CLASS
+    return text
+
+
+def default_agent() -> tuple[str, str]:
+    """(model, effort) a pass runs on when none is pinned (`run_split`'s default)."""
+    from convfinqa.llm import sdk_effort_name, sdk_model_name
+
+    return sdk_model_name(), sdk_effort_name()
+
+
+def _eval_run_record(run_id: str) -> dict[str, Any] | None:
+    """An eval run's params and start time: the central store, else the snapshot."""
+    if not run_id:
+        return None
+    try:
+        from mlflow.tracking import MlflowClient
+
+        from convfinqa.tracking import mlflow_log
+
+        if mlflow_log.reachable():
+            run = MlflowClient(tracking_uri=mlflow_log.tracking_uri()).get_run(run_id)
+            return {"params": dict(run.data.params), "start_time": run.info.start_time}
+    except Exception:  # noqa: BLE001 — not in the store; try the snapshot
+        pass
+    from convfinqa.tracking.snapshot import read_snapshot
+
+    for run in read_snapshot().get("runs", []):
+        if str(run.get("run_id")) == run_id:
+            return {
+                "params": dict(run.get("params") or {}),
+                "start_time": run.get("start_time"),
+            }
+    return None
+
+
+def agent_of_csv(csv_path: Path | str) -> tuple[str, str]:
+    """(model, effort) the pass that wrote `csv_path` ran on.
+
+    From the eval run's own record when it can be found (central store, then
+    the committed snapshot). Without one, a run name with no model slug is a
+    pass on `ledgers.LEGACY_SDK_AGENT`; a name that carries a slug is refused
+    rather than guessed, because a slug is not a model id.
+    """
+    from convfinqa.evalloop.runner import prior_sdk_effort, prior_sdk_model
+    from convfinqa.llm import sdk_effort_of_run
+
+    record = _eval_run_record(ledgers.eval_run_ids(csv_path))
+    name = Path(csv_path).stem
+    slug, named_effort = prior_sdk_model(name), prior_sdk_effort(name)
+    if record is not None and record["params"].get("sdk_model"):
+        model = str(record["params"]["sdk_model"])
+        effort = sdk_effort_of_run(record["params"], record.get("start_time"))
+        return model, named_effort or effort
+    if slug:
+        raise ValueError(
+            f"{name} ran on {slug}, and its run record is not readable — pass "
+            "the model and effort explicitly"
+        )
+    return ledgers.LEGACY_SDK_AGENT[0], named_effort or ledgers.LEGACY_SDK_AGENT[1]
+
+
+def _of_agent(table: pd.DataFrame, agent: tuple[str, str]) -> pd.DataFrame:
+    """Rows of a diagnoses frame whose answering agent is `agent`."""
+    if table.empty:
+        return table
+    keep = [ledgers.sdk_agent_of(r) == agent for r in table.to_dict(orient="records")]
+    return table[keep]
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────
@@ -657,17 +764,27 @@ async def _diagnose_case(
 
 
 def sdk_prior_diagnoses(
-    experiment: str = OPTIMIZATION_EXPERIMENT, limit: int = 40
+    experiment: str = OPTIMIZATION_EXPERIMENT,
+    limit: int = 40,
+    *,
+    agent: tuple[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Earlier SDK-arm diagnoses, newest first: the ledger, else MLflow.
 
     Filtered to ``runtime="agent_sdk"`` so the memory a diagnosis reads is the
-    memory of the prompt lineage it is diagnosing, not the pipeline's.
+    memory of the prompt lineage it is diagnosing, not the pipeline's — and,
+    with `agent`, to that model and effort, so a Haiku pass is not told which
+    hints Sonnet's failures already earned. The MLflow fallback serves only a
+    ledger that holds no SDK row at all.
     """
     try:
         table = ledgers.load("diagnoses", runtime=RUNTIME)
     except Exception:  # noqa: BLE001 — an unreadable ledger falls back to the store
         table = pd.DataFrame()
+    if len(table) and agent is not None:
+        table = _of_agent(table, agent)
+        if table.empty:
+            return []
     if len(table):
         ordered = table.sort_values("diagnosed_at", ascending=False).head(limit)
         return [
@@ -746,8 +863,14 @@ async def diagnose_run(
     concurrency: int = 8,
     campaign: str | None = None,
     label: str | None = None,
+    sdk_model: str | None = None,
+    sdk_effort: str | None = None,
 ) -> dict[str, Any]:
     """Diagnose every first-wrong case of one SDK eval run; append to the ledger.
+
+    `sdk_model`/`sdk_effort` name the agent that wrote the CSV; each defaults
+    to what the pass's own record says (`agent_of_csv`). Every row is stamped
+    with it, and the memory the diagnoser reads is that agent's alone.
 
     Cases run concurrently under one semaphore and are reassembled in case
     order, exactly as the pipeline teacher does; ambiguous attributions are
@@ -758,8 +881,13 @@ async def diagnose_run(
     from convfinqa.evalloop import stage_scores
     from convfinqa.tracking import mlflow_log
 
+    if sdk_model is None or sdk_effort is None:
+        found_model, found_effort = agent_of_csv(csv_path)
+        sdk_model = sdk_model or found_model
+        sdk_effort = sdk_effort or found_effort
+    agent = (str(sdk_model), str(sdk_effort))
     cases = teacher.first_wrong_cases(csv_path)
-    memory = sdk_prior_diagnoses(experiment)
+    memory = sdk_prior_diagnoses(experiment, agent=agent)
     memory_text = memory_text_from(memory)
     prompt_hash = sdk_prompt_hash(version)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -777,6 +905,8 @@ async def diagnose_run(
             "runtime": RUNTIME,
             "source_csv": str(csv_path),
             "sdk_prompt_hash": prompt_hash,
+            "sdk_model": agent[0],
+            "sdk_effort": agent[1],
             "n_cases": len(cases),
             "n_prior_diagnoses": len(memory),
             "concurrency": concurrency,
@@ -884,6 +1014,9 @@ async def diagnose_run(
                 question_id=row.get("question_id", ""),
                 turn_index=int(row.turn_index),
                 version=version,
+                sdk_model=agent[0],
+                sdk_effort=agent[1],
+                pred_answer=str(row.pred_answer),
                 derived_agent=derived,
                 adjudicated=settled is not None,
                 adjudication_reason=(settled or {}).get("reason", ""),
@@ -940,6 +1073,7 @@ async def diagnose_run(
             diagnosed_at=datetime.strptime(stamp, "%Y%m%d_%H%M%S").isoformat(
                 timespec="seconds"
             ),
+            agent=agent,
         )
         written = ledgers.append("diagnoses", rows)
         ledgers.log_rows_to_run(rec, written, "diagnoses")
@@ -967,6 +1101,8 @@ async def diagnose_run(
             "run_id": rec.run_id,
             "run_name": run_name,
             "version": version,
+            "sdk_model": agent[0],
+            "sdk_effort": agent[1],
             "diagnoses_path": str(out_path),
             "n_cases": len(cases),
             "n_diagnosed": len(diagnoses),
@@ -988,6 +1124,7 @@ def _diagnosis_ledger_rows(
     prompt_hash: str,
     diagnosis_run_id: str,
     diagnosed_at: str,
+    agent: tuple[str, str] = ("", ""),
 ) -> list[dict[str, Any]]:
     """One diagnoses-ledger row per case, ``runtime="agent_sdk"``, one prompt hash."""
     if not inputs:
@@ -1012,6 +1149,8 @@ def _diagnosis_ledger_rows(
             diagnoser_model=model,
             usage=usage,
             diagnosed_at=diagnosed_at,
+            sdk_model=agent[0],
+            sdk_effort=agent[1],
         )
         for d, case, usage in inputs
     ]
@@ -1030,14 +1169,22 @@ def _wilson_lower(faults: int, n: int) -> float:
 
 
 def _attributed(table: pd.DataFrame) -> pd.DataFrame:
-    """Rows whose verdict names an agent — the targeting population."""
+    """Rows whose verdict names an agent — the targeting population.
+
+    One exception to "names an agent": a refusal attributed ``ambiguous``. That
+    verdict means the binary question could not settle *which* stage declined
+    a value the report holds; it never doubts that the agent failed, and
+    dropping it would hide exactly the class the gave-up rule is for.
+    """
     from convfinqa.evalloop import stage_scores
 
     def _ok(r: Any) -> bool:
         derived = str(r.derived_agent or "")
-        if derived in stage_scores.NON_AGENT:
-            return False
         if bool(r.gold_suspect):
+            return False
+        if derived == "ambiguous" and declined(r.pred_answer):
+            return True
+        if derived in stage_scores.NON_AGENT:
             return False
         return (derived in AGENTS) or (str(r.stage) in AGENTS)
 
@@ -1046,26 +1193,38 @@ def _attributed(table: pd.DataFrame) -> pd.DataFrame:
     return table[[_ok(r) for r in table.itertuples()]]
 
 
-def rank_classes(version: str, *, runtime: str = RUNTIME) -> dict[str, dict[str, Any]]:
+def rank_classes(
+    version: str,
+    *,
+    runtime: str = RUNTIME,
+    sdk_model: str | None = None,
+    sdk_effort: str | None = None,
+) -> dict[str, dict[str, Any]]:
     """Failure classes ranked on the Wilson lower bound of their pooled share.
 
     Pools every diagnoses-ledger row whose ``prompt_hash`` is `version`'s sdk
-    prompt hash — two versions with the same text pool, a different text does
-    not, and SDK draws never pool with pipeline draws because the hash spaces
-    differ. The denominator is attributed rows (verdicts naming an agent).
+    prompt hash **and** whose answering agent is (`sdk_model`, `sdk_effort`) —
+    each defaulting to `default_agent()`. Two versions with the same text pool,
+    a different text does not, SDK draws never pool with pipeline draws because
+    the hash spaces differ, and one prompt's failures on Sonnet never pool with
+    its failures on Haiku: the same text is a different agent on another model
+    (sdk_v1 is 90.5% on one and 87.4% on the other). The denominator is
+    attributed rows (verdicts naming an agent); a class is `stable_class`.
     """
     want = sdk_prompt_hash(version)
     if not want:
         return {}
+    default_model, default_effort = default_agent()
+    agent = (sdk_model or default_model, sdk_effort or default_effort)
     table = ledgers.load("diagnoses", runtime=runtime)
-    table = table[table["prompt_hash"] == want]
+    table = _of_agent(table[table["prompt_hash"] == want], agent)
     attributed = _attributed(table)
     n = int(len(attributed))
     if not n:
         return {}
     out: dict[str, dict[str, Any]] = {}
     for r in attributed.itertuples():
-        label = str(r.label or "")
+        label = stable_class(r.label, r.pred_answer)
         entry = out.setdefault(
             label, {"faults": 0, "n": n, "stages": {}, "diagnosis_ids": []}
         )
@@ -1139,19 +1298,22 @@ def sdk_attempts(limit: int = 40) -> list[dict[str, Any]]:
             else None
         )
         worse = bool(class_flips and class_flips["broken"] > class_flips["fixed"])
+        model, effort = ledgers.sdk_agent_of(r._asdict(), "target_")
         out.append(
             {
                 "version": str(r.new_version),
                 "base_version": str(r.base_version),
+                # The agent the edit was written for and gated on: an edit that
+                # failed on Sonnet is evidence about Sonnet.
+                "model": model,
+                "effort": effort,
                 "target": str(r.target),
                 "failure_class": str(r.failure_class),
                 "change_kind": str(r.change_kind),
                 "edit_text": str(r.edit_text or "")[:400],
                 "rationale": str(r.rationale or "")[:400],
                 "at": str(r.proposed_at),
-                "outcome": "promoted"
-                if g is not None and bool(g.promoted)
-                else ("rejected" if g is not None else "not yet gated"),
+                "outcome": _attempt_outcome(g),
                 "verdict": str(g.reason) if g is not None else "",
                 "delta_pp": None
                 if g is None or g.delta_pp is None
@@ -1168,6 +1330,18 @@ def sdk_attempts(limit: int = 40) -> list[dict[str, Any]]:
     return out
 
 
+def _attempt_outcome(gate: Any) -> str:
+    """promoted · passed, not promoted · rejected · not yet gated."""
+    if gate is None:
+        return "not yet gated"
+    if bool(gate.promoted):
+        return "promoted"
+    passed = gate.gate_passed
+    if passed is not None and passed == passed and bool(passed):
+        return "passed, not promoted"
+    return "rejected"
+
+
 def sdk_ledger_text(limit: int = 20) -> str:
     """The SDK attempt history as prose for the writer's prompt."""
     rows = sdk_attempts(limit=limit)
@@ -1179,7 +1353,8 @@ def sdk_ledger_text(limit: int = 20) -> str:
     lines = ["\n\n## Prior edits to this prompt lineage (newest first)"]
     for r in rows:
         head = (
-            f"- {r['version']} · {r['target']} · {r['failure_class']} "
+            f"- {r['version']} [{r.get('model')} · {r.get('effort')}] · "
+            f"{r['target']} · {r['failure_class']} "
             f"({r['change_kind']}) — {r['outcome'].upper()}"
         )
         if r.get("delta_pp") is not None:
@@ -1201,7 +1376,9 @@ def sdk_ledger_text(limit: int = 20) -> str:
     lines.append(
         "\nDo not re-propose a change that was REJECTED unless you can say what is "
         "different this time. An edit marked REVERT OR RETHINK made its own class "
-        "worse: change approach or undo it, do not sharpen it."
+        "worse: change approach or undo it, do not sharpen it. Each line names the "
+        "model and effort it was gated on; an outcome on another model is weaker "
+        "evidence about yours."
     )
     return "\n".join(lines)
 
@@ -1212,10 +1389,13 @@ def sdk_ledger_text(limit: int = 20) -> str:
 def _group_by_label(diagnoses: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = {}
     for d in diagnoses:
-        label = str(d.get("label") or d.get("failure_mode") or "")
+        label = stable_class(
+            d.get("label") or d.get("failure_mode") or "", d.get("pred_answer", "")
+        )
         out.setdefault(label, []).append(
             {
                 "diagnosis_id": d.get("diagnosis_id", ""),
+                "label": d.get("label") or d.get("failure_mode") or "",
                 "stage": d.get("stage") or d.get("failed_agent", ""),
                 "derived_agent": d.get("derived_agent", ""),
                 "question": d.get("question", ""),
@@ -1254,7 +1434,7 @@ def _select_edits(
 
 
 async def propose_version(
-    diagnoses_path: Path | str,
+    diagnoses_path: Path | str | list[Path | str] | tuple[Path | str, ...],
     *,
     base_version: str,
     new_version: str,
@@ -1263,31 +1443,48 @@ async def propose_version(
     label: str | None = None,
     pooled: dict[str, dict[str, Any]] | None = None,
     max_areas: int | None = None,
+    target_model: str | None = None,
+    target_effort: str | None = None,
 ) -> dict[str, Any]:
     """Edit the SDK prompt by section, one edit per failure class; register it.
 
-    `pooled` is the class ranking (`rank_classes`) when the caller already has
-    it; `max_areas=1` is the campaign's one-area mode after two consecutive
-    rejections. Every edit becomes a rewrites-ledger row sharing one
-    `rewrite_id`; the whole-prompt diff, the change list and the writer prompt
-    are logged on the run.
+    `diagnoses_path` is one per-run diagnoses file or several (one per train
+    draw). `pooled` is the class ranking (`rank_classes`) when the caller
+    already has it; `max_areas=1` is the campaign's one-area mode after two
+    consecutive rejections. `target_model`/`target_effort` name the agent the
+    rewrite is for (default `default_agent()`): the writer is told it, the
+    ranking is that agent's, and every rewrites row records it. Every edit
+    becomes a rewrites-ledger row sharing one `rewrite_id`; the whole-prompt
+    diff, the change list and the writer prompt are logged on the run.
     """
     import convfinqa.prompts as prompts_pkg
     from convfinqa.evalloop.sdk import run_structured
     from convfinqa.tracking import mlflow_log, prompt_ledger
 
+    paths = (
+        [diagnoses_path]
+        if isinstance(diagnoses_path, (str, Path))
+        else list(diagnoses_path)
+    )
     diagnoses = [
         json.loads(line)
-        for line in Path(diagnoses_path).read_text().splitlines()
+        for path in paths
+        for line in Path(path).read_text().splitlines()
         if line.strip()
     ]
     if not diagnoses:
-        raise SystemExit(f"{diagnoses_path} holds no diagnoses")
+        raise SystemExit(f"{', '.join(map(str, paths))} hold no diagnoses")
     if not prompts_pkg.is_sdk_version(new_version):
         raise SystemExit(f"{new_version!r} is not an sdk_vN version name")
+    default_model, default_effort = default_agent()
+    agent = (target_model or default_model, target_effort or default_effort)
     before = prompts_pkg.load_sdk(base_version)
     sections = split_sections(before)
-    pooled = pooled if pooled is not None else rank_classes(base_version)
+    pooled = (
+        pooled
+        if pooled is not None
+        else rank_classes(base_version, sdk_model=agent[0], sdk_effort=agent[1])
+    )
     by_label = _group_by_label(diagnoses)
     history = sdk_ledger_text()
     prior_attempts = sdk_attempts()
@@ -1302,6 +1499,9 @@ async def propose_version(
             "base_version": base_version,
             "new_version": new_version,
             "sdk_prompt_hash_before": sdk_prompt_hash(base_version),
+            "target_model": agent[0],
+            "target_effort": agent[1],
+            "n_diagnoses_files": len(paths),
             "n_diagnoses": len(diagnoses),
             "n_classes": len(by_label),
             "n_prior_attempts": len(prior_attempts),
@@ -1336,6 +1536,17 @@ async def propose_version(
                 json.dumps(
                     {
                         "base_version": base_version,
+                        # The agent this prompt is for. A rule a large model
+                        # follows unprompted may need stating for a small one,
+                        # and the diagnoses below are this agent's failures.
+                        "target_model": agent[0],
+                        "target_effort": agent[1],
+                        "target_note": (
+                            f"This prompt is run by {agent[0]} at effort "
+                            f"{agent[1]}. Every diagnosis below comes from that "
+                            "agent's passes; the attempt history names the "
+                            "model each past edit was gated on."
+                        ),
                         "headings": list(HEADINGS),
                         "current_prompt_sections": {
                             h: b for h, b in sections.items() if h
@@ -1430,6 +1641,8 @@ async def propose_version(
                 prior_attempts=[
                     {
                         "version": a["version"],
+                        "model": a.get("model"),
+                        "effort": a.get("effort"),
                         "target": a["target"],
                         "failure_class": a["failure_class"],
                         "outcome": a["outcome"],
@@ -1447,6 +1660,8 @@ async def propose_version(
                 teacher_model=teacher.teacher_model(),
                 usage=usage,
                 rewrite_id=rewrite_id,
+                target_model=agent[0],
+                target_effort=agent[1],
             )
             for c in change_list
         ]
@@ -1493,12 +1708,19 @@ async def propose_version(
                 **{f"teacher_{k}": v for k, v in usage_total.items()},
             }
         )
-        prompt_ledger.ensure_sdk(new_version, source="sdk_teacher", run_id=rec.run_id)
+        prompt_ledger.ensure_sdk(
+            new_version,
+            source="sdk_teacher",
+            run_id=rec.run_id,
+            parent_version=base_version,
+        )
         return {
             "run_id": rec.run_id,
             "module_path": str(module_path),
             "new_version": new_version,
             "base_version": base_version,
+            "target_model": agent[0],
+            "target_effort": agent[1],
             "diff": diff,
             "rewrite_id": rewrite_id,
             "summary": output.summary,

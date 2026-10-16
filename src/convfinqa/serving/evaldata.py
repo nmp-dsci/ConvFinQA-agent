@@ -19,8 +19,10 @@ from convfinqa.config import PREDICTIONS_DIR
 
 EVALLOOP_DIR = PREDICTIONS_DIR / "evalloop"
 _LOOP_RUN_NAME = re.compile(
-    r"^evalloop-(?P<split>train|test|holdout)(?P<n>\d*)-(?P<version>v[0-9_]+)"
-    r"(?:·(?P<composition>[a-z0-9]+))?-(?P<stamp>\d{8}_\d{6})$"
+    r"^(?P<sdk>sdk-)?evalloop-(?P<split>train|test|holdout)(?P<n>\d*)-"
+    r"(?P<version>(?:sdk_)?v[0-9_]+)"
+    r"(?:·(?P<composition>[a-z0-9]+))?"
+    r"(?:-(?P<agent>[a-z][a-z0-9-]*?))?-(?P<stamp>\d{8}_\d{6})$"
 )
 
 MODEL_CSV_PATTERN: dict[str, str] = {
@@ -196,13 +198,22 @@ def loop_runs() -> list[dict[str, Any]]:
         m = _LOOP_RUN_NAME.match(path.stem)
         if m is None:
             continue
-        df = pd.read_csv(path, usecols=lambda c: c in {"report_id", "correct"})
+        df = pd.read_csv(
+            path, usecols=lambda c: c in {"report_id", "correct", "unscored"}
+        )
+        # A rate-limited turn is unscored, never wrong: out of the numerator
+        # and the denominator alike.
+        if "unscored" in df:
+            df = df[~df["unscored"].astype(str).str.lower().isin({"true", "1"})]
         correct = df["correct"].astype(str).str.lower().isin({"true", "1"})
         n = int(len(df))
         composition = m.group("composition")
-        if composition:
+        if composition and not m.group("sdk"):
             # t3p4r3c3 → t3.p4.r3.c3, the registry's spelling
             composition = ".".join(re.findall(r"[a-z]\d+", composition))
+        model_slug, effort = (
+            _agent_tokens(m.group("agent")) if m.group("sdk") else (None, None)
+        )
         out.append(
             {
                 "version": m.group("version"),
@@ -213,9 +224,26 @@ def loop_runs() -> list[dict[str, Any]]:
                 "n_correct": int(correct.sum()),
                 "accuracy": round(float(correct.mean()), 6) if n else 0.0,
                 "file": path.name,
+                "runtime": "agent_sdk" if m.group("sdk") else "pipeline",
+                # The slug and effort the run name carries; a pre-slug sdk
+                # name ran the default model of its day, which is null here.
+                "model_slug": model_slug,
+                "effort": effort,
             }
         )
     return out
+
+
+def _agent_tokens(middle: str | None) -> tuple[str | None, str | None]:
+    """`haiku-5-5-high` → (`haiku-5-5`, `high`); `haiku-4-5` → (`haiku-4-5`, None)."""
+    from convfinqa.llm import SDK_EFFORTS
+
+    if not middle:
+        return None, None
+    parts = middle.split("-")
+    if parts[-1] in SDK_EFFORTS:
+        return ("-".join(parts[:-1]) or None), parts[-1]
+    return middle, None
 
 
 def clear_caches() -> None:

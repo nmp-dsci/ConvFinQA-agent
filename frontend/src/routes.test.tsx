@@ -16,14 +16,14 @@ describe('every address the Console published redirects to its slot', () => {
     ['/chat', '/agent/chat', 'agent-chat'],
     [`/chat/${RID}`, `/agent/chat/${RID}`, 'agent-chat'],
     ['/debrief', '/agent', 'agent-architecture'],
-    ['/admin', '/optimise', 'optimise-campaigns'],
+    ['/admin', '/optimise', 'optimise-story'],
     ['/admin/system', '/agent', 'agent-architecture'],
     ['/admin/readiness', '/agent/readiness', 'agent-readiness'],
     ['/admin/runtimes', '/optimise/runtimes', 'optimise-runtimes'],
-    ['/admin/experiments', '/optimise', 'optimise-campaigns'],
-    ['/admin/campaigns', '/optimise', 'optimise-campaigns'],
+    ['/admin/experiments', '/optimise/campaigns', 'optimise-campaigns'],
+    ['/admin/campaigns', '/optimise/campaigns', 'optimise-campaigns'],
     ['/admin/research', '/optimise/research', 'optimise-research'],
-    ['/admin/evaluations', '/runs', 'runs-versions'],
+    ['/admin/evaluations', '/runs/legacy', 'runs-legacy'],
     ['/admin/dataset', '/filings', 'filings'],
     ['/admin/traces', '/runs/traces', 'runs-traces'],
     ['/admin/traces/abc123', '/runs/traces/abc123', 'runs-trace'],
@@ -38,11 +38,22 @@ describe('every address the Console published redirects to its slot', () => {
 
   it('keeps the lens: a query string survives the move', async () => {
     const got = await land(routes, '/admin/evaluations?version=v8&split=test');
-    expect(got.path).toBe('/runs');
+    expect(got.path).toBe('/runs/legacy');
     expect(got.search).toBe('?version=v8&split=test');
     const eval_ = await land(routes, '/admin/traces/eval?version=v8&report_id=x&turn_index=2');
     expect(eval_.path).toBe('/runs/traces/eval');
     expect(eval_.search).toBe('?version=v8&report_id=x&turn_index=2');
+  });
+
+  it('sends the legacy page’s own lens on /runs to /runs/legacy (s21), and keeps the ledger’s', async () => {
+    const legacy = await land(routes, '/runs?version=v8&flips=open');
+    expect(legacy.path).toBe('/runs/legacy');
+    expect(legacy.route).toBe('runs-legacy');
+    expect(legacy.search).toBe('?version=v8&flips=open');
+    const ledger = await land(routes, '/runs?runtime=agent_sdk&train=1');
+    expect(ledger.path).toBe('/runs');
+    expect(ledger.route).toBe('runs-passes');
+    expect(ledger.search).toBe('?runtime=agent_sdk&train=1');
   });
 });
 
@@ -78,7 +89,10 @@ describe('the eight slots', () => {
     expect(slotOf('/runs/traces/abc')?.key).toBe('runs');
     expect(slotOf(`/agent/chat/${RID}`)?.key).toBe('agent');
     expect(subpageOf('/runs/traces/abc')).toBe('traces');
-    expect(subpageOf('/runs')).toBe('versions');
+    expect(subpageOf('/runs')).toBe('passes');
+    expect(subpageOf('/runs/legacy')).toBe('legacy');
+    expect(subpageOf('/optimise')).toBe('story');
+    expect(subpageOf('/optimise/campaigns')).toBe('campaigns');
     expect(subpageOf('/optimise/runtimes')).toBe('runtimes');
     expect(subpageOf('/agent/chat')).toBe('chat');
   });

@@ -44,13 +44,13 @@ export const SLOTS: Slot[] = [
     key: 'runs',
     to: '/runs',
     label: 'Runs',
-    hint: 'Every version by slice, two compared with their flips, and every served turn',
+    hint: 'Every test pass of every agent, every served turn, and the legacy 770-question versions',
   },
   {
     key: 'optimise',
     to: '/optimise',
     label: 'Optimise',
-    hint: 'Campaigns, the runtime progression, and the append-only promotion history',
+    hint: 'The whole story on the gate split, the campaigns, the runtime comparison, and rule research',
   },
   {
     key: 'agent',
@@ -69,11 +69,13 @@ export const SLOTS: Slot[] = [
 /** The pages inside a slot, as its chip bar. A slot with one page has no bar. */
 export const SUBPAGES: Partial<Record<SlotKey, { key: string; to: string; label: string }[]>> = {
   runs: [
-    { key: 'versions', to: '/runs', label: 'Versions & slices' },
+    { key: 'passes', to: '/runs', label: 'Every test pass' },
     { key: 'traces', to: '/runs/traces', label: 'Served turns' },
+    { key: 'legacy', to: '/runs/legacy', label: 'Legacy v1–v3_1' },
   ],
   optimise: [
-    { key: 'campaigns', to: '/optimise', label: 'Campaigns' },
+    { key: 'story', to: '/optimise', label: 'Story' },
+    { key: 'campaigns', to: '/optimise/campaigns', label: 'Campaigns' },
     { key: 'runtimes', to: '/optimise/runtimes', label: 'Runtimes' },
     { key: 'research', to: '/optimise/research', label: 'Rule research' },
   ],
@@ -97,7 +99,7 @@ export function slotOf(pathname: string): Slot | null {
   return SLOTS.slice(1).find((s) => pathname === s.to || pathname.startsWith(`${s.to}/`)) ?? null;
 }
 
-/** The sub-page a path is on, most specific first (`/runs/traces/x` → traces, not versions). */
+/** The sub-page a path is on, most specific first (`/runs/traces/x` → traces, not passes). */
 export function subpageOf(pathname: string): string | undefined {
   const slot = slotOf(pathname);
   const subs = slot ? SUBPAGES[slot.key] : undefined;

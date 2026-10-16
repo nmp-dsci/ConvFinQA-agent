@@ -16,7 +16,10 @@ re-scored from the full-corpus `pydantic_predictions_<version>.csv`. Champions
 promoted through the evalloop/teacher path (`source == "evalloop"`, e.g. v5)
 never get that file — their evidence is the test-split CSV the promotion
 decision was actually made from, so they're re-scored from that instead (see
-`comparator.load_evalloop_champion_predictions`).
+`comparator.load_evalloop_champion_predictions`). A champion that is an agent
+(`registry.json → champion_agent`) carries its floor and the exact pass that
+measured it on its record, and is re-scored from that pass. A champion with no
+recorded floor fails the gate: a missing floor is not a floor of zero.
 
 Exit code 1 fails the build. The output names the questions that broke, because
 "accuracy dropped 0.4%" is not something anyone can act on.
@@ -25,6 +28,7 @@ Exit code 1 fails the build. The output names the questions that broke, because
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 import pandas as pd
 
@@ -34,6 +38,7 @@ from convfinqa.tracking.comparator import (
     available_versions,
     compare_frames,
     load_evalloop_champion_predictions,
+    load_evalloop_csv,
     load_predictions,
 )
 
@@ -62,8 +67,42 @@ def _rescore_consistency(version: str) -> tuple[int, int]:
     return _rescore_consistency_df(load_predictions(version))
 
 
+def _agent_record(champion: str, doc: registry.RegistryDoc) -> dict[str, Any] | None:
+    """The champion record when the champion is an agent, else None."""
+    agent = doc.champion_agent
+    return agent if agent and agent.get("version") == champion else None
+
+
+def _champion_floor(champion: str, doc: registry.RegistryDoc) -> float | None:
+    """The accuracy the champion is held to, or None when none was recorded.
+
+    An agent champion's floor is on its record (`registry.record_champion_evidence`),
+    because the same prompt scores differently on another model. A version
+    champion's is on its version entry. None is not zero: before 2026-10-15
+    every sdk version's entry had empty metrics, and the gate read that as a
+    0.00% floor and passed.
+    """
+    agent = _agent_record(champion, doc)
+    if agent is not None:
+        value = agent.get("accuracy")
+    else:
+        entry = registry.find_version(doc, champion) or {}
+        value = (entry.get("metrics") or {}).get("accuracy")
+    return None if value is None else float(value)
+
+
 def _champion_predictions(champion: str, doc: registry.RegistryDoc) -> pd.DataFrame:
-    """Load the champion's own evidence, from whichever path its `source` used."""
+    """Load the champion's own evidence, from whichever path its `source` used.
+
+    An agent champion is checked on exactly the pass its floor was measured on
+    (`evidence_run`), never the latest CSV that happens to share its prompt.
+    """
+    agent = _agent_record(champion, doc)
+    if agent is not None:
+        run = agent.get("evidence_run")
+        if not run:
+            raise FileNotFoundError("the champion record names no evidence_run")
+        return load_evalloop_csv(str(run))
     entry = registry.find_version(doc, champion) or {}
     if entry.get("source") == "evalloop":
         return load_evalloop_champion_predictions(champion)
@@ -105,9 +144,14 @@ def main(argv: list[str] | None = None) -> int:
     # 2. The champion must not have fallen below its recorded floor.
     if champion is None:
         print("eval-gate: no champion registered yet — floor check skipped.")
+    elif (recorded := _champion_floor(champion, doc)) is None:
+        failures.append(
+            f"champion {champion} has no recorded floor, so nothing holds it up: "
+            "record the test pass that measured it with `convfinqa-mlflow "
+            "champion-evidence <csv>`"
+        )
+        print(f"  ✗ champion {champion}: no recorded floor")
     else:
-        entry = registry.find_version(doc, champion) or {}
-        recorded = float(entry.get("metrics", {}).get("accuracy", 0.0))
         try:
             champion_df = _champion_predictions(champion, doc)
         except (FileNotFoundError, ValueError) as exc:

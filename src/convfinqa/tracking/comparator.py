@@ -372,8 +372,25 @@ def load_evalloop_champion_predictions(
     CSV the promotion decision was actually made from. This is the read path
     the CI eval-regression gate uses for them instead of `load_predictions`.
     """
-    path = evalloop_champion_csv_path(version, split=split)
+    return load_evalloop_csv(evalloop_champion_csv_path(version, split=split), split)
+
+
+def load_evalloop_csv(path: Path | str, split: str = "test") -> pd.DataFrame:
+    """Load one committed evalloop predictions CSV, checked and normalised.
+
+    `path` may be a bare run name (``sdk-evalloop-test100-…``) or a file; a
+    name resolves under `EVALLOOP_PREDICTIONS_DIR`. A pass with unscored
+    (rate-limited) rows is refused: it is not a measurement of anything.
+    """
+    path = Path(path)
+    if not path.exists():
+        path = EVALLOOP_PREDICTIONS_DIR / f"{path.name.removesuffix('.csv')}.csv"
     df = pd.read_csv(path)
+    if (
+        "unscored" in df.columns
+        and df["unscored"].astype(str).str.lower().eq("true").any()
+    ):
+        raise ValueError(f"{path.name} has unscored rows: an incomplete pass")
     required = {"report_id", "question", "gold_answer", "pred_answer", "correct"}
     missing = required - set(df.columns)
     if missing:

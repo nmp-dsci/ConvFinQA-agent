@@ -19,6 +19,7 @@ import {
 import { Root, SlotLayout } from './app/Root';
 import { ChatRoute } from './features/chat/ChatRoute';
 import { LandingRoute } from './features/landing/LandingRoute';
+import { legacyLensLoader } from './features/story/lens';
 
 // Everything but the landing board and chat is lazy: the first paint never pays for pages most
 // visitors never open. The kit Shell holds the <Suspense> boundary these resolve into.
@@ -26,6 +27,8 @@ const Filings = lazy(() => import('./features/admin/DatasetReview'));
 const Scoring = lazy(() => import('./pages/Scoring'));
 const Leaderboard = lazy(() => import('./pages/Leaderboard'));
 const Evaluations = lazy(() => import('./features/admin/Evaluations'));
+const RunsPage = lazy(() => import('./features/story/RunsPage'));
+const StoryPage = lazy(() => import('./features/story/StoryPage'));
 const Traces = lazy(() => import('./features/admin/Traces'));
 const TraceDetail = lazy(() => import('./features/admin/TraceDetail'));
 const Experiments = lazy(() => import('./features/admin/Experiments'));
@@ -87,9 +90,11 @@ export const routes: RouteObject[] = [
         path: 'runs',
         element: <SlotLayout />,
         children: [
-          { id: 'runs-versions', index: true, element: <Evaluations /> },
+          // Every test pass leads (s21); a link carrying the legacy page's lens goes there.
+          { id: 'runs-passes', index: true, loader: legacyLensLoader, element: <RunsPage /> },
           { id: 'runs-traces', path: 'traces', element: <Traces /> },
           { id: 'runs-trace', path: 'traces/:traceId', element: <TraceDetail /> },
+          { id: 'runs-legacy', path: 'legacy', element: <Evaluations /> },
         ],
       },
       {
@@ -97,7 +102,9 @@ export const routes: RouteObject[] = [
         path: 'optimise',
         element: <SlotLayout />,
         children: [
-          { id: 'optimise-campaigns', index: true, element: <Experiments /> },
+          // The whole story leads (s21); the pipeline's campaigns moved one level down.
+          { id: 'optimise-story', index: true, element: <StoryPage /> },
+          { id: 'optimise-campaigns', path: 'campaigns', element: <Experiments /> },
           { id: 'optimise-runtimes', path: 'runtimes', element: <Runtimes /> },
           { id: 'optimise-research', path: 'research', element: <Research /> },
         ],
@@ -126,10 +133,10 @@ export const routes: RouteObject[] = [
           { id: 'old-admin-system', path: 'system', loader: moved('/agent') },
           { id: 'old-admin-readiness', path: 'readiness', loader: moved('/agent/readiness') },
           { id: 'old-admin-runtimes', path: 'runtimes', loader: moved('/optimise/runtimes') },
-          { id: 'old-admin-experiments', path: 'experiments', loader: moved('/optimise') },
-          { id: 'old-admin-campaigns', path: 'campaigns', loader: moved('/optimise') },
+          { id: 'old-admin-experiments', path: 'experiments', loader: moved('/optimise/campaigns') },
+          { id: 'old-admin-campaigns', path: 'campaigns', loader: moved('/optimise/campaigns') },
           { id: 'old-admin-research', path: 'research', loader: moved('/optimise/research') },
-          { id: 'old-admin-evaluations', path: 'evaluations', loader: moved('/runs') },
+          { id: 'old-admin-evaluations', path: 'evaluations', loader: moved('/runs/legacy') },
           { id: 'old-admin-dataset', path: 'dataset', loader: moved('/filings') },
           { id: 'old-admin-traces', path: 'traces', loader: moved('/runs/traces') },
           {

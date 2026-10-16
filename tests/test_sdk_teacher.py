@@ -1012,3 +1012,172 @@ def test_memory_flags_an_edit_whose_class_got_worse() -> None:
     assert "REJECTED" in text and "Δ -0.50pp" in text
     assert text.count("← REVERT OR RETHINK") == 1
     assert "## 5. Retrieve · retriever/wrong-period (rule)" in text
+
+
+# ---------------------------------------------------------------------------
+# One prompt, several agents (s21): pooling, the gave-up class, the target
+# ---------------------------------------------------------------------------
+
+HAIKU = ("claude-haiku-5-5", "high")
+
+
+def test_rank_classes_pools_per_agent_and_reads_old_rows_as_sonnet(
+    prompts_tmp: Path, base_module: str
+) -> None:
+    """The same prompt text on another model is another agent: its failures
+    never steer a rewrite for the first. Rows written before the model columns
+    existed were Sonnet 5 at high effort, and pool there."""
+    from convfinqa.tracking.prompt_ledger import prompt_hash
+
+    same = prompt_hash(BASE_PROMPT)
+    haiku = {"sdk_model": HAIKU[0], "sdk_effort": HAIKU[1]}
+    rows = [
+        *(_ledger_diag("sdk_v900", same, "retriever/wrong-period", i) for i in range(3)),
+        _ledger_diag("sdk_v900", same, "retriever/wrong-period", 3,
+                     sdk_model="claude-sonnet-5", sdk_effort="high"),
+        *(_ledger_diag("sdk_v900", same, "calculator/wrong-scale", 10 + i, **haiku)
+          for i in range(2)),
+        # Haiku at low effort is a third agent.
+        _ledger_diag("sdk_v900", same, "triage/wrong-turn-type", 20,
+                     sdk_model=HAIKU[0], sdk_effort="low"),
+    ]  # fmt: skip
+    ledgers.append("diagnoses", rows)
+
+    sonnet = sdk_teacher.rank_classes(
+        "sdk_v900", sdk_model="claude-sonnet-5", sdk_effort="high"
+    )
+    assert list(sonnet) == ["retriever/wrong-period"]
+    assert sonnet["retriever/wrong-period"]["faults"] == 4
+    on_haiku = sdk_teacher.rank_classes(
+        "sdk_v900", sdk_model=HAIKU[0], sdk_effort=HAIKU[1]
+    )
+    assert list(on_haiku) == ["calculator/wrong-scale"]
+    assert on_haiku["calculator/wrong-scale"]["n"] == 2
+
+
+def test_a_refusal_is_one_class_and_counts_even_when_ambiguous(
+    prompts_tmp: Path, base_module: str
+) -> None:
+    """Haiku 5.5 answered "unavailable" on 20 of 76 first-wrong train turns, filed
+    under a dozen labels; ranked apart, the biggest failure it has looks small."""
+    from convfinqa.tracking.prompt_ledger import prompt_hash
+
+    same = prompt_hash(BASE_PROMPT)
+    haiku = {
+        "sdk_model": HAIKU[0],
+        "sdk_effort": HAIKU[1],
+        "stage": "retriever",
+        "derived_agent": "retriever",
+    }
+    rows = [
+        _ledger_diag("sdk_v900", same, "new:gave-up-on-lookup", 0, pred_answer="12", **haiku),
+        _ledger_diag("sdk_v900", same, "new:value-not-in-table", 1,
+                     pred_answer="unavailable", **haiku),
+        _ledger_diag("sdk_v900", same, "retriever/wrong-value", 2,
+                     pred_answer="not available in the document", **haiku),
+        # The binary question could not say which stage declined: still a refusal.
+        _ledger_diag("sdk_v900", same, "new:declined", 3,
+                     **{**haiku, "derived_agent": "ambiguous"}, pred_answer="unavailable"),
+        # An ambiguous verdict on a real answer stays out, as before.
+        _ledger_diag("sdk_v900", same, "retriever/wrong-value", 4,
+                     **{**haiku, "derived_agent": "ambiguous"}, pred_answer="31.7"),
+        _ledger_diag("sdk_v900", same, "retriever/wrong-value", 5, pred_answer="9.1", **haiku),
+    ]  # fmt: skip
+    ledgers.append("diagnoses", rows)
+
+    ranked = sdk_teacher.rank_classes(
+        "sdk_v900", sdk_model=HAIKU[0], sdk_effort=HAIKU[1]
+    )
+    assert list(ranked)[0] == sdk_teacher.GAVE_UP_CLASS
+    assert ranked[sdk_teacher.GAVE_UP_CLASS]["faults"] == 4
+    assert ranked["retriever/wrong-value"]["faults"] == 1
+    assert ranked["retriever/wrong-value"]["n"] == 5
+
+
+@pytest.mark.parametrize(
+    ("label", "answer", "expected"),
+    [
+        ("retriever/wrong-value", "unavailable", sdk_teacher.GAVE_UP_CLASS),
+        ("retriever/wrong-value", "Not available", sdk_teacher.GAVE_UP_CLASS),
+        ("new:refused-to-compute", "3.2", sdk_teacher.GAVE_UP_CLASS),
+        ("new:sign-flip", "-3.2", "new:sign-flip"),
+        ("retriever/wrong-value", "3.2", "retriever/wrong-value"),
+        ("retriever/wrong-value", float("nan"), "retriever/wrong-value"),
+    ],
+)
+def test_stable_class(label: str, answer: Any, expected: str) -> None:
+    assert sdk_teacher.stable_class(label, answer) == expected
+
+
+@pytest.mark.asyncio
+async def test_propose_tells_the_writer_its_agent_and_reads_every_draw(
+    base_module: str,
+    registry_tmp: Path,
+    fake_mlflow: FakeMlflow,
+    fake_calls: FakeSdkCalls,
+    tmp_path: Path,
+) -> None:
+    from convfinqa.tracking import prompt_ledger, registry
+
+    fake_calls.replies["SdkRewrite"] = {
+        "edits": [
+            _edit("## 5. Retrieve", "retriever/wrong-period", RETRIEVE_BODY, ["d-1"])
+        ],
+        "summary": "one section",
+    }
+    first = _diagnoses_file(tmp_path)
+    second = tmp_path / "second.jsonl"
+    second.write_text(
+        json.dumps(
+            {"diagnosis_id": "d-9", "stage": "retriever", "derived_agent": "retriever",
+             "label": "new:gave-up", "pred_answer": "unavailable", "question": "q9"}
+        ) + "\n"
+    )  # fmt: skip
+
+    out = await sdk_teacher.propose_version(
+        [first, second],
+        base_version=base_module,
+        new_version="sdk_v905",
+        pooled=POOLED,
+        target_model=HAIKU[0],
+        target_effort=HAIKU[1],
+    )
+
+    shown = json.loads(fake_calls.calls[0]["prompt"].split("\n\n## Prior edits", 1)[0])
+    assert (shown["target_model"], shown["target_effort"]) == HAIKU
+    assert HAIKU[0] in shown["target_note"]
+    # Both draws reach the writer, the refusal under its stable class.
+    assert sdk_teacher.GAVE_UP_CLASS in shown["diagnoses_by_label"]
+    assert str(fake_mlflow.params["n_diagnoses"]) == "4"
+    assert fake_mlflow.params["target_model"] == HAIKU[0]
+    rewrites = ledgers.load("rewrites")
+    assert set(rewrites["target_model"]) == {HAIKU[0]}
+    assert set(rewrites["target_effort"]) == {HAIKU[1]}
+    assert (out["target_model"], out["target_effort"]) == HAIKU
+    # The lineage records what was edited, not whichever entry was newest.
+    lineage = registry.load().sdk_prompts or []
+    base_seq = prompt_ledger.ensure_sdk(base_module)["seq"]
+    child = next(e for e in lineage if e["first_seen_in"] == "sdk_v905")
+    assert child["parent"] == base_seq
+
+
+def test_ensure_sdk_names_the_edited_version_as_parent(
+    prompts_tmp: Path, base_module: str, registry_tmp: Path
+) -> None:
+    from convfinqa.tracking import prompt_ledger
+
+    base = prompt_ledger.ensure_sdk(base_module)["seq"]
+    sdk_teacher._write_sdk_module(
+        "sdk_v906", prompt=BASE_PROMPT + "\nnewer", header="t"
+    )
+    prompt_ledger.ensure_sdk("sdk_v906")  # the newest entry is now this one
+    sdk_teacher._write_sdk_module(
+        "sdk_v907", prompt=BASE_PROMPT + "\nchild", header="t"
+    )
+    child = prompt_ledger.ensure_sdk("sdk_v907", parent_version=base_module)
+    from convfinqa.tracking import registry
+
+    entry = next(
+        e for e in registry.load().sdk_prompts or [] if e["seq"] == child["seq"]
+    )
+    assert entry["parent"] == base

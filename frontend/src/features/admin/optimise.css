@@ -51,15 +51,45 @@ figcaption .opt-key{margin:0 0 var(--s2)}
 .opt-jobs li{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s1) var(--s3);font-size:var(--t-1)}
 
 /* ── the progression: one bar per stage on a zero baseline ────────────────────────────────── */
-.prog .bar.pipeline_raw{fill:var(--line-2)}
-.prog .bar.pipeline_optimised{fill:var(--ink-2)}
-.prog .bar.sdk_distilled{fill:var(--accent)}
-.prog .bar.sdk_optimised{fill:var(--line-3)}
-.prog .bar.sdk_model_swap{fill:var(--ok)}
-.prog .bar.rejected{stroke:var(--line-3);stroke-width:1.2;stroke-dasharray:4 3}
-.prog .hatch{stroke:var(--line-3);stroke-width:1.5}
+/* Colour is what the record says, never which stage: the agent serving today in the accent, a
+   pass (promoted · beats · matches) in ok, a rejection or a fall-short hatched in red, a starting
+   point neutral. Every bar also carries the word under it — status is never colour alone. */
+.prog .bar.t-neutral{fill:var(--line-2)}
+.prog .bar.t-ok{fill:var(--ok)}
+.prog .bar.t-current{fill:var(--accent)}
+.prog .bar.t-fail{stroke:var(--red);stroke-width:1.4}
+.prog .hatch{stroke:var(--red);stroke-width:1.5}
 .prog .slot{fill:none;stroke:var(--line-2);stroke-dasharray:4 4}
 .prog .step{fill:none;stroke:var(--ink-2);stroke-opacity:.45;stroke-width:1.2}
 .prog .ref{stroke:var(--c);stroke-width:1.6;stroke-dasharray:6 4}
 .prog .tx.ref-t{fill:var(--c)}
-.prog .tx.num{font-family:var(--mono)}
+/* a halo in the panel colour, so a reference line passing behind a value never strikes it through */
+.prog .tx.num{font-family:var(--mono);paint-order:stroke;stroke:var(--panel);stroke-width:7px;stroke-linejoin:round}
+.prog .tx.st{font:500 13px var(--sans)}
+.prog .tx.st.t-ok{fill:var(--ok)}
+.prog .tx.st.t-fail{fill:var(--red)}
+.prog .tx.st.t-current{fill:var(--accent)}
+.prog .tx.st.t-neutral,.prog .tx.st.t-absent{fill:var(--muted)}
+
+/* the same points as rows, for widths where a column's 13px labels would shrink below --t-2 */
+.prog-rows{display:none;list-style:none;padding:0;margin:0;gap:var(--s3)}
+.prog-rows li{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s1);padding:var(--s3) var(--s4);background:var(--panel);border-radius:var(--r-sm);min-width:0}
+.prog-row-head{font-size:var(--t-1);color:var(--ink);overflow-wrap:anywhere}
+.prog-row-sub{font-size:var(--t-2);color:var(--faint);overflow-wrap:anywhere}
+.prog-row-bar{display:flex;align-items:center;gap:var(--s2);min-width:0}
+.prog-row-bar .track{flex:1 1 auto;min-width:0;height:.7em;background:var(--line);border-radius:2px;overflow:hidden}
+.prog-row-bar .track i{display:block;height:100%;background:var(--line-2)}
+.prog-row-bar .track i.t-ok{background:var(--ok)}
+.prog-row-bar .track i.t-current{background:var(--accent)}
+.prog-row-bar .track i.t-fail{background:repeating-linear-gradient(45deg,var(--red) 0 2px,var(--red-soft) 2px 6px)}
+.prog-row-st{font-size:var(--t-1);font-weight:500}
+.prog-row-st.t-ok{color:var(--ok)}
+.prog-row-st.t-fail{color:var(--red)}
+.prog-row-st.t-current{color:var(--accent)}
+.prog-row-st.t-neutral,.prog-row-st.t-absent{color:var(--muted)}
+.prog-rows-ref{display:none;font-size:var(--t-1);color:var(--muted);margin:0 0 var(--s3)}
+@media (max-width:760px){
+  .prog .dia.prog-wide{display:none}
+  .prog .prog-rows{display:grid}
+  .prog .prog-rows-ref{display:block}
+}

@@ -119,6 +119,8 @@ export interface RuntimeArm {
   program_accuracy?: number | null;
   /** The sdk arm's model id (`sdk_model` param); absent on the pipeline arm. */
   model?: string | null;
+  /** The sdk arm's effort (`sdk_effort`, or dated against the low pin); null on the pipeline arm. */
+  effort?: string | null;
 }
 
 /** One turn-type slice of the cross-runtime gate. */
@@ -292,6 +294,129 @@ export interface CampaignsResponse {
   sdk_experiments?: CampaignExperiment[];
   /** The confidence judge (s12): `evalloop.judge.summary()`. */
   judge?: JudgeSummary | null;
+  /**
+   * The whole record on the gate split (s21), test passes only: every pass of
+   * every agent, oldest first, each set against the champion of its day.
+   */
+  test_timeline?: TestPass[];
+  /** The champion's step line, from the registry's history. */
+  champion_steps?: ChampionStep[];
+  /** Train passes — what versions are written from, never what promotes them. */
+  train_passes?: TrainPass[];
+  /** Every challenger agent (another model or effort) against the champion's runs. */
+  challengers?: Challengers | null;
+}
+
+/**
+ * What a test pass's record says about it: the gate that judged it as a
+ * candidate (promoted · passed · rejected), the s19 rule for a challenger
+ * agent (beats · matches · falls_short), the champion's own pass, a gate
+ * baseline only, a pass with unscored turns, or none of these.
+ */
+export type PassOutcome =
+  | 'promoted'
+  | 'passed'
+  | 'rejected'
+  | 'beats'
+  | 'matches'
+  | 'falls_short'
+  | 'champion'
+  | 'baseline'
+  | 'incomplete'
+  | 'scored';
+
+/** One test100 pass on the gate split (`story.test_timeline`). */
+export interface TestPass {
+  /** Start time, epoch ms. */
+  at_ms: number | null;
+  /** The day the run's own name stamps (the operator's clock), YYYY-MM-DD. */
+  date: string | null;
+  run_id: string | null;
+  run_name: string;
+  version: string;
+  runtime: 'pipeline' | 'agent_sdk';
+  /** sdk: the model id; pipeline: the model all four agents run on. */
+  model: string | null;
+  /** sdk only. */
+  effort: string | null;
+  accuracy: number | null;
+  n_scored: number | null;
+  n_questions: number | null;
+  /** False = unscored turns: a subset of the split, never compared or drawn. */
+  complete: boolean;
+  /** sdk: session cost in USD; pipeline passes recorded none. */
+  cost: number | null;
+  /** This pass is the evidence for a champion step. */
+  champion_run: boolean;
+  /** The experiment that gated it (`c01-e03`, `s01 cross-runtime`), if any. */
+  label: string | null;
+  outcome: PassOutcome;
+  reason: string;
+  /** Against the champion of its day; null for the champion's own pass. */
+  vs: {
+    version: string | null;
+    model: string | null;
+    delta_pp: number | null;
+    p_value: number | null;
+    p_kind: string | null;
+    /** True = the gate's question-by-question Δ; false = a plain difference. */
+    paired: boolean;
+    champion_of_the_day?: string | null;
+  } | null;
+}
+
+/** One change of champion (`story.champion_steps`). */
+export interface ChampionStep {
+  at: string | null;
+  at_ms: number | null;
+  /** Where the line steps: at the pass that measured the agent. */
+  effective_at_ms: number | null;
+  event: 'promote' | 'promote_sdk' | 'universal_champion' | 'promote_agent' | 'promote_challenger';
+  reason: string;
+  runtime: 'pipeline' | 'agent_sdk';
+  version: string;
+  model: string | null;
+  effort: string | null;
+  /** Null for a legacy promotion made before the gate split existed. */
+  accuracy: number | null;
+  run_name?: string | null;
+}
+
+/** One train pass (`story.train_passes`). */
+export interface TrainPass {
+  at_ms: number | null;
+  date: string | null;
+  run_name: string;
+  version: string;
+  runtime: 'pipeline' | 'agent_sdk';
+  model: string | null;
+  effort: string | null;
+  accuracy: number | null;
+  n_questions: number | null;
+  train_seed: string | null;
+  stop_at_first_wrong: boolean;
+  campaign: string | null;
+  complete: boolean;
+}
+
+/** Challenger agents paired against the champion's committed runs (`story.challengers`). */
+export interface Challengers {
+  champion: {
+    version: string;
+    model: string;
+    effort: string;
+    run_name: string | null;
+    accuracy: number | null;
+  } | null;
+  margin_pp: number;
+  pairs: Array<
+    SdkModelPair & {
+      version: string | null;
+      baseline_version?: string | null;
+      at?: number | null;
+      candidate_accuracy?: number | null;
+    }
+  >;
 }
 
 /** One judge version scored on one split — the band-based selective metrics. */

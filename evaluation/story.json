@@ -1,12 +1,14 @@
 {
- "generated_at": "2026-10-15T07:49:29+00:00",
+ "generated_at": "2026-10-15T10:23:31+00:00",
  "campaign_record_from": "2026-09-08T03:54:37+00:00",
  "champion": "sdk_v1",
  "champion_agent": {
   "version": "sdk_v1",
   "runtime": "agent_sdk",
   "model": "claude-sonnet-5",
-  "effort": "high"
+  "effort": "high",
+  "evidence_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+  "accuracy": 0.905444
  },
  "sdk_champion": "sdk_v1",
  "pipeline_champion": "v8",
@@ -424,6 +426,54 @@
  ],
  "sdk_campaigns": [
   {
+   "name": "h01",
+   "runtime": "agent_sdk",
+   "experiments": [
+    {
+     "label": "h01-e01",
+     "at": 1792059716491,
+     "runtime": "agent_sdk",
+     "target_agent": "preprocess/wrong-operation",
+     "target_class": "preprocess/wrong-operation",
+     "edits": [],
+     "baseline_version": "sdk_v1",
+     "candidate_version": "sdk_v3",
+     "promoted": false,
+     "accuracy_delta": -0.048711,
+     "cluster_p_one_sided": 0.989055,
+     "delta_ci": [
+      -0.091988,
+      -0.008824
+     ],
+     "n_compared": 349.0,
+     "fixed": 7.0,
+     "broken": 24.0,
+     "target_metric_delta": null,
+     "rationale": "",
+     "summary_of_changes": "",
+     "prompt_chars": {
+      "before": null,
+      "after": null
+     },
+     "diff": "",
+     "panel_baseline": {
+      "triage": 0.974212,
+      "preprocess": 0.875536,
+      "retriever": 0.785693,
+      "calculator": 0.881857
+     },
+     "panel_candidate": {
+      "triage": 0.971347,
+      "preprocess": 0.839286,
+      "retriever": 0.811238,
+      "calculator": 0.810127
+     },
+     "accuracy_baseline": 0.905444,
+     "accuracy_candidate": 0.856734
+    }
+   ]
+  },
+  {
    "name": "s01",
    "runtime": "agent_sdk",
    "experiments": [
@@ -456,18 +506,18 @@
      "diff": "",
      "panel_baseline": {
       "triage": 0.922636,
-      "preprocess": null,
-      "retriever": 0.768072,
+      "preprocess": 0.78733,
+      "retriever": 0.746102,
       "calculator": 0.751055
      },
      "panel_candidate": {
       "triage": 0.974212,
-      "preprocess": 0.84141,
-      "retriever": 0.778031,
-      "calculator": 0.831224
+      "preprocess": 0.875536,
+      "retriever": 0.785693,
+      "calculator": 0.881857
      },
      "accuracy_baseline": 0.816619,
-     "accuracy_candidate": 0.873926
+     "accuracy_candidate": 0.905444
     },
     {
      "label": "s01-e02",
@@ -498,9 +548,9 @@
      "diff": "",
      "panel_baseline": {
       "triage": 0.974212,
-      "preprocess": 0.84141,
-      "retriever": 0.778031,
-      "calculator": 0.831224
+      "preprocess": 0.875536,
+      "retriever": 0.785693,
+      "calculator": 0.881857
      },
      "panel_candidate": {
       "triage": 0.974212,
@@ -508,7 +558,7 @@
       "retriever": 0.776753,
       "calculator": 0.843882
      },
-     "accuracy_baseline": 0.873926,
+     "accuracy_baseline": 0.905444,
      "accuracy_candidate": 0.876791
     }
    ]
@@ -763,6 +813,7 @@
      "version": "sdk_v1",
      "candidate_model": "claude-haiku-5-5",
      "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
      "outcome": "falls_short",
      "reason": "falls_short: \u0394 -3.15pp, CI low -6.7989pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, no_extra_ceiling_errors",
      "margin_pp": 3.0,
@@ -861,6 +912,7 @@
      "version": "sdk_v1",
      "candidate_model": "claude-haiku-4-5-20251001",
      "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
      "outcome": "falls_short",
      "reason": "falls_short: \u0394 -3.15pp, CI low -6.9401pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse; no train evidence",
      "margin_pp": 3.0,
@@ -900,6 +952,1311 @@
    }
   ]
  },
+ "challengers": {
+  "champion": {
+   "version": "sdk_v1",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+   "accuracy": 0.905444
+  },
+  "margin_pp": 3.0,
+  "pairs": [
+   {
+    "version": "sdk_v1",
+    "baseline_version": "sdk_v1",
+    "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
+    "candidate_model": "claude-haiku-4-5-20251001",
+    "candidate_effort": "high",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
+    "n_compared": 349,
+    "delta_pp": -3.1519,
+    "p_value": 0.050525,
+    "p_worse": 0.050525,
+    "p_better": 0.949475,
+    "ci": [
+     -0.069401,
+     0.00295
+    ],
+    "fixed": 7,
+    "broken": 18,
+    "significant": false,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.963964,
+      "delta_pp": 0.9009,
+      "fixed": 3,
+      "broken": 2,
+      "n_flip_clusters": 4,
+      "cluster_z": 0.378,
+      "cluster_p_one_sided": 0.352728,
+      "mcnemar_p_one_sided": 0.5
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.831933,
+      "delta_pp": -5.042,
+      "fixed": 4,
+      "broken": 16,
+      "n_flip_clusters": 15,
+      "cluster_z": -2.1213,
+      "cluster_p_one_sided": 0.983053,
+      "mcnemar_p_one_sided": 0.99871159
+     }
+    },
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 0
+    },
+    "cluster_z": -1.6398,
+    "train": {
+     "by_seed": [],
+     "pooled": {
+      "n_draws": 0
+     }
+    },
+    "verdict": {
+     "version": "sdk_v1",
+     "candidate_model": "claude-haiku-4-5-20251001",
+     "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -3.15pp, CI low -6.9401pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse; no train evidence",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -3.15pp, one-sided cluster p 0.949475"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -6.9401pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": true,
+       "detail": "one-sided p toward worse 0.050525"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.016947"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": null,
+       "detail": "conversations right to the end None \u2192 None of None, p toward worse None"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": true,
+       "detail": "token-ceiling errors 0 \u2192 0"
+      }
+     ]
+    },
+    "at": 1788649518750,
+    "candidate_accuracy": 0.873926
+   },
+   {
+    "version": "sdk_v1",
+    "baseline_version": "sdk_v1",
+    "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
+    "candidate_model": "claude-haiku-5-5",
+    "candidate_effort": "high",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+    "n_compared": 349,
+    "delta_pp": -3.1519,
+    "p_value": 0.042906,
+    "p_worse": 0.042906,
+    "p_better": 0.957094,
+    "ci": [
+     -0.067989,
+     0.002833
+    ],
+    "fixed": 7,
+    "broken": 18,
+    "significant": true,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.981982,
+      "delta_pp": 2.7027,
+      "fixed": 4,
+      "broken": 1,
+      "n_flip_clusters": 4,
+      "cluster_z": 1.1339,
+      "cluster_p_one_sided": 0.12842,
+      "mcnemar_p_one_sided": 0.1875
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.823529,
+      "delta_pp": -5.8824,
+      "fixed": 3,
+      "broken": 17,
+      "n_flip_clusters": 16,
+      "cluster_z": -2.6458,
+      "cluster_p_one_sided": 0.995925,
+      "mcnemar_p_one_sided": 0.99979877
+     }
+    },
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 1
+    },
+    "cluster_z": -1.7179,
+    "train": {
+     "by_seed": [
+      {
+       "seed": "2027",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
+       "candidate_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_180335",
+       "n_conversations": 100,
+       "baseline_full": 64,
+       "candidate_full": 63,
+       "fixed": 5,
+       "broken": 6,
+       "p_better": 0.72558594,
+       "p_worse": 0.5,
+       "baseline_mean_right_before_error": 2.78,
+       "candidate_mean_right_before_error": 2.73
+      },
+      {
+       "seed": "2028",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
+       "candidate_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_181237",
+       "n_conversations": 100,
+       "baseline_full": 68,
+       "candidate_full": 61,
+       "fixed": 4,
+       "broken": 11,
+       "p_better": 0.98242188,
+       "p_worse": 0.05923462,
+       "baseline_mean_right_before_error": 2.84,
+       "candidate_mean_right_before_error": 2.74
+      }
+     ],
+     "pooled": {
+      "n_draws": 2,
+      "n_conversations": 200,
+      "baseline_full": 132,
+      "candidate_full": 124,
+      "fixed": 9,
+      "broken": 17,
+      "p_better": 0.96224065,
+      "p_worse": 0.08431877
+     }
+    },
+    "verdict": {
+     "version": "sdk_v1",
+     "candidate_model": "claude-haiku-5-5",
+     "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -3.15pp, CI low -6.7989pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, no_extra_ceiling_errors",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -3.15pp, one-sided cluster p 0.957094"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -6.7989pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": false,
+       "detail": "one-sided p toward worse 0.042906"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.004075"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": true,
+       "detail": "conversations right to the end 132 \u2192 124 of 200, p toward worse 0.08431877"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": false,
+       "detail": "token-ceiling errors 0 \u2192 1"
+      }
+     ]
+    },
+    "at": 1792047191004,
+    "candidate_accuracy": 0.873926
+   },
+   {
+    "version": "sdk_v3",
+    "baseline_version": "sdk_v1",
+    "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
+    "candidate_model": "claude-haiku-5-5",
+    "candidate_effort": "high",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "sdk-evalloop-test100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205249",
+    "n_compared": 349,
+    "delta_pp": -4.8711,
+    "p_value": 0.010945,
+    "p_worse": 0.010945,
+    "p_better": 0.989055,
+    "ci": [
+     -0.091988,
+     -0.008824
+    ],
+    "fixed": 7,
+    "broken": 24,
+    "significant": true,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.954955,
+      "delta_pp": 0.0,
+      "fixed": 4,
+      "broken": 4,
+      "n_flip_clusters": 5,
+      "cluster_z": 0.0,
+      "cluster_p_one_sided": 0.5,
+      "mcnemar_p_one_sided": 0.63671875
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.810924,
+      "delta_pp": -7.1429,
+      "fixed": 3,
+      "broken": 20,
+      "n_flip_clusters": 18,
+      "cluster_z": -2.9593,
+      "cluster_p_one_sided": 0.998458,
+      "mcnemar_p_one_sided": 0.99996698
+     }
+    },
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 1
+    },
+    "cluster_z": -2.2923,
+    "train": {
+     "by_seed": [
+      {
+       "seed": "2027",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
+       "candidate_run": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_210314",
+       "n_conversations": 100,
+       "baseline_full": 64,
+       "candidate_full": 60,
+       "fixed": 6,
+       "broken": 10,
+       "p_better": 0.89494324,
+       "p_worse": 0.22724915,
+       "baseline_mean_right_before_error": 2.78,
+       "candidate_mean_right_before_error": 2.69
+      },
+      {
+       "seed": "2028",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
+       "candidate_run": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_211244",
+       "n_conversations": 100,
+       "baseline_full": 68,
+       "candidate_full": 58,
+       "fixed": 4,
+       "broken": 14,
+       "p_better": 0.99623108,
+       "p_worse": 0.01544189,
+       "baseline_mean_right_before_error": 2.84,
+       "candidate_mean_right_before_error": 2.7
+      }
+     ],
+     "pooled": {
+      "n_draws": 2,
+      "n_conversations": 200,
+      "baseline_full": 132,
+      "candidate_full": 118,
+      "fixed": 10,
+      "broken": 24,
+      "p_better": 0.99547941,
+      "p_worse": 0.01215326
+     }
+    },
+    "verdict": {
+     "version": "sdk_v3",
+     "candidate_model": "claude-haiku-5-5",
+     "candidate_effort": "high",
+     "candidate_run": "sdk-evalloop-test100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205249",
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -4.87pp, CI low -9.1988pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, train_not_worse, no_extra_ceiling_errors",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -4.87pp, one-sided cluster p 0.989055"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -9.1988pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": false,
+       "detail": "one-sided p toward worse 0.010945"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.001542"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": false,
+       "detail": "conversations right to the end 132 \u2192 118 of 200, p toward worse 0.01215326"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": false,
+       "detail": "token-ceiling errors 0 \u2192 1"
+      }
+     ]
+    },
+    "at": 1792057969765,
+    "candidate_accuracy": 0.856734
+   }
+  ]
+ },
+ "test_timeline": [
+  {
+   "at_ms": 1788456334222,
+   "date": "2026-09-04",
+   "run_id": "7e2c876dea6449dc8fc15ce195c278df",
+   "run_name": "evalloop-test100-v2\u00b7t2p2r2c2-20260904_032533",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.770774,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": true,
+   "label": null,
+   "outcome": "champion",
+   "reason": "",
+   "vs": null
+  },
+  {
+   "at_ms": 1788458272462,
+   "date": "2026-09-04",
+   "run_id": "eebbb681691d4c0dbc12635a1a6a4152",
+   "run_name": "evalloop-test100-v6\u00b7t2p5r2c2-20260904_035752",
+   "version": "v6",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.793696,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c01-e01",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 +2.29pp on 349 shared test questions (31 fixed vs 23 broken across 38 conversations); one-sided clustered McNemar p=0.1914 (\u03b1=0.05); 95% CI [-2.87pp, +7.40pp], P(\u0394>0)=0.79 \u2014 target: acc_preprocess_skeleton 0.477 \u2192 0.498",
+   "vs": {
+    "version": "v2",
+    "model": null,
+    "delta_pp": 2.2923,
+    "p_value": 0.191367,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v2"
+   }
+  },
+  {
+   "at_ms": 1788460478685,
+   "date": "2026-09-04",
+   "run_id": "c9efb25955eb4300b227d5b0cd791d0e",
+   "run_name": "evalloop-test100-v7\u00b7t2p6r2c2-20260904_043438",
+   "version": "v7",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.796562,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c01-e02",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 +2.58pp on 349 shared test questions (27 fixed vs 18 broken across 31 conversations); one-sided clustered McNemar p=0.1321 (\u03b1=0.05); 95% CI [-1.92pp, +7.16pp], P(\u0394>0)=0.87 \u2014 target: acc_preprocess_skeleton 0.477 \u2192 0.451",
+   "vs": {
+    "version": "v2",
+    "model": null,
+    "delta_pp": 2.5788,
+    "p_value": 0.132144,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v2"
+   }
+  },
+  {
+   "at_ms": 1788463659667,
+   "date": "2026-09-04",
+   "run_id": "9d317903854b422d988232bc9f54181b",
+   "run_name": "evalloop-test100-v8\u00b7t2p2r5c2-20260904_052739",
+   "version": "v8",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.816619,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": true,
+   "label": "c01-e03",
+   "outcome": "promoted",
+   "reason": "PROMOTE: \u0394 +4.58pp on 349 shared test questions (34 fixed vs 18 broken across 36 conversations); one-sided clustered McNemar p=0.0404 (\u03b1=0.05); 95% CI [-0.28pp, +9.85pp], P(\u0394>0)=0.96 \u2014 target: retriever_operand_recall 0.740 \u2192 0.768",
+   "vs": {
+    "version": "v2",
+    "model": null,
+    "delta_pp": 4.5845,
+    "p_value": 0.040428,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v2"
+   }
+  },
+  {
+   "at_ms": 1788492276504,
+   "date": "2026-09-04",
+   "run_id": "0ab67b770baf4842b2d10536d5ef340f",
+   "run_name": "evalloop-test100-v9\u00b7t2p2r6c2-20260904_132436",
+   "version": "v9",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.816619,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c02-e01",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 +0.00pp on 349 shared test questions (17 fixed vs 17 broken across 28 conversations); one-sided clustered McNemar p=0.5000 (\u03b1=0.05); 95% CI [-3.93pp, +3.46pp], P(\u0394>0)=0.46 \u2014 target: retriever_operand_recall 0.768 \u2192 0.777",
+   "vs": {
+    "version": "v8",
+    "model": null,
+    "delta_pp": 0.0,
+    "p_value": 0.5,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v8"
+   }
+  },
+  {
+   "at_ms": 1788493673405,
+   "date": "2026-09-04",
+   "run_id": "948682ba1e754c79ac4cd477b5e63eb7",
+   "run_name": "evalloop-test100-v10\u00b7t2p7r5c2-20260904_134753",
+   "version": "v10",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.82235,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c02-e02",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 +0.57pp on 349 shared test questions (20 fixed vs 18 broken across 26 conversations); one-sided clustered McNemar p=0.3927 (\u03b1=0.05); 95% CI [-3.44pp, +4.62pp], P(\u0394>0)=0.57 \u2014 target: acc_preprocess_skeleton 0.460 \u2192 0.451",
+   "vs": {
+    "version": "v8",
+    "model": null,
+    "delta_pp": 0.5731,
+    "p_value": 0.392747,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v8"
+   }
+  },
+  {
+   "at_ms": 1788525929040,
+   "date": "2026-09-04",
+   "run_id": "709d69ef223741138655673051bab8ad",
+   "run_name": "evalloop-test100-v11\u00b7t2p8r5c2-20260904_224529",
+   "version": "v11",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.830946,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c03-e01",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 +1.43pp on 349 shared test questions (19 fixed vs 14 broken across 23 conversations); one-sided clustered McNemar p=0.2539 (\u03b1=0.05); 95% CI [-2.87pp, +5.48pp], P(\u0394>0)=0.70 \u2014 target: acc_preprocess_skeleton 0.460 \u2192 0.447",
+   "vs": {
+    "version": "v8",
+    "model": null,
+    "delta_pp": 1.4327,
+    "p_value": 0.2539,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v8"
+   }
+  },
+  {
+   "at_ms": 1788527061008,
+   "date": "2026-09-04",
+   "run_id": "e5fd7554a6564dd7abfc23ca307bb43e",
+   "run_name": "evalloop-test100-v12\u00b7t2p9r5c2-20260904_230420",
+   "version": "v12",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.813754,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": null,
+   "champion_run": false,
+   "label": "c03-e02",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 -0.29pp on 349 shared test questions (19 fixed vs 20 broken across 27 conversations); one-sided clustered McNemar p=0.5509 (\u03b1=0.05); 95% CI [-4.66pp, +4.00pp], P(\u0394>0)=0.43 \u2014 target: acc_preprocess_skeleton 0.460 \u2192 0.443",
+   "vs": {
+    "version": "v8",
+    "model": null,
+    "delta_pp": -0.2865,
+    "p_value": 0.55094,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v8"
+   }
+  },
+  {
+   "at_ms": 1788578651977,
+   "date": "2026-09-05",
+   "run_id": "4d56d6f5c8e04d439079cd853558b539",
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_132411",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.444126,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": false,
+   "cost": 5.249737,
+   "champion_run": false,
+   "label": null,
+   "outcome": "incomplete",
+   "reason": "176 of 349 turns hit the session limit and were scored as wrong (44.4%) \u2014 the pass that created the unscored rule; finished as the 17:46 pass",
+   "vs": null
+  },
+  {
+   "at_ms": 1788594387777,
+   "date": "2026-09-05",
+   "run_id": "5344cc1fc70f4237ab13691b7feffb7a",
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.905444,
+   "n_scored": null,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 11.825026,
+   "champion_run": true,
+   "label": "s01 cross-runtime",
+   "outcome": "promoted",
+   "reason": "PROMOTE: \u0394 +8.88pp on 349 shared test questions (38 fixed vs 7 broken across 30 conversations); one-sided clustered McNemar p=0.0003 (\u03b1=0.05); 95% CI [+4.20pp, +13.71pp], P(\u0394>0)=1.00",
+   "vs": {
+    "version": "v8",
+    "model": null,
+    "delta_pp": 8.8825,
+    "p_value": 0.000286,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "v8"
+   }
+  },
+  {
+   "at_ms": 1788596892734,
+   "date": "2026-09-05",
+   "run_id": "e55d8cdc3d5245bba04a94459e0d140e",
+   "run_name": "sdk-evalloop-test100-sdk_v2\u00b7s2-20260905_182812",
+   "version": "sdk_v2",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.876791,
+   "n_scored": 349,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 11.821277,
+   "champion_run": false,
+   "label": "s01-e02",
+   "outcome": "rejected",
+   "reason": "REJECT: \u0394 -2.87pp on 349 shared test questions (6 fixed vs 16 broken across 13 conversations); one-sided clustered McNemar p=0.9172 (\u03b1=0.05); 95% CI [-7.32pp, +0.85pp], P(\u0394>0)=0.06",
+   "vs": {
+    "version": "sdk_v1",
+    "model": null,
+    "delta_pp": -2.8653,
+    "p_value": 0.917241,
+    "p_kind": "one-sided toward better",
+    "paired": true,
+    "champion_of_the_day": "sdk_v1"
+   }
+  },
+  {
+   "at_ms": 1788649518750,
+   "date": "2026-09-06",
+   "run_id": "4edad254f7d04f5f8c1d31cd112c1113",
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-4-5-20251001",
+   "effort": "high",
+   "accuracy": 0.873926,
+   "n_scored": 349,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 7.631322,
+   "champion_run": false,
+   "label": null,
+   "outcome": "falls_short",
+   "reason": "falls_short: \u0394 -3.15pp, CI low -6.9401pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse; no train evidence",
+   "vs": {
+    "version": "sdk_v1",
+    "model": "claude-sonnet-5",
+    "delta_pp": -3.1519,
+    "p_value": 0.050525,
+    "p_kind": "one-sided toward worse",
+    "paired": true,
+    "champion_of_the_day": "sdk_v1"
+   }
+  },
+  {
+   "at_ms": 1792047191004,
+   "date": "2026-10-15",
+   "run_id": "0fc31febec374ba5ad08f68c476f0691",
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.873926,
+   "n_scored": 349,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 0.728858,
+   "champion_run": false,
+   "label": null,
+   "outcome": "falls_short",
+   "reason": "falls_short: \u0394 -3.15pp, CI low -6.7989pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, no_extra_ceiling_errors",
+   "vs": {
+    "version": "sdk_v1",
+    "model": "claude-sonnet-5",
+    "delta_pp": -3.1519,
+    "p_value": 0.042906,
+    "p_kind": "one-sided toward worse",
+    "paired": true,
+    "champion_of_the_day": "sdk_v1"
+   }
+  },
+  {
+   "at_ms": 1792057969765,
+   "date": "2026-10-15",
+   "run_id": "0b23f5dc4ef84ad09fd1856279f47f36",
+   "run_name": "sdk-evalloop-test100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205249",
+   "version": "sdk_v3",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.856734,
+   "n_scored": 349,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 0.756066,
+   "champion_run": false,
+   "label": "h01-e01",
+   "outcome": "falls_short",
+   "reason": "falls_short: \u0394 -4.87pp, CI low -9.1988pp (margin \u22123.0pp); failed test_ci_within_margin, test_not_worse, program_turns_not_worse, train_not_worse, no_extra_ceiling_errors",
+   "vs": {
+    "version": "sdk_v1",
+    "model": "claude-sonnet-5",
+    "delta_pp": -4.8711,
+    "p_value": 0.010945,
+    "p_kind": "one-sided toward worse",
+    "paired": true,
+    "champion_of_the_day": "sdk_v1"
+   }
+  }
+ ],
+ "champion_steps": [
+  {
+   "at": "2026-08-28T00:15:19.117895+00:00",
+   "at_ms": 1787876119117,
+   "effective_at_ms": 1787876119117,
+   "event": "promote",
+   "reason": "first registered version becomes champion by default",
+   "runtime": "pipeline",
+   "version": "v2",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.770774,
+   "run_name": "evalloop-test100-v2\u00b7t2p2r2c2-20260904_032533"
+  },
+  {
+   "at": "2026-09-02T04:59:09.663627+00:00",
+   "at_ms": 1788325149663,
+   "effective_at_ms": 1788325149663,
+   "event": "promote",
+   "reason": "comparator passed: net positive: 54.5% \u2192 61.4% (+6.82%) on the shared set, 5 fixed vs 2 broken; McNemar p=0.453 (not significant at \u03b1=0.05)",
+   "runtime": "pipeline",
+   "version": "v3_1",
+   "model": null,
+   "effort": null,
+   "accuracy": null
+  },
+  {
+   "at": "2026-09-02T10:05:54.423634+00:00",
+   "at_ms": 1788343554423,
+   "effective_at_ms": 1788343554423,
+   "event": "promote",
+   "reason": "targeted (M2): retriever first-faults 3 \u2192 2 on the shared reports; overall \u0394 +9.09pp (5 fixed vs 1 broken); McNemar p=0.21875",
+   "runtime": "pipeline",
+   "version": "v4",
+   "model": null,
+   "effort": null,
+   "accuracy": null
+  },
+  {
+   "at": "2026-09-02T11:34:26.057841+00:00",
+   "at_ms": 1788348866057,
+   "effective_at_ms": 1788348866057,
+   "event": "promote",
+   "reason": "rollback: promotion evidence must come from the unseen test split (protocol change 2026-09-02). v4 train-only evidence stays as optimisation signal; v4 may re-earn champion on test data.",
+   "runtime": "pipeline",
+   "version": "v3_1",
+   "model": null,
+   "effort": null,
+   "accuracy": null
+  },
+  {
+   "at": "2026-09-02T12:18:57.161118+00:00",
+   "at_ms": 1788351537161,
+   "effective_at_ms": 1788351537161,
+   "event": "promote",
+   "reason": "targeted (M2): preprocess acc_preprocess_skeleton 0.415 \u2192 0.447 on the shared test reports; overall \u0394 +2.14pp (12 fixed vs 8 broken); McNemar p=0.503445",
+   "runtime": "pipeline",
+   "version": "v5",
+   "model": null,
+   "effort": null,
+   "accuracy": null
+  },
+  {
+   "at": "2026-09-03T17:18:03.855215+00:00",
+   "at_ms": 1788455883855,
+   "effective_at_ms": 1788455883855,
+   "event": "promote",
+   "reason": "rollback to v2 (campaign protocol, 2026-09-03): v3_1, v4 and v5 were each promoted under the retired net-positive rule. Re-judged under the campaign rule \u2014 net positive AND one-sided cluster-corrected McNemar p < 0.05 \u2014 every one is rejecte",
+   "runtime": "pipeline",
+   "version": "v2",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.770774,
+   "run_name": "evalloop-test100-v2\u00b7t2p2r2c2-20260904_032533"
+  },
+  {
+   "at": "2026-09-03T19:33:24.004469+00:00",
+   "at_ms": 1788464004004,
+   "effective_at_ms": 1788463659667,
+   "event": "promote",
+   "reason": "PROMOTE: \u0394 +4.58pp on 349 shared test questions (34 fixed vs 18 broken across 36 conversations); one-sided clustered McNemar p=0.0404 (\u03b1=0.05); 95% CI [-0.28pp, +9.85pp], P(\u0394>0)=0.96 \u2014 target: retriever_operand_recall 0.740 \u2192 0.768 | Restru",
+   "runtime": "pipeline",
+   "version": "v8",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.816619,
+   "run_name": "evalloop-test100-v8\u00b7t2p2r5c2-20260904_052739"
+  },
+  {
+   "at": "2026-09-05T08:01:16.760415+00:00",
+   "at_ms": 1788595276760,
+   "effective_at_ms": 1788594387777,
+   "event": "promote_sdk",
+   "reason": "P3 diagnostic baseline: first sdk version becomes sdk_champion so campaign s01 has a baseline arm. Unoptimised SDK 90.54% vs optimised pipeline v8 81.66% on test100 (+8.88pp, 38 fixed vs 7 broken, clustered one-sided McNemar p=0.0003, 95% C",
+   "runtime": "agent_sdk",
+   "version": "sdk_v1",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.905444,
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627"
+  },
+  {
+   "at": "2026-10-15T04:57:39.405361+00:00",
+   "at_ms": 1792040259405,
+   "effective_at_ms": 1788594387777,
+   "event": "universal_champion",
+   "reason": "owner's decision 2026-10-15: sdk_v1 is the universal champion \u2014 it beat the pipeline champion v8 on the gate split (+8.88pp, 38 fixed / 7 broken, one-sided cluster p=0.000286, gate g-20260905080150-00fce8a3). Recorded as an agent: claude-so",
+   "runtime": "agent_sdk",
+   "version": "sdk_v1",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.905444,
+   "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627"
+  }
+ ],
+ "train_passes": [
+  {
+   "at_ms": 1788321900390,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train10-v2-20260902_140405",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.545455,
+   "n_questions": 44,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788321965325,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train10-v3_1-20260902_140503",
+   "version": "v3_1",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.613636,
+   "n_questions": 44,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788340410980,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train10-v3_1-20260902_191330",
+   "version": "v3_1",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.636364,
+   "n_questions": 44,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788340532905,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train10-v3_1-20260902_191532",
+   "version": "v3_1",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.636364,
+   "n_questions": 44,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788343348672,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train10-v4-20260902_200228",
+   "version": "v4",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.727273,
+   "n_questions": 44,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788350712714,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train50-v3_1\u00b7t3p3r3c3-20260902_220512",
+   "version": "v3_1",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.668394,
+   "n_questions": 193,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788351218674,
+   "date": "2026-09-02",
+   "run_name": "evalloop-train50-v5\u00b7t3p4r3c3-20260902_221337",
+   "version": "v5",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.704663,
+   "n_questions": 193,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788456260049,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train3-v2\u00b7t2p2r2c2-20260904_032419",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 1.0,
+   "n_questions": 12,
+   "train_seed": "2026",
+   "stop_at_first_wrong": true,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788456293916,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train3-v2\u00b7t2p2r2c2-20260904_032453",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.909091,
+   "n_questions": 11,
+   "train_seed": "2026",
+   "stop_at_first_wrong": true,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788456703018,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_033142",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.822951,
+   "n_questions": 305,
+   "train_seed": "2026",
+   "stop_at_first_wrong": true,
+   "campaign": "c01",
+   "complete": true
+  },
+  {
+   "at_ms": 1788458619446,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_040339",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.800699,
+   "n_questions": 286,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "c01",
+   "complete": true
+  },
+  {
+   "at_ms": 1788460812100,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_044011",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.840136,
+   "n_questions": 294,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": "c01",
+   "complete": true
+  },
+  {
+   "at_ms": 1788462201480,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_050321",
+   "version": "v2",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.843206,
+   "n_questions": 287,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": "c01",
+   "complete": true
+  },
+  {
+   "at_ms": 1788491572200,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_131251",
+   "version": "v8",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.858934,
+   "n_questions": 319,
+   "train_seed": "2026",
+   "stop_at_first_wrong": true,
+   "campaign": "c02",
+   "complete": true
+  },
+  {
+   "at_ms": 1788492982745,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_133622",
+   "version": "v8",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.809187,
+   "n_questions": 283,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "c02",
+   "complete": true
+  },
+  {
+   "at_ms": 1788525268029,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_223427",
+   "version": "v8",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.864198,
+   "n_questions": 324,
+   "train_seed": "2026",
+   "stop_at_first_wrong": true,
+   "campaign": "c03",
+   "complete": true
+  },
+  {
+   "at_ms": 1788526346659,
+   "date": "2026-09-04",
+   "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_225226",
+   "version": "v8",
+   "runtime": "pipeline",
+   "model": "deepseek-v4-flash",
+   "effort": null,
+   "accuracy": 0.840532,
+   "n_questions": 301,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "c03",
+   "complete": true
+  },
+  {
+   "at_ms": 1788578463418,
+   "date": "2026-09-05",
+   "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132102",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.0,
+   "n_questions": 13,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788578492078,
+   "date": "2026-09-05",
+   "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132131",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.384615,
+   "n_questions": 13,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788578591671,
+   "date": "2026-09-05",
+   "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132311",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.692308,
+   "n_questions": 13,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1788595765236,
+   "date": "2026-09-05",
+   "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.88535,
+   "n_questions": 314,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "s01",
+   "complete": true
+  },
+  {
+   "at_ms": 1788597732275,
+   "date": "2026-09-05",
+   "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5",
+   "effort": "high",
+   "accuracy": 0.898734,
+   "n_questions": 316,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": "s01",
+   "complete": true
+  },
+  {
+   "at_ms": 1792046708935,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-haiku-5-5-high-20261015_174508",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.692308,
+   "n_questions": 13,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792047815736,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_180335",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.880645,
+   "n_questions": 310,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792048358338,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_181237",
+   "version": "sdk_v1",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.875399,
+   "n_questions": 313,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792057936364,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train3-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205216",
+   "version": "sdk_v3",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.461538,
+   "n_questions": 13,
+   "train_seed": null,
+   "stop_at_first_wrong": false,
+   "campaign": "h01",
+   "complete": true
+  },
+  {
+   "at_ms": 1792058594154,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_210314",
+   "version": "sdk_v3",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.87055,
+   "n_questions": 309,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "h01",
+   "complete": true
+  },
+  {
+   "at_ms": 1792059164700,
+   "date": "2026-10-15",
+   "run_name": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_211244",
+   "version": "sdk_v3",
+   "runtime": "agent_sdk",
+   "model": "claude-haiku-5-5",
+   "effort": "high",
+   "accuracy": 0.865385,
+   "n_questions": 312,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": "h01",
+   "complete": true
+  }
+ ],
  "judge": {
   "dataset": {
    "name": "judge_v1",
@@ -976,8 +2333,8 @@
       "n_false_alarms": 30,
       "meets_target": false,
       "auroc": 0.6209245742092457,
-      "brier": 0.12587945476973683,
-      "ece": 0.12734046052631576,
+      "brier": 0.1258794547697372,
+      "ece": 0.1273404605263182,
       "coverage_at_target": 0.006578947368421052,
       "threshold_at_target": 0.997,
       "high_band_accuracy_ci": [
@@ -1008,8 +2365,8 @@
       "n_false_alarms": 27,
       "meets_target": false,
       "auroc": 0.5242136555427694,
-      "brier": 0.11811411174785101,
-      "ece": 0.11113180515759319,
+      "brier": 0.11811411174785175,
+      "ece": 0.11113180515759728,
       "coverage_at_target": 0.0,
       "threshold_at_target": null,
       "high_band_accuracy_ci": [
@@ -1045,8 +2402,8 @@
       "n_false_alarms": 8,
       "meets_target": false,
       "auroc": 0.5481481481481482,
-      "brier": 0.1295822463768116,
-      "ece": 0.13760869565217387,
+      "brier": 0.12958224637681157,
+      "ece": 0.13760869565217396,
       "coverage_at_target": 0.08695652173913043,
       "threshold_at_target": 0.995,
       "high_band_accuracy_ci": [

@@ -404,7 +404,7 @@ export const FINDINGS: Finding[] = [
     response:
       'History is threaded as the system’s own prior answers, so a later turn depends on what was actually said rather than on gold it never saw. Per-turn accuracy is a first-class slice, not a summary statistic.',
     evidence: 'The per-turn curve on this page, against the paper’s Figure 5.',
-    to: '/runs',
+    to: '/runs/legacy',
   },
   {
     paper:

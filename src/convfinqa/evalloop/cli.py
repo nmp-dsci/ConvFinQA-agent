@@ -47,6 +47,22 @@ def _add_runtime(
     )
 
 
+def _add_sdk_agent(parser: argparse.ArgumentParser, what: str) -> None:
+    """--sdk-model / --sdk-effort: the agent an agent_sdk step is about."""
+    parser.add_argument(
+        "--sdk-model",
+        default=None,
+        metavar="MODEL",
+        help=f"agent_sdk only: the model {what} (default: the champion record's).",
+    )
+    parser.add_argument(
+        "--sdk-effort",
+        default=None,
+        choices=("low", "medium", "high", "xhigh", "max"),
+        help=f"agent_sdk only: the effort {what} (default: the champion record's).",
+    )
+
+
 def check_runtime(
     ap: argparse.ArgumentParser, runtime: str, *versions: str | None
 ) -> None:
@@ -206,12 +222,16 @@ def build_parser() -> argparse.ArgumentParser:
     dg.add_argument("--campaign", default=None)
     dg.add_argument("--label", default=None, help="Experiment label, e.g. s01-e02.")
     _add_runtime(dg)
+    _add_sdk_agent(dg, "the CSV was answered on (default: the pass's own record)")
 
     pr = sub.add_parser(
         "propose", help="Write a challenger changing ONE subagent's prompt."
     )
     pr.add_argument(
-        "--diagnoses", required=True, help="diagnoses_*.jsonl from diagnose."
+        "--diagnoses",
+        required=True,
+        nargs="+",
+        help="diagnoses_*.jsonl from diagnose (agent_sdk: one per train draw).",
     )
     pr.add_argument("--base-version", required=True)
     pr.add_argument("--new-version", required=True)
@@ -225,6 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="agent_sdk only: cap the number of areas one rewrite may edit.",
     )
     _add_runtime(pr)
+    _add_sdk_agent(pr, "the rewrite is written for")
 
     gtt = sub.add_parser(
         "gate-targeted",
@@ -251,6 +272,44 @@ def build_parser() -> argparse.ArgumentParser:
         "--promote",
         action="store_true",
         help="Promote the challenger when the targeted rule passes.",
+    )
+    gtt.add_argument(
+        "--campaign", default=None, help="Count this verdict against a campaign."
+    )
+    gtt.add_argument("--label", default=None, help="Experiment label, e.g. s01-e02.")
+    gtt.add_argument(
+        "--rewrite-id", default=None, help="The rewrite this gate judges (rw-…)."
+    )
+
+    gch = sub.add_parser(
+        "gate-challenger",
+        help=(
+            "agent_sdk: judge a challenger agent (another model or effort) "
+            "against the champion's committed runs under the s19 rule."
+        ),
+    )
+    gch.add_argument("--candidate-csv", required=True, help="Its test100 pass.")
+    gch.add_argument("--candidate-version", required=True)
+    gch.add_argument(
+        "--candidate-train-csv",
+        action="append",
+        default=[],
+        help="An early-stopped train draw of it on a champion seed (repeatable).",
+    )
+    _add_sdk_agent(gch, "the challenger ran on")
+    gch.add_argument("--target-class", default=None)
+    gch.add_argument(
+        "--base-agent-csv",
+        default=None,
+        help="Its previous prompt's test pass on the same agent (information only).",
+    )
+    gch.add_argument("--campaign", default=None)
+    gch.add_argument("--label", default=None)
+    gch.add_argument("--rewrite-id", default=None)
+    gch.add_argument(
+        "--promote",
+        action="store_true",
+        help="Promote prompt, model and effort together when the rule passes.",
     )
 
     kp = sub.add_parser(
@@ -362,6 +421,44 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-promote",
         action="store_true",
         help="Run the gate and record the verdict without moving the champion.",
+    )
+    _add_sdk_agent(
+        cy,
+        "every pass of the cycle runs on; another model or effort than the "
+        "champion's makes it a challenger agent, judged against the champion's "
+        "committed runs",
+    )
+    cy.add_argument(
+        "--train-csv",
+        action="append",
+        default=None,
+        help=(
+            "agent_sdk: reuse a committed early-stopped train draw of this agent "
+            "instead of drawing one (repeatable); refused unless its name, model, "
+            "effort and completeness match."
+        ),
+    )
+    cy.add_argument(
+        "--rescore-seed",
+        type=int,
+        action="append",
+        default=None,
+        help=(
+            "agent_sdk challenger: train seeds to re-score the rewrite on "
+            "(default: every seed the champion has a draw on)."
+        ),
+    )
+    cy.add_argument(
+        "--diagnose-concurrency",
+        type=int,
+        default=None,
+        help="Concurrency for diagnosis alone (default: --concurrency).",
+    )
+    cy.add_argument(
+        "--smoke-reports",
+        type=int,
+        default=3,
+        help="agent_sdk challenger: reports in the output-contract smoke pass (0 skips).",
     )
     _add_runtime(
         cy,
@@ -592,10 +689,14 @@ def main() -> None:
                     concurrency=args.concurrency,
                     campaign=args.campaign,
                     label=args.label,
+                    sdk_model=args.sdk_model,
+                    sdk_effort=args.sdk_effort,
                     **kwargs,
                 )
             )
         else:
+            if args.sdk_model or args.sdk_effort:
+                ap.error("--sdk-model/--sdk-effort apply to --runtime agent_sdk only")
             from convfinqa.evalloop import teacher
 
             summary = asyncio.run(
@@ -609,6 +710,8 @@ def main() -> None:
         check_runtime(ap, args.runtime, args.base_version, args.new_version)
         if args.runtime == "agent_sdk":
             sdk_teacher = _sdk_teacher()
+            model, effort = sdk_teacher.default_agent()
+            model, effort = args.sdk_model or model, args.sdk_effort or effort
             out = asyncio.run(
                 sdk_teacher.propose_version(
                     args.diagnoses,
@@ -616,18 +719,26 @@ def main() -> None:
                     new_version=args.new_version,
                     campaign=args.campaign,
                     label=args.label,
-                    pooled=sdk_teacher.rank_classes(args.base_version),
+                    pooled=sdk_teacher.rank_classes(
+                        args.base_version, sdk_model=model, sdk_effort=effort
+                    ),
                     max_areas=args.max_areas,
+                    target_model=model,
+                    target_effort=effort,
                 )
             )
         else:
             if args.max_areas is not None:
                 ap.error("--max-areas applies to --runtime agent_sdk only")
+            if args.sdk_model or args.sdk_effort:
+                ap.error("--sdk-model/--sdk-effort apply to --runtime agent_sdk only")
+            if len(args.diagnoses) != 1:
+                ap.error("--runtime pipeline takes one --diagnoses file")
             from convfinqa.evalloop import teacher
 
             out = asyncio.run(
                 teacher.propose_version(
-                    args.diagnoses,
+                    args.diagnoses[0],
                     base_version=args.base_version,
                     new_version=args.new_version,
                     target=args.target,
@@ -646,6 +757,7 @@ def main() -> None:
                     "--target-class (the failure class rewritten), not --target-agent"
                 )
             from convfinqa.evalloop import sdk_gate
+            from convfinqa.tracking import registry
 
             verdict, comparison = sdk_gate.gate_overall(
                 args.baseline_csv,
@@ -654,26 +766,23 @@ def main() -> None:
                 candidate_version=args.candidate_version,
                 target_class=args.target_class,
             )
-            verdict["gate_run_id"] = sdk_gate.log_gate_verdict(
-                verdict, comparison=comparison
-            )
-            print(json.dumps(verdict, indent=2, default=str))  # noqa: T201
             if args.promote and verdict["evidence_split"] != "test":
                 ap.error(
                     "promotion evidence must come from the unseen test split — "
                     f"this comparison ran on {verdict['evidence_split']!r}. "
                     "Train runs optimise; test runs promote."
                 )
+            promoted = False
             if args.promote and verdict["promotable"]:
-                from convfinqa.tracking import registry
-
                 outcome = registry.promote_sdk(
                     args.candidate_version,
                     comparison=comparison,
                     evidence_split=str(verdict["evidence_split"]),
+                    evidence_csv=args.candidate_csv,
                     actor="evalloop-teacher-sdk",
                     reason=verdict["reason"],
                 )
+                promoted = outcome.promoted
                 print(  # noqa: T201
                     json.dumps(
                         {"promoted_via": "sdk overall rule", **outcome.as_dict()},
@@ -683,6 +792,17 @@ def main() -> None:
                 )
             elif args.promote:
                 print("gate rule failed — challenger NOT promoted")  # noqa: T201
+            # Written after the promotion was tried, so the row says what the
+            # registry did; --campaign counts it against that campaign's cap.
+            verdict["gate_run_id"] = sdk_gate.log_gate_verdict(
+                verdict,
+                comparison=comparison,
+                campaign=args.campaign,
+                label=args.label,
+                rewrite_id=args.rewrite_id,
+                promoted=promoted,
+            )
+            print(json.dumps(verdict, indent=2, default=str))  # noqa: T201
         else:
             if not args.target_agent or args.target_class:
                 ap.error(
@@ -729,6 +849,58 @@ def main() -> None:
                 )
             elif args.promote:
                 print("gate rule failed — challenger NOT promoted")  # noqa: T201
+
+    elif args.cmd == "gate-challenger":
+        from convfinqa.evalloop import sdk_gate
+        from convfinqa.tracking import registry
+
+        champion = registry.champion_agent() or {}
+        model = args.sdk_model or str(champion.get("model") or "")
+        effort = args.sdk_effort or str(champion.get("effort") or "")
+        train: dict[str, str] = {}
+        for csv in args.candidate_train_csv:
+            seed = sdk_gate.train_seed_of(csv)
+            if seed is None:
+                ap.error(f"{csv}: no train_draw_seed on its run record")
+            train[str(seed)] = csv
+        verdict, comparison = sdk_gate.gate_challenger(
+            args.candidate_csv,
+            candidate_version=args.candidate_version,
+            sdk_model=model,
+            sdk_effort=effort,
+            candidate_train=train,
+            target_class=args.target_class,
+            base_agent_csv=args.base_agent_csv,
+        )
+        promoted = False
+        if args.promote and verdict["promotable"]:
+            outcome = registry.promote_challenger(
+                args.candidate_version,
+                model=model,
+                effort=effort,
+                verdict=verdict["challenger_verdict"],
+                actor="evalloop-gate-challenger",
+                reason=verdict["reason"],
+            )
+            promoted = outcome.promoted
+            print(json.dumps(outcome.as_dict(), indent=2, default=str))  # noqa: T201
+        verdict["gate_run_id"] = sdk_gate.log_gate_verdict(
+            verdict,
+            comparison=comparison,
+            campaign=args.campaign,
+            label=args.label,
+            rewrite_id=args.rewrite_id,
+            promoted=promoted,
+            extra_artifacts={
+                "challenger_pair.json": verdict["challenger_pair"],
+                **(
+                    {"vs_base_agent.json": verdict["vs_base_agent"]}
+                    if verdict.get("vs_base_agent")
+                    else {}
+                ),
+            },
+        )
+        print(json.dumps(verdict, indent=2, default=str))  # noqa: T201
 
     elif args.cmd == "kappa":
         from convfinqa.evalloop import kappa
@@ -779,6 +951,12 @@ def main() -> None:
                 promote=not args.no_promote,
                 baseline_gate_csv=args.baseline_gate_csv,
                 runtime=args.runtime,
+                sdk_model=args.sdk_model,
+                sdk_effort=args.sdk_effort,
+                train_csvs=args.train_csv,
+                rescore_seeds=args.rescore_seed,
+                diagnose_concurrency=args.diagnose_concurrency,
+                smoke_reports=args.smoke_reports,
             )
         )
         print(json.dumps(steps, indent=2, default=str))  # noqa: T201

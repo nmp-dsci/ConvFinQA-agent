@@ -21,13 +21,16 @@
 import type {
   CampaignExperiment,
   CampaignSummary,
+  ChampionAgent,
   ChampionPoint,
+  Challengers,
   JudgeSummary,
   RuntimeArm,
   RuntimeComparison,
   RuntimeGate,
   RuntimeSlice,
   SdkModelComparison,
+  TestPass,
 } from './api';
 import { NO_VALUE } from '../landing/format';
 import { BASELINES, PAPER } from '../system/paper';
@@ -101,7 +104,8 @@ export const ARMS: Record<RuntimeKey, ArmDescription> = {
     title: 'one Claude session',
     architecture:
       'one Claude Agent SDK session per conversation, the six calculator functions as its only tools, one prompt; it reports the same four stages so the same panel applies.',
-    aliasNote: 'champion — the universal champion since 2026-10-15; the pipeline keeps pipeline_champion',
+    aliasNote:
+      'champion — the universal champion since 2026-10-15; the pipeline keeps pipeline_champion',
   },
 };
 
@@ -159,8 +163,7 @@ export function runtimeVerdict(
   const deltaPp = numberOrNull(gate?.delta_pp);
   const promoted = gate?.promoted ?? null;
   const pipelineVersion = comparison?.pipeline?.version ?? null;
-  const candidateVersion =
-    gate?.candidate_version ?? comparison?.agent_sdk?.version ?? null;
+  const candidateVersion = gate?.candidate_version ?? comparison?.agent_sdk?.version ?? null;
 
   const measured = deltaPp !== null && promoted !== null;
   const recommendation: Recommendation = !measured
@@ -233,7 +236,10 @@ const SLICE_LABELS: Record<'program' | 'number', { label: string; what: string }
     label: 'program turns',
     what: 'a computation: plan the sub-questions, retrieve the operands, run the DSL',
   },
-  number: { label: 'number turns', what: 'a lookup: one value out of the table or the prose' },
+  number: {
+    label: 'number turns',
+    what: 'a lookup: one value out of the table or the prose',
+  },
 };
 
 /**
@@ -362,20 +368,120 @@ export type StageKey =
   | 'pipeline_optimised'
   | 'sdk_distilled'
   | 'sdk_optimised'
-  | 'sdk_model_swap';
+  | 'sdk_model_swap'
+  | 'challenger';
+
+/**
+ * What a bar's colour says, and the word beside it (status is never colour
+ * alone): the agent serving today in the accent; a pass — promoted, beats,
+ * matches — in ok; a rejection or a challenger that falls short hatched in
+ * red; anything that was only ever a starting point neutral.
+ */
+export type PointTone = 'current' | 'ok' | 'fail' | 'neutral';
+
+export type PointOutcome =
+  | 'champion'
+  | 'promoted'
+  | 'passed'
+  | 'beats'
+  | 'matches'
+  | 'rejected'
+  | 'falls_short'
+  | 'baseline';
 
 export interface ProgressionPoint {
   key: StageKey;
+  /** Unique per point: a challenger stage repeats, one per agent. */
+  id: string;
   /** The stage as the story tells it. */
   stage: string;
   runtime: RuntimeKey;
   version: string | null;
+  /** sdk: the model id; pipeline: the model its four agents run on, when recorded. */
+  model: string | null;
+  /** sdk only. */
+  effort: string | null;
+  /** The day the pass ran (YYYY-MM-DD), from `test_timeline`; null when not on record. */
+  date: string | null;
   accuracy: number | null;
   present: boolean;
   /** What happened at this stage, or why it is absent. */
   note: string;
   /** Only meaningful for a gated stage; null where nothing was gated. */
   promoted: boolean | null;
+  /** What the record says about it; null for an absent stage. */
+  outcome: PointOutcome | null;
+  tone: PointTone;
+}
+
+/** Everything newer than the five-stage story: the record the timeline is drawn from. */
+export interface ProgressionRecord {
+  challengers?: Challengers | null;
+  timeline?: TestPass[];
+  championAgent?: ChampionAgent | null;
+}
+
+const PASSING: ReadonlySet<PointOutcome> = new Set(['promoted', 'passed', 'beats', 'matches']);
+const FAILING: ReadonlySet<PointOutcome> = new Set(['rejected', 'falls_short']);
+
+function toneOf(outcome: PointOutcome | null, current: boolean): PointTone {
+  if (current) return 'current';
+  if (outcome && FAILING.has(outcome)) return 'fail';
+  if (outcome && PASSING.has(outcome)) return 'ok';
+  return 'neutral';
+}
+
+/** `falls_short` → `falls short`; the word under the bar beside its glyph. */
+export function outcomeWord(point: Pick<ProgressionPoint, 'outcome' | 'tone'>): string {
+  if (point.tone === 'current') return '● champion';
+  switch (point.outcome) {
+    case 'promoted':
+    case 'passed':
+    case 'beats':
+    case 'matches':
+      return `● ${point.outcome}`;
+    case 'rejected':
+      return '✕ rejected';
+    case 'falls_short':
+      return '✕ falls short';
+    case 'champion':
+      return '○ champion then';
+    case 'baseline':
+      return '○ baseline';
+    default:
+      return '○ not gated';
+  }
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * `2026-09-05` → `5 Sep 2026`, read as written: the date is the run name's own
+ * stamp, and parsing it through `Date` would move it a day in some timezones.
+ */
+export function formatDay(date: string | null | undefined, withYear = true): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? '');
+  if (!m) return NO_VALUE;
+  const month = MONTHS[Number(m[2]) - 1];
+  if (!month) return NO_VALUE;
+  return `${Number(m[3])} ${month}${withYear ? ` ${m[1]}` : ''}`;
+}
+
+/** The short name a run of this model carries; the pipeline's four agents share one. */
+export function agentShortName(point: Pick<ProgressionPoint, 'runtime' | 'model'>): string {
+  if (!point.model) return point.runtime === 'pipeline' ? 'four agents' : 'model not recorded';
+  if (point.runtime === 'pipeline') return `${modelShortName(point.model).split('-')[0]} ×4`;
+  return modelShortName(point.model);
+}
+
+function isCurrent(
+  champion: ChampionAgent | null | undefined,
+  version: string | null,
+  model: string | null,
+  effort: string | null,
+): boolean {
+  if (!champion || !version) return false;
+  return champion.version === version && champion.model === model && champion.effort === effort;
 }
 
 /** An SDK experiment that is a baseline read-out rather than an optimisation. */
@@ -384,22 +490,27 @@ export function isBaselineExperiment(exp: CampaignExperiment): boolean {
 }
 
 /**
- * The five stages of the story, in the order it happened.
+ * Every stage of the story, in the order it happened.
  *
  * The pipeline points come from `champion_track` — first entry is the raw
  * multi-agent system, last is what the campaigns optimised it into — the SDK
- * points from the comparison arm and the SDK campaign's own experiments, and
- * the last point from the model swap: the same distilled prompt scored on a
- * second model, which is the one measurement that separates the model from the
- * architecture. A stage with nothing behind it is returned `present: false`
+ * points from the comparison arm and the SDK campaign's own experiments. Then
+ * the challenger agents: with `record.challengers`, one point per agent that
+ * ran on another model or effort than the champion's (s19, s21), each paired
+ * against the champion's committed runs and carrying its verdict; without it,
+ * the single model-swap stage the record held before s21 (the same prompt on a
+ * second model). A stage with nothing behind it is returned `present: false`
  * with the reason, so the chart can draw an empty slot rather than silently
- * having fewer columns.
+ * having fewer columns. Dates come from `record.timeline`, matched by the run
+ * each point measured; the champion is drawn as such only when it is the agent
+ * `record.championAgent` names — version, model and effort.
  */
 export function progression(
   track: ChampionPoint[] | undefined,
   comparison: RuntimeComparison | null | undefined,
   sdkExperiments: CampaignExperiment[] | undefined,
   modelComparison?: SdkModelComparison | null,
+  record: ProgressionRecord = {},
 ): ProgressionPoint[] {
   const points = (track ?? []).filter((p) => numberOrNull(p.accuracy) !== null);
   const raw = points[0] ?? null;
@@ -421,49 +532,105 @@ export function progression(
   // prompt, so its accuracy sits on the same axis as the distilled point.
   const swap = modelRows(modelComparison).find((r) => !r.isReference) ?? null;
 
-  return [
-    {
+  const timeline = (record.timeline ?? []).filter((r) => r.complete);
+  const champion = record.championAgent ?? null;
+  const byRun = new Map(timeline.map((r) => [r.run_name, r]));
+  const pipelinePass = (version: string | null | undefined) =>
+    version
+      ? (timeline.find(
+          (r) => r.runtime === 'pipeline' && r.version === version && r.champion_run,
+        ) ??
+        timeline.find((r) => r.runtime === 'pipeline' && r.version === version) ??
+        null)
+      : null;
+  const rawPass = pipelinePass(raw?.version);
+  const optPass = pipelinePass(optimised?.version);
+  const sdkPass = sdk?.run_name ? (byRun.get(sdk.run_name) ?? null) : null;
+  const attemptPass = attempt
+    ? (timeline.find(
+        (r) =>
+          r.runtime === 'agent_sdk' &&
+          r.version === attempt.candidate_version &&
+          (r.outcome === 'rejected' || r.outcome === 'promoted' || r.outcome === 'passed'),
+      ) ?? null)
+    : null;
+  const sdkModel = sdk?.model ?? sdkPass?.model ?? null;
+  const sdkEffort = sdk?.effort ?? sdkPass?.effort ?? null;
+
+  const stage = (
+    base: Omit<ProgressionPoint, 'id' | 'tone'> & {
+      id?: string;
+      current?: boolean;
+    },
+  ): ProgressionPoint => {
+    const { current, ...rest } = base;
+    return {
+      ...rest,
+      id: base.id ?? base.key,
+      tone: base.present ? toneOf(base.outcome, Boolean(current)) : 'neutral',
+    };
+  };
+
+  const fixed: ProgressionPoint[] = [
+    stage({
       key: 'pipeline_raw',
       stage: 'multi-agent, raw',
       runtime: 'pipeline',
       version: raw?.version ?? null,
+      model: rawPass?.model ?? null,
+      effort: null,
+      date: rawPass?.date ?? null,
       accuracy: numberOrNull(raw?.accuracy),
       present: Boolean(raw),
       note: raw
         ? 'four prompts as first written, before any campaign'
         : 'no pipeline run on the gate split yet',
       promoted: null,
-    },
-    {
+      outcome: raw ? 'baseline' : null,
+    }),
+    stage({
       key: 'pipeline_optimised',
       stage: 'multi-agent, optimised',
       runtime: 'pipeline',
       version: optimised?.version ?? null,
+      model: optPass?.model ?? null,
+      effort: null,
+      date: optPass?.date ?? null,
       accuracy: numberOrNull(optimised?.accuracy),
       present: Boolean(optimised && numberOrNull(optimised.accuracy) !== null),
       note: optimised
         ? 'the champion the campaigns arrived at, one subagent per experiment'
         : 'the campaigns have not moved the champion yet',
       promoted: null,
-    },
-    {
+      // It became the pipeline's champion by passing its gate (c01-e03).
+      outcome: optimised ? (last ? 'promoted' : 'baseline') : null,
+    }),
+    stage({
       key: 'sdk_distilled',
       stage: 'SDK, distilled',
       runtime: 'agent_sdk',
       version: sdk?.version ?? null,
+      model: sdkModel,
+      effort: sdkEffort,
+      date: sdkPass?.date ?? null,
       accuracy: numberOrNull(sdk?.accuracy),
       present: armPresent(sdk),
       note: sdk
         ? 'the four tuned prompts distilled into one, run as a single session'
         : 'the single-session arm has not been run',
       promoted: null,
-    },
-    {
+      outcome: armPresent(sdk) ? (comparison?.gate?.promoted ? 'promoted' : 'baseline') : null,
+      current: isCurrent(champion, sdk?.version ?? null, sdkModel, sdkEffort),
+    }),
+    stage({
       key: 'sdk_optimised',
-      // Short enough for one of five 140px chart slots at 10px mono.
+      // Short enough for one chart slot at 13px.
       stage: 'SDK, loop attempt',
       runtime: 'agent_sdk',
       version: attempt?.candidate_version ?? null,
+      model: attemptPass?.model ?? null,
+      effort: attemptPass?.effort ?? null,
+      date: attemptPass?.date ?? null,
       accuracy: numberOrNull(attempt?.accuracy_candidate),
       present: Boolean(attempt && numberOrNull(attempt.accuracy_candidate) !== null),
       note: attempt
@@ -472,26 +639,79 @@ export function progression(
           : 'the loop tried and was rejected by the gate — the distilled prompt stands'
         : 'no optimisation experiment has been gated on this arm',
       promoted: attempt ? attempt.promoted : null,
-    },
-    {
-      key: 'sdk_model_swap',
-      stage: swap ? `SDK on ${swap.shortName}` : 'SDK, model swap',
-      runtime: 'agent_sdk',
-      version: swap ? `${sdk?.version ?? 'sdk'} · ${swap.shortName}` : null,
-      accuracy: swap?.accuracy ?? null,
-      present: Boolean(swap && swap.accuracy !== null),
-      note: swap
-        ? `the distilled prompt scored on ${swap.model} with nothing else changed — a scoring pass, not an experiment`
-        : 'the sdk champion has been scored on one model only',
-      promoted: null,
-    },
+      outcome: attempt ? (attempt.promoted ? 'promoted' : 'rejected') : null,
+      current: isCurrent(
+        champion,
+        attempt?.candidate_version ?? null,
+        attemptPass?.model ?? null,
+        attemptPass?.effort ?? null,
+      ),
+    }),
   ];
+
+  const pairs = record.challengers?.pairs ?? null;
+  if (pairs === null) {
+    // The record before s21: one model swap, read off the model comparison.
+    const swapPass = swap?.runName ? (byRun.get(swap.runName) ?? null) : null;
+    return [
+      ...fixed,
+      stage({
+        key: 'sdk_model_swap',
+        stage: swap ? `SDK on ${swap.shortName}` : 'SDK, model swap',
+        runtime: 'agent_sdk',
+        version: swap ? `${sdk?.version ?? 'sdk'} · ${swap.shortName}` : null,
+        model: swap?.model ?? null,
+        effort: swap?.effort ?? null,
+        date: swapPass?.date ?? null,
+        accuracy: swap?.accuracy ?? null,
+        present: Boolean(swap && swap.accuracy !== null),
+        note: swap
+          ? `the distilled prompt scored on ${swap.model} with nothing else changed — a scoring pass, not an experiment`
+          : 'the sdk champion has been scored on one model only',
+        promoted: null,
+        outcome: swap?.verdict ?? null,
+      }),
+    ];
+  }
+
+  const ordered = [...pairs].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+  const challengerPoints = ordered.map((pair) => {
+    const pass = pair.candidate_run ? (byRun.get(pair.candidate_run) ?? null) : null;
+    const accuracy = numberOrNull(pair.candidate_accuracy) ?? numberOrNull(pass?.accuracy);
+    const outcome = pair.verdict?.outcome ?? null;
+    const sameVersion = pair.version === (pair.baseline_version ?? sdk?.version);
+    return stage({
+      key: 'challenger',
+      id: `challenger:${pair.version ?? ''}|${pair.candidate_model}|${pair.candidate_effort ?? ''}`,
+      stage: sameVersion ? 'model swap' : 'new prompt',
+      runtime: 'agent_sdk',
+      version: pair.version ?? null,
+      model: pair.candidate_model,
+      effort: pair.candidate_effort ?? null,
+      date: pass?.date ?? null,
+      accuracy,
+      present: accuracy !== null,
+      note:
+        accuracy === null
+          ? 'no complete test pass of this agent yet'
+          : sameVersion
+            ? `the champion's prompt on ${pair.candidate_model} at effort ${pair.candidate_effort ?? '—'}, nothing else changed — ${pair.verdict?.reason ?? 'no verdict yet'}`
+            : `a prompt the loop wrote for ${pair.candidate_model} at effort ${pair.candidate_effort ?? '—'}, judged against the champion's own runs — ${pair.verdict?.reason ?? 'no verdict yet'}`,
+      promoted: null,
+      outcome,
+      current: isCurrent(
+        champion,
+        pair.version ?? null,
+        pair.candidate_model,
+        pair.candidate_effort ?? null,
+      ),
+    });
+  });
+  return [...fixed, ...challengerPoints];
 }
 
 /** The SDK campaign's own summary, if the payload carries one. */
-export function sdkCampaign(
-  campaigns: CampaignSummary[] | undefined,
-): CampaignSummary | null {
+export function sdkCampaign(campaigns: CampaignSummary[] | undefined): CampaignSummary | null {
   return campaigns?.length ? campaigns[0] : null;
 }
 

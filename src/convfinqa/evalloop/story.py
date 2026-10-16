@@ -64,44 +64,18 @@ def _panel(metrics: dict[str, float]) -> dict[str, float | None]:
 
 def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
     """Everything the page shows, read out of the record."""
-    from convfinqa.config import settings
     from convfinqa.evalloop.splits import load_manifest, manifest_path
     from convfinqa.tracking import registry
 
     client = _client()
     gates = _search(client, "convfinqa-optimization", "tags.kind = 'gate'")
     proposals = _search(client, "convfinqa-optimization", "tags.kind = 'propose'")
-    evals = _search(client, settings.mlflow_experiment, "tags.kind = 'evalloop'")
-
-    # Every eval run the record holds: the tracking store's, plus the committed
-    # snapshot's for runs the store does not have. Since the move to the central
-    # server (2026-09-21) the pre-migration runs — the sdk_v1 champion's own
-    # evidence among them — exist only in the snapshot and the read-only
-    # archive, and a challenger run on the central server has to pair with them.
-    eval_records = _with_snapshot_runs(
-        [
-            {
-                "run_name": r.info.run_name,
-                "run_id": r.info.run_id,
-                "start_time": r.info.start_time,
-                "params": dict(r.data.params),
-                "metrics": dict(r.data.metrics),
-            }
-            for r in evals
-        ]
-    )
+    eval_records = all_eval_records(client)
 
     # Gate runs by candidate version, eval runs by (version, split). Oldest
     # first, so a version's latest test run is the one that stays.
     by_version_proposal = {r.data.params.get("new_version", ""): r for r in proposals}
-    gate_runs_by_version: dict[str, dict[str, float]] = {}
-    for rec in sorted(eval_records, key=lambda r: r.get("start_time") or 0):
-        params = rec.get("params") or {}
-        if params.get("split") != "test":
-            continue
-        gate_runs_by_version[str(params.get("prompts_version", ""))] = dict(
-            rec.get("metrics") or {}
-        )
+    gate_runs_by_version = _gate_runs_by_version(eval_records)
 
     grouped: dict[str, list[dict[str, Any]]] = {}
     sdk_grouped: dict[str, list[dict[str, Any]]] = {}
@@ -245,29 +219,71 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
     else:
         champion_accuracy = gate_runs_by_version.get(champion or "", {}).get("accuracy")
         champion_panel = _panel(gate_runs_by_version.get(champion or "", {}))
-    campaigns_out = [
+    campaigns_out: list[dict[str, Any]] = [
         {"name": name, "experiments": rows} for name, rows in sorted(grouped.items())
     ]
-    sdk_campaigns_out = [
+    sdk_campaigns_out: list[dict[str, Any]] = [
         {"name": name, "runtime": "agent_sdk", "experiments": rows}
         for name, rows in sorted(sdk_grouped.items())
     ]
+    try:
+        from convfinqa.evalloop import ledgers as _ledgers
+
+        all_gate_rows = _ledgers.load("gates").to_dict(orient="records")
+    except Exception:  # noqa: BLE001 — no ledger means no gate rows
+        all_gate_rows = []
     track = _champion_track(grouped, gate_runs_by_version)
     # The campaign record (gate and propose runs, their diffs and rationales)
     # predates the central server and was never migrated, so a store with no
     # gate runs at all is a store that never held them — not a record that
     # emptied. Carry the committed record forward rather than publish a page
     # that says no campaign ever ran, and say where it came from.
+    #
+    # Merged per campaign, not all-or-nothing: the first gate run a new
+    # campaign writes to the central store (h01, 2026-10-15) would otherwise
+    # turn "the store holds no campaigns" false and drop every pre-migration
+    # campaign — c01–c03 and s01 — from the page.
     campaign_record_from = None
-    if not grouped and not sdk_grouped and not campaigns:
+    if not campaigns:
         prior = _committed_story()
-        if prior.get("campaigns") or prior.get("sdk_campaigns"):
-            campaigns_out = list(prior.get("campaigns") or [])
-            sdk_campaigns_out = list(prior.get("sdk_campaigns") or [])
-            track = list(prior.get("champion_track") or [])
+        have = {c["name"] for c in campaigns_out}
+        have_sdk = {c["name"] for c in sdk_campaigns_out}
+        carried = [c for c in prior.get("campaigns") or [] if c["name"] not in have]
+        carried_sdk = [
+            c for c in prior.get("sdk_campaigns") or [] if c["name"] not in have_sdk
+        ]
+        if carried or carried_sdk:
+            campaigns_out = sorted(
+                [*carried, *campaigns_out], key=lambda c: str(c["name"])
+            )
+            sdk_campaigns_out = sorted(
+                [*carried_sdk, *sdk_campaigns_out], key=lambda c: str(c["name"])
+            )
             campaign_record_from = prior.get("campaign_record_from") or prior.get(
                 "generated_at"
             )
+        if not grouped and prior.get("champion_track"):
+            track = list(prior.get("champion_track") or [])
+    # An sdk experiment's two accuracies are the passes its gate measured,
+    # read off the gates ledger, never a by-version lookup: one prompt is
+    # several agents, and the by-version answer for sdk_v1 became whichever
+    # model last scored it (87.39%, a Haiku pass, beside a +8.88pp verdict
+    # measured at 90.54%). Applied to carried rows too, which were built
+    # before this was fixed.
+    sdk_campaigns_out = [
+        {
+            **c,
+            "experiments": _with_gate_accuracies(c["experiments"], all_gate_rows),
+        }
+        for c in sdk_campaigns_out
+    ]
+    steps = champion_steps(doc.history, eval_records, champion_agent)
+    timeline = test_timeline(
+        eval_records,
+        all_gate_rows,
+        challengers=challenger_comparison(eval_records, champion_agent=champion_agent),
+        steps=steps,
+    )
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         # Set when the campaign sections were carried from an earlier build.
@@ -311,10 +327,493 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
             ),
         ),
         "sdk_model_comparison": model_comparison,
+        # Every challenger agent (another model or effort; s19, s21) against
+        # the champion's own committed evidence, with its verdict.
+        "challengers": challenger_comparison(
+            eval_records, champion_agent=champion_agent
+        ),
+        # The whole record on the gate split, test passes only (s21): every
+        # complete test pass of every agent, oldest first, each against the
+        # champion of its day — and the champion's own step line. Train passes
+        # are what versions are written from; they are never on this axis.
+        "test_timeline": timeline,
+        "champion_steps": steps,
+        "train_passes": train_passes(eval_records),
         # The confidence judge (s12): every judge version's selective metrics
         # on each split it was scored on, from the committed scores CSVs only.
         "judge": _judge_summary(),
     }
+
+
+def all_eval_records(client: Any = None) -> list[dict[str, Any]]:
+    """Every eval run the record holds, as plain dicts.
+
+    The tracking store's, plus the committed snapshot's for runs the store does
+    not have. Since the move to the central server (2026-09-21) the
+    pre-migration runs — the sdk_v1 champion's own evidence among them — exist
+    only in the snapshot and the read-only archive, and a challenger run on the
+    central server has to pair with them.
+    """
+    from convfinqa.config import settings
+
+    client = client if client is not None else _client()
+    evals = _search(client, settings.mlflow_experiment, "tags.kind = 'evalloop'")
+    return _with_snapshot_runs(
+        [
+            {
+                "run_name": r.info.run_name,
+                "run_id": r.info.run_id,
+                "start_time": r.info.start_time,
+                "params": dict(r.data.params),
+                "metrics": dict(r.data.metrics),
+            }
+            for r in evals
+        ]
+    )
+
+
+def _agent_of_record(record: dict[str, Any]) -> tuple[str, str] | None:
+    """(model, effort) of an sdk eval run; None for a pipeline run."""
+    params = record.get("params") or {}
+    if params.get("runtime") != "agent_sdk":
+        return None
+    return _sdk_model_of(record, sdk_reference_model()), _sdk_effort_of(record)
+
+
+#: Passes that ran out of subscription before the unscored rule existed
+#: (2026-09-05): their rate-limited turns were scored as wrong, so their
+#: records carry no `complete` metric to say what they are. Named here rather
+#: than inferred, with the reason the page prints.
+KNOWN_INCOMPLETE = {
+    "sdk-evalloop-test100-sdk_v1·s1-20260905_132411": (
+        "176 of 349 turns hit the session limit and were scored as wrong (44.4%) "
+        "— the pass that created the unscored rule; finished as the 17:46 pass"
+    ),
+}
+
+
+def _complete(record: dict[str, Any]) -> bool:
+    metrics = record.get("metrics") or {}
+    if str(record.get("run_name")) in KNOWN_INCOMPLETE:
+        return False
+    return not (metrics.get("complete") == 0.0 or (metrics.get("n_unscored") or 0) > 0)
+
+
+def _test_passes_by_version(
+    eval_records: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Each version's latest complete gate-split pass, on the champion's agent.
+
+    Gate-split passes only (``*evalloop-test100-*``): an older manifest's test
+    split is a different question set. A pipeline version is one agent. An sdk
+    version is as many agents as it has been run as, so only its passes on the
+    champion's model and effort count here — what a by-version reader means by
+    "sdk_v1's accuracy". A challenger agent's passes are in `challengers` and
+    `test_timeline`.
+    """
+    reference = (sdk_reference_model(), sdk_reference_effort())
+    out: dict[str, dict[str, Any]] = {}
+    for rec in sorted(eval_records, key=lambda r: r.get("start_time") or 0):
+        params = rec.get("params") or {}
+        if params.get("split") != "test":
+            continue
+        if "evalloop-test100-" not in str(rec.get("run_name") or ""):
+            continue
+        if not _complete(rec):
+            continue
+        agent = _agent_of_record(rec)
+        if agent is not None and agent != reference:
+            continue
+        out[str(params.get("prompts_version", ""))] = rec
+    return out
+
+
+def _gate_runs_by_version(
+    eval_records: list[dict[str, Any]],
+) -> dict[str, dict[str, float]]:
+    """Each version's gate-split metrics (`_test_passes_by_version`)."""
+    return {
+        version: dict(rec.get("metrics") or {})
+        for version, rec in _test_passes_by_version(eval_records).items()
+    }
+
+
+def _with_gate_accuracies(
+    experiments: list[dict[str, Any]], gate_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """sdk experiment rows with the accuracies and panels their gate row measured."""
+    by_pair = {
+        (str(g.get("baseline_version")), str(g.get("candidate_version"))): g
+        for g in gate_rows
+        if g.get("runtime") == "agent_sdk"
+    }
+    out: list[dict[str, Any]] = []
+    for row in experiments:
+        gate = by_pair.get(
+            (str(row.get("baseline_version")), str(row.get("candidate_version")))
+        )
+        if gate is None:
+            out.append(row)
+            continue
+        out.append(
+            {
+                **row,
+                "accuracy_baseline": _num(gate.get("baseline_acc")),
+                "accuracy_candidate": _num(gate.get("candidate_acc")),
+                "panel_baseline": _panel(_json_dict(gate.get("panel_baseline"))),
+                "panel_candidate": _panel(_json_dict(gate.get("panel_candidate"))),
+            }
+        )
+    return out
+
+
+def _json_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    try:
+        loaded = json.loads(value) if isinstance(value, str) and value else {}
+    except json.JSONDecodeError:
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _iso_to_ms(value: Any) -> int | None:
+    try:
+        return int(datetime.fromisoformat(str(value)).timestamp() * 1000)
+    except (TypeError, ValueError):
+        return None
+
+
+def _pipeline_model(record: dict[str, Any]) -> str | None:
+    """The pipeline's model, from the run's `lm_mini` param: all four agents run on it."""
+    return (record.get("params") or {}).get("lm_mini") or None
+
+
+#: Registry history events that change which agent is the champion of the day.
+#: `promote` is the pipeline lineage's (before 2026-10-15 it moved `champion`;
+#: since, `pipeline_champion`, which never outranks the agent champion);
+#: `promote_sdk` before the universal champion moved the retired
+#: `sdk_champion`, which is the step at which sdk_v1 beat v8 on the gate split.
+_CHAMPION_EVENTS = (
+    "promote",
+    "promote_sdk",
+    "universal_champion",
+    "promote_agent",
+    "promote_challenger",
+)
+
+
+def champion_steps(
+    history: list[dict[str, Any]],
+    eval_records: list[dict[str, Any]],
+    champion_agent: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """The champion of the day, as a step line: one entry per change of agent.
+
+    Read off the registry's history. Before 2026-10-15 there were two
+    champions — the pipeline bundle and the single-session prompt — and the
+    agent that beat the other on the gate split is the one that leads: v8 until
+    sdk_v1 beat it by +8.88pp on 2026-09-05, sdk_v1 since. A pipeline
+    promotion after that does not move the line. The universal-champion event
+    of 2026-10-15 names what already led, and is kept as a step with the same
+    agent so the page can say when the record caught up. Each step carries the
+    accuracy of the test pass that measured it (None for a legacy promotion
+    made before the gate split existed).
+    """
+    reference = (sdk_reference_model(), sdk_reference_effort())
+    passes = _test_passes_by_version(eval_records)
+    by_version = {v: dict(r.get("metrics") or {}) for v, r in passes.items()}
+    runs_by_name = {str(r.get("run_name")): r for r in eval_records}
+    steps: list[dict[str, Any]] = []
+    sdk_leads = False
+    for event in history:
+        kind = event.get("event")
+        if kind not in _CHAMPION_EVENTS:
+            continue
+        version = str(event.get("version") or "")
+        if kind == "promote":
+            if sdk_leads or event.get("alias") == "pipeline_champion":
+                continue
+            step = {
+                "runtime": "pipeline",
+                "version": version,
+                "model": _pipeline_model(passes[version])
+                if version in passes
+                else None,
+                "effort": None,
+                "accuracy": by_version.get(version, {}).get("accuracy"),
+            }
+            if version in passes:
+                step["run_name"] = passes[version].get("run_name")
+        else:
+            after = event.get("champion_agent_after") or {}
+            model = str(after.get("model") or reference[0])
+            effort = str(after.get("effort") or reference[1])
+            run_name = after.get("evidence_run")
+            if not run_name and (model, effort) == reference and version in passes:
+                # Before the record carried its evidence: the gate-split pass
+                # of this version on the champion's agent.
+                run_name = passes[version].get("run_name")
+            accuracy = after.get("accuracy")
+            if accuracy is None and (model, effort) == reference:
+                accuracy = by_version.get(version, {}).get("accuracy")
+            if accuracy is None and run_name in runs_by_name:
+                accuracy = (runs_by_name[run_name].get("metrics") or {}).get("accuracy")
+            step = {
+                "runtime": "agent_sdk",
+                "version": version,
+                "model": model,
+                "effort": effort,
+                "accuracy": accuracy,
+            }
+            if run_name:
+                step["run_name"] = run_name
+            sdk_leads = True
+        at_ms = _iso_to_ms(event.get("at"))
+        run_at = (runs_by_name.get(str(step.get("run_name"))) or {}).get("start_time")
+        steps.append(
+            {
+                "at": event.get("at"),
+                "at_ms": at_ms,
+                # Where the line steps: at the pass that measured the agent,
+                # which comes before the promotion is written. Placed by the
+                # event, sdk_v2's pass (06:28 UTC) would be drawn against v8,
+                # because sdk_v1's promotion was written at 08:01, after its
+                # own pass at 05:46.
+                "effective_at_ms": min(at_ms, run_at) if at_ms and run_at else at_ms,
+                "event": kind,
+                "reason": str(event.get("reason") or "")[:240],
+                **step,
+            }
+        )
+    if steps and champion_agent and champion_agent.get("accuracy") is not None:
+        last = steps[-1]
+        if last["runtime"] == "agent_sdk" and last["version"] == champion_agent.get(
+            "version"
+        ):
+            last["accuracy"] = champion_agent.get("accuracy")
+            last["run_name"] = champion_agent.get("evidence_run")
+    return steps
+
+
+def train_passes(eval_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Every train pass, oldest first: what versions were written from.
+
+    Never on the test axis. A train draw early-stops at the first wrong answer
+    and is resampled per cycle, so its accuracy measures a different question
+    set every time and is in-sample for the rewrite it fed; the Runs page
+    keeps these behind a toggle for that reason.
+    """
+    rows: list[dict[str, Any]] = []
+    for rec in sorted(eval_records, key=lambda r: r.get("start_time") or 0):
+        params = rec.get("params") or {}
+        metrics = rec.get("metrics") or {}
+        name = str(rec.get("run_name") or "")
+        if params.get("split") != "train" or metrics.get("accuracy") is None:
+            continue
+        agent = _agent_of_record(rec)
+        rows.append(
+            {
+                "at_ms": rec.get("start_time"),
+                "date": _run_date(name, rec.get("start_time")),
+                "run_name": name,
+                "version": str(params.get("prompts_version") or ""),
+                "runtime": "agent_sdk" if agent else "pipeline",
+                "model": agent[0] if agent else _pipeline_model(rec),
+                "effort": agent[1] if agent else None,
+                "accuracy": metrics.get("accuracy"),
+                "n_questions": _int(metrics.get("n_questions")),
+                "train_seed": params.get("train_draw_seed") or None,
+                "stop_at_first_wrong": str(params.get("stop_at_first_wrong")).lower()
+                == "true",
+                "campaign": params.get("campaign") or None,
+                "complete": _complete(rec),
+            }
+        )
+    return rows
+
+
+def _gate_label(gate: dict[str, Any]) -> str:
+    """`c01-e03`, or `s01 cross-runtime` for a gate with no experiment number."""
+    exp_n = _int(gate.get("experiment_n"))
+    if exp_n is not None:
+        return f"{gate.get('campaign')}-e{exp_n:02d}"
+    return f"{gate.get('campaign')} cross-runtime"
+
+
+def _run_date(run_name: str, at_ms: Any) -> str | None:
+    """The day a pass ran, as its own name stamps it (the operator's clock).
+
+    Run names carry the local stamp (`…-20260906_090517`), and that is the date
+    a reader meets everywhere else, so it wins; the UTC start time is the
+    fallback for a name without one.
+    """
+    import re
+
+    found = re.search(r"-(\d{4})(\d{2})(\d{2})_\d{6}$", run_name)
+    if found:
+        return "-".join(found.groups())
+    if not at_ms:
+        return None
+    return (
+        datetime.fromtimestamp(float(at_ms) / 1000, tz=timezone.utc).date().isoformat()
+    )
+
+
+def _champion_at(
+    steps: list[dict[str, Any]], at_ms: int | None, *, run_name: str | None = None
+) -> dict[str, Any] | None:
+    """The step in force at `at_ms`: the last one in effect at or before it.
+
+    A step measured by `run_name` itself is skipped, so a pass that became the
+    champion is set against the champion it beat, not against itself.
+    """
+    current = None
+    for step in steps:
+        if run_name is not None and step.get("run_name") == run_name:
+            continue
+        when = step.get("effective_at_ms") or step.get("at_ms")
+        if when is not None and at_ms is not None and when <= at_ms:
+            current = step
+    return current
+
+
+def test_timeline(
+    eval_records: list[dict[str, Any]],
+    gate_rows: list[dict[str, Any]],
+    *,
+    challengers: dict[str, Any],
+    steps: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Every test pass on the gate split, oldest first, each against the champion of its day.
+
+    One row per ``*evalloop-test100-*`` run (pipeline and sdk alike). What a
+    row says about itself comes from the record that judged it: a gates-ledger
+    row whose candidate it was (promoted · rejected · passed), else a challenger
+    verdict (beats · matches · falls_short), else that it was only ever a
+    baseline, else just scored. A pass with unscored turns is ``incomplete`` and
+    carries no comparison — it measured a subset of the split. ``vs`` is the
+    champion in force when the pass ran; ``paired`` says whether its Δ is the
+    gate's question-by-question figure or a plain difference of accuracies.
+    """
+    candidates = {str(g.get("candidate_eval_run_id")): g for g in gate_rows}
+    baselines = {str(g.get("baseline_eval_run_id")) for g in gate_rows}
+    pairs = {str(p.get("candidate_run")): p for p in challengers.get("pairs") or []}
+    champion_runs = {str(s.get("run_name")) for s in steps if s.get("run_name")}
+    rows: list[dict[str, Any]] = []
+    for rec in sorted(eval_records, key=lambda r: r.get("start_time") or 0):
+        params = rec.get("params") or {}
+        name = str(rec.get("run_name") or "")
+        if params.get("split") != "test" or "evalloop-test100-" not in name:
+            continue
+        metrics = rec.get("metrics") or {}
+        if metrics.get("accuracy") is None:
+            continue  # still running, or died before it scored anything
+        agent = _agent_of_record(rec)
+        complete = _complete(rec)
+        at_ms = rec.get("start_time")
+        version = str(params.get("prompts_version") or "")
+        champion = _champion_at(steps, at_ms, run_name=name)
+        row: dict[str, Any] = {
+            "at_ms": at_ms,
+            "date": _run_date(name, at_ms),
+            "run_id": rec.get("run_id"),
+            "run_name": name,
+            "version": version,
+            "runtime": "agent_sdk" if agent else "pipeline",
+            "model": agent[0] if agent else _pipeline_model(rec),
+            "effort": agent[1] if agent else None,
+            "accuracy": metrics.get("accuracy"),
+            "n_scored": _int(metrics.get("n_scored")),
+            "n_questions": _int(metrics.get("n_questions")),
+            "complete": complete,
+            "cost": _arm(rec).get("cost"),
+            "champion_run": name in champion_runs,
+            "label": None,
+            "outcome": "scored",
+            "reason": "",
+            "vs": None,
+        }
+        gate = candidates.get(str(rec.get("run_id")))
+        pair = pairs.get(name)
+        if not complete:
+            row["outcome"] = "incomplete"
+            row["reason"] = KNOWN_INCOMPLETE.get(name) or (
+                f"{int(metrics.get('n_unscored') or 0)} turns unscored — a subset "
+                "of the split, never compared"
+            )
+        elif gate is not None and not (
+            gate.get("verdict_rule") == "model_swap" and pair is not None
+        ):
+            passed = gate.get("gate_passed")
+            passed = bool(gate.get("promoted")) if passed is None else bool(passed)
+            row["outcome"] = (
+                "promoted"
+                if bool(gate.get("promoted"))
+                else ("passed" if passed else "rejected")
+            )
+            row["label"] = _gate_label(gate)
+            row["reason"] = str(gate.get("reason") or "")[:240]
+            row["vs"] = {
+                "version": gate.get("baseline_version"),
+                "model": gate.get("baseline_sdk_model") or None,
+                "delta_pp": _num(gate.get("delta_pp")),
+                "p_value": _num(gate.get("p_value")),
+                "p_kind": "one-sided toward better",
+                "paired": True,
+            }
+        elif pair is not None:
+            # A challenger agent (s19's rule): its outcome is the verdict's —
+            # beats · matches · falls_short — unless the registry promoted it,
+            # and its p is taken in the direction of the observed Δ. A cycle
+            # that gated it (s21) also names the experiment.
+            verdict = pair.get("verdict") or {}
+            row["outcome"] = (
+                "promoted"
+                if gate is not None and bool(gate.get("promoted"))
+                else str(verdict.get("outcome") or "scored")
+            )
+            row["reason"] = str(verdict.get("reason") or "")[:240]
+            if gate is not None:
+                row["label"] = _gate_label(gate)
+            row["vs"] = {
+                "version": pair.get("baseline_version"),
+                "model": pair.get("baseline_model"),
+                "delta_pp": _num(pair.get("delta_pp")),
+                "p_value": _num(pair.get("p_worse"))
+                if (pair.get("delta_pp") or 0) < 0
+                else _num(pair.get("p_better")),
+                "p_kind": "one-sided toward worse"
+                if (pair.get("delta_pp") or 0) < 0
+                else "one-sided toward better",
+                "paired": True,
+            }
+        elif row["champion_run"]:
+            # The champion's own pass: it is the line, not a point against it.
+            row["outcome"] = "champion"
+        elif str(rec.get("run_id")) in baselines:
+            row["outcome"] = "baseline"
+        if (
+            row["vs"] is None
+            and complete
+            and champion is not None
+            and not (row["outcome"] == "champion")
+        ):
+            acc, base = row["accuracy"], champion.get("accuracy")
+            row["vs"] = {
+                "version": champion.get("version"),
+                "model": champion.get("model"),
+                "delta_pp": None
+                if acc is None or base is None
+                else round((float(acc) - float(base)) * 100, 4),
+                "p_value": None,
+                "p_kind": None,
+                "paired": False,
+            }
+        if row["vs"] is not None and champion is not None:
+            row["vs"]["champion_of_the_day"] = champion.get("version")
+        rows.append(row)
+    return rows
 
 
 def _with_snapshot_runs(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -936,6 +1435,9 @@ def model_swap_verdict(
         "version": pair.get("version"),
         "candidate_model": pair.get("candidate_model"),
         "candidate_effort": pair.get("candidate_effort"),
+        # The test pass the verdict measured: `promote_agent` floors the new
+        # champion on it, so the CI gate checks the agent that was promoted.
+        "candidate_run": pair.get("candidate_run"),
     }
     if pair.get("n_compared") is None or pair.get("delta_pp") is None:
         return {
@@ -1033,6 +1535,136 @@ def model_swap_verdict(
         "margin_pp": margin_pp,
         "checks": checks,
     }
+
+
+def challenger_pair(
+    *,
+    version: str | None,
+    baseline: dict[str, Any],
+    candidate: dict[str, Any],
+    baseline_train: dict[str, dict[str, Any]],
+    candidate_train: dict[str, dict[str, Any]],
+    read_csvs: bool = True,
+    margin_pp: float = MODEL_SWAP_MARGIN_PP,
+) -> dict[str, Any]:
+    """One challenger agent paired against the champion's own runs, with its verdict.
+
+    `baseline` and `candidate` are ``{model, effort, run_name}`` — the
+    champion's test pass and the challenger's, paired question by question;
+    ``*_train`` map a ``train_draw_seed`` to that agent's early-stopped draw
+    (``{run_name}``), paired per conversation where both drew the same seed.
+    `version` is the challenger's prompt version, which may differ from the
+    champion's (s21: sdk_v3 written for Haiku 5.5) — the verdict names it, so
+    a promotion moves exactly what was measured. Nothing here re-runs the
+    champion: both of its sides are committed CSVs.
+    """
+    pair: dict[str, Any] = {
+        "version": version,
+        "baseline_version": baseline.get("version"),
+        "baseline_model": baseline.get("model"),
+        "baseline_effort": baseline.get("effort"),
+        "candidate_model": candidate.get("model"),
+        "candidate_effort": candidate.get("effort"),
+        "baseline_run": baseline.get("run_name"),
+        "candidate_run": candidate.get("run_name"),
+        "n_compared": None,
+        "delta_pp": None,
+        "p_value": None,
+        "p_worse": None,
+        "p_better": None,
+        "ci": [None, None],
+        "fixed": None,
+        "broken": None,
+        "significant": None,
+        "by_turn_type": None,
+        "ceiling_errors": None,
+    }
+    if read_csvs and baseline.get("run_name") and candidate.get("run_name"):
+        pair.update(
+            _paired_from_csvs(str(baseline["run_name"]), str(candidate["run_name"]))
+        )
+    pair["train"] = _train_pairs(baseline_train, candidate_train, read_csvs=read_csvs)
+    pair["verdict"] = model_swap_verdict(pair, margin_pp=margin_pp)
+    return pair
+
+
+def challenger_comparison(
+    eval_records: list[dict[str, Any]],
+    *,
+    champion_agent: dict[str, Any] | None,
+    read_csvs: bool = True,
+    margin_pp: float = MODEL_SWAP_MARGIN_PP,
+) -> dict[str, Any]:
+    """Every challenger *agent* paired against the champion's committed evidence.
+
+    A challenger agent is any (prompt version, model, effort) whose model or
+    effort differs from the champion's — a same-prompt model swap (s19) or a
+    prompt rewritten for another model (s21). Each one's latest complete
+    ``sdk-evalloop-test100-`` pass is paired with the champion's
+    `evidence_run`, and its early-stopped train draws with the champion's draws
+    on the same seeds, under `model_swap_verdict`. A prompt challenger on the
+    champion's own agent is not here: the house gate judged it, and its verdict
+    is in the gates ledger. Oldest first, so the list reads as a history.
+    """
+    out: dict[str, Any] = {"champion": None, "margin_pp": margin_pp, "pairs": []}
+    if not champion_agent or not champion_agent.get("evidence_run"):
+        return out
+    reference_model = str(champion_agent.get("model") or sdk_reference_model())
+    champion_key = (reference_model, str(champion_agent.get("effort") or ""))
+    champion_version = str(champion_agent.get("version") or "")
+    out["champion"] = {
+        "version": champion_version,
+        "model": champion_key[0],
+        "effort": champion_key[1],
+        "run_name": champion_agent.get("evidence_run"),
+        "accuracy": champion_agent.get("accuracy"),
+    }
+    sdk = [
+        r for r in eval_records if (r.get("params") or {}).get("runtime") == "agent_sdk"
+    ]
+
+    def version_of(r: dict[str, Any]) -> str:
+        return str((r.get("params") or {}).get("prompts_version") or "")
+
+    champion_train = _train_runs_by_agent(
+        [r for r in sdk if version_of(r) == champion_version], reference_model
+    ).get(champion_key, {})
+    latest: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for r in sdk:
+        params = r.get("params") or {}
+        if params.get("split") != "test" or not str(r.get("run_name") or "").startswith(
+            "sdk-evalloop-test100-"
+        ):
+            continue
+        if not _complete(r) or (r.get("metrics") or {}).get("accuracy") is None:
+            continue
+        model, effort = _agent_key(r, reference_model)
+        if (model, effort) == champion_key:
+            continue
+        key = (version_of(r), model, effort)
+        if key not in latest or (r.get("start_time") or 0) > (
+            latest[key].get("start_time") or 0
+        ):
+            latest[key] = r
+    for (version, model, effort), run in sorted(
+        latest.items(), key=lambda kv: kv[1].get("start_time") or 0
+    ):
+        train = _train_runs_by_agent(
+            [r for r in sdk if version_of(r) == version], reference_model
+        ).get((model, effort), {})
+        pair = challenger_pair(
+            version=version,
+            baseline={**out["champion"]},
+            candidate={"model": model, "effort": effort, "run_name": run["run_name"]},
+            baseline_train=champion_train,
+            candidate_train=train,
+            read_csvs=read_csvs,
+            margin_pp=margin_pp,
+        )
+        pair["at"] = run.get("start_time")
+        pair["candidate_accuracy"] = (run.get("metrics") or {}).get("accuracy")
+        out["pairs"].append(pair)
+    return out
 
 
 def _paired_from_csvs(baseline_run: str, candidate_run: str) -> dict[str, Any]:

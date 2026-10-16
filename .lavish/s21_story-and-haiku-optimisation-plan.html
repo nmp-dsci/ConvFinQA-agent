@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story and Haiku loop</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .shot{ margin:var(--s3) 0 0; }
+  .shot img{ display:block; width:100%; height:auto; border:1px solid var(--line-2); border-radius:var(--r-sm); }
+  .shot figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .gaps{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:var(--s4); }
+  .gaps .card{ min-width:0; }
+  .gaps .card p{ margin:var(--s2) 0 0; }
+  .tl svg, .flow svg{ display:block; width:100%; height:auto; font-family:var(--mono); }
+  .tl, .flow{ overflow-x:auto; }
+  @media (max-width:760px){ .tl svg, .flow svg{ min-width:720px; } }
+  .tl .grid{ stroke:var(--line); }
+  .tl .axis{ stroke:var(--line-3); }
+  .tl .tick{ fill:var(--muted); font-size:15px; }
+  .tl .expert{ stroke:var(--amber); stroke-dasharray:6 5; stroke-width:1.5; }
+  .tl .expert-l{ fill:var(--amber); font-size:15px; }
+  .tl .champ{ stroke:var(--ink); stroke-width:3; fill:none; }
+  .tl .champ-next{ stroke:var(--ink); stroke-width:3; fill:none; stroke-dasharray:7 6; opacity:.55; }
+  .tl .prom{ fill:var(--accent); stroke:var(--ink); stroke-width:1.5; }
+  .tl .start{ fill:var(--ink-2); stroke:var(--ink); stroke-width:1.5; }
+  .tl .rej{ fill:var(--bg); stroke:var(--red); stroke-width:2.5; }
+  .tl .plan{ fill:none; stroke:var(--muted); stroke-width:2; stroke-dasharray:4 4; }
+  .tl .slot{ stroke:var(--line-3); stroke-dasharray:3 6; }
+  .tl .val{ fill:var(--ink); font-size:15px; }
+  .tl .lbl{ fill:var(--ink); font-size:15px; }
+  .tl .mdl{ fill:var(--muted); font-size:14px; }
+  .tl .band{ fill:var(--muted); font-size:14px; }
+  .tl .sep{ stroke:var(--line-2); }
+  .tl .brk{ stroke:var(--muted); stroke-width:2; }
+  .legend{ display:flex; flex-wrap:wrap; gap:var(--s3) var(--s5); font-size:var(--t-1); color:var(--ink-2); margin-top:var(--s3); }
+  .legend span{ display:inline-flex; align-items:center; gap:var(--s2); }
+  .legend svg{ width:22px; height:16px; flex:none; }
+  .flow .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.5; }
+  .flow .box.fixed{ fill:var(--accent-wash); stroke:var(--accent); }
+  .flow .box.gate{ stroke:var(--ink); stroke-width:2; }
+  .flow .t{ fill:var(--ink); font-family:var(--sans); font-size:16px; font-weight:600; }
+  .flow .d{ fill:var(--ink-2); font-family:var(--sans); font-size:15px; }
+  .flow .a{ stroke:var(--ink-2); stroke-width:2; fill:none; }
+  .flow .a.ref{ stroke:var(--accent); stroke-dasharray:6 5; }
+  .flow .al{ fill:var(--muted); font-family:var(--sans); font-size:15px; }
+  .flow .al.ref{ fill:var(--accent); }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; }
+  td.up{ color:var(--accent); font-weight:600; }
+  td.down{ color:var(--red); font-weight:600; }
+  tr.excluded td{ color:var(--muted); }
+  .phases{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .phases .card{ min-width:0; }
+  .phases .card h3{ margin:0; font-size:var(--t0); }
+  .phases .card p{ margin:var(--s2) 0 0; font-size:var(--t-1); }
+  .decision{ border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s4); margin-top:var(--s4); background:var(--panel); }
+  .decision h3{ margin:0 0 var(--s2); }
+  .decision fieldset{ border:0; padding:0; margin:var(--s3) 0 0; display:grid; gap:var(--s2); }
+  .decision label{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s2); align-items:start; font-size:var(--t-1); cursor:pointer; }
+  .decision label b{ font-weight:600; }
+  .decision .row{ display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-top:var(--s3); }
+  .decision textarea{ width:100%; min-height:3.2em; font:inherit; font-size:var(--t-1); }
+  .decision .queued{ font-size:var(--t-1); color:var(--accent); }
+  .build li{ margin:var(--s2) 0; }
+  .build code{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s21 · ConvFinQA-agent · branch <code>optimsation</code> · 2026-10-15 · plan, nothing built · no model has been called</div>
+  <h1>Show every agent's test score over time first, <em>then let the Haiku challenger learn from its own mistakes</em></h1>
+  <p class="lede">Two pieces of work, in the order you asked for. <b>Part A</b> makes the Runs and Optimise tabs tell the whole story.
+    Every agent that has been scored, champion and challenger alike, appears on one test-split timeline with its model, its
+    verdict and the champion line it was measured against. <b>Part B</b> builds and runs an optimisation loop for the challenger
+    <code>sdk_v1 · claude-haiku-5-5 · effort high</code>. The loop diagnoses Haiku's train failures, rewrites its system prompt, re-scores train
+    and test on Haiku, and pairs the result against the champion's own committed runs. Today the loop can't run on a
+    challenger with a different model without polluting the record, so Part B starts with what has to change.</p>
+  <div class="verdict">
+    <div class="stat"><div class="n">12</div><div class="l">complete test passes on the 349-question gate split, across 10 prompt versions and 4 models</div></div>
+    <div class="stat red"><div class="n">2</div><div class="l">of them appear on the Optimise tab's track (v2 and v8). Haiku 4.5 is on no chart at all</div></div>
+    <div class="stat amber"><div class="n">−3.15pp</div><div class="l">Haiku 5.5 vs the champion, mostly on program turns. Its failures (giving up, flipped signs) look like ones a prompt can fix</div></div>
+    <div class="stat accent"><div class="n">≈ 40 min</div><div class="l">per loop cycle on the subscription, ≈ $14 API-equivalent, of which ≈ 85% is the teacher</div></div>
+  </div>
+  <div class="phases">
+    <div class="card"><span class="badge info">A · no model calls</span><h3>The story</h3><p>A test-only timeline and ledger of every agent. Runs leads with it, Optimise opens with it, and two mislabels plus one live bug get fixed.</p></div>
+    <div class="card"><span class="badge info">B · no model calls</span><h3>A model-aware loop</h3><p>Eleven changes so a challenger's model is pinned, recorded, pooled apart and promoted as a whole agent.</p></div>
+    <div class="card"><span class="badge warn">C · subscription</span><h3>Run the loop</h3><p>Campaign <code>h01</code>, up to 2 cycles. Each cycle: diagnose, rewrite, score test + train on Haiku, verdict against the champion.</p></div>
+    <div class="card"><span class="badge info">D · no model calls</span><h3>Read it</h3><p>The new points land on the timeline by themselves. A results write-up follows, like s20.</p></div>
+  </div>
+</header>
+
+<!-- ======================================================================= -->
+<section id="today">
+  <span class="eyebrow">01 · what you see today</span>
+  <h2>The record holds the whole story, <em>but every page shows a different slice of it</em></h2>
+  <p class="sub">Screenshots from this branch at 1280px (backend 8767, frontend 5191), taken today. Two research passes read the
+    code and data behind each page, and every claim below cites them.</p>
+
+  <div class="gaps">
+    <div class="card"><h3>Runs › Versions &amp; slices</h3><span class="badge bad">wrong story</span>
+      <p>It leads with <i>"llm-v3_1 answered 587 of 770"</i>. That's the legacy 770-question set for v1–v3_1, which mixes in the conversations the optimiser trained on
+      (<code>Evaluations.tsx:352</code>). It shows no model, effort, runtime or prompt lineage per row, and no SDK agent at all.</p></div>
+    <div class="card"><h3>Optimise › Campaigns</h3><span class="badge bad">pipeline only</span>
+      <p>The headline says <i>"the champion llm-v8"</i>, but v8 is the pipeline champion and sdk_v1 is the champion. The track has 2 points, spaced by
+      index, both stamped with v8's time (<code>story.py:1160</code>). The Runs table lists the live store's 14 runs, with train, test and smoke (100%)
+      in one unlabelled accuracy column.</p></div>
+    <div class="card"><h3>Optimise › Runtimes, Fig 1</h3><span class="badge bad">5 bars, no dates</span>
+      <p>It shows v2, v8, sdk_v1, sdk_v2 and "model swap". The model-swap bar is <code>models[1]</code>, so Haiku 4.5 is absent. Haiku 5.5's falls-short bar is drawn in
+      the <i>passed</i> colour with no rejected hatch (<code>runtimeStory.ts:486</code>). Two labels overprint each other.</p></div>
+    <div class="card"><h3>A live bug on Runtimes §5</h3><span class="badge bad">wrong number</span>
+      <p>SDK experiment accuracies are looked up by prompt version alone (<code>story.py:97-104</code>), so "sdk_v1" now resolves to a <i>Haiku</i> run.
+      The page prints sdk_v1 at 87.39% beside its +8.88pp win. The gates ledger has the right 90.54%.</p></div>
+    <div class="card"><h3>Overview</h3><span class="badge warn">misleading frame</span>
+      <p><i>"…across 5 scored stages; the last, SDK on haiku-5-5, reads 87.4%"</i>. A challenger that fell short reads as the system's latest stage,
+      which looks like a regression.</p></div>
+    <div class="card"><h3>Promotions never reach a chart</h3><span class="badge warn">text only</span>
+      <p>The universal-champion handover, the rollbacks and the SDK promotion appear only as text rows in Registry › History, with no model and no accuracy.
+      <code>lineage[]</code> keeps only <code>event == "promote"</code> (<code>story.py:188</code>).</p></div>
+  </div>
+
+  <div class="split">
+    <figure class="shot"><img src="s21_assets/crop-runtimes-progression.png" alt="Runtimes Fig 1: five bars by stage, Haiku 5.5 drawn in the passed colour">
+      <figcaption>Runtimes, Fig 1. Five bars by stage, no dates. Haiku 4.5 is missing, Haiku 5.5's falls-short bar is solid green, and two labels collide.</figcaption></figure>
+    <figure class="shot"><img src="s21_assets/crop-optimise-runs.png" alt="Campaigns Runs table mixing train, test and smoke">
+      <figcaption>Optimise › Campaigns §3. Train, test and smoke runs share one accuracy column, and only runs since the move to the central server appear.</figcaption></figure>
+  </div>
+  <details>
+    <summary>More screenshots: the Campaigns track, the Runs headline, the Overview progression, and the full pages</summary>
+    <figure class="shot"><img src="s21_assets/crop-optimise-track.png" alt="Campaigns headline and two-point track"><figcaption>Optimise › Campaigns: the headline names llm-v8 the champion, and Fig 1 has two points.</figcaption></figure>
+    <figure class="shot"><img src="s21_assets/crop-runs-legacy.png" alt="Runs headline about the legacy 770-question set"><figcaption>Runs: the headline is about the legacy 770-question set.</figcaption></figure>
+    <figure class="shot"><img src="s21_assets/crop-overview-progression.png" alt="Overview progression"><figcaption>Overview: the same five-stage progression, with Haiku 5.5 as "the last stage".</figcaption></figure>
+    <p class="sub">Full pages: <a href="s21_assets/runs-light-1280.png">runs</a> · <a href="s21_assets/optimise-light-1280.png">optimise</a> ·
+      <a href="s21_assets/optimise-runtimes-light-1280.png">runtimes</a> · <a href="s21_assets/overview-light-1280.png">overview</a> ·
+      <a href="s21_assets/runs-traces-light-1280.png">served turns</a> · <a href="s21_assets/optimise-research-light-1280.png">rule research</a></p>
+  </details>
+</section>
+
+<!-- ======================================================================= -->
+<section id="target">
+  <span class="eyebrow">02 · the story the record actually holds</span>
+  <h2>One axis, one question set, every agent: <em>this is the chart Part A builds</em></h2>
+  <p class="sub">A mock, drawn from the committed record: the 12 complete passes on test100 (<code>eval_loop_v2</code>, 349 questions,
+    100 conversations). Only the test split appears, because train is what writes each version. Points are in the order they were scored,
+    banded by date, because three days of work followed by a five-week gap would put eleven points in one corner of a linear time axis.
+    The champion line is a step: it moves only when something is promoted.</p>
+  <figure class="fig tl" aria-label="Test accuracy of every agent, in the order scored">
+    <svg viewBox="0 0 1100 440" role="img">
+      <title>Test-split accuracy of every scored agent, with the champion step line</title>
+      <!-- grid 92..76, y = 40 + (92 - v) * 16.111 -->
+      <line class="grid" x1="80" y1="40" x2="1080" y2="40"/><text class="tick" x="70" y="45" text-anchor="end">92%</text>
+      <line class="grid" x1="80" y1="104.4" x2="1080" y2="104.4"/><text class="tick" x="70" y="109" text-anchor="end">88%</text>
+      <line class="grid" x1="80" y1="168.9" x2="1080" y2="168.9"/><text class="tick" x="70" y="174" text-anchor="end">84%</text>
+      <line class="grid" x1="80" y1="233.3" x2="1080" y2="233.3"/><text class="tick" x="70" y="238" text-anchor="end">80%</text>
+      <line class="grid" x1="80" y1="297.8" x2="1080" y2="297.8"/><text class="tick" x="70" y="303" text-anchor="end">76%</text>
+      <line class="axis" x1="80" y1="330" x2="1080" y2="330"/>
+      <line class="expert" x1="80" y1="81.9" x2="1080" y2="81.9"/>
+      <text class="expert-l" x="86" y="101">human expert 89.4% (published, other question set)</text>
+      <!-- band separators -->
+      <line class="sep" x1="510" y1="30" x2="510" y2="400"/>
+      <line class="sep" x1="705" y1="30" x2="705" y2="400"/>
+      <line class="sep" x1="925" y1="30" x2="925" y2="400"/>
+      <path class="brk" d="M808,322 l10,16 M818,322 l10,16"/>
+      <!-- champion step line -->
+      <path class="champ" d="M110,280.4 H260 V206.6 H565 V63.5 H925"><title>champion: v2 77.1% → v8 81.7% → sdk_v1 90.5%</title></path>
+      <path class="champ-next" d="M925,63.5 H1075"/>
+      <!-- pipeline 4 Sep -->
+      <circle class="start" cx="110" cy="280.4" r="8"><title>v2 · DeepSeek pipeline · 77.08% · the starting champion</title></circle>
+      <text class="val" x="110" y="264" text-anchor="middle">77.1</text>
+      <circle class="rej" cx="160" cy="243.5" r="8"><title>v6 · 79.37% · +2.29pp, p 0.191 · rejected</title></circle>
+      <text class="val" x="160" y="227" text-anchor="middle">79.4</text>
+      <circle class="rej" cx="210" cy="238.8" r="8"><title>v7 · 79.66% · +2.58pp, p 0.132 · rejected</title></circle>
+      <text class="val" x="210" y="222" text-anchor="middle">79.7</text>
+      <circle class="prom" cx="260" cy="206.6" r="9"><title>v8 · 81.66% · +4.58pp, p 0.040 · promoted</title></circle>
+      <text class="val" x="260" y="190" text-anchor="middle">81.7</text>
+      <circle class="rej" cx="310" cy="206.6" r="8"><title>v9 · 81.66% · ±0.00pp, p 0.500 · rejected</title></circle>
+      <circle class="rej" cx="360" cy="197.4" r="8"><title>v10 · 82.23% · +0.57pp, p 0.393 · rejected</title></circle>
+      <text class="val" x="360" y="181" text-anchor="middle">82.2</text>
+      <circle class="rej" cx="410" cy="183.6" r="8"><title>v11 · 83.09% · +1.43pp, p 0.254 · rejected, not significant</title></circle>
+      <text class="val" x="410" y="167" text-anchor="middle">83.1</text>
+      <circle class="rej" cx="460" cy="211.1" r="8"><title>v12 · 81.38% · −0.29pp, p 0.551 · rejected</title></circle>
+      <text class="val" x="460" y="238" text-anchor="middle">81.4</text>
+      <!-- sdk 5 Sep -->
+      <rect class="prom" x="556" y="54.5" width="18" height="18"><title>sdk_v1 · Sonnet 5 · high · 90.54% · +8.88pp vs v8, p 0.0003 · promoted (universal champion 15 Oct)</title></rect>
+      <text class="val" x="565" y="46" text-anchor="middle">90.5</text>
+      <rect class="rej" x="647" y="101.6" width="16" height="16"><title>sdk_v2 · Sonnet 5 · 87.68% · −2.87pp, p 0.917 · rejected</title></rect>
+      <text class="val" x="655" y="140" text-anchor="middle">87.7</text>
+      <!-- 6 Sep -->
+      <rect class="rej" x="752" y="106.3" width="16" height="16"><title>sdk_v1 · Haiku 4.5 · 87.39% · −3.15pp · falls short</title></rect>
+      <text class="val" x="760" y="145" text-anchor="middle">87.4</text>
+      <!-- 15 Oct -->
+      <rect class="rej" x="862" y="106.3" width="16" height="16"><title>sdk_v1 · Haiku 5.5 · high · 87.39% · −3.15pp, p 0.043 toward worse · falls short</title></rect>
+      <text class="val" x="870" y="145" text-anchor="middle">87.4</text>
+      <!-- planned -->
+      <line class="slot" x1="975" y1="40" x2="975" y2="330"><title>planned: h01 cycle 1, sdk_v3 on Haiku 5.5 · high</title></line>
+      <text class="mdl" x="975" y="205" text-anchor="middle">?</text>
+      <line class="slot" x1="1045" y1="40" x2="1045" y2="330"><title>planned: h01 cycle 2, only if cycle 1 is rejected</title></line>
+      <text class="mdl" x="1045" y="205" text-anchor="middle">?</text>
+      <!-- point labels -->
+      <text class="lbl" x="110" y="352" text-anchor="middle">v2</text>
+      <text class="lbl" x="160" y="352" text-anchor="middle">v6</text>
+      <text class="lbl" x="210" y="352" text-anchor="middle">v7</text>
+      <text class="lbl" x="260" y="352" text-anchor="middle">v8</text>
+      <text class="lbl" x="310" y="352" text-anchor="middle">v9</text>
+      <text class="lbl" x="360" y="352" text-anchor="middle">v10</text>
+      <text class="lbl" x="410" y="352" text-anchor="middle">v11</text>
+      <text class="lbl" x="460" y="352" text-anchor="middle">v12</text>
+      <text class="lbl" x="565" y="352" text-anchor="middle">sdk_v1</text><text class="mdl" x="565" y="371" text-anchor="middle">sonnet 5</text>
+      <text class="lbl" x="655" y="352" text-anchor="middle">sdk_v2</text><text class="mdl" x="655" y="371" text-anchor="middle">sonnet 5</text>
+      <text class="lbl" x="760" y="352" text-anchor="middle">sdk_v1</text><text class="mdl" x="760" y="371" text-anchor="middle">haiku 4.5</text>
+      <text class="lbl" x="870" y="352" text-anchor="middle">sdk_v1</text><text class="mdl" x="870" y="371" text-anchor="middle">haiku 5.5</text>
+      <text class="lbl" x="975" y="352" text-anchor="middle">sdk_v3</text>
+      <text class="lbl" x="1045" y="352" text-anchor="middle">sdk_v4</text>
+      <text class="mdl" x="1010" y="371" text-anchor="middle">haiku 5.5</text>
+      <!-- date bands -->
+      <text class="band" x="285" y="400" text-anchor="middle">4 Sep · pipeline campaigns c01–c03 · DeepSeek ×4</text>
+      <text class="band" x="607" y="400" text-anchor="middle">5 Sep · SDK s01</text>
+      <text class="band" x="760" y="400" text-anchor="middle">6 Sep</text>
+      <text class="band" x="868" y="400" text-anchor="middle">15 Oct</text>
+      <text class="band" x="1010" y="400" text-anchor="middle">next · h01</text>
+      <text class="band" x="818" y="425" text-anchor="middle">5 weeks</text>
+    </svg>
+    <div class="legend">
+      <span><svg viewBox="0 0 22 16"><path d="M1,8 H21" stroke="currentColor" stroke-width="3"/></svg>champion at that point in time</span>
+      <span><svg viewBox="0 0 22 16"><circle cx="11" cy="8" r="6" fill="var(--accent)" stroke="var(--ink)"/></svg>promoted</span>
+      <span><svg viewBox="0 0 22 16"><circle cx="11" cy="8" r="6" fill="var(--bg)" stroke="var(--red)" stroke-width="2"/></svg>rejected / falls short</span>
+      <span><svg viewBox="0 0 22 16"><circle cx="11" cy="8" r="6" fill="var(--ink-2)"/></svg>pipeline (4 agents)</span>
+      <span><svg viewBox="0 0 22 16"><rect x="5" y="2" width="12" height="12" fill="var(--ink-2)"/></svg>Agent SDK (one session)</span>
+      <span><svg viewBox="0 0 22 16"><path d="M11,1 V15" stroke="var(--muted)" stroke-dasharray="3 3"/></svg>planned slot, not yet scored</span>
+    </div>
+    <figcaption>Hover a point for its verdict. Status is carried by shape and fill as well as colour, because a status signal must never be
+      colour alone. In the build, colours follow <code>DESIGN.md</code>: <code>--ok</code> promoted, <code>--red</code> rejected.
+      One pass is excluded: sdk_v1 on Sonnet at 13:24 on 5 Sep, 44.4%, with 176 of 349 turns rate-limited. An incomplete pass is not a
+      measurement, and the table below says so instead of plotting it.</figcaption>
+  </figure>
+
+  <h3>The ledger under the chart: every test pass, one row each</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>scored (AEDT)</th><th>agent: prompt · model · effort</th><th>runtime</th><th>test100</th><th>vs champion of the day</th><th>verdict</th><th>paid</th></tr></thead>
+      <tbody>
+        <tr><td>4 Sep 03:25</td><td>v2 · DeepSeek ×4</td><td>pipeline</td><td class="n">77.08%</td><td>starting champion</td><td><span class="badge info">baseline</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 03:57</td><td>v6 · DeepSeek ×4</td><td>pipeline</td><td class="n">79.37%</td><td class="n">+2.29pp · p 0.191</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 04:34</td><td>v7 · DeepSeek ×4</td><td>pipeline</td><td class="n">79.66%</td><td class="n">+2.58pp · p 0.132</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 05:27</td><td><b>v8</b> · DeepSeek ×4</td><td>pipeline</td><td class="n up">81.66%</td><td class="n">+4.58pp · p 0.040</td><td><span class="badge ok">promoted</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 13:24</td><td>v9 · DeepSeek ×4</td><td>pipeline</td><td class="n">81.66%</td><td class="n">±0.00pp · p 0.500</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 13:47</td><td>v10 · DeepSeek ×4</td><td>pipeline</td><td class="n">82.23%</td><td class="n">+0.57pp · p 0.393</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 22:45</td><td>v11 · DeepSeek ×4</td><td>pipeline</td><td class="n">83.09%</td><td class="n">+1.43pp · p 0.254</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr><td>4 Sep 23:04</td><td>v12 · DeepSeek ×4</td><td>pipeline</td><td class="n">81.38%</td><td class="n">−0.29pp · p 0.551</td><td><span class="badge bad">rejected</span></td><td class="n">—</td></tr>
+        <tr class="excluded"><td>5 Sep 13:24</td><td>sdk_v1 · Sonnet 5 · high</td><td>agent_sdk</td><td class="n">44.41%</td><td>176 turns rate-limited</td><td><span class="badge warn">incomplete · not plotted</span></td><td class="n">$5.25</td></tr>
+        <tr><td>5 Sep 17:46</td><td><b>sdk_v1</b> · Sonnet 5 · high</td><td>agent_sdk</td><td class="n up">90.54%</td><td class="n">+8.88pp vs v8 · p 0.0003</td><td><span class="badge ok">promoted</span> <span class="tag">universal 15 Oct</span></td><td class="n">$11.83</td></tr>
+        <tr><td>5 Sep 18:28</td><td>sdk_v2 · Sonnet 5 · high</td><td>agent_sdk</td><td class="n">87.68%</td><td class="n">−2.87pp · p 0.917</td><td><span class="badge bad">rejected</span></td><td class="n">$11.82</td></tr>
+        <tr><td>6 Sep 09:05</td><td>sdk_v1 · Haiku 4.5</td><td>agent_sdk</td><td class="n">87.39%</td><td class="n">−3.15pp · p 0.051 worse</td><td><span class="badge bad">falls short</span></td><td class="n">$7.63</td></tr>
+        <tr><td>15 Oct 17:53</td><td>sdk_v1 · Haiku 5.5 · high</td><td>agent_sdk</td><td class="n">87.39%</td><td class="n">−3.15pp · p 0.043 worse</td><td><span class="badge bad">falls short</span></td><td class="n">$0.73</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Every number above is in the committed record: <code>mlflow_snapshot.json</code> (runs), <code>gates.jsonl</code> (pipeline and s01 verdicts),
+    and <code>story.json → sdk_model_comparison</code> (model-swap verdicts). Pipeline passes show "—" for cost because DeepSeek spend was never
+    metered into the run. The four <code>eval_loop_v1</code> passes (test10 and test50, 34 and 187 questions) are a different question set, so they are listed
+    beneath the table in the build, not on this axis.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="part-a">
+  <span class="eyebrow">03 · part A · the story (no model calls)</span>
+  <h2>One new list in <code>story.json</code>, <em>read by three pages</em></h2>
+  <ol class="build">
+    <li><b>A1 · data: <code>story.test_timeline</code>.</b> One row per test100 pass of every agent: <code>at</code>, <code>run_name</code>, <code>version</code>,
+      <code>runtime</code>, <code>model</code>, <code>effort</code>, <code>accuracy</code>, <code>n_scored</code>, <code>complete</code>, <code>role</code> (champion · challenger · baseline),
+      <code>outcome</code> (promoted · rejected · falls_short · incomplete), <code>vs</code> (the champion of the day, its Δ and one-sided p) and <code>cost</code>.
+      A second list, <code>champion_steps</code>, comes from registry history, including <code>promote_sdk</code>, <code>promote_agent</code> and <code>universal_champion</code>.
+      Built in <code>story.py</code> from the snapshot plus the store (merge-safe), joined to <code>gates.jsonl</code> by eval run id and to the model-swap verdicts.
+      The 13 runs are counted from <code>mlflow_snapshot.json</code> today.</li>
+    <li><b>A2 · fix the live bug.</b> Look up SDK experiment accuracy by the gate's <code>candidate_eval_run_id</code>, not by prompt version
+      (<code>story.py:97-104</code>), so "sdk_v1" can never resolve to a Haiku run again. Add a regression test with a Haiku run present.</li>
+    <li><b>A3 · Optimise opens with the story.</b> A new first sub-tab, <b>Story</b> (<code>/optimise</code>), holds the timeline (hand-drawn SVG on <code>.dia</code>, tokens only,
+      reusing <code>Figure</code>) and the ledger. The current Campaigns page moves to <code>/optimise/campaigns</code> with a redirect. Its headline is rewritten
+      around the champion agent, and "champion llm-v8" becomes "pipeline champion llm-v8". The s01 SDK experiments join its experiments table, and its
+      Runs table gets split, runtime, model and effort columns, defaulting to test.</li>
+    <li><b>A4 · Runs leads with the ledger.</b> The default view is <b>Every test pass</b>: the same rows, with filter chips for runtime, model and outcome.
+      Train passes appear only behind a toggle that is off by default, labelled "train: writes versions, never promotes them". The legacy 770-question
+      v1–v3_1 page becomes the sub-tab <b>Legacy v1–v3_1</b>, keeping its redirects.</li>
+    <li><b>A5 · Runtimes and Overview stop calling a challenger a stage.</b> Fig 1 draws every model swap, each with its effort, and a falls-short swap is hatched
+      and red. The labels stop colliding. The Overview's headline and compact chart become the timeline's compact form: "champion 90.5%; challengers since:
+      Haiku 4.5, Haiku 5.5, both −3.15pp".</li>
+    <li><b>A6 · tests.</b> vitest for the timeline builder (ordering, date bands, the excluded incomplete pass, the champion step) and for the chart and ledger
+      rendering; story tests for <code>test_timeline</code> and <code>champion_steps</code>; updates to <code>routes.test.tsx</code>, <code>runtimeStory.test.tsx</code> and the landing tests; and a
+      Playwright spec that opens <code>/optimise</code> and <code>/runs</code> and asserts the chart has 12 points and the ledger 13 rows. <code>story_check</code>
+      fails a page that hides the timeline once runs exist.</li>
+  </ol>
+  <div class="callout">
+    <p><b>Why the UI comes first.</b> Once Part B runs, every cycle adds a point. Without A, each new sdk_v3 or sdk_v4 pass would land in the same
+      mixed run table and the same five-bar chart that already hides Haiku 4.5. With A, the loop's progress against the champion
+      shows up on its own, in the place you look.</p>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="part-b">
+  <span class="eyebrow">04 · part B · the loop for the Haiku challenger</span>
+  <h2>The champion stays fixed and is never re-run. <em>Only the challenger's prompt moves.</em></h2>
+  <figure class="fig flow" aria-label="The optimisation loop for the Haiku challenger">
+    <svg viewBox="0 0 1100 400" role="img">
+      <title>Loop: Haiku's failures, diagnose, rewrite, score on Haiku, verdict against the champion's committed runs, promote or iterate</title>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker>
+        <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+      </defs>
+      <g id="champ"><title>The champion's committed evidence: paired against, never re-run</title>
+        <rect class="box fixed" x="15" y="130" width="245" height="120" rx="10"/>
+        <text class="t" x="30" y="160">Champion (fixed)</text>
+        <text class="d" x="30" y="186">sdk_v1 · Sonnet 5 · high</text>
+        <text class="d" x="30" y="210">test 90.54% · train 64 + 68</text>
+        <text class="d" x="30" y="234">committed CSVs only</text>
+      </g>
+      <g id="b1"><title>Step 1: Haiku's own train failures</title>
+        <rect class="box" x="290" y="30" width="240" height="90" rx="10"/>
+        <text class="t" x="305" y="58">1 · Haiku's failures</text>
+        <text class="d" x="305" y="83">train draws 2027 + 2028</text>
+        <text class="d" x="305" y="106">76 first-wrong cases</text>
+      </g>
+      <g id="b2"><title>Step 2: diagnose with the Opus 5 teacher</title>
+        <rect class="box" x="565" y="30" width="240" height="90" rx="10"/>
+        <text class="t" x="580" y="58">2 · Diagnose</text>
+        <text class="d" x="580" y="83">Opus 5 teacher, with gold</text>
+        <text class="d" x="580" y="106">pooled per model</text>
+      </g>
+      <g id="b3"><title>Step 3: rewrite the system prompt for Haiku</title>
+        <rect class="box" x="840" y="30" width="245" height="90" rx="10"/>
+        <text class="t" x="855" y="58">3 · Rewrite → sdk_v3</text>
+        <text class="d" x="855" y="83">writer told: haiku-5-5 · high</text>
+        <text class="d" x="855" y="106">one edit per failure class</text>
+      </g>
+      <g id="b4"><title>Step 4: score the new prompt on Haiku 5.5</title>
+        <rect class="box" x="840" y="250" width="245" height="90" rx="10"/>
+        <text class="t" x="855" y="278">4 · Score on Haiku 5.5</text>
+        <text class="d" x="855" y="303">test100 · 349 q</text>
+        <text class="d" x="855" y="326">train 2027 + 2028</text>
+      </g>
+      <g id="b5"><title>Step 5: the verdict, paired against the champion</title>
+        <rect class="box gate" x="565" y="250" width="240" height="90" rx="10"/>
+        <text class="t" x="580" y="278">5 · Verdict</text>
+        <text class="d" x="580" y="303">test decides</text>
+        <text class="d" x="580" y="326">train can only veto</text>
+      </g>
+      <g id="b6"><title>Step 6: promote the whole agent, or iterate</title>
+        <rect class="box" x="290" y="250" width="240" height="90" rx="10"/>
+        <text class="t" x="305" y="278">6 · Promote or iterate</text>
+        <text class="d" x="305" y="303">pass: prompt+model+effort</text>
+        <text class="d" x="305" y="326">fail: next cycle</text>
+      </g>
+      <path class="a" d="M530,75 H561" marker-end="url(#ah)"/>
+      <path class="a" d="M805,75 H836" marker-end="url(#ah)"/>
+      <path class="a" d="M962,120 V246" marker-end="url(#ah)"/>
+      <path class="a" d="M840,295 H809" marker-end="url(#ah)"/>
+      <path class="a" d="M565,295 H534" marker-end="url(#ah)"/>
+      <path class="a" d="M330,250 V124" marker-end="url(#ah)"/>
+      <text class="al" x="342" y="192">rejected → next cycle (cap 2)</text>
+      <text class="al" x="975" y="190">sdk_v3</text>
+      <path class="a ref" d="M137,250 V372 H685 V344" marker-end="url(#ahr)"/>
+      <text class="al ref" x="290" y="392">paired with its committed test and train runs, never re-run</text>
+    </svg>
+  </figure>
+
+  <h3>Why it can't run on Haiku today: five breakages</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>what breaks</th><th>evidence</th><th>what would go wrong</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>cycle</code> can't pin the answering model</td><td>no <code>--sdk-model</code>/<code>--sdk-effort</code> on <code>cycle</code> (<code>cli.py:343-371</code>); <code>run_split</code> resolves the champion record (<code>runner.py:608</code>)</td>
+          <td>Without an env override it scores <b>Sonnet</b>. Without <code>--baseline-gate-csv</code> it <b>re-runs the champion</b> (<code>cycle.py:371-379</code>), which your rule forbids</td></tr>
+        <tr><td>2</td><td>Haiku's diagnoses pool with Sonnet's</td><td><code>rank_classes</code> filters on runtime + prompt hash only (<code>sdk_teacher.py:1057-1061</code>)</td>
+          <td>The ledger already holds 56 Sonnet <code>sdk_v1</code> diagnoses under the same hash, so Sonnet's failures would steer Haiku's rewrite</td></tr>
+        <tr><td>3</td><td>The writer doesn't know the model</td><td>neither <code>SDK_WRITER_PROMPT</code> nor its payload names it (<code>sdk_teacher.py:1335-1359</code>)</td>
+          <td>Its history says "don't re-propose a rejected change", and that history includes sdk_v2's rejection <i>on Sonnet</i></td></tr>
+        <tr><td>4</td><td>No ledger records the answering model</td><td><code>ledgers.py:57-183</code>: diagnoses, rewrites and gates carry versions and hashes only</td>
+          <td>Haiku and Sonnet rows can't be told apart, and the ledgers are append-only, so it can't be fixed later</td></tr>
+        <tr><td>5</td><td>No promotion moves prompt <i>and</i> model</td><td><code>promote_sdk</code> keeps the record's model (and now refuses Haiku evidence); <code>promote_agent</code> keeps the prompt</td>
+          <td>A passing gate writes <code>promoted=True</code> to <code>gates.jsonl</code> before the promotion raises (<code>cycle.py:399-411</code>), leaving a promotion on record that never happened</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The build list, smallest viable first</h3>
+  <ol class="build">
+    <li><b>B1 · <code>cycle --sdk-model --sdk-effort</code></b>, passed to every <code>run_split</code>. When the model or effort differs from the champion's, the baseline is the
+      record's <code>evidence_run</code>, the champion is never run, and anything else is refused.</li>
+    <li><b>B2 · gate rows tell the truth.</b> Split <code>gate_passed</code> from <code>promoted</code> (a trailing column), and write the row <i>after</i> the promotion
+      decision, so a refusal can't leave a false <code>champion_after</code>.</li>
+    <li><b>B3 · ledgers record the agent.</b> Add trailing <code>sdk_model</code>/<code>sdk_effort</code> columns on diagnoses and gates (baseline and candidate) and
+      <code>target_model</code> on rewrites. The 56 existing rows read as <code>claude-sonnet-5</code>/<code>high</code>. Update <code>tests/test_ledgers.py</code>, which pins the frozen columns.</li>
+    <li><b>B4 · pool per agent.</b> <code>rank_classes</code> and the diagnoser's memory filter on (prompt hash, model, effort).</li>
+    <li><b>B5 · reuse Haiku's train draws.</b> <code>cycle --train-csv</code>, repeatable and checked for slug, effort and version, skips step 1.
+      <code>propose --diagnoses</code> takes several files.</li>
+    <li><b>B6 · the writer is told its target.</b> Add <code>target_model</code>/<code>target_effort</code> to the writer <i>payload</i>, and tag each prior attempt with its
+      model. The prompt constant stays untouched, so old traces still resolve by hash.</li>
+    <li><b>B7 · a class for "gave up".</b> The frozen taxonomy has nothing for "declined a value the document contains", so those cases fall into
+      <code>ambiguous</code>, and some drop out of the ranking. Map the writer's <code>new:</code> labels for it onto one stable class, without editing
+      <code>TEACHER_PROMPT</code>.</li>
+    <li><b>B8 · lineage.</b> <code>prompt_ledger.ensure_sdk</code> takes the base version, so sdk_v3's parent is recorded as s1, not s2.</li>
+    <li><b>B9 · the challenger verdict.</b> <code>story</code> pairs <i>any</i> (version, model, effort) test pass against the champion's <code>evidence_run</code>, and its train
+      passes against the champion's draws with the same seed, using the existing <code>model_swap_verdict</code>. The verdict carries <code>version</code>,
+      <code>candidate_model</code>, <code>candidate_effort</code> and <code>candidate_run</code>.</li>
+    <li><b>B10 · promote the whole agent.</b> <code>registry.promote_challenger</code> moves version, model and effort together, on a passing verdict from test evidence,
+      with the <code>_ran_as</code> checks and the new floor. The cycle routes a model-differing challenger there and never to <code>promote_sdk</code>.</li>
+    <li><b>B11 · <code>gate-targeted --campaign --label --rewrite-id</code></b>, so step-by-step runs still count against the campaign cap.</li>
+  </ol>
+</section>
+
+<!-- ======================================================================= -->
+<section id="runs">
+  <span class="eyebrow">05 · part C · running it</span>
+  <h2>Campaign <code>h01</code>: up to two cycles, <em>each one scored like s19 was</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>step</th><th>what runs</th><th>model</th><th>time</th><th>API-equivalent</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Haiku's train failures. Cycle 1 reuses the two committed sdk_v1 draws (seeds 2027 and 2028, 37 + 39 first-wrong conversations). Cycle 2 uses sdk_v3's own train passes from step 4</td><td>none</td><td class="n">0</td><td class="n">$0</td></tr>
+        <tr><td>2</td><td>Diagnose each first-wrong case. <code>ambiguous</code> cases get one binary question</td><td>Opus 5 teacher</td><td class="n">≈ 5 min at concurrency 8</td><td class="n">≈ $11</td></tr>
+        <tr><td>3</td><td>Rewrite to <code>prompts/sdk_v3.py</code>, one edit per ranked class, registered in <code>sdk_prompts</code></td><td>Opus 5 writer</td><td class="n">≈ 2.5 min</td><td class="n">≈ $0.71</td></tr>
+        <tr><td>4</td><td>Score sdk_v3 on Haiku 5.5 · high: test100, then train seeds 2027 and 2028 (stopping at the first wrong answer), all at concurrency 4 like the baseline</td><td>Haiku 5.5</td><td class="n">≈ 28 min</td><td class="n">≈ $2.0</td></tr>
+        <tr><td>5</td><td>The verdict: test paired question by question against <code>…sdk_v1·s1-20260905_174627</code>, train per conversation against the champion's 2027/2028 draws, and the 3pp rule from s19</td><td>none</td><td class="n">seconds</td><td class="n">$0</td></tr>
+        <tr><td>6</td><td>Promote the whole agent on a passing verdict, or record the rejection and start cycle 2. Then rebuild the story, so the point appears on the timeline</td><td>none</td><td class="n">seconds</td><td class="n">$0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">≈ 40 min and ≈ $14 API-equivalent per cycle, all on the subscription. The SDK runtime is subscription-only and is never billed to the API.
+    A rate-limited pass is finished with <code>--resume-from</code>, never by switching billing. Before the first scoring pass, a 3-report smoke test checks that sdk_v3
+    on Haiku still emits the output contract.</p>
+</section>
+
+<!-- ======================================================================= -->
+<section id="risks">
+  <span class="eyebrow">06 · risks</span>
+  <h2>What could make the result untrustworthy</h2>
+  <div class="gaps">
+    <div class="card"><h3>The gate split gets read again</h3><p>Every cycle reads test100 once more, and it has already been read by at least ten gated comparisons. Two cycles is a small
+      adaptive cost. More than that starts tuning to the gate. The cap is the guard, and the sealed holdout stays sealed.</p></div>
+    <div class="card"><h3>Train re-scoring is in-sample</h3><p>The rewrite is written from draws 2027 and 2028, so re-scoring them measures "did it fix what it read", not generalisation.
+      That's acceptable only because train can veto but never promote, and these are the only seeds with champion runs to pair against.</p></div>
+    <div class="card"><h3>A prompt tuned for one model</h3><p>sdk_v3 is written for Haiku. If it wins, the champion becomes (sdk_v3, Haiku 5.5, high) as a whole.
+      Serving Sonnet with sdk_v3 would be an unscored configuration, so promotion must move all three together (B10).</p></div>
+    <div class="card"><h3>The first-batch ceiling effect</h3><p>Conversations that open a pass together each write the ~50k tool prefix against their own 60k ceiling. Both arms paid this
+      in s19, and the verdict's ceiling check should count only errors after a conversation's first turn, or say why it doesn't.</p></div>
+  </div>
+</section>
+
+<!-- ======================================================================= -->
+<section id="decisions">
+  <span class="eyebrow">07 · decisions</span>
+  <h2>Six calls that are yours, <em>each with a recommendation</em></h2>
+  <p class="sub">Pick an option and queue it. Everything else in this plan follows from the code and your earlier rules
+    (never re-run the champion, subscription only, test promotes, train optimises).</p>
+
+  <form class="decision" data-lavish-question="rule" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('rule'); if(v&&window.lavish){window.lavish.queuePrompt('D1 promotion rule for the Haiku challenger: '+v,{tag:'choice',text:'D1: '+v,element:event.currentTarget,data:{question:'rule',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D1 · What counts as beating the champion?</h3>
+    <p class="sub">The challenger changes prompt <i>and</i> model. s19's rule was written for a same-prompt model swap.</p>
+    <fieldset>
+      <label><input type="radio" name="rule" value="beats or matches within 3pp (the s19 rule)" checked><span><b>Beats, or matches within 3pp</b> <span class="badge rec">recommended</span>. The s19 rule as-is: the test CI lower bound must be ≥ −3pp, test and program turns not significantly worse, and train can only veto. A Haiku agent that is as good and 16× cheaper gets promoted.</span></label>
+      <label><input type="radio" name="rule" value="beats only (house gate)"><span><b>Beats only.</b> Net positive and one-sided cluster p &lt; 0.05 against Sonnet's 90.54%. Strict: Haiku has to be better, not just cheaper.</span></label>
+      <label><input type="radio" name="rule" value="record only, never promote in h01"><span><b>Record only.</b> Run the loop and show the points, but promote nothing in h01, whatever the verdict.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="cap" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('cap'); if(v&&window.lavish){window.lavish.queuePrompt('D2 experiment cap for campaign h01: '+v,{tag:'choice',text:'D2: '+v,element:event.currentTarget,data:{question:'cap',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D2 · How many cycles?</h3>
+    <p class="sub">The SDK arm's cap is 2 per campaign (your rule, 5 Sep), and each cycle reads the gate split once more.</p>
+    <fieldset>
+      <label><input type="radio" name="cap" value="2 (keep the SDK cap)" checked><span><b>2</b> <span class="badge rec">recommended</span>. Keep the SDK cap. Two rewrites, then stop and read.</span></label>
+      <label><input type="radio" name="cap" value="3"><span><b>3.</b> One more try for ≈ $14 and 40 minutes, at the cost of one more read of test.</span></label>
+      <label><input type="radio" name="cap" value="1, then decide"><span><b>1, then decide.</b> Run one cycle and choose after seeing it.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="train" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('train'); if(v&&window.lavish){window.lavish.queuePrompt('D3 train scoring for each new Haiku prompt: '+v,{tag:'choice',text:'D3: '+v,element:event.currentTarget,data:{question:'train',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D3 · Which train questions does a new prompt get scored on?</h3>
+    <fieldset>
+      <label><input type="radio" name="train" value="seeds 2027 and 2028 (pairs with the champion)" checked><span><b>Seeds 2027 + 2028</b> <span class="badge rec">recommended</span>. The only draws the champion has runs for, so train pairs per conversation without re-running Sonnet. In-sample for cycle 1.</span></label>
+      <label><input type="radio" name="train" value="a fresh seed (out of sample, no champion pair)"><span><b>A fresh seed.</b> Out of sample, but there's no champion run to pair with, so train becomes descriptive only and can't veto.</span></label>
+      <label><input type="radio" name="train" value="both: 2027+2028 and a fresh seed"><span><b>Both.</b> Pairing plus an out-of-sample read, for one more Haiku pass (≈ $0.65, 9 min).</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="home" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('home'); if(v&&window.lavish){window.lavish.queuePrompt('D4 where the story timeline lives: '+v,{tag:'choice',text:'D4: '+v,element:event.currentTarget,data:{question:'home',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D4 · Where does the story live?</h3>
+    <fieldset>
+      <label><input type="radio" name="home" value="Optimise opens on a new Story sub-tab; Runs leads with the test ledger" checked><span><b>Optimise › Story first, Runs › Every test pass first</b> <span class="badge rec">recommended</span>. The chart where you optimise, the ledger where you look up runs. Campaigns and Legacy become sub-tabs.</span></label>
+      <label><input type="radio" name="home" value="replace the top of Optimise Campaigns only"><span><b>Top of Optimise › Campaigns only.</b> The smallest change. Runs keeps the legacy page.</span></label>
+      <label><input type="radio" name="home" value="Runs tab only"><span><b>Runs only.</b> The timeline and ledger live in Runs, and Optimise keeps its campaign pages.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="axis" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('axis'); if(v&&window.lavish){window.lavish.queuePrompt('D5 timeline x-axis: '+v,{tag:'choice',text:'D5: '+v,element:event.currentTarget,data:{question:'axis',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D5 · The timeline's x-axis</h3>
+    <fieldset>
+      <label><input type="radio" name="axis" value="scoring order, banded by date, with a break mark for gaps" checked><span><b>Scoring order, banded by date</b> <span class="badge rec">recommended</span>. As in the mock: every point readable, with a break mark for the five weeks.</span></label>
+      <label><input type="radio" name="axis" value="true calendar time"><span><b>True calendar time.</b> Honest spacing, but eleven of twelve points sit inside the first 7% of the axis.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="order" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('order'); const n=event.currentTarget.querySelector('textarea').value.trim(); const msg='D6 build and review order: '+v+(n?' — note: '+n:''); if(v&&window.lavish){window.lavish.queuePrompt(msg,{tag:'choice',text:'D6: '+v,element:event.currentTarget,data:{question:'order',answer:v,note:n}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D6 · Where should I stop for you to look?</h3>
+    <fieldset>
+      <label><input type="radio" name="order" value="build A, stop for a UI review, then build B, then run C without stopping" checked><span><b>After Part A, and again after each cycle</b> <span class="badge rec">recommended</span>. You see the story UI before any model runs, then each cycle's result as it lands.</span></label>
+      <label><input type="radio" name="order" value="build A and B, stop once before running C"><span><b>Once, before any model runs.</b> I build A and B, you review both, then the cycles run.</span></label>
+      <label><input type="radio" name="order" value="build and run everything, report at the end"><span><b>At the end.</b> Build, run both cycles, and report with a results page.</span></label>
+    </fieldset>
+    <textarea name="note" placeholder="Anything else: a chart detail, a page name, a constraint"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+</main>
+</body>
+</html>
