@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haiku cycle h01 results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .shot{ margin:var(--s3) 0 0; }
+  .shot img{ display:block; width:100%; height:auto; border:1px solid var(--line-2); border-radius:var(--r-sm); }
+  .shot figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .shots{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--s4); }
+  @media (max-width: 760px){ .shots{ grid-template-columns:minmax(0,1fr); } }
+  .tablewrap{ overflow-x:auto; }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; }
+  td.n, th.n{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.up{ color:var(--accent-ink); font-weight:600; }
+  td.down{ color:var(--red); font-weight:600; }
+  .checks{ list-style:none; margin:var(--s3) 0 0; padding:0; display:grid; gap:var(--s2); }
+  .checks li{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s3); align-items:baseline; }
+  .checks li .why{ font-size:var(--t-1); color:var(--ink-2); min-width:0; overflow-wrap:anywhere; }
+  .edit{ border-left:3px solid var(--line-3); padding-left:var(--s3); margin:var(--s3) 0; }
+  .edit p{ margin:var(--s1) 0; font-size:var(--t-1); }
+  .build li{ margin:var(--s2) 0; }
+  .build code{ overflow-wrap:anywhere; }
+  .decision{ border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s4); margin-top:var(--s4); background:var(--panel); }
+  .decision h3{ margin:0 0 var(--s2); }
+  .decision fieldset{ border:0; padding:0; margin:var(--s3) 0 0; display:grid; gap:var(--s2); }
+  .decision label{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s2); align-items:start; font-size:var(--t-1); cursor:pointer; }
+  .decision label b{ font-weight:600; }
+  .decision .row{ display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-top:var(--s3); }
+  .decision textarea{ width:100%; min-height:3.2em; font:inherit; font-size:var(--t-1); }
+  .decision .queued{ font-size:var(--t-1); color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s22 · ConvFinQA-agent · branch <code>optimsation</code> · 2026-10-15 · results of the s21 plan · built, one cycle run · verdict <b>falls short</b> · champion unchanged · nothing committed</div>
+  <h1>The whole story is on screen now, <em>and the loop's first Haiku rewrite made Haiku worse</em></h1>
+  <p class="lede">Part A: Optimise opens on a Story tab that draws every test pass of every agent against the champion of its day,
+    and Runs opens on the same ledger. Part B: the loop can now optimise a challenger on its own model without ever re-running the champion.
+    Part C: one cycle (<code>h01-e01</code>) diagnosed Haiku 5.5's 76 train failures, wrote <code>sdk_v3</code> for Haiku,
+    and scored it: <b>85.67% on test</b>, below both the champion (90.54%) and the prompt it replaced (87.39% on Haiku).
+    The s19 rule said <b>falls short</b> on every check; the registry was not touched.</p>
+  <div class="cards">
+    <div class="card"><div class="stat red">−4.87pp</div><div class="sub">sdk_v3 · Haiku vs the champion on test, 95% CI [−9.20, −0.88], p toward worse 0.011</div></div>
+    <div class="card"><div class="stat red">0 / 6</div><div class="sub">test questions fixed / broken against sdk_v1 on Haiku (87.39% → 85.67%)</div></div>
+    <div class="card"><div class="stat amber">10 / 76</div><div class="sub">diagnosed train turns now answered right, on the very draws the rewrite was written from</div></div>
+    <div class="card"><div class="stat accent">14</div><div class="sub">test passes on the Story chart and the Runs ledger, of 11 prompt versions on 4 models</div></div>
+  </div>
+</header>
+
+<section>
+  <span class="eyebrow">01 · part A · the story</span>
+  <h2>One chart, test passes only, <em>every agent ever scored</em></h2>
+  <p>The step line is the champion of its day, and it moves only on a promotion: v2 → v8 (+4.58pp, c01-e03) → sdk_v1 on Sonnet 5 (+8.88pp over v8).
+    Each step is anchored at the test pass that measured it, not at the promotion's timestamp. Every rejected or failing challenger sits off the line,
+    including Haiku 4.5, which was on no chart before, and today's <code>sdk_v3</code>. The rate-limited 44.4% pass from 5 Sep is in the ledger
+    with its reason and kept off the axis.</p>
+  <figure class="shot"><img src="s22_assets/story-head.png" alt="Optimise › Story: headline and timeline chart">
+    <figcaption>/optimise: the new first sub-tab. The headline is computed from the data: "sdk-v1 · sonnet-5 · high has led since 5 Sep 2026 at 90.5%; 4 challengers since, none has beaten it".</figcaption></figure>
+  <div class="shots">
+    <figure class="shot"><img src="s22_assets/runs-head.png" alt="Runs › Every test pass ledger">
+      <figcaption>/runs opens on "Every test pass", with filter chips for runtime, model and outcome. The 28 train passes sit behind the toggle "train: writes versions, never promotes them". The 770-question page moved to /runs/legacy.</figcaption></figure>
+    <figure class="shot"><img src="s22_assets/runtimes-fig1.png" alt="Runtimes Fig 1 with every agent">
+      <figcaption>Runtimes Fig 1 now draws every agent with its model, effort and date. A challenger that falls short is hatched red; Haiku 5.5's bar used to be drawn in the passing colour.</figcaption></figure>
+  </div>
+  <div class="callout">
+    <p><b>The live bug is fixed.</b> Runtimes §5 showed sdk_v1 at 87.39% (a Haiku pass) beside the +8.88pp its Sonnet pass measured.
+      sdk experiment rows now take both accuracies from their gates-ledger row, and a version's accuracy is its pass on the champion's agent only.
+      It now reads 81.66% → 90.54%.</p>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">02 · part C · what the loop read and wrote</span>
+  <h2>Haiku's 76 failures, ranked on Haiku alone, <em>became two edits</em></h2>
+  <p>Cycle 1 reused the two committed Haiku draws (seeds 2027 and 2028), so no new train pass was needed. The Opus 5 teacher diagnosed every first-wrong turn.
+    The diagnoser's memory held no Sonnet hints (the 56 Sonnet sdk_v1 rows now pool apart), and refusals were ranked as one class.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>rank</th><th>failure class (Haiku 5.5 · high, sdk_v1)</th><th class="n">faults</th><th class="n">Wilson lower</th><th>edited?</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>preprocess/wrong-operation</code></td><td class="n">12 / 47</td><td class="n">15.3%</td><td>§4 Preprocess</td></tr>
+      <tr><td>2</td><td><code>new:declined-available-value</code> (gave up)</td><td class="n">11 / 47</td><td class="n">13.6%</td><td>§5 Retrieve</td></tr>
+      <tr><td>3</td><td><code>preprocess/wrong-output-format</code></td><td class="n">7 / 47</td><td class="n">7.4%</td><td>no</td></tr>
+      <tr><td>4</td><td><code>calculator/wrong-format</code></td><td class="n">5 / 47</td><td class="n">4.6%</td><td>no (a past edit worsened it)</td></tr>
+      <tr><td>5–8</td><td>misresolved reference, wrong scale, collapsed skeleton, wrong value</td><td class="n">9 / 47</td><td class="n">≤ 2.2%</td><td>no</td></tr>
+    </tbody>
+  </table></div>
+  <div class="edit"><b>§4 Preprocess: four rules with stated preconditions</b>
+    <p>Bind subtraction operands in the order the question names them; take the change in a rate as a plain difference; make rescaling an explicit power-of-ten step; let an elliptical "what about X to Y" inherit the first turn's operation.</p></div>
+  <div class="edit"><b>§5 Retrieve step 8: no refusing a value already found or given</b>
+    <p>Never answer "unavailable" for a value the history already gave. A located candidate may not be rejected on a near miss (an accounting synonym, a near-identical period label, an unstated scope qualifier, a dropped row label or duplicate headers).</p></div>
+  <p class="sub">The writer was told it was writing for <code>claude-haiku-5-5 · high</code>, and saw sdk_v2's Sonnet rejection labelled as Sonnet. <code>sdk_v3</code> registered as s3 with parent s1, not s2.</p>
+</section>
+
+<section>
+  <span class="eyebrow">03 · performance</span>
+  <h2>Worse than the prompt it replaced, <em>on test and on its own train draws</em></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>test100 · 349 questions</th><th class="n">accuracy</th><th class="n">program turns</th><th class="n">number turns</th><th class="n">"unavailable"</th><th class="n">ceiling errors</th><th class="n">cost</th></tr></thead>
+    <tbody>
+      <tr><td>champion · sdk_v1 · Sonnet 5 · high</td><td class="n">90.54%</td><td class="n">88.24%</td><td class="n">95.50%</td><td class="n">0</td><td class="n">0</td><td class="n">$11.83</td></tr>
+      <tr><td>sdk_v1 · Haiku 5.5 · high (s19)</td><td class="n">87.39%</td><td class="n">82.35%</td><td class="n">98.20%</td><td class="n">8</td><td class="n">1</td><td class="n">$0.73</td></tr>
+      <tr><td><b>sdk_v3 · Haiku 5.5 · high (h01-e01)</b></td><td class="n down">85.67%</td><td class="n down">81.09%</td><td class="n down">95.50%</td><td class="n">8</td><td class="n">1</td><td class="n">$0.76</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>paired, question by question</th><th class="n">Δ</th><th class="n">95% CI</th><th class="n">fixed</th><th class="n">broken</th><th>program turns</th><th>number turns</th></tr></thead>
+    <tbody>
+      <tr><td>sdk_v3 Haiku vs the champion</td><td class="n down">−4.87pp</td><td class="n">[−9.20, −0.88]</td><td class="n">7</td><td class="n">24</td><td>−7.14pp (3 fixed / 20 broken)</td><td>0.00pp (4 / 4)</td></tr>
+      <tr><td>sdk_v3 Haiku vs sdk_v1 Haiku</td><td class="n down">−1.72pp</td><td class="n">[−4.09, 0.00]</td><td class="n">0</td><td class="n">6</td><td>−1.26pp (0 / 3)</td><td>−2.70pp (0 / 3)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>train, early-stopped, per conversation</th><th class="n">seed 2027</th><th class="n">seed 2028</th><th class="n">pooled of 200</th><th class="n">"unavailable"</th></tr></thead>
+    <tbody>
+      <tr><td>champion · Sonnet</td><td class="n">64</td><td class="n">68</td><td class="n">132</td><td class="n">—</td></tr>
+      <tr><td>sdk_v1 · Haiku</td><td class="n">63</td><td class="n">61</td><td class="n">124</td><td class="n">20</td></tr>
+      <tr><td><b>sdk_v3 · Haiku</b></td><td class="n down">60</td><td class="n down">58</td><td class="n down">118</td><td class="n up">14</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub">Train is in-sample: these are the draws the rewrite was written from. Against sdk_v1 on Haiku, sdk_v3 finished 4 more conversations and lost 10.
+    Against the champion: 10 finished, 24 lost, p toward worse 0.012, so train vetoes on its own.</p>
+</section>
+
+<section>
+  <span class="eyebrow">04 · errors · fixed and broken</span>
+  <h2>Refusals moved a little; <em>the targeted class barely moved, and the new rules broke turns that worked</em></h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>diagnosed first-wrong train turns, by class</th><th class="n">cases</th><th class="n">now right</th></tr></thead>
+    <tbody>
+      <tr><td>gave up (<code>new:declined-available-value</code>)</td><td class="n">20</td><td class="n up">5</td></tr>
+      <tr><td><code>preprocess/wrong-operation</code> (the top target)</td><td class="n">14</td><td class="n down">1</td></tr>
+      <tr><td><code>preprocess/wrong-output-format</code></td><td class="n">9</td><td class="n">1</td></tr>
+      <tr><td><code>retriever/wrong-period</code></td><td class="n">8</td><td class="n">1</td></tr>
+      <tr><td><code>calculator/wrong-format</code></td><td class="n">5</td><td class="n">1</td></tr>
+      <tr><td>everything else</td><td class="n">20</td><td class="n">1</td></tr>
+      <tr><td><b>all</b></td><td class="n"><b>76</b></td><td class="n"><b>10</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>the 6 test questions sdk_v3 broke (right on sdk_v1 · Haiku)</th><th>gold</th><th>sdk_v1 → sdk_v3</th><th>cause</th></tr></thead>
+    <tbody>
+      <tr><td>Single_MAS/2018 q0</td><td>21</td><td>21% → <b>−21%</b></td><td rowspan="2">the new operand-order rule flipped the subtraction</td></tr>
+      <tr><td>Single_MAS/2018 q2</td><td>75%</td><td>0.75 → <b>−0.75</b></td></tr>
+      <tr><td>Double_ETR/2008 q0, q1, q3</td><td>2169720 · 125700 · 632100</td><td>right → an executive's <b>name</b></td><td>number turns planned as chains of <code>greater()</code> comparisons</td></tr>
+      <tr><td>Double_MRO/2008 q2</td><td>42.4%</td><td>right → not attempted</td><td>the token ceiling (62,109 &gt; 60,000): the first-batch effect moved from IPG to MRO</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub">On test, 44 answers differ between the two Haiku passes, and not one of them flipped from wrong to right.</p>
+</section>
+
+<section>
+  <span class="eyebrow">05 · the verdict</span>
+  <h2>Falls short on every check <em>of the rule you chose (D1)</em></h2>
+  <ul class="checks">
+    <li><span class="badge bad">no</span><span class="why"><b>beats</b>: Δ −4.87pp, one-sided cluster p toward better 0.989</span></li>
+    <li><span class="badge bad">no</span><span class="why"><b>CI within the 3pp margin</b>: lower bound −9.20pp vs −3.0pp</span></li>
+    <li><span class="badge bad">no</span><span class="why"><b>test not worse</b>: p toward worse 0.011</span></li>
+    <li><span class="badge bad">no</span><span class="why"><b>program turns not worse</b>: p toward worse 0.0015</span></li>
+    <li><span class="badge bad">no</span><span class="why"><b>train not worse</b>: 132 → 118 of 200 conversations, p toward worse 0.012 (train vetoes)</span></li>
+    <li><span class="badge bad">no</span><span class="why"><b>no extra ceiling errors</b>: 0 → 1</span></li>
+  </ul>
+  <p>The gate row in <code>gates.jsonl</code> says what happened: <code>promoted=false</code>, <code>gate_passed=false</code>, <code>verdict_rule=model_swap</code>,
+    <code>verdict_outcome=falls_short</code>, and both agents named. <code>champion_agent</code> is unchanged: sdk_v1 · claude-sonnet-5 · high, floor 90.54%.
+    The cycle took about 35 minutes on the subscription: diagnosis $14.02, the rewrite $0.73, four Haiku passes $2.09 (API-equivalent, ≈ $16.84 in all).</p>
+</section>
+
+<section>
+  <span class="eyebrow">06 · what was built</span>
+  <h2>Everything in the plan, <em>verified, nothing committed</em></h2>
+  <ul class="build">
+    <li><b>B1, B5, smoke, D3:</b> <code>cycle --sdk-model --sdk-effort --train-csv --rescore-seed --diagnose-concurrency --smoke-reports</code>. A challenger cycle reuses the champion's <code>evidence_run</code> and never runs it; a stand-in CSV or another agent's draw is refused. On the champion's own agent the evidence run is reused too.</li>
+    <li><b>B2, B3:</b> gate rows are written after the promotion attempt, with <code>gate_passed</code>, <code>verdict_rule</code> and <code>verdict_outcome</code>; diagnoses and rewrites carry the agent. Older rows read as Sonnet 5 · high (<code>ledgers.LEGACY_SDK_AGENT</code>). Campaign streaks read <code>gate_passed</code>.</li>
+    <li><b>B4, B6, B7:</b> pooling and the diagnoser's memory are per agent; the writer is told its target; refusals rank as one stable class without touching <code>TEACHER_PROMPT</code>.</li>
+    <li><b>B8–B11:</b> <code>ensure_sdk(parent_version=…)</code>; <code>story.challenger_pair</code> / <code>challenger_comparison</code> and <code>sdk_gate.gate_challenger</code>; <code>registry.promote_challenger</code> (prompt + model + effort, floored on its own pass); <code>gate-targeted --campaign --label --rewrite-id</code>; and a new <code>gate-challenger</code> command for finishing a rate-limited cycle by hand.</li>
+    <li><b>A1, A2:</b> <code>story.test_timeline</code>, <code>champion_steps</code>, <code>train_passes</code> and <code>challengers</code>, served by <code>/eval/campaigns</code>. The by-version bug is fixed. Carried campaigns merge per name, so h01 landing didn't drop c01–c03 or s01. <code>/eval/loop-runs</code> now lists sdk runs.</li>
+    <li><b>A3–A5:</b> Optimise › Story (Campaigns at /optimise/campaigns), Runs › Every test pass (Legacy at /runs/legacy), Runtimes Fig 1 with every agent, and the Overview's "the record" with a compact chart. Every old address still redirects.</li>
+    <li><b>A6 and checks:</b> pytest <b>473 passed</b> (446 before); ruff, format and mypy clean; vitest <b>230 passed</b>; <code>npm run lint</code> clean; Playwright story and landing <b>11 passed</b> against the 14-pass record; <code>story_check</code> current, and it now fails a page that hides the timeline; the CI gate passes (champion 90.54%, floor 90.04%).</li>
+  </ul>
+  <p class="sub">Not done: no Playwright spec for /optimise/runtimes or /optimise/campaigns (screenshots only). Pipeline passes show cost "—", because they never recorded one.
+    Two workers built the frontend in parallel; one briefly ran the default prettier, which leaves about 15–20 lines of style churn in three Runtimes files.</p>
+</section>
+
+<section id="decisions">
+  <span class="eyebrow">07 · decisions</span>
+  <h2>D2 was "one cycle, then decide". <em>Two calls are yours.</em></h2>
+
+  <form class="decision" data-lavish-question="next" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('next'); const n=event.currentTarget.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D7 next step for the Haiku challenger: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D7: '+v,element:event.currentTarget,data:{question:'next',answer:v,note:n}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D7 · What next for the Haiku challenger?</h3>
+    <p class="sub">h01 has one slot left under the SDK cap of 2. Even sdk_v1 on Haiku (87.39%) failed the 3pp margin with a CI low of −6.80pp. To "match", Haiku needs to reach roughly 90%, about 9 more questions right with none broken.</p>
+    <fieldset>
+      <label><input type="radio" name="next" value="stop h01 here and keep the record" checked><span><b>Stop h01 here</b> <span class="badge rec">recommended</span>. The rewrite went backwards on its own training data, and one more read of test is unlikely to find nine questions. Keep the record; the Story tab shows it.</span></label>
+      <label><input type="radio" name="next" value="cycle 2, refusal edit only, from sdk_v1"><span><b>Cycle 2, refusal edit only.</b> Rewrite sdk_v1 with one area (§5 step 8), dropping the preprocess rules that flipped signs. It reuses these 76 diagnoses: ≈ $3 and 35 minutes, and the last read of test in h01.</span></label>
+      <label><input type="radio" name="next" value="score sdk_v1 on Haiku 5.5 at effort xhigh and max (model-swap passes)"><span><b>An effort sweep instead.</b> Score sdk_v1 on Haiku at xhigh and max: two test passes, ≈ $2 and 25 minutes, with no rewrite. It tests whether thinking budget, not the prompt, is the gap.</span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="ship" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('ship'); if(v&&window.lavish){window.lavish.queuePrompt('D8 shipping the s21 build: '+v,{tag:'choice',text:'D8: '+v,element:event.currentTarget,data:{question:'ship',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D8 · Ship it?</h3>
+    <p class="sub">On <code>optimsation</code>: the unpushed floor-fix commit <code>da9f26b</code>, plus everything above, uncommitted (code, tests, the h01 record, the rebuilt story and snapshot, and these two pages).</p>
+    <fieldset>
+      <label><input type="radio" name="ship" value="commit, open a PR and run /no-mistakes" checked><span><b>Commit, PR, /no-mistakes</b> <span class="badge rec">recommended</span>. As you did for haiku55: one commit for the code and one for the record, then the gate.</span></label>
+      <label><input type="radio" name="ship" value="commit on optimsation only"><span><b>Commit only.</b> Commit on the branch and don't push.</span></label>
+      <label><input type="radio" name="ship" value="leave uncommitted for review"><span><b>Leave it uncommitted</b> so you can review the diff yourself first.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+</main>
+</body>
+</html>
