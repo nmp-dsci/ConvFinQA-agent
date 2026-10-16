@@ -196,9 +196,63 @@ The invariants, all pinned by tests:
 - **Skipped stages attribute to the skipped stage.** A program turn the session answered
   with an empty program is a preprocess fault; one with no calculator call is a calculator
   fault.
-- **SDK draws never pool with pipeline draws.** `sdk_teacher.rank_classes` pools on the sdk
-  prompt hash and `runtime="agent_sdk"`; the pipeline's `ledger.fault_history` filters on
-  `multi_agent`. A campaign's cap is counted per runtime (`history(campaign, runtime=…)`).
+- **SDK draws never pool with pipeline draws, nor across agents.** `sdk_teacher.rank_classes`
+  pools on the sdk prompt hash, `runtime="agent_sdk"` **and the answering agent**
+  (`sdk_model`, `sdk_effort`; s21, 2026-10-15) — one prompt is a different agent on another
+  model (sdk_v1: 90.5% on Sonnet 5, 87.4% on Haiku 5.5), and the ledger held 56 Sonnet
+  diagnoses under sdk_v1's hash that would otherwise have steered a rewrite for Haiku. The
+  diagnoser's memory filters the same way. Rows written before the model columns existed read
+  as `ledgers.LEGACY_SDK_AGENT` (Sonnet 5 · high), which is what they ran on
+  (`ledgers.sdk_agent_of`). The pipeline's `ledger.fault_history` filters on `multi_agent`. A
+  campaign's cap is counted per runtime (`history(campaign, runtime=…)`).
+- **A refusal is one failure class** (`sdk_teacher.GAVE_UP_CLASS`, `stable_class`). The frozen
+  taxonomy has no "declined a value the report contains", so the diagnoser filed Haiku 5.5's
+  "unavailable" answers — 20 of its 76 first-wrong train turns, its largest failure — under a
+  dozen `new:` labels that each ranked as noise. Ranking and the writer's grouping read the
+  stable class; the diagnosis keeps its own label, and `TEACHER_PROMPT` is untouched. A refusal
+  attributed `ambiguous` still counts: that verdict doubts *which* stage declined, never
+  whether the agent failed.
+- **A challenger agent is optimised against the champion, never beside a re-run of it** (s21).
+  `cycle --runtime agent_sdk --sdk-model M --sdk-effort E` runs every pass of the cycle on that
+  agent; when it differs from `champion_agent` the cycle is a *challenger* cycle: its train
+  failures are that agent's (`--train-csv`, repeatable, reuses committed early-stopped draws and
+  refuses one whose name, model, effort or completeness disagrees), the writer is told its target
+  (`target_model`/`target_effort` in the payload — `SDK_WRITER_PROMPT` is unchanged so old trace
+  refs still resolve), a `--smoke-reports` pass checks the output contract, the challenger is
+  scored on test and re-scored on the champion's own train seeds (`--rescore-seed`, default every
+  seed the champion has a draw on), and `sdk_gate.gate_challenger` judges it against the
+  champion's committed `evidence_run` and draws under s19's rule (beats, or matches within 3pp;
+  train vetoes). A pass promotes prompt, model and effort together
+  (`registry.promote_challenger`) — `promote_sdk` would serve the new prompt on a model it was
+  never scored on, and `promote_agent` keeps the old prompt. On the champion's own agent the
+  cycle reuses the evidence run as its baseline rather than running the champion again. A pass
+  cut short stops the cycle with the `--resume-from` command; finish by hand with
+  `gate-challenger`. `prompt_ledger.ensure_sdk(parent_version=…)` records what was edited, so
+  sdk_v3 descends from s1, not from whichever entry was newest.
+- **A gate row says what the registry did** (2026-10-15). The row used to be written before the
+  promotion was tried, with `promoted` = "the rule passed", so a refused promotion left one on
+  record that never happened. Now every SDK path promotes first and logs second: `promoted` is
+  the registry's answer, `gate_passed` the rule's, `verdict_rule` (`house` | `model_swap`) and
+  `verdict_outcome` say which rule, and `baseline_/candidate_sdk_model|effort` name both agents;
+  diagnoses carry `sdk_model`/`sdk_effort`, rewrites `target_model`/`target_effort` (all
+  trailing columns). Campaign streaks read `gate_passed`, falling back to `promoted` on older
+  rows where that is what it meant.
+- **The whole record is one timeline, test passes only** (`story.test_timeline`,
+  `champion_steps`, `train_passes`, `challengers`; s21). Every `*evalloop-test100-*` pass of every
+  agent, oldest first, each against the champion of its day, with what judged it — a gates row
+  (promoted · passed · rejected), a challenger verdict (beats · matches · falls_short), the
+  champion's own pass, a baseline, or `incomplete` (unscored turns, or a pass in
+  `story.KNOWN_INCOMPLETE` from before the unscored rule; never compared, never drawn). The step
+  line comes from the registry's history and steps at the **pass that measured** each champion,
+  not at the promotion's timestamp: sdk_v1's promotion was written at 08:01 UTC, after sdk_v2's
+  pass at 06:28, and placed by the event sdk_v2 would be drawn against v8. An sdk *version's*
+  accuracy (`_gate_runs_by_version`) is its pass on the champion's agent and on the gate split
+  only — keyed on the version alone it became whichever model last scored it, and Runtimes §5
+  showed sdk_v1 at 87.39% (a Haiku pass) beside the +8.88pp its Sonnet pass measured; sdk
+  experiment rows take both accuracies from their gates-ledger row. Carried campaign sections
+  merge **per campaign**: the first gate run a new campaign writes to the central store would
+  otherwise drop c01–c03 and s01. Optimise › Story and the Runs ledger draw it; the published
+  page lists it and `story_check` fails a page that does not.
 - **The SDK arm's experiment cap is 2, the pipeline's is 5**
   (`campaign.MAX_EXPERIMENTS_BY_RUNTIME`, `max_experiments(runtime)`; owner's instruction,
   2026-09-05). A cycle costs subscription time rather than a couple of dollars of DeepSeek, and
@@ -285,7 +339,14 @@ uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
   --resume-from evaluation/predictions/evalloop/<partial>.csv   # finish a refused pass
 uv run convfinqa-evalloop cycle --campaign s01 --runtime agent_sdk
-uv run convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> ...
+EVAL_MANIFEST=eval_loop_v2 uv run convfinqa-evalloop cycle --campaign h01 --runtime agent_sdk \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --concurrency 4 --diagnose-concurrency 8 \
+  --train-csv <haiku draw 2027>.csv --train-csv <haiku draw 2028>.csv   # s21: a challenger cycle
+uv run convfinqa-evalloop gate-challenger --candidate-csv <test>.csv --candidate-version sdk_v3 \
+  --sdk-model claude-haiku-5-5 --sdk-effort high --candidate-train-csv <2027>.csv \
+  --candidate-train-csv <2028>.csv --campaign h01 --label h01-e01   # finish one by hand
+uv run convfinqa-evalloop gate-targeted --runtime agent_sdk --target-class <label> \
+  --campaign s01 --label s01-e03 --rewrite-id rw-…  ...
 uv run convfinqa-evalloop backfill-ledgers --no-mlflow
 uv run convfinqa-evalloop ledger-trace --question-id <report>_q<n>
 ```

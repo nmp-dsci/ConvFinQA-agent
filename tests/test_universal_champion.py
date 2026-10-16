@@ -806,3 +806,85 @@ def test_the_story_sees_committed_runs_the_store_lacks(
     )
     merged = story._with_snapshot_runs([{"run_id": "new", "run_name": "haiku"}])
     assert [r["run_id"] for r in merged] == ["new", "old"]
+
+
+# ---------------------------------------------------------------------------
+# promote_challenger (s21): a prompt written for another model moves as one
+# ---------------------------------------------------------------------------
+
+SDK_V3_HAIKU_RUN = "sdk-evalloop-test100-sdk_v3·s3-haiku-5-5-high-20261015_205249"
+
+
+def _challenger(**over: Any) -> dict[str, Any]:
+    return _verdict(**{"version": "sdk_v3", "candidate_run": SDK_V3_HAIKU_RUN, **over})
+
+
+def test_promote_challenger_moves_prompt_model_and_effort_together(
+    legacy_registry: Path, evidence_dir: Path
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    registry.register("sdk_v3", source="test")
+    _pass(evidence_dir, SDK_V3_HAIKU_RUN, [True] * 9 + [False])
+    outcome = registry.promote_challenger(
+        "sdk_v3", model="claude-haiku-5-5", effort="high", verdict=_challenger()
+    )
+    assert outcome.promoted, outcome.reason
+    assert registry.champion() == "sdk_v3"
+    assert registry.champion_agent() == {
+        "version": "sdk_v3",
+        "runtime": "agent_sdk",
+        "model": "claude-haiku-5-5",
+        "effort": "high",
+        "evidence_run": SDK_V3_HAIKU_RUN,
+        "accuracy": 0.9,
+    }
+    event = registry.load().history[-1]
+    assert event["event"] == "promote_challenger"
+    assert event["champion_agent_before"]["version"] == "sdk_v1"
+    # The pipeline lineage is untouched.
+    assert registry.pipeline_champion() == "v8"
+
+
+def test_promote_challenger_refuses_what_it_should(
+    legacy_registry: Path, evidence_dir: Path
+) -> None:
+    from convfinqa.tracking import registry
+
+    _migrate()
+    registry.register("sdk_v3", source="test")
+    _pass(evidence_dir, SDK_V3_HAIKU_RUN, [True] * 9 + [False])
+    before = legacy_registry.read_text()
+    refused = [
+        _challenger(outcome="falls_short"),
+        _challenger(outcome=None),
+        _challenger(candidate_model="claude-haiku-4-5-20251001"),
+        # sdk_v1's Haiku pass is not sdk_v3's evidence.
+        _challenger(candidate_run=HAIKU_RUN),
+        # A pass named for another model cannot floor a Haiku champion.
+        _challenger(candidate_run=SONNET_RUN),
+        _challenger(candidate_run=None),
+    ]
+    for verdict in refused:
+        out = registry.promote_challenger(
+            "sdk_v3", model="claude-haiku-5-5", effort="high", verdict=verdict
+        )
+        assert not out.promoted
+        assert legacy_registry.read_text() == before
+    with pytest.raises(ValueError, match="test split"):
+        registry.promote_challenger(
+            "sdk_v3",
+            model="claude-haiku-5-5",
+            effort="high",
+            verdict=_challenger(),
+            evidence_split="train",
+        )
+    with pytest.raises(ValueError, match="unregistered"):
+        registry.promote_challenger(
+            "sdk_v9", model="claude-haiku-5-5", effort="high", verdict=_challenger()
+        )
+    with pytest.raises(ValueError, match="single-session"):
+        registry.promote_challenger(
+            "v8", model="claude-haiku-5-5", effort="high", verdict=_challenger()
+        )

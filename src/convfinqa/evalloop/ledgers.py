@@ -106,6 +106,11 @@ _DIAGNOSES_SPEC: tuple[tuple[str, Any], ...] = (
     ("output_tokens", 0),
     ("cost_usd", 0.0),
     ("latency_s", None),
+    # the agent that answered (agent_sdk only, 2026-10-15): a prompt scores
+    # differently on another model, so its failures pool per model and effort.
+    # Empty on rows written before the columns existed — `sdk_agent_of`.
+    ("sdk_model", ""),
+    ("sdk_effort", ""),
 )
 
 _REWRITES_SPEC: tuple[tuple[str, Any], ...] = (
@@ -144,6 +149,9 @@ _REWRITES_SPEC: tuple[tuple[str, Any], ...] = (
     ("output_tokens", 0),
     ("cost_usd", 0.0),
     ("latency_s", None),
+    # the agent the rewrite was written for (agent_sdk only, 2026-10-15)
+    ("target_model", ""),
+    ("target_effort", ""),
 )
 
 _GATES_SPEC: tuple[tuple[str, Any], ...] = (
@@ -180,6 +188,21 @@ _GATES_SPEC: tuple[tuple[str, Any], ...] = (
     ("reason", ""),
     ("consecutive_rejections", 0),
     ("champion_after", ""),
+    # 2026-10-15. `promoted` used to be written before the promotion was tried,
+    # so it said "the rule passed" and a refusal left a promotion on record that
+    # never happened. Now `gate_passed` is the rule and `promoted` what the
+    # registry did; None on older rows, where `promoted` was the rule.
+    ("gate_passed", None),
+    # Which rule decided: "house" (net positive, one-sided cluster p < 0.05) or
+    # "model_swap" (s19's beats/matches, for a challenger on another model),
+    # and its outcome (beats · matches · falls_short) when it was model_swap.
+    ("verdict_rule", ""),
+    ("verdict_outcome", ""),
+    # the agents on each side (agent_sdk only)
+    ("baseline_sdk_model", ""),
+    ("baseline_sdk_effort", ""),
+    ("candidate_sdk_model", ""),
+    ("candidate_sdk_effort", ""),
 )
 
 _SPECS: dict[str, tuple[tuple[str, Any], ...]] = {
@@ -197,6 +220,29 @@ COLUMNS: dict[str, tuple[str, ...]] = {
     "gates": GATES_COLUMNS,
 }
 LEDGERS = tuple(COLUMNS)
+
+#: The agent every agent_sdk row written before the model columns existed was
+#: measured on: the sdk_v1/sdk_v2 passes of 2026-09-05, on the default model
+#: with effort unset — the SDK's default, high (see `llm.SDK_EFFORT_PINNED_LOW_AT`).
+LEGACY_SDK_AGENT = ("claude-sonnet-5", "high")
+
+
+def sdk_agent_of(row: Any, prefix: str = "") -> tuple[str, str]:
+    """(model, effort) a ledger row's agent_sdk side ran on.
+
+    `prefix` picks the columns: ``""`` for a diagnosis (`sdk_model`),
+    ``"baseline_"``/``"candidate_"`` for a gate, ``"target_"`` for a rewrite
+    (`target_model`). A row from before the columns existed reads as
+    `LEGACY_SDK_AGENT`, which is what it ran on.
+    """
+    if prefix == "target_":
+        model_key, effort_key = "target_model", "target_effort"
+    else:
+        model_key, effort_key = f"{prefix}sdk_model", f"{prefix}sdk_effort"
+    model = str(_get(row, model_key, "") or "")
+    effort = str(_get(row, effort_key, "") or "")
+    return (model or LEGACY_SDK_AGENT[0], effort or LEGACY_SDK_AGENT[1])
+
 
 #: The column each ledger is keyed on when `load(version=...)` filters it.
 _VERSION_COLUMN = {
@@ -556,6 +602,8 @@ def diagnosis_row(
     usage: Mapping[str, Any] | None = None,
     diagnosed_at: str | None = None,
     diagnosis_id: str | None = None,
+    sdk_model: str = "",
+    sdk_effort: str = "",
 ) -> dict[str, Any]:
     """One diagnoses-ledger row from a teacher `Diagnosis` dict and its CSV row.
 
@@ -622,6 +670,8 @@ def diagnosis_row(
         "adjudicated": bool(diagnosis.get("adjudicated", False)),
         "adjudication_reason": str(diagnosis.get("adjudication_reason") or ""),
         **usage_cost(usage),
+        "sdk_model": sdk_model,
+        "sdk_effort": sdk_effort,
     }
 
 
@@ -653,6 +703,8 @@ def rewrite_row(
     proposed_at: str | None = None,
     rewrite_id: str | None = None,
     edit_id: str | None = None,
+    target_model: str = "",
+    target_effort: str = "",
 ) -> dict[str, Any]:
     """One rewrites-ledger row. A whole-prompt replacement is one edit."""
     from convfinqa.tracking.prompt_ledger import prompt_hash
@@ -688,6 +740,8 @@ def rewrite_row(
         "prompt_chars_after": len(prompt_after),
         "validate_ok": bool(validate_ok),
         **usage_cost(usage),
+        "target_model": target_model,
+        "target_effort": target_effort,
     }
 
 
@@ -715,11 +769,20 @@ def gate_row(
     champion_after: str | None = None,
     gated_at: str | None = None,
     gate_id: str | None = None,
+    gate_passed: bool | None = None,
+    verdict_rule: str = "",
+    verdict_outcome: str = "",
+    baseline_agent: tuple[str, str] | None = None,
+    candidate_agent: tuple[str, str] | None = None,
 ) -> dict[str, Any]:
     """One gates-ledger row from `gate.gate_runs` statistics and the verdict.
 
     `stats` is the dict `gate_runs` returns (``accuracy_delta`` as a fraction,
     ``fail_to_pass``/``pass_to_fail``, ``cluster_p_one_sided``, ``delta_ci_*``).
+    `promoted` is what the registry did and `gate_passed` what the rule said;
+    write the row after the promotion was tried, so the two cannot disagree
+    with the registry. `baseline_agent`/`candidate_agent` are the (model,
+    effort) each agent_sdk side ran on.
     `champion_after` defaults to the registry's current champion of the row's
     lineage — `pipeline_champion` for a pipeline row, the champion's sdk prompt
     for an agent_sdk row — pass it explicitly when the row is written before
@@ -777,6 +840,13 @@ def gate_row(
             else (0 if promoted else 1)
         ),
         "champion_after": champion_after,
+        "gate_passed": gate_passed,
+        "verdict_rule": verdict_rule,
+        "verdict_outcome": verdict_outcome,
+        "baseline_sdk_model": (baseline_agent or ("", ""))[0],
+        "baseline_sdk_effort": (baseline_agent or ("", ""))[1],
+        "candidate_sdk_model": (candidate_agent or ("", ""))[0],
+        "candidate_sdk_effort": (candidate_agent or ("", ""))[1],
     }
 
 

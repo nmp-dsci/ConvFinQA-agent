@@ -754,6 +754,126 @@ def promote_agent(
     )
 
 
+def promote_challenger(
+    version: str,
+    *,
+    model: str,
+    effort: str,
+    verdict: dict[str, Any],
+    evidence_split: str = "test",
+    actor: str = "evalloop-cycle-challenger",
+    reason: str | None = None,
+    path: Path | None = None,
+) -> PromotionOutcome:
+    """Make a challenger agent the champion: its prompt, model and effort together.
+
+    A challenger that changes the prompt *and* runs on another model (s21: an
+    sdk_vN rewritten for Haiku 5.5) is neither of the other two moves.
+    `promote_sdk` keeps the record's model, so it would serve the new prompt on
+    a model it was never scored on; `promote_agent` keeps the record's prompt.
+    The prompt was written for its model, so they move as one or not at all.
+
+    `verdict` is the challenger verdict (`story.challenger_pair` →
+    `model_swap_verdict`), measured against the champion's own evidence. It
+    must be `beats` or `matches`, name exactly this version, model and effort,
+    and carry the test pass it measured (`candidate_run`), which becomes the
+    new champion's floor and must be named as a pass of that agent. Refusals
+    a caller can act on are returned; caller bugs — no champion record, train
+    evidence, an unknown effort or an unregistered version — are raised.
+    """
+    from convfinqa.llm import SDK_EFFORTS
+
+    doc = load(path)
+    if not doc.champion_agent:
+        raise ValueError(
+            "the registry has no champion_agent record; run "
+            "migrate_to_universal_champion first"
+        )
+    if not is_sdk_version(version):
+        raise ValueError(f"{version!r} is not a single-session prompt version")
+    if find_version(doc, version) is None:
+        raise ValueError(f"Cannot promote unregistered version {version!r}")
+    if evidence_split != "test":
+        raise ValueError(
+            "promotion evidence must come from the unseen test split — this "
+            f"verdict ran on {evidence_split!r}. Train runs optimise; test runs promote."
+        )
+    if effort not in SDK_EFFORTS:
+        raise ValueError(f"unknown effort {effort!r}; expected one of {SDK_EFFORTS}")
+    before = dict(doc.champion_agent)
+
+    def refused(why: str) -> PromotionOutcome:
+        return PromotionOutcome(
+            promoted=False,
+            version=version,
+            previous_champion=str(before.get("version")),
+            reason=why,
+            comparison=verdict,
+        )
+
+    outcome = str(verdict.get("outcome") or "")
+    if outcome not in AGENT_PROMOTING_OUTCOMES:
+        return refused(
+            f"challenger rule refused: {outcome or 'no outcome'} — "
+            f"{verdict.get('reason', '')}"
+        )
+    mismatch = [
+        f"{key} {verdict.get(key)!r} != {want!r}"
+        for key, want in (
+            ("version", version),
+            ("candidate_model", model),
+            ("candidate_effort", effort),
+        )
+        if verdict.get(key) != want
+    ]
+    run = str(verdict.get("candidate_run") or "")
+    if not run:
+        mismatch.append("candidate_run missing: no test pass to floor-check")
+    after = {**before, "version": version, "model": model, "effort": effort}
+    if run:
+        mismatch.extend(_ran_as(run, after))
+    if mismatch:
+        return refused(
+            "verdict was not measured for this challenger: " + "; ".join(mismatch)
+        )
+    if (before.get("version"), before.get("model"), before.get("effort")) == (
+        version,
+        model,
+        effort,
+    ):
+        return refused(f"{version} on {model} · {effort} is already the champion")
+    after.update(champion_evidence_of(run))
+    reason = (
+        reason or f"challenger rule passed ({outcome}): {verdict.get('reason', '')}"
+    )
+    doc.aliases[CHAMPION] = version
+    doc.champion_agent = after
+    doc.history.append(
+        {
+            "at": _now(),
+            "event": "promote_challenger",
+            "alias": CHAMPION,
+            "version": version,
+            "previous_champion": before.get("version"),
+            "champion_agent_before": before,
+            "champion_agent_after": after,
+            "actor": actor,
+            "forced": False,
+            "reason": reason,
+            "evidence_split": evidence_split,
+            "verdict": verdict,
+        }
+    )
+    save(doc, path)
+    return PromotionOutcome(
+        promoted=True,
+        version=version,
+        previous_champion=str(before.get("version")),
+        reason=reason,
+        comparison=verdict,
+    )
+
+
 def migrate_to_universal_champion(
     *,
     model: str,

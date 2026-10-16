@@ -361,6 +361,74 @@ def _lineage_row(ev: dict[str, Any]) -> str:
     )
 
 
+#: How a test pass's outcome reads on the page.
+OUTCOME_WORDS = {
+    "champion": "champion",
+    "promoted": "promoted",
+    "passed": "passed, not promoted",
+    "rejected": "rejected",
+    "beats": "beats the champion",
+    "matches": "matches the champion",
+    "falls_short": "falls short",
+    "baseline": "baseline",
+    "incomplete": "incomplete — not compared",
+    "scored": "scored",
+}
+
+
+def _short_model(model: Any) -> str:
+    text = str(model or "")
+    for prefix in ("claude-", "deepseek-"):
+        text = text.removeprefix(prefix)
+    return text.rsplit("-2025", 1)[0] or "—"
+
+
+def _timeline_section(rows: list[dict[str, Any]]) -> str:
+    """Every test pass on the gate split, oldest first, against the champion of its day."""
+    if not rows:
+        return ""
+    body = []
+    for r in rows:
+        vs = r.get("vs") or {}
+        delta = vs.get("delta_pp")
+        if not r.get("complete", True):
+            against = "— a subset of the split"
+        elif delta is None:
+            against = "— it is the champion" if r.get("outcome") == "champion" else "—"
+        else:
+            against = (
+                f"{float(delta):+.2f}pp vs {_e(vs.get('version'))}"
+                + ("" if vs.get("paired") else " (unpaired)")
+                + (
+                    f", p {float(vs['p_value']):.3f}"
+                    if vs.get("p_value") is not None
+                    else ""
+                )
+            )
+        agent = " · ".join(
+            x for x in (_short_model(r.get("model")), r.get("effort")) if x
+        )
+        body.append(
+            f"<tr><td>{_e(r.get('date') or '—')}</td>"
+            f"<td><code>{_e(r.get('version'))}</code> {_e(agent)}</td>"
+            f"<td>{_pct(r.get('accuracy'))}</td><td>{against}</td>"
+            f"<td>{_e(OUTCOME_WORDS.get(str(r.get('outcome')), r.get('outcome')))}"
+            f"{(' · ' + _e(r['label'])) if r.get('label') else ''}</td></tr>"
+        )
+    return (
+        "<h2>Every test pass on the gate split</h2>"
+        "<p>The whole record, test passes only: every agent ever scored on the "
+        "fixed split — pipeline bundles, the single-session prompt and every "
+        "challenger model — oldest first, each against the champion of its day. "
+        "Train passes are what versions are written from, so they are never on "
+        "this list. Δ is the gate's question-by-question figure where a gate or "
+        "a challenger verdict measured it, a plain difference otherwise.</p>"
+        '<div class="scroll"><table><thead><tr><th>date</th><th>agent</th>'
+        "<th>accuracy</th><th>against the champion</th><th>outcome</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
 def render_page(data: dict[str, Any]) -> str:
     """The whole page."""
     campaigns = data.get("campaigns") or []
@@ -396,6 +464,7 @@ def render_page(data: dict[str, Any]) -> str:
     lineage_rows = "".join(
         _lineage_row(ev) for ev in reversed(data.get("lineage") or [])
     )
+    timeline = list(data.get("test_timeline") or [])
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -433,6 +502,8 @@ store that recorded the runs — nothing on this page is typed by hand.</p>
 <div class="sub">questions across {split.get("gate_reports", "—")} conversations,
 fixed for the campaign</div></div>
 </div>
+
+{_timeline_section(timeline)}
 
 <h2>How the loop works</h2>
 <p>One experiment changes <strong>one subagent's prompt</strong> and nothing else.
@@ -481,6 +552,7 @@ rebuild with <code>convfinqa-evalloop story</code>
             {
                 "champion": data.get("champion"),
                 "n_experiments": len(experiments),
+                "n_test_passes": len(timeline),
                 "generated_at": data.get("generated_at"),
             }
         )

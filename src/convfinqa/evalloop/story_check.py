@@ -55,6 +55,17 @@ def problems() -> list[str]:
                 f"{page.name} does not carry the current champion {champion!r} in "
                 "its embedded record — it was built from an older story.json"
             )
+        # The whole record on the gate split (s21): once a test pass exists the
+        # page must show every one of them, the failed and incomplete included.
+        n_passes = len(story.get("test_timeline") or [])
+        if n_passes and (
+            f'"n_test_passes": {n_passes}' not in text
+            or "every test pass on the gate split" not in text.lower()
+        ):
+            out.append(
+                f"{page.name} does not show the {n_passes} test passes in "
+                "story.json's timeline — rebuild with `convfinqa-evalloop story`"
+            )
 
     # The readiness scorecard is hand-maintained, so it goes stale the moment a
     # proof file moves or a route is renamed. Only checked once one is committed.

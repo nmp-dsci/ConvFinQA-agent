@@ -437,6 +437,10 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         judge=data.get("judge"),
         sdk_campaigns=sdk_summaries,
         sdk_experiments=sdk_experiments,
+        test_timeline=list(data.get("test_timeline") or []),
+        champion_steps=list(data.get("champion_steps") or []),
+        train_passes=list(data.get("train_passes") or []),
+        challengers=data.get("challengers"),
         champion_track=[
             ChampionPoint(
                 **{k: v for k, v in p.items() if k in ChampionPoint.model_fields}

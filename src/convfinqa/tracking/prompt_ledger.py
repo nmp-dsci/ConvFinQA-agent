@@ -206,26 +206,39 @@ def resolve_sdk(version: str) -> dict[str, str]:
 
 
 def ensure_sdk(
-    version: str, *, source: str = "manual", run_id: str = ""
+    version: str,
+    *,
+    source: str = "manual",
+    run_id: str = "",
+    parent_version: str | None = None,
 ) -> dict[str, str]:
     """Register the prompt hash of `version` if unseen; return ``{seq, hash}``.
 
-    Same contract as `ensure`: idempotent, next seq in the lineage, previous
-    latest entry as parent.
+    Same contract as `ensure`: idempotent, next seq in the lineage. The parent
+    is `parent_version`'s entry when the caller knows what was edited — a
+    rewrite of sdk_v1 written after sdk_v2 existed descends from s1, not from
+    whichever entry happens to be newest — else the previous latest entry.
     """
     import convfinqa.prompts as prompts_pkg
     from convfinqa.tracking import registry
 
     h = prompt_hash(prompts_pkg.load_sdk(version))
+    if parent_version is not None and parent_version != version:
+        # Registered first, so a parent that never ran still gets an entry
+        # and the child names it. Idempotent when it is already there.
+        parent_seq: str | None = ensure_sdk(parent_version, source=source)["seq"]
     doc = registry.load()
     lineage = _sdk_lineage(doc)
     entry = next((e for e in lineage if e["hash"] == h), None)
     if entry is None:
+        parent = lineage[-1]["seq"] if lineage else None
+        if parent_version is not None and parent_version != version:
+            parent = parent_seq
         entry = {
             "seq": f"{SDK_INITIAL}{len(lineage) + 1}",
             "hash": h,
             "first_seen_in": version,
-            "parent": lineage[-1]["seq"] if lineage else None,
+            "parent": parent,
             "source": source,
             "registered_at": _now(),
             "run_id": run_id,

@@ -683,6 +683,15 @@ def test_story_check_catches_a_stripped_caveat(
 
 # ── run_cycle(runtime="agent_sdk") end to end ───────────────────────────
 
+_CHAMPION = {
+    "version": "sdk_v1",
+    "runtime": "agent_sdk",
+    "model": "claude-sonnet-5",
+    "effort": "high",
+    "evidence_run": "sdk-evalloop-test100-sdk_v1·s1-20260905_174627",
+    "accuracy": 0.905444,
+}
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("past_rejections", [0, 2])
@@ -690,10 +699,16 @@ async def test_sdk_cycle_runs_the_steps_in_order(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, past_rejections: int
 ) -> None:
     """draw → diagnose → rank → propose → gate → decide, and max_areas after
-    two consecutive rejections."""
+    two consecutive rejections. The champion is never re-run: its committed
+    evidence is the baseline arm."""
+    import convfinqa.llm as llm
     from convfinqa.evalloop import campaign, cycle, sdk_gate
     from convfinqa.evalloop import runner as runner_mod
     from convfinqa.tracking import registry
+
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: _CHAMPION)
+    monkeypatch.setattr(llm, "sdk_model_name", lambda: "claude-sonnet-5")
+    monkeypatch.setattr(llm, "sdk_effort_name", lambda: "high")
 
     calls: list[str] = []
     seen: dict[str, Any] = {}
@@ -794,24 +809,34 @@ async def test_sdk_cycle_runs_the_steps_in_order(
     def promote_sdk(version: str, **kw: Any) -> Any:
         calls.append("promote")
         seen["promote"] = kw
-        return SimpleNamespace(as_dict=lambda: {"promoted": True, "version": version})
+        return SimpleNamespace(
+            promoted=True,
+            reason="ok",
+            as_dict=lambda: {"promoted": True, "version": version},
+        )
 
     monkeypatch.setattr(registry, "promote_sdk", promote_sdk)
 
     steps = await cycle.run_cycle(campaign="s01", runtime="agent_sdk", concurrency=2)
 
     challenger = steps["proposal"]["new_version"]
+    # The gate row is written after the promotion was tried, so it records
+    # what the registry did; and the champion's own test pass is reused.
     assert calls == [
         "run:train:sdk_v1",
         "diagnose",
         "rank",
         "propose",
-        "run:test:sdk_v1",
         f"run:test:{challenger}",
         "gate",
-        "log",
         "promote",
+        "log",
     ]
+    assert steps["baseline_gate_run"]["reused"] is True
+    assert steps["baseline_gate_run"]["csv"].endswith(
+        f"{_CHAMPION['evidence_run']}.csv"
+    )
+    assert seen["log"]["promoted"] is True
     assert steps["runtime"] == "agent_sdk"
     assert steps["target"]["failure_class"] == "reference_resolution"
     assert seen["train_seed"] == 2026 + past_rejections
@@ -829,10 +854,14 @@ async def test_sdk_cycle_runs_the_steps_in_order(
 async def test_sdk_cycle_reuses_the_baseline_gate_csv_and_records_a_rejection(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    import convfinqa.llm as llm
     from convfinqa.evalloop import campaign, cycle, sdk_gate
     from convfinqa.evalloop import runner as runner_mod
     from convfinqa.tracking import registry
 
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: _CHAMPION)
+    monkeypatch.setattr(llm, "sdk_model_name", lambda: "claude-sonnet-5")
+    monkeypatch.setattr(llm, "sdk_effort_name", lambda: "high")
     # One prior rejection: under the SDK cap of 2 this is the last slot, and it
     # keeps the streak this test asserts on (that rejection plus this one).
     past = [_exp(False)]
@@ -899,6 +928,7 @@ async def test_sdk_cycle_reuses_the_baseline_gate_csv_and_records_a_rejection(
     assert steps["promotion"] == {"promoted": False, "champion_retained": "sdk_v1"}
     assert logged["consecutive_rejections"] == 2  # one before, plus this one
     assert logged["champion_after"] == "sdk_v1"
+    assert logged["promoted"] is False
 
 
 @pytest.mark.asyncio
@@ -1323,3 +1353,320 @@ def test_model_pair_p_is_taken_in_the_direction_of_the_delta(
     # The other way round it is the same evidence read as an improvement.
     back = story._paired_from_csvs("cand", "base")
     assert back["delta_pp"] == -pair["delta_pp"] and back["p_value"] == pair["p_value"]
+
+
+# ── run_cycle as a challenger agent (s21) ─────────────────────────────────
+
+_HAIKU_DRAWS = [
+    "sdk-evalloop-train100-sdk_v1·s1-haiku-5-5-high-20261015_180335",
+    "sdk-evalloop-train100-sdk_v1·s1-haiku-5-5-high-20261015_181237",
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["matches", "falls_short"])
+async def test_challenger_cycle_never_runs_the_champion(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, outcome: str
+) -> None:
+    """Haiku's own draws → diagnose → rank → rewrite for Haiku → smoke → test →
+    re-score the champion's seeds → s19's rule against the champion's committed
+    runs → promote prompt, model and effort together → record what happened."""
+    import pandas as pd
+
+    from convfinqa.evalloop import campaign, cycle, sdk_gate, story
+    from convfinqa.evalloop import runner as runner_mod
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+    from convfinqa.tracking import registry
+
+    monkeypatch.setattr(campaign, "history", lambda c, **k: [])
+    monkeypatch.setattr(campaign, "summarise", lambda c: {})
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: _CHAMPION)
+    monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+    records = story._with_snapshot_runs([])
+    monkeypatch.setattr(sdk_gate, "_records", lambda: records)
+    calls: list[str] = []
+    seen: dict[str, Any] = {}
+
+    async def run_split(split: str, version: str, **kw: Any) -> dict[str, Any]:
+        assert version != "sdk_v1", "the champion's prompt must never be run"
+        assert (kw["sdk_model"], kw["sdk_effort"]) == ("claude-haiku-5-5", "high")
+        tag = f"{split}:{version}"
+        if kw.get("train_seed"):
+            assert kw["stop_at_first_wrong"] is True and kw["n_reports"] == 100
+            tag += f":{kw['train_seed']}"
+        elif split == "train":
+            tag += f":smoke{kw['n_reports']}"
+        calls.append(f"run:{tag}")
+        csv = tmp_path / f"{tag.replace(':', '-')}.csv"
+        pd.DataFrame({"error": [None, "token budget exhausted: x"]}).to_csv(csv)
+        return {"csv": str(csv), "complete": True}
+
+    monkeypatch.setattr(runner_mod, "run_split", run_split)
+
+    async def diagnose_run(csv: str, version: str, **kw: Any) -> dict[str, Any]:
+        calls.append(f"diagnose:{Path(csv).stem[-6:]}")
+        assert version == "sdk_v1"
+        assert (kw["sdk_model"], kw["sdk_effort"]) == ("claude-haiku-5-5", "high")
+        return {"diagnoses_path": f"{csv}.jsonl", "n_cases": 38}
+
+    def rank_classes(version: str, **kw: Any) -> dict[str, Any]:
+        calls.append("rank")
+        assert (kw["sdk_model"], kw["sdk_effort"]) == ("claude-haiku-5-5", "high")
+        return {"new:declined-available-value": {"faults": 20, "n": 70, "rank": 1}}
+
+    async def propose_version(paths: Any, **kw: Any) -> dict[str, Any]:
+        calls.append("propose")
+        seen["propose"] = (paths, kw)
+        return {"rewrite_id": "rw-h", "new_version": kw["new_version"], "edits": []}
+
+    monkeypatch.setattr(
+        cycle,
+        "_sdk_teacher",
+        lambda: SimpleNamespace(
+            diagnose_run=diagnose_run,
+            rank_classes=rank_classes,
+            propose_version=propose_version,
+        ),
+    )
+
+    def gate_challenger(csv: str, **kw: Any) -> tuple[dict[str, Any], Any]:
+        calls.append("gate")
+        seen["gate"] = kw
+        passed = outcome == "matches"
+        return (
+            {
+                "evidence_split": "test",
+                "promotable": passed,
+                "gate_passed": passed,
+                "reason": outcome,
+                "challenger_verdict": {"outcome": outcome},
+                "challenger_pair": {},
+            },
+            None,
+        )
+
+    monkeypatch.setattr(sdk_gate, "gate_challenger", gate_challenger)
+    monkeypatch.setattr(
+        sdk_gate,
+        "log_gate_verdict",
+        lambda v, **kw: calls.append("log") or seen.update(log=kw) or "g",
+    )
+
+    def promote_challenger(version: str, **kw: Any) -> Any:
+        calls.append("promote")
+        assert (kw["model"], kw["effort"]) == ("claude-haiku-5-5", "high")
+        return SimpleNamespace(
+            promoted=True, reason="ok", as_dict=lambda: {"promoted": True}
+        )
+
+    def no_prompt_only_promotion(*a: Any, **k: Any) -> None:
+        raise AssertionError("a challenger agent must never reach promote_sdk")
+
+    monkeypatch.setattr(registry, "promote_challenger", promote_challenger)
+    monkeypatch.setattr(registry, "promote_sdk", no_prompt_only_promotion)
+
+    steps = await cycle.run_cycle(
+        campaign="h01",
+        runtime="agent_sdk",
+        sdk_model="claude-haiku-5-5",
+        sdk_effort="high",
+        train_csvs=[str(PREDICTIONS_DIR / f"{n}.csv") for n in _HAIKU_DRAWS],
+        concurrency=4,
+    )
+
+    challenger = steps["proposal"]["new_version"]
+    assert steps["challenger_mode"] is True
+    assert calls == [
+        "diagnose:180335",
+        "diagnose:181237",
+        "rank",
+        "propose",
+        f"run:train:{challenger}:smoke3",
+        f"run:test:{challenger}",
+        f"run:train:{challenger}:2027",
+        f"run:train:{challenger}:2028",
+        "gate",
+        *(["promote"] if outcome == "matches" else []),
+        "log",
+    ]
+    paths, kw = seen["propose"]
+    assert len(paths) == 2 and kw["base_version"] == "sdk_v1"
+    assert (kw["target_model"], kw["target_effort"]) == ("claude-haiku-5-5", "high")
+    assert set(seen["gate"]["candidate_train"]) == {"2027", "2028"}
+    assert Path(seen["gate"]["base_agent_csv"]).stem.endswith(
+        "haiku-5-5-high-20261015_175310"
+    )
+    assert steps["baseline_gate_run"]["csv"].endswith(
+        f"{_CHAMPION['evidence_run']}.csv"
+    )
+    assert seen["log"]["promoted"] is (outcome == "matches")
+    assert seen["log"]["champion_after"] == (
+        challenger if outcome == "matches" else "sdk_v1"
+    )
+
+
+@pytest.mark.asyncio
+async def test_challenger_cycle_refuses_a_stand_in_for_the_champion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from convfinqa.evalloop import campaign, cycle
+    from convfinqa.tracking import registry
+
+    monkeypatch.setattr(campaign, "history", lambda c, **k: [])
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: _CHAMPION)
+    monkeypatch.setattr(cycle, "_sdk_teacher", lambda: SimpleNamespace())
+    with pytest.raises(SystemExit, match="committed evidence"):
+        await cycle.run_cycle(
+            campaign="h01",
+            runtime="agent_sdk",
+            sdk_model="claude-haiku-5-5",
+            sdk_effort="high",
+            baseline_gate_csv="some-other-sonnet-pass.csv",
+        )
+
+
+@pytest.mark.asyncio
+async def test_challenger_cycle_refuses_another_agents_train_draw(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from convfinqa.evalloop import campaign, cycle
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR
+    from convfinqa.tracking import registry
+
+    monkeypatch.setattr(campaign, "history", lambda c, **k: [])
+    monkeypatch.setattr(registry, "champion_agent", lambda path=None: _CHAMPION)
+    monkeypatch.setattr(cycle, "_sdk_teacher", lambda: SimpleNamespace())
+    sonnet = PREDICTIONS_DIR / "sdk-evalloop-train100-sdk_v1·s1-20260905_180924.csv"
+    with pytest.raises(SystemExit, match="ran claude-sonnet-5, not claude-haiku-5-5"):
+        await cycle.run_cycle(
+            campaign="h01",
+            runtime="agent_sdk",
+            sdk_model="claude-haiku-5-5",
+            sdk_effort="high",
+            train_csvs=[str(sonnet)],
+        )
+
+
+def test_gate_challenger_reproduces_the_s19_verdict_from_committed_runs() -> None:
+    """sdk_v1 on Haiku 5.5 against the champion's own passes: zero model calls."""
+    from convfinqa.evalloop import sdk_gate, story
+    from convfinqa.evalloop.runner import PREDICTIONS_DIR as P
+
+    verdict, _ = sdk_gate.gate_challenger(
+        P / "sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310.csv",
+        candidate_version="sdk_v1",
+        sdk_model="claude-haiku-5-5",
+        sdk_effort="high",
+        candidate_train={
+            "2027": P / f"{_HAIKU_DRAWS[0]}.csv",
+            "2028": P / f"{_HAIKU_DRAWS[1]}.csv",
+        },
+        eval_records=story._with_snapshot_runs([]),
+    )
+    assert verdict["rule"] == "model_swap" and verdict["outcome"] == "falls_short"
+    assert verdict["promotable"] is False and verdict["gate_passed"] is False
+    assert verdict["baseline_agent"] == ("claude-sonnet-5", "high")
+    assert round(verdict["comparison"]["accuracy_delta"] * 100, 2) == -3.15
+    pooled = verdict["challenger_pair"]["train"]["pooled"]
+    assert (pooled["baseline_full"], pooled["candidate_full"]) == (132, 124)
+
+
+def test_the_gate_row_says_what_the_registry_did(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Written after the promotion was tried: a rule that passed but a registry
+    that refused leaves `gate_passed` true and `promoted` false, never a
+    promotion on record that never happened."""
+    from convfinqa.evalloop import ledgers, sdk_gate
+    from convfinqa.tracking import mlflow_log, registry
+
+    monkeypatch.setenv(ledgers.LEDGER_DIR_ENV, str(tmp_path / "ledgers"))
+    monkeypatch.setattr(mlflow_log, "_mlflow", lambda: _FakeMlflow())
+    monkeypatch.setattr(sdk_gate, "sdk_prompt_hash", lambda v: f"{v}-hash")
+    monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+    stats = {
+        "accuracy_delta": -0.01, "cluster_p_one_sided": 0.7, "n_compared": 349,
+        "fail_to_pass": 10, "pass_to_fail": 13, "delta_ci_lo": -0.025,
+        "delta_ci_hi": 0.006, "evidence_split": "test",
+    }  # fmt: skip
+    verdict = {
+        "baseline_version": "sdk_v1",
+        "candidate_version": "sdk_v3",
+        "evidence_split": "test",
+        "promotable": True,
+        "gate_passed": True,
+        "rule": "model_swap",
+        "outcome": "matches",
+        "baseline_agent": ("claude-sonnet-5", "high"),
+        "candidate_agent": ("claude-haiku-5-5", "high"),
+        "reason": "matches",
+        "comparison": stats,
+        "target_class": "new:declined-available-value",
+    }
+    sdk_gate.log_gate_verdict(
+        verdict, campaign="h01", label="h01-e01", promoted=False,
+        champion_after="sdk_v1",
+        extra_artifacts={"challenger_pair.json": {"ok": True}},
+    )  # fmt: skip
+    row = ledgers.load("gates").iloc[0]
+    assert bool(row["gate_passed"]) is True and bool(row["promoted"]) is False
+    assert (row["verdict_rule"], row["verdict_outcome"]) == ("model_swap", "matches")
+    assert (row["baseline_sdk_model"], row["candidate_sdk_model"]) == (
+        "claude-sonnet-5",
+        "claude-haiku-5-5",
+    )
+    assert row["candidate_sdk_effort"] == "high"
+    assert row["champion_after"] == "sdk_v1"
+
+    # Omitting `promoted` reads it off the champion the row records.
+    sdk_gate.log_gate_verdict(
+        {**verdict, "gate_passed": False, "promotable": False},
+        campaign="h01",
+        champion_after="sdk_v1",
+    )
+    later = ledgers.load("gates").iloc[1]
+    assert bool(later["promoted"]) is False and bool(later["gate_passed"]) is False
+
+
+def test_a_rule_pass_is_not_a_rejection_even_unpromoted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from convfinqa.evalloop import campaign, ledgers
+
+    monkeypatch.setenv(ledgers.LEDGER_DIR_ENV, str(tmp_path / "ledgers"))
+    base = {"runtime": "agent_sdk", "campaign": "h01", "candidate_version": "sdk_v3"}
+    ledgers.append(
+        "gates",
+        [
+            # Before 2026-10-15 `promoted` was the rule; no gate_passed column.
+            {**base, "gate_id": "g1", "gated_at": "2026-10-15T01:00:00+00:00",
+             "experiment_n": 1, "promoted": True},
+            {**base, "gate_id": "g2", "gated_at": "2026-10-15T02:00:00+00:00",
+             "experiment_n": 2, "promoted": False, "gate_passed": True},
+            {**base, "gate_id": "g3", "gated_at": "2026-10-15T03:00:00+00:00",
+             "experiment_n": 3, "promoted": False, "gate_passed": False},
+        ],
+    )  # fmt: skip
+    past = campaign.history("h01", runtime="agent_sdk")
+    assert [e["gate_passed"] for e in past] == [True, True, False]
+    assert campaign.consecutive_rejections(past) == 1
+    assert campaign.consecutive_rejections(past[:2]) == 0
+    assert campaign.single_area_mode(past) is False
+
+
+def test_loop_runs_serve_the_sdk_passes_with_their_agent() -> None:
+    from convfinqa.serving import evaldata
+
+    evaldata.clear_caches()
+    runs = {r["file"]: r for r in evaldata.loop_runs()}
+    haiku = runs["sdk-evalloop-test100-sdk_v1·s1-haiku-5-5-high-20261015_175310.csv"]
+    assert (haiku["runtime"], haiku["model_slug"], haiku["effort"]) == (
+        "agent_sdk",
+        "haiku-5-5",
+        "high",
+    )
+    assert haiku["version"] == "sdk_v1" and haiku["split"] == "test"
+    sonnet = runs["sdk-evalloop-test100-sdk_v1·s1-20260905_174627.csv"]
+    assert sonnet["model_slug"] is None and abs(sonnet["accuracy"] - 0.905444) < 1e-6
+    v5 = next(r for r in runs.values() if r["version"] == "v5" and r["split"] == "test")
+    assert v5["runtime"] == "pipeline" and v5["composition"] == "t3.p4.r3.c3"

@@ -182,6 +182,11 @@ class LoopRunSummary(BaseModel):
     n_correct: int
     accuracy: float
     file: str
+    # Additive (s21): the single-session runs too, with the agent their name
+    # carries. A pipeline run is `pipeline` with no model slug or effort.
+    runtime: str = "pipeline"
+    model_slug: str | None = None
+    effort: str | None = None
 
 
 class SplitSummary(BaseModel):
@@ -360,6 +365,17 @@ class CampaignsResponse(BaseModel):
     # subagent, the other a failure class) and every existing view reads
     # `experiments` as pipeline-only.
     sdk_experiments: list[CampaignExperiment] = []
+    # The whole record on the gate split (s21), test passes only: every pass of
+    # every agent oldest first, each against the champion of its day, and the
+    # champion's step line. Additive — an older story has neither.
+    test_timeline: list[dict[str, Any]] = []
+    champion_steps: list[dict[str, Any]] = []
+    # Train passes, for the Runs page's toggle: what versions are written
+    # from, never what promotes them.
+    train_passes: list[dict[str, Any]] = []
+    # Every challenger agent (another model or effort than the champion's)
+    # paired against the champion's committed runs, with its s19 verdict.
+    challengers: dict[str, Any] | None = None
 
 
 class GoldReviewCase(BaseModel):
