@@ -334,6 +334,8 @@ uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk 
 uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
   --sdk-model claude-haiku-5-5 --sdk-effort high \
   --train-seed 2027 --stop-at-first-wrong   # s19: a challenger on the champion's own train draw
+uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime agent_sdk \
+  --train-seed 2027 --report-ids-file <ids.txt>   # narrow a seeded draw to listed ids; refuses any id outside it
 uv run convfinqa-evalloop sdk-distil --source-version v8 --new-version sdk_v1
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk
 uv run convfinqa-evalloop run --split test --version sdk_v1 --runtime agent_sdk \
