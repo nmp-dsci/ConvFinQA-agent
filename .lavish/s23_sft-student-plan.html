@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFT student plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .phases{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .phases .card{ min-width:0; }
+  .phases.six{ grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); }
+  .phases .card h3{ margin:var(--s2) 0 0; font-size:var(--t0); }
+  .phases .card p{ margin:var(--s2) 0 0; font-size:var(--t-1); }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:var(--s4); }
+  .two > *{ min-width:0; }
+  .fig svg{ display:block; width:100%; height:auto; }
+  .fig{ overflow-x:auto; margin-top:var(--s3); }
+  @media (max-width:760px){ .fig svg.wide{ min-width:720px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .seg-test{ fill:var(--red); opacity:.85; }
+  .seg-sib{ fill:var(--red); opacity:.35; }
+  .seg-val{ fill:var(--amber); opacity:.8; }
+  .seg-train{ fill:var(--accent); opacity:.9; }
+  .seg-tier{ fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.5; }
+  .seg-res{ fill:var(--panel); stroke:var(--line-3); stroke-dasharray:4 4; }
+  .fig .lbl{ fill:var(--ink); font-family:var(--sans); font-size:15px; }
+  .fig .lbl b, .fig .lb{ font-weight:600; }
+  .fig .mut{ fill:var(--muted); font-family:var(--sans); font-size:14px; }
+  .fig .tick{ fill:var(--muted); font-family:var(--mono); font-size:13px; }
+  .fig .ln{ stroke:var(--line-3); stroke-width:1.5; fill:none; }
+  .fig .grid{ stroke:var(--line); }
+  .fig .axis{ stroke:var(--line-3); }
+  .fig .champ{ stroke:var(--ink); stroke-width:2.5; }
+  .fig .haiku{ stroke:var(--ink-2); stroke-width:1.5; stroke-dasharray:7 5; }
+  .fig .v8{ stroke:var(--muted); stroke-width:1.5; stroke-dasharray:3 5; }
+  .fig .human{ stroke:var(--amber); stroke-width:1.5; stroke-dasharray:6 4; }
+  .fig .slot{ fill:var(--bg); stroke:var(--accent); stroke-width:2; stroke-dasharray:3 3; }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.5; }
+  .fig .box.new{ fill:var(--accent-wash); stroke:var(--accent); }
+  .fig .box.fixed{ stroke:var(--ink); stroke-width:2; }
+  .fig .box.modal{ fill:var(--bg); stroke:var(--accent); stroke-width:1.5; stroke-dasharray:6 4; }
+  .fig .t{ fill:var(--ink); font-family:var(--sans); font-size:16px; font-weight:600; }
+  .fig .d{ fill:var(--ink-2); font-family:var(--sans); font-size:14px; }
+  .fig .a{ stroke:var(--ink-2); stroke-width:2; fill:none; }
+  .fig .a.ref{ stroke:var(--accent); stroke-dasharray:6 5; }
+  .fig .al{ fill:var(--muted); font-family:var(--sans); font-size:14px; }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; }
+  .piece td:first-child{ white-space:nowrap; overflow-wrap:normal; }
+  .sets td:nth-child(-n+2){ white-space:nowrap; overflow-wrap:normal; }
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  tr.pending td{ color:var(--muted); }
+  tr.champ td{ font-weight:600; }
+  .conv{ display:grid; gap:var(--s2); margin-top:var(--s3); }
+  .msg{ display:grid; grid-template-columns:7.5em minmax(0,1fr); gap:var(--s3); align-items:start; border:1px solid var(--line-2); border-radius:var(--r-sm); padding:var(--s2) var(--s3); background:var(--panel); }
+  .msg .who{ font-family:var(--mono); font-size:var(--t-1); color:var(--muted); padding-top:2px; }
+  .msg.asst{ border-color:var(--accent); background:var(--accent-wash); }
+  .msg.tool .who{ color:var(--accent); }
+  .msg pre{ margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:var(--t-1); font-family:var(--mono); }
+  .msg .ctx{ font-size:var(--t-1); color:var(--ink-2); }
+  .loss{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .guards{ counter-reset:g; list-style:none; padding:0; margin:var(--s3) 0 0; display:grid; gap:var(--s2); }
+  .guards li{ counter-increment:g; display:grid; grid-template-columns:2em minmax(0,1fr); gap:var(--s2); }
+  .guards li::before{ content:counter(g); font-family:var(--mono); color:var(--accent); font-weight:600; }
+  .build li{ margin:var(--s2) 0; }
+  .build code{ overflow-wrap:anywhere; }
+  .decision{ border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s4); margin-top:var(--s4); background:var(--panel); }
+  .decision h3{ margin:0 0 var(--s2); }
+  .decision fieldset{ border:0; padding:0; margin:var(--s3) 0 0; display:grid; gap:var(--s2); }
+  .decision label{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s2); align-items:start; font-size:var(--t-1); cursor:pointer; }
+  .decision label b{ font-weight:600; }
+  .decision .off{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:var(--s2); font-size:var(--t-1); color:var(--muted); }
+  .decision .off s{ color:var(--muted); }
+  .decision .row{ display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; margin-top:var(--s3); }
+  .decision textarea{ width:100%; min-height:3.2em; font:inherit; font-size:var(--t-1); }
+  .decision .queued{ font-size:var(--t-1); color:var(--accent); }
+  .kv code, .sub code, p code, li code, td code{ overflow-wrap:anywhere; }
+  .legend{ display:flex; flex-wrap:wrap; gap:var(--s2) var(--s4); font-size:var(--t-1); color:var(--ink-2); margin-top:var(--s2); }
+  .legend span{ display:inline-flex; align-items:center; gap:var(--s2); }
+  .legend svg{ width:22px; height:14px; flex:none; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s23 · ConvFinQA-agent · branch <code>SFT</code> · 2026-10-21 · plan, rebuilt around your six steps · nothing built · no model has been called</div>
+  <h1>Teach a 4B open model ConvFinQA from Sonnet 5.5's own conversations, <em>then measure how close it gets to Sonnet 5's 90.54%</em></h1>
+  <p class="lede">The plan fine-tunes <code>Qwen/Qwen3-4B-Instruct-2507</code> with a LoRA adapter, on the same base, revision and Modal recipe as tau-telecom-sft. Sonnet 5.5 answers
+    600 train conversations: the 100 the prompt loop already drew, plus 500 more from the same seed. Only whole conversations that are right on every question, pass every gold
+    checkpoint and show a clean tool flow become training data. A Lavish page then checks that data for balance before anything is trained. The data is laid out reasoning-first
+    for SFT. The untrained base and the tuned model are each scored once on the 100 test conversations that measured the champion, and test is never trained on or used to choose anything.</p>
+  <div class="verdict">
+    <div class="stat accent"><div class="n">552</div><div class="l">page-clean conversations (1,993 questions) in seed 2027's 600 draw, which contains the committed 100 id for id. 48 sit on a test or sealed-holdout page and are never run</div></div>
+    <div class="stat"><div class="n">≈ 350</div><div class="l">conversations expected in the train set. The same filter keeps 117 of 186 in Sonnet 5's committed draws (63%); Sonnet 5.5's own rate is measured in step 1</div></div>
+    <div class="stat red"><div class="n">147 + 131</div><div class="l">conversations kept out by page: test's 147 page siblings, and v1's sealed holdout (56) with its 75 siblings. The train draws reach both, so the filter runs after the draw</div></div>
+    <div class="stat amber"><div class="n">≈ $12</div><div class="l">of Modal L4, plus ≈ 75 min of Sonnet 5.5 on the subscription (≈ $68 API-equivalent of quota, no cash). ≈ 10 h wall clock, with a review stop after step 2</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5);">
+    <p><b>Your decisions, recorded.</b> Sonnet 5.5's conversations are the training data, for academic testing of fine-tuning (your notes, 2026-10-21). tau-telecom-sft's Rule 2 stays as
+      it is in that project; this project records the exception and its scope. As I read "academic testing", the adapter is scored and recorded on the Story timeline, and is not
+      served, promoted or pushed to a model hub. Sonnet 5 stays the champion and the bar. Test is opened twice, once for the base and once for the tuned model.</p>
+  </div>
+
+  <div class="phases six">
+    <div class="card"><span class="badge info">1 · Sonnet 5.5</span><h3>Score the 600</h3><p>Sonnet 5.5 answers every question of the 552 page-clean conversations in seed 2027's 600: the existing 100 plus 500 more.</p></div>
+    <div class="card"><span class="badge info">2 · no model calls</span><h3>Build and check the train set</h3><p>Keep whole conversations that pass every gate. A Lavish page shows accuracy and coverage by key cut. <b>Review stop.</b></p></div>
+    <div class="card"><span class="badge info">3 · no model calls</span><h3>Format for SFT</h3><p>Each conversation laid out reasoning-first: verified reasoning, then the tool calls, then the answer.</p></div>
+    <div class="card"><span class="badge warn">4 · Modal L4</span><h3>Score the base</h3><p>Untrained Qwen3-4B on val, then once on the 100 test conversations.</p></div>
+    <div class="card"><span class="badge warn">5 · Modal L4</span><h3>Fine-tune</h3><p>LoRA on tau's settings, with the epoch picked on val.</p></div>
+    <div class="card"><span class="badge warn">6 · Modal L4</span><h3>Score the tuned model</h3><p>Once on the 100 test conversations, paired against the base and the champion. Results page after.</p></div>
+  </div>
+</header>
+
+<section>
+  <h2>01 · The bar, <em>and what's already measured on the same 100 conversations</em></h2>
+  <p class="sub">Every committed row below is a complete pass over the gate split (<code>eval_loop_v2 · test</code>: 100 conversations, 98 report pages, 349 questions). The student rows are
+    what this plan adds.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Agent</th><th>Weights</th><th class="num">Test accuracy</th><th>Where the number comes from</th></tr></thead>
+      <tbody>
+        <tr class="champ"><td>sdk_v1 · Claude Sonnet 5 · high <span class="badge rec">champion</span></td><td>closed</td><td class="num">90.54%</td><td><code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627</code>, committed, never re-run</td></tr>
+        <tr><td>sdk_v1 · Claude Haiku 5.5 · high</td><td>closed</td><td class="num">87.39%</td><td>s19, committed (falls short by −3.15pp)</td></tr>
+        <tr><td>sdk_v1 · Claude Haiku 4.5</td><td>closed</td><td class="num">87.39%</td><td>s10 model swap, committed</td></tr>
+        <tr><td>pipeline v8 · four agents · deepseek-v4-flash</td><td>open</td><td class="num">81.66%</td><td><code>evalloop-test100-v8·t2p2r5c2</code>, committed</td></tr>
+        <tr class="pending"><td>sdk_v1 · Claude Sonnet 5.5 · high (the teacher)</td><td>closed</td><td class="num">—</td><td>train only in this plan; a test pass is optional and separate</td></tr>
+        <tr class="pending"><td>Qwen3-4B-Instruct-2507, untrained</td><td>open · 4B</td><td class="num">—</td><td>not yet run (step 4)</td></tr>
+        <tr class="pending"><td>Qwen3-4B + LoRA on Sonnet 5.5's train set</td><td>open · 4B</td><td class="num">—</td><td>not yet run (step 6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 960 360" role="img" aria-labelledby="lc-t">
+      <title id="lc-t">The results chart this plan will fill: test accuracy of the base and the tuned model against the committed agents</title>
+      <g id="lc-grid">
+        <line class="grid" x1="90" x2="700" y1="40" y2="40"/><line class="grid" x1="90" x2="700" y1="110" y2="110"/>
+        <line class="grid" x1="90" x2="700" y1="180" y2="180"/><line class="grid" x1="90" x2="700" y1="250" y2="250"/>
+        <line class="axis" x1="90" x2="700" y1="320" y2="320"/><line class="axis" x1="90" x2="90" y1="30" y2="320"/>
+        <text class="tick" x="80" y="44" text-anchor="end">100%</text><text class="tick" x="80" y="114" text-anchor="end">90%</text>
+        <text class="tick" x="80" y="184" text-anchor="end">80%</text><text class="tick" x="80" y="254" text-anchor="end">70%</text>
+        <text class="tick" x="80" y="324" text-anchor="end">60%</text>
+      </g>
+      <g id="lc-refs">
+        <line class="champ" x1="90" x2="700" y1="106.2" y2="106.2"><title>champion sdk_v1 · Sonnet 5 · 90.54%</title></line>
+        <text class="lbl" x="712" y="103"><tspan class="lb">champion 90.54%</tspan></text>
+        <line class="human" x1="90" x2="700" y1="113.9" y2="113.9"><title>human expert 89.44% (paper, different set)</title></line>
+        <text class="mut" x="712" y="120">human expert 89.44% (paper)</text>
+        <line class="haiku" x1="90" x2="700" y1="128.3" y2="128.3"><title>Haiku 5.5 87.39%</title></line>
+        <text class="mut" x="712" y="137">Haiku 5.5 87.39%</text>
+        <line class="v8" x1="90" x2="700" y1="168.4" y2="168.4"><title>pipeline v8 81.66%</title></line>
+        <text class="mut" x="712" y="173">pipeline v8 81.66%</text>
+      </g>
+      <g id="lc-slots">
+        <circle class="slot" cx="250" cy="320" r="9"><title>base: to be measured</title></circle>
+        <circle class="slot" cx="540" cy="320" r="9"><title>tuned: to be measured</title></circle>
+        <text class="tick" x="250" y="300" text-anchor="middle">?</text><text class="tick" x="540" y="300" text-anchor="middle">?</text>
+        <text class="tick" x="250" y="348" text-anchor="middle">base (step 4)</text>
+        <text class="tick" x="540" y="348" text-anchor="middle">tuned (step 6)</text>
+        <text class="mut" x="395" y="240" text-anchor="middle">nothing measured yet; steps 4 and 6 fill these two slots</text>
+      </g>
+    </svg>
+    <figcaption>The chart this plan will produce. Every reference line is a committed pass. The two slots sit on the axis because they're unmeasured, so that no height is implied.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>02 · Getting the data right, <em>by whole conversation, with test kept out</em></h2>
+  <div class="callout" style="margin-bottom:var(--s4);">
+    <p><b>The unit is the conversation.</b> Every set holds whole conversations. A training row is one conversation with <b>all of its questions</b>, in order, answered in one
+      Sonnet 5.5 session. No conversation is cut short, split into turns or split across sets. A conversation that fails a gate on any question is dropped whole, never trimmed.
+      The page rule below only decides which conversations may enter which set.</p>
+  </div>
+  <p class="sub">The prompt loop split by conversation id. That isn't enough for training weights: ConvFinQA builds Type II conversations by joining two Type I conversations from the
+    <b>same report page</b>. <code>Double_AAL/2015/page_74.pdf</code> is in test, and its half <code>Single_AAL/2015/page_74.pdf-2</code> is not. Training on the second would show the
+    student a test document and some of its questions. So this plan splits by <b>page</b>, normalising ids by dropping the <code>Single_</code>/<code>Double_</code> prefix and the
+    <code>-N</code> suffix. The same rule keeps out <code>eval_loop_v1</code>'s sealed holdout.</p>
+
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 960 170" role="img" aria-labelledby="sp-t">
+      <title id="sp-t">How the 3,458 conversations are partitioned for SFT</title>
+      <g id="sp-bar">
+        <rect class="seg-test" x="20" y="40" width="40" height="56"><title>test · 100 conversations · frozen</title></rect>
+        <rect class="seg-sib" x="60" y="40" width="40" height="56"><title>147 page siblings of test · never used</title></rect>
+        <rect class="seg-sib" x="100" y="40" width="40" height="56"><title>eval_loop_v1 sealed holdout 56 + 75 page siblings · never used</title></rect>
+        <rect class="seg-val" x="140" y="40" width="34" height="56"><title>val · 100 conversations, page-disjoint from everything else</title></rect>
+        <rect class="seg-res" x="174" y="40" width="69" height="56"><title>260 conversations GEPA/s7 saw · outside draw_train's pool, never drawn</title></rect>
+        <rect class="seg-train" x="243" y="40" width="147" height="56"><title>train · 552 conversations, seed 2027's 600 draw after the page filter</title></rect>
+        <rect class="seg-res" x="390" y="40" width="550" height="56"><title>reserve · ≈ 2,170 conversations never touched</title></rect>
+        <text class="lbl" x="404" y="74">reserve ≈ 2,170 · untouched · top-ups come from here</text>
+      </g>
+      <g id="sp-labels">
+        <text class="lbl" x="20" y="28"><tspan class="lb">excluded by page</tspan> · test 100 · 147 siblings · v1 holdout 56 + 75</text>
+        <text class="lbl" x="243" y="124"><tspan class="lb">train 552</tspan> · seed 2027's 600 draw (the committed 100 + 500 more), page-filtered</text>
+        <text class="mut" x="243" y="146">≈ 350 expected to pass the filter in step 2</text>
+      </g>
+    </svg>
+    <figcaption>Left to right: test, its 147 page siblings, v1's sealed holdout with its page siblings (red, excluded from everything), val (amber), the 260 conversations GEPA/s7 saw (dashed; outside <code>draw_train</code>'s pool), the train draw (blue), and the untouched reserve. The first four segments are widened so they can be read; the rest are to scale.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>The sets</h3>
+      <div class="tablewrap sets">
+        <table>
+          <thead><tr><th>Set</th><th class="num">Size</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td><b>test</b></td><td class="num">100</td><td><code>eval_loop_v2 · test</code>, copied byte for byte. Nothing trains on it, nothing is chosen by looking at it, and its cut distribution isn't used for balancing either. Opened twice: base, then tuned.</td></tr>
+            <tr><td>excluded</td><td class="num">147<br>+ 56<br>+ 75</td><td>Test's page siblings, then <code>eval_loop_v1</code>'s sealed holdout and its page siblings. Excluded from everything, including the Sonnet 5.5 pass.</td></tr>
+            <tr><td><b>train</b></td><td class="num">552</td><td><code>draw_train(seed=2027, n=600)</code>, then the page filter. Checked: it holds all of the committed seed-2027 100. The train set is the conversations in it that pass step 2.</td></tr>
+            <tr><td><b>val</b></td><td class="num">100</td><td>Drawn by whole page from the 1,786 conversations (1,106 pages) that share no page with test, the holdout or the train draw. Picks the epoch. Sonnet 5.5 never answers it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>Five leak guards, each one a test</h3>
+      <ol class="guards">
+        <li><span>The <code>sft_v1</code> manifest refuses any train or val conversation whose normalised page belongs to a test or sealed-holdout conversation.</span></li>
+        <li><span>The row builder refuses any CSV whose <code>split</code> is <code>test</code>, and the Sonnet 5.5 pass takes only page-clean ids.</span></li>
+        <li><span><code>sft/checks.py</code> scans every row for any test or holdout report id, page or question, before upload and in CI (<code>tests/test_sft_no_leak.py</code>).</span></li>
+        <li><span>The training job checks <code>train.jsonl</code>'s sha256 against the committed data card before it loads the model (tau's rule).</span></li>
+        <li><span>The pre-registration file (train set sha, sampling, verdict rules) is committed <i>before</i> the first test pass. The epoch is picked on val and written down first.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s4);">
+    <p><b>Two side findings, recorded and not changed.</b> The prompt loop's <code>draw_train</code> leaves out the test report ids but not their page siblings: 6 of the 196
+      conversations in sdk_v1·Sonnet 5's committed train draws share a page with a test conversation. It also doesn't leave out <code>eval_loop_v1</code>'s sealed holdout. v2 records
+      its own holdout as "the untouched remainder of the pool", so v1's 56 are back in the pool it draws from, and the same two draws contain 3 of them. Making <code>draw_train</code>
+      page- and holdout-aware would change which ids each seed produces, and break both the id-for-id reproduction challenger pairings depend on and the superset property your
+      600 extension relies on. So I recommend recording both in CLAUDE.md. This plan filters after the draw, without moving a single drawn id.</p>
+  </div>
+</section>
+
+<section>
+  <h2>03 · Step 1, <em>Sonnet 5.5 answers every question of the 600</em></h2>
+  <div class="two">
+    <div>
+      <ul class="build">
+        <li><b>What runs:</b> <code>sdk_v1 · claude-sonnet-5-5 · high</code>, the champion's prompt and effort on the newer model. It runs on the 552 page-clean conversations of
+          <code>draw_train(seed=2027, n=600)</code>: the 95 page-clean ones from the committed 100, and 457 from the extra 500. Sonnet 5.5 answers all 600 (minus the 48), because the training data is 5.5's.</li>
+        <li><b>In full.</b> There is no <code>--stop-at-first-wrong</code>: every question of every conversation is answered, so a kept conversation is complete.</li>
+        <li><b>On the subscription only.</b> A session limit leaves turns unscored and the pass is finished with <code>--resume-from</code> after the reset, never by switching billing.</li>
+        <li><b>Two new trailing columns</b>, because the filter needs them and the CSV doesn't hold them today: <code>sdk_attempts</code>, the number of tries a turn took (it is
+          only in the trace now), and <code>sdk_thinking</code>, the thinking blocks the SDK returns. The runtime currently drops them; SDK 0.2.152 exposes them as <code>ThinkingBlock</code>.</li>
+        <li><b>A by-product:</b> the 95 shared conversations give a paired, per-conversation read on Sonnet 5.5 against Sonnet 5 on train.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout">
+        <p><b>Smoke first.</b> This repo's Agent SDK is 0.2.152. Its bundled CLI didn't recognise <code>claude-haiku-5-5</code>: it served it anyway and priced it on a fallback card. A
+          3-conversation pass checks that Sonnet 5.5 is served as asked at effort high, that the output contract holds, and whether thinking blocks come back. If the CLI misprices it,
+          <code>tracking/cost.py</code> gets Sonnet 5.5's published rate before any cost is recorded. If the model isn't served, I stop and report.</p>
+      </div>
+      <p class="sub" style="margin-top:var(--s3)">Cost uses Sonnet 5's committed full test pass, $11.83 and 13 minutes for 349 questions. That puts 1,993 questions at ≈ $68
+        API-equivalent of quota and ≈ 75 minutes, until 5.5's own rate is measured.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>04 · Step 2, <em>the train set: every gold checkpoint, no system retries, and balanced</em></h2>
+  <p class="sub">A conversation enters the train set only if <b>every question passes every gate</b>. The right-hand column is the same filter run on Sonnet 5's committed train draws
+    (186 page-clean conversations, train only), as a preview of what it removes.</p>
+  <div class="tablewrap piece">
+    <table>
+      <thead><tr><th>Gate</th><th>A question passes when</th><th class="num">Sonnet 5 draws</th></tr></thead>
+      <tbody>
+        <tr><td><b>G1</b> answer</td><td>it scores correct with the repo's own scorer</td><td class="num">62 conv. with a wrong turn</td></tr>
+        <tr><td><b>G2</b> turn type</td><td>the number-or-program call matches gold (the triage checkpoint)</td><td class="num">1 more dropped</td></tr>
+        <tr><td><b>G3</b> plan</td><td>the symbolic plan, bound to the retrieved values, reaches the value gold's own program computes (the preprocess checkpoint)</td><td class="num">2 more</td></tr>
+        <tr><td><b>G4</b> operands</td><td>every operand is a retrieved document value or an earlier answer (the retriever checkpoint, checked through G3's binding and T4)</td><td class="num">in G3 / T4</td></tr>
+        <tr><td><b>G5</b> calculator</td><td>the calculator calls execute the plan (the calculator checkpoint)</td><td class="num">0 more</td></tr>
+        <tr><td><b>S1</b> no retries</td><td>the reply was valid on the first attempt (<code>sdk_attempts</code> = 1). A schema-correction retry is the harness recovering, not behaviour to learn</td><td class="num">not recorded yet</td></tr>
+        <tr><td><b>S2</b> no system errors</td><td>no unscored, rate-limited, token-ceiling or errored turn anywhere in the conversation</td><td class="num">0</td></tr>
+        <tr><td><b>T1</b> no repeats</td><td>no tool is called twice with the same arguments in a turn: the sign of a retry loop or a lost thread</td><td class="num">0</td></tr>
+        <tr><td><b>T2</b> no failed calls</td><td>every tool return is a finite number or a boolean, with no error, NaN or infinity</td><td class="num">0</td></tr>
+        <tr><td><b>T3</b> follows the plan</td><td>one call per operation, in the plan's order; a number turn makes no calls</td><td class="num">6 (program turn, no call)</td></tr>
+        <tr><td><b>T4</b> grounded</td><td>every argument is a retrieved value, an earlier call's return, or a DSL constant. A number from nowhere, such as <code>multiply(A, 0.32)</code> with 0.32 never retrieved, is a hallucinated operand</td><td class="num">3 (plan literal)</td></tr>
+        <tr><td><b>T5</b> from the tool</td><td>the final answer is the last call's return, rounded as the prompt says, not mental arithmetic</td><td class="num">0</td></tr>
+        <tr><td><b>L1</b> fits</td><td>the formatted conversation fits <code>max_length</code> 12,288 tokens; never truncated</td><td class="num">—</td></tr>
+        <tr><td><b>kept</b></td><td>whole conversations passing every gate on every question</td><td class="num"><b>117 of 186</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="loss"><b>Two checkpoints are defined differently from the stage panel, for measured reasons.</b> Raw operand recall reads a value carried from an earlier answer as
+    "missing", which marked 45 of 278 correct turns in the seed-2027 draw. The panel's plan check compares with the rounded gold answer at 1.5%, so it rejects an exact
+    <code>multiply(divide(A, B), const_100)</code> = 1.748 against a gold of "1.7%". With the panel's definitions the same draws keep 50 instead of 117. No CSV row is edited: a kept
+    conversation is exactly what Sonnet 5.5 did.</p>
+
+  <h3 style="margin-top:var(--s5)">Balance and coverage, so the set isn't skewed to easy answers or short conversations</h3>
+  <p class="sub">Step 2 ends with a Lavish page for the train set (<code>.lavish/s24_sft-train-set.html</code>). For every key cut, it shows two things: Sonnet 5.5's accuracy and
+    gate pass rate with a Wilson interval, so you can see whether accuracy is even across cuts, and the cut's <b>coverage ratio</b>, its share of kept conversations divided by its
+    share of the 552 drawn. The comparison is against the draw, not against test: test's distribution is never used to shape training.</p>
+  <div class="two">
+    <div class="tablewrap piece">
+      <table>
+        <thead><tr><th>Level</th><th>Key cuts</th></tr></thead>
+        <tbody>
+          <tr><td>Conversation</td><td>Type I / Type II · total questions (2, 3, 4, 5+) · deepest program (1, 2, 3+ steps)</td></tr>
+          <tr><td>Question</td><td>number / program · program steps (0, 1, 2, 3+) · position (1, 2, 3, 4+) · depends on an earlier answer · operation (add, subtract, multiply, divide, exp, greater) · answer form (percent, plain number, yes/no)</td></tr>
+          <tr><td>Document</td><td>table with duplicate columns · table with non-numeric cells</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Preview cut (Sonnet 5)</th><th class="num">Kept rate</th><th class="num">Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>Type I</td><td class="num">67%</td><td class="num">1.06</td></tr>
+          <tr><td>Type II</td><td class="num">54%</td><td class="num">0.87</td></tr>
+          <tr><td>2 questions</td><td class="num">76%</td><td class="num">1.19</td></tr>
+          <tr><td>5+ questions</td><td class="num">58%</td><td class="num">0.92</td></tr>
+          <tr><td>deepest program 3+ steps</td><td class="num">59%</td><td class="num">0.93</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="loss"><b>The rule.</b> A cut is under-covered when its coverage ratio is below 0.8, or when it has fewer than 30 kept conversations (50 kept questions for a
+    question-level cut). Sonnet 5's draws lean mildly towards short and Type I conversations, but no cut breaks 0.8. If Sonnet 5.5's does, D2 says how to fix it. The page also
+    shows token lengths, drops by gate and by cut, and three rendered rows (Type I, Type II, and a 5+ question conversation). <b>I stop there for your review.</b></p>
+</section>
+
+<section>
+  <h2>05 · Step 3, <em>a reasoning-first layout built for supervised fine-tuning</em></h2>
+  <p class="sub">The SDK runtime records a turn in the order the harness needs it: tool calls first, then a JSON answer with the reasoning inside it, after the fact. For SFT the
+    order matters, because each token is learned conditioned on the tokens before it. So each kept turn is laid out <b>reasoning, then action, then answer</b>, and every reasoning line
+    is one the gates have already verified. The content is Sonnet 5.5's own; only the layout is new. An illustration for <code>Single_JKHY/2009/page_28.pdf-3</code>, with values from gold:</p>
+  <div class="conv">
+    <div class="msg"><div class="who">system</div><div class="ctx"><code>student_v1</code> = <code>sdk_v1</code>'s prompt verbatim plus one paragraph describing the reasoning block (D3), and the six calculator tool schemas. Not trained on.</div></div>
+    <div class="msg"><div class="who">user</div><pre>[[ ## document ## ]] { pre_text, table, post_text — the same bytes the SDK runtime sends }
+[[ ## question ## ]] what is the net cash from operating activities in 2009?</pre></div>
+    <div class="msg asst"><div class="who">assistant</div><pre>&lt;reasoning&gt;
+Turn: number · Type I · first question.
+A = net cash from operating activities, year ended June 30, 2009 → 206588
+    (table row "net cash from operating activities", column "2009")
+&lt;/reasoning&gt;
+{"turn_type":"number","conv_type":"Type I","sub_questions":[],"program":"","retrieved":[…],"answer":"206588","reasoning":"Read from the table."}</pre></div>
+    <div class="msg"><div class="who">user</div><pre>[[ ## question ## ]] what percentage change does this represent?   (turns 2–3 elided)</pre></div>
+    <div class="msg asst"><div class="who">assistant</div><pre>&lt;reasoning&gt;
+Sonnet 5.5's own reasoning sentence(s) for this turn, verbatim.
+Turn: program · Type I · continues turns 1–2.
+A = net cash from operating activities, 2009 → 206588 (turn 1 answer)
+B = net cash from operating activities, 2008 → 181001 (turn 2 answer)
+Plan: subtract(A, B), divide(#0, B), multiply(#1, const_100)
+&lt;/reasoning&gt;
+tool_call mcp__cfq__subtract {"a":206588,"b":181001}</pre></div>
+    <div class="msg tool"><div class="who">tool</div><pre>25587.0</pre></div>
+    <div class="msg asst"><div class="who">assistant</div><pre>tool_call mcp__cfq__divide {"a":25587,"b":181001}</pre></div>
+    <div class="msg tool"><div class="who">tool</div><pre>0.1413638598681775</pre></div>
+    <div class="msg asst"><div class="who">assistant</div><pre>tool_call mcp__cfq__multiply {"a":0.1413638598681775,"b":100}</pre></div>
+    <div class="msg tool"><div class="who">tool</div><pre>14.136385986817752</pre></div>
+    <div class="msg asst"><div class="who">assistant</div><pre>{"turn_type":"program","conv_type":"Type I","sub_questions":[…],"program":"subtract(A, B), divide(#0, B), multiply(#1, const_100)",
+ "retrieved":[…],"answer":"14.1%","reasoning":"Percentage change over 2008, from turns 1–2."}</pre></div>
+  </div>
+  <div class="two" style="margin-top:var(--s4)">
+    <div>
+      <h3>Why this layout</h3>
+      <ul class="build">
+        <li><b>Causal order.</b> The plan is written before the tool call it drives, so the model learns to decide and then act, not to justify afterwards.</li>
+        <li><b>Verified reasoning only.</b> The turn type, operands, sources and plan lines are fields G2–G5 and T4 have checked against gold, so the model never learns a wrong step that happened to land on a right answer.</li>
+        <li><b>Grounded.</b> Every operand carries its source cell or earlier turn, which trains exactly the champion's main remaining failure: the wrong row or period.</li>
+        <li><b>Short and consistent.</b> About 100–250 tokens per turn, the same shape every time. A 4B model copies length and habit, so a compact, regular block is easier to learn than free prose.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>What's trained on</h3>
+      <ul class="build">
+        <li><b>Loss on assistant tokens only</b> (<code>assistant_only_loss</code>): the reasoning block, the tool calls and the final JSON. The prompt, document, questions and tool returns are context.</li>
+        <li><b>Whole conversations.</b> Each turn is learned with the conversation's earlier, correct turns in context, exactly as at inference.</li>
+        <li><b>The same layout at inference.</b> The student runtime accepts text before a tool call and parses the final JSON, so train and test formats match. The base gets the same prompt and harness, so the comparison is fair.</li>
+        <li><b>Mask read back on every row</b> before step 1 of training (tau's check, which caught 273 misaligned rows there).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>06 · Steps 4–6, <em>base, fine-tune, tuned, all on tau's Modal recipe</em></h2>
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 1000 360" role="img" aria-labelledby="fl-t">
+      <title id="fl-t">From the train set to a verdict against the base and the champion</title>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g id="fl-mac">
+        <rect class="box new" x="20" y="40" width="200" height="86" rx="8"><title>steps 1–3: Sonnet 5.5 pass, filter, format</title></rect>
+        <text class="t" x="36" y="68">Train set</text>
+        <text class="d" x="36" y="90">Sonnet 5.5 · filter</text>
+        <text class="d" x="36" y="110">reasoning-first rows</text>
+        <rect class="box new" x="20" y="216" width="200" height="86" rx="8"><title>backends/student.py</title></rect>
+        <text class="t" x="36" y="244">student runtime</text>
+        <text class="d" x="36" y="266">same tools + schema</text>
+        <text class="d" x="36" y="286">agent_sdk CSV columns</text>
+      </g>
+      <g id="fl-modal">
+        <rect class="box modal" x="310" y="16" width="400" height="300" rx="10"><title>Modal app convfinqa-sft (L4)</title></rect>
+        <text class="al" x="326" y="38">Modal · app convfinqa-sft · L4 · bf16</text>
+        <rect class="box" x="330" y="52" width="180" height="80" rx="8"><title>TRL SFTTrainer + PEFT LoRA</title></rect>
+        <text class="t" x="344" y="78">train (step 5)</text>
+        <text class="d" x="344" y="100">LoRA r16 · all-linear</text>
+        <text class="d" x="344" y="118">mask check every row</text>
+        <rect class="box" x="540" y="52" width="150" height="80" rx="8"><title>Volume convfinqa-sft-runs</title></rect>
+        <text class="t" x="554" y="78">adapter</text>
+        <text class="d" x="554" y="100">epoch 2 or 3</text>
+        <text class="d" x="554" y="118">≈ 144 MB</text>
+        <rect class="box" x="330" y="200" width="360" height="100" rx="8"><title>vLLM 0.21.0 serve</title></rect>
+        <text class="t" x="344" y="226">vLLM: base + adapter by name</text>
+        <text class="d" x="344" y="248">Qwen3-4B-Instruct-2507 @ cdbee75</text>
+        <text class="d" x="344" y="268">hermes tool parser · prefix cache</text>
+        <text class="d" x="344" y="288">steps 4 and 6 score here</text>
+      </g>
+      <g id="fl-right">
+        <rect class="box fixed" x="770" y="40" width="210" height="86" rx="8"><title>committed champion CSV</title></rect>
+        <text class="t" x="786" y="68">Champion CSV</text>
+        <text class="d" x="786" y="90">sdk_v1 · Sonnet 5 · 90.54%</text>
+        <text class="d" x="786" y="110">committed, never re-run</text>
+        <rect class="box" x="770" y="216" width="210" height="86" rx="8"><title>verdicts + Story timeline</title></rect>
+        <text class="t" x="786" y="244">Verdicts</text>
+        <text class="d" x="786" y="266">tuned vs base · vs champion</text>
+        <text class="d" x="786" y="286">→ Story timeline</text>
+      </g>
+      <g id="fl-edges">
+        <path class="a" d="M220 82 H330" marker-end="url(#ah)"/>
+        <text class="al" x="236" y="74">rows</text>
+        <path class="a" d="M510 92 H540" marker-end="url(#ah)"/>
+        <path class="a" d="M615 132 V200" marker-end="url(#ah)"/>
+        <path class="a" d="M220 240 H330" marker-end="url(#ah)"/>
+        <text class="al" x="236" y="232">chat</text>
+        <path class="a" d="M330 282 H220" marker-end="url(#ah)"/>
+        <text class="al" x="236" y="300">replies</text>
+        <path class="a" d="M120 302 V340 H875 V302" marker-end="url(#ah)"/>
+        <text class="al" x="500" y="334" text-anchor="middle">predictions CSV (val / test)</text>
+        <path class="a ref" d="M875 126 V216" marker-end="url(#ah)"/>
+        <text class="al" x="867" y="176" text-anchor="end">paired by question</text>
+      </g>
+    </svg>
+    <figcaption>The calculator tools run on the Mac, inside the eval loop, exactly as they do for the SDK runtime. The Modal server only generates text. Nothing on Modal can reach MLflow (tau's lesson), so training runs are synced from the Mac afterwards.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>What's copied from tau-telecom-sft</h3>
+      <div class="tablewrap piece">
+        <table>
+          <thead><tr><th>Piece</th><th>Setting</th></tr></thead>
+          <tbody>
+            <tr><td>Base</td><td><code>Qwen/Qwen3-4B-Instruct-2507</code> @ <code>cdbee75f…</code>, bf16, non-thinking, hermes tool calls. Same base, same pin; only the adapter is new. The weights are read from tau's <code>tau-telecom-sft-hf</code> volume, which already holds that snapshot (D4).</td></tr>
+            <tr><td>Stack</td><td>TRL 1.16 <code>SFTTrainer</code> + PEFT 0.21.2, torch 2.14.1, transformers 5.20.1, the same image pins.</td></tr>
+            <tr><td>LoRA</td><td>r 16 · α 32 · dropout 0.05 · <code>all-linear</code> (33.0M params)</td></tr>
+            <tr><td>Schedule</td><td>lr 1e-4 cosine, 5% warmup, 3 epochs, batch 1 × grad-accum 16, gradient checkpointing, a checkpoint per epoch</td></tr>
+            <tr><td>Length</td><td><code>max_length</code> 12,288 (rows ≈ 7k tokens: ≈ 4.1k prompt plus the reasoning-first turns), measured into the data card</td></tr>
+            <tr><td>Hygiene</td><td>refuses uncommitted <code>src/</code>; <code>.spawn().get()</code> + <code>--detach</code>; no retries; resumes from checkpoint; 8 h per attempt</td></tr>
+            <tr><td>Serving</td><td>vLLM 0.21.0, L4, <code>--max-model-len 16384</code>, prefix caching, temperature 0.7 · top_p 0.8 · top_k 20, identical for base and tuned</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>The verdicts, fixed in advance</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Question</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Did SFT help?</td><td>Tuned vs base on test, paired: net positive <b>and</b> a one-sided, cluster-corrected McNemar p &lt; 0.05 (the house gate).</td></tr>
+            <tr><td>How close to the champion?</td><td>Δ vs <code>sdk_v1·Sonnet 5</code>'s committed CSV with a cluster-bootstrap 95% CI, plus <code>model_swap_verdict</code>: beats, matches within 3pp, or falls short.</td></tr>
+            <tr><td>Where does it fail?</td><td>The stage panel (turn type · plan · operands · calculator), the step 2 key cuts on test, and format failures (non-JSON replies, tool calls written as text).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub">Run names: <code>student-evalloop-test100-student_v1-qwen3-4b-{base|cfq-s55}-&lt;stamp&gt;</code>. Eval passes log to <code>convfinqa</code>, so they reach the Story timeline; training logs to a new <code>convfinqa/sft</code> experiment. A server error that survives retries leaves a turn <b>unscored</b>, not wrong, finished with <code>--resume-from</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>07 · Cost and time, <em>from Sonnet 5's measured pass and tau's measured L4 numbers</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Step</th><th class="num">Size</th><th class="num">Wall clock</th><th class="num">Cost</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Sonnet 5.5 smoke</td><td class="num">3 conv. · ≈ 11 q</td><td class="num">≈ 3 min</td><td class="num">quota ≈ $0.4 API-eq</td></tr>
+        <tr><td>1 · Sonnet 5.5 on the 552</td><td class="num">1,993 q</td><td class="num">≈ 75 min</td><td class="num">quota ≈ $68 API-eq</td></tr>
+        <tr><td>2 · filter, cuts, the s24 page (a top-up only if D2 calls for one, ≈ $0.12 per conversation)</td><td class="num">—</td><td class="num">minutes</td><td class="num">0</td></tr>
+        <tr><td>3 · format, checks, upload</td><td class="num">—</td><td class="num">minutes</td><td class="num">0</td></tr>
+        <tr><td>4 · first deploy (base weights read from tau's volume, no download), base on smoke + val + test</td><td class="num">3 passes</td><td class="num">≈ 1.6 h</td><td class="num">Modal ≈ 1.7</td></tr>
+        <tr><td>5 · train, 3 epochs (ceiling: all 552 kept; ≈ 350 expected)</td><td class="num">≤ 11.6M tokens</td><td class="num">≤ 4.5 h</td><td class="num">Modal ≤ 5.0</td></tr>
+        <tr><td>6 · val at epochs 2 and 3, then test once</td><td class="num">3 passes</td><td class="num">≈ 2 h</td><td class="num">Modal ≈ 2.3</td></tr>
+        <tr><td>Idle windows, cold starts, slack</td><td class="num">—</td><td class="num">—</td><td class="num">Modal ≈ 3</td></tr>
+        <tr><td><b>Total</b></td><td class="num"></td><td class="num"><b>≈ 10 h</b>, mostly unattended</td><td class="num"><b>Modal ≈ $12 · quota ≈ $68 API-eq</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Training throughput is tau's 715 tokens/s on an L4 at $1.116/h; eval passes scale from tau's 14 tokens/s per stream. The workspace is on Modal's Starter plan ($30/month credit), and
+    tau-telecom-sft has spent about $10 of it this month, so this should fit inside the credit. Sonnet 5.5's figures use Sonnet 5's rate until step 1 measures its own.</p>
+</section>
+
+<section>
+  <h2>08 · Build list, <em>all in this repo apart from one registry line</em></h2>
+  <ul class="build">
+    <li><code>backends/agent_sdk.py</code>: record <code>sdk_attempts</code> per turn and <code>sdk_thinking</code> (the <code>ThinkingBlock</code> text) as trailing CSV columns, with defaults so older CSVs load unchanged. Tests pin both.</li>
+    <li><code>convfinqa-evalloop run --report-ids-file</code>, so the Sonnet 5.5 pass runs only the page-clean ids, in full, while recording the draw seed. <code>tracking/cost.py</code> gets a <code>claude-sonnet-5-5</code> rate if the CLI prices it on its fallback card.</li>
+    <li><code>src/convfinqa/sft/splits.py</code>: the <code>sft_v1</code> manifest (test copied from eval_loop_v2, the page filter, train = the 552, val drawn by page) → <code>evaluation/splits/sft_v1.json</code>.</li>
+    <li><code>src/convfinqa/sft/filter.py</code>: the gates G1–G5, S1–S2, T1–T5 and L1 as pure functions over CSV rows, recording drops by gate.</li>
+    <li><code>src/convfinqa/sft/cuts.py</code> + <code>sft/report.py</code>: the key cuts, Wilson intervals, coverage ratios and the s24 Lavish page, which is generated from the data, not hand-written.</li>
+    <li><code>src/convfinqa/sft/format.py</code>: reasoning-first rows (<code>{"messages","tools","meta"}</code>) from kept conversations, and <code>prompts/student_v1.py</code> generated as sdk_v1 plus the format paragraph (D3).</li>
+    <li><code>src/convfinqa/sft/checks.py</code>: leak scan, mask read-back, token lengths and the data card (<code>evaluation/sft/v1/card.json</code>: counts by gate and cut, sha256). The rows are rebuilt from the committed CSVs, not committed themselves.</li>
+    <li><code>src/convfinqa/sft/modal_app.py</code>, <code>train.py</code>, <code>mask.py</code>, <code>cli.py</code>: tau's app and trainer, adapted. App <code>convfinqa-sft</code> mounts tau's <code>tau-telecom-sft-hf</code> read-only with <code>HF_HUB_OFFLINE=1</code> (D4), and has its own <code>convfinqa-sft-{vllm,runs,data}</code> volumes. A start-up check confirms the snapshot is there and fails loudly rather than downloading into tau's volume.</li>
+    <li><code>backends/student.py</code>, <code>llm.student_client()</code>, <code>run --runtime student --student-adapter base|cfq-s55</code>: text before tool calls is accepted, and the final JSON is parsed and validated against <code>SdkTurnResult</code>.</li>
+    <li>Story and the UI: student agents on the test timeline, and a Student panel on Optimise › Runtimes.</li>
+    <li>Tests: <code>test_sft_no_leak.py</code>, <code>test_sft_filter.py</code> (one fixture per gate, including a rounded-gold plan that must pass), <code>test_sft_format.py</code> (a fixture conversation renders to the exact layout and mask), <code>test_student_runtime.py</code>, and the import-without-key test extended.</li>
+    <li>Docs: an "SFT student (s23)" section in CLAUDE.md and AGENTS.md: the unit, the page rule, your Sonnet 5.5 decision and its scope, the gates, and both side findings.</li>
+    <li><b>nmp-central-ai</b>: add <code>convfinqa/sft</code> to P1's experiments in <code>registry/projects.yaml</code> and run <code>make mlflow-init</code>, as a separate small PR there.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>09 · Risks, <em>and what each one would look like</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Risk</th><th>What it would look like</th><th>Handling</th></tr></thead>
+      <tbody>
+        <tr><td>Hard cuts are thin</td><td>Whole-conversation filtering keeps fewer Type II and long conversations (Sonnet 5: 54% against 67%)</td><td>The s24 page measures it per cut, and D2 tops up any cut under 0.8 from the reserve.</td></tr>
+        <tr><td>≈ 350 conversations is too few</td><td>The tuned model barely beats the base on val</td><td>The next lever is seed 2028's 600, a clean extension under the same rules (≈ $68 more quota), decided after the results.</td></tr>
+        <tr><td>The base never saw the reasoning block</td><td>The base scores low partly on format</td><td>Both arms get the same <code>student_v1</code> prompt, which asks for the block (D3), and format failures are counted separately.</td></tr>
+        <tr><td>The bundled CLI doesn't know Sonnet 5.5</td><td><code>unrecognized_model</code>, as with Haiku 5.5, and a wrong recorded cost</td><td>The smoke pass checks the served model and effort first, and the cost table is corrected before any figure is recorded.</td></tr>
+        <tr><td>Right answer, wrong route</td><td>A turn lands on gold through a wrong route, or gold is wrong (about 0.5% of turns)</td><td>G2–G5 and T3–T5 check the route, not just the answer, and the s24 page lists 30 kept turns for a read-through.</td></tr>
+        <tr><td>Session limit mid-pass</td><td>Turns come back unscored</td><td>Unscored, not wrong. Finished with <code>--resume-from</code> after the reset; rows only come from a complete pass.</td></tr>
+        <tr><td>tau's weights volume changes</td><td>tau-telecom-sft cleans up or renames <code>tau-telecom-sft-hf</code></td><td>The start-up check fails loudly before any pass, and the fallback is one 8 GB download into ConvFinQA's own volume (≈ 5 min, ≈ $0.10).</td></tr>
+        <tr><td>Test discipline drifts</td><td>An epoch or setting gets chosen after test is seen</td><td>Pre-registration is committed first, the epoch is picked on val, and test's cut distribution isn't used for balancing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>10 · Decisions, <em>five recorded from your notes and five still open</em></h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Recorded</th><th>What you said</th></tr></thead>
+      <tbody>
+        <tr><td>Teacher</td><td>Sonnet 5.5 (<code>sdk_v1 · claude-sonnet-5-5 · high</code>), for academic testing of fine-tuning</td></tr>
+        <tr><td>Data</td><td>Seed 2027's existing 100 plus 500 more, by whole conversation, every question kept</td></tr>
+        <tr><td>Filter</td><td>Correct, every gold checkpoint, no retries or other system artifacts, a clean tool flow</td></tr>
+        <tr><td>Test</td><td>The base and the tuned model, 100 conversations each, once</td></tr>
+        <tr><td>Promotion</td><td>None: scored and recorded only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <form class="decision" data-lavish-question="cot" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('cot'); const n=event.currentTarget.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D1 chain-of-thought source: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:event.currentTarget,data:{question:'cot',answer:v,note:n}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D1 · What goes in the reasoning block?</h3>
+    <fieldset>
+      <label><input type="radio" name="cot" value="Sonnet 5.5's reasoning sentence + its gate-verified fields, reasoning-first" checked><span><b>Sonnet 5.5's reasoning sentence and its verified fields</b> <span class="badge rec">recommended</span>. Its own reasoning text, then the turn type, operands with sources, and plan, all checked by the gates. Short, grounded and consistent.</span></label>
+      <label><input type="radio" name="cot" value="add Sonnet 5.5's returned thinking to the block"><span><b>Add Sonnet 5.5's thinking.</b> The thinking blocks step 1 captures anyway, placed inside the block. Rows get several times longer, the text can't be checked against gold, and recent Claude models return a summary of their thinking rather than the full text.</span></label>
+      <label><input type="radio" name="cot" value="the SDK shape as recorded (tool calls first, reasoning in the final JSON)"><span><b>The SDK shape as recorded.</b> Tool calls first, then the JSON with the reasoning inside it, after the fact. No re-layout, but the reasoning is a justification rather than a plan.</span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="coverage" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('coverage'); if(v&&window.lavish){window.lavish.queuePrompt('D2 fixing an under-covered cut: '+v,{tag:'choice',text:'D2: '+v,element:event.currentTarget,data:{question:'coverage',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D2 · If a key cut is under-covered, how is it fixed?</h3>
+    <fieldset>
+      <label><input type="radio" name="coverage" value="targeted top-up from the reserve, answered by Sonnet 5.5 and filtered the same way" checked><span><b>Targeted top-up</b> <span class="badge rec">recommended</span>. Draw extra conversations of that cut from the reserve under the same page rules, have Sonnet 5.5 answer them in full, filter them the same way, and repeat until the ratio clears 0.8. About $0.12 per conversation.</span></label>
+      <label><input type="radio" name="coverage" value="upsample the under-covered cut in training"><span><b>Upsample.</b> Repeat that cut's kept conversations in training. No new data, but the model sees the same conversations twice and can memorise them.</span></label>
+      <label><input type="radio" name="coverage" value="accept and report"><span><b>Accept and report.</b> Train on the set as filtered and report the skew beside the result.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="prompt" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('prompt'); if(v&&window.lavish){window.lavish.queuePrompt('D3 student prompt: '+v,{tag:'choice',text:'D3: '+v,element:event.currentTarget,data:{question:'prompt',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D3 · Which prompt do the base and the tuned model get?</h3>
+    <fieldset>
+      <label><input type="radio" name="prompt" value="student_v1 = sdk_v1 + one paragraph asking for the reasoning block, identical for both" checked><span><b><code>sdk_v1</code> plus one paragraph</b> <span class="badge rec">recommended</span>. The paragraph asks for the reasoning block. Both arms get it, so the base isn't penalised for a format nobody asked it for.</span></label>
+      <label><input type="radio" name="prompt" value="sdk_v1 verbatim for both"><span><b><code>sdk_v1</code> verbatim.</b> The champion's exact prompt. The tuned model learns the block from data alone; the base never sees it requested.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="base" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('base'); if(v&&window.lavish){window.lavish.queuePrompt('D4 sharing the base model with tau-telecom-sft: '+v,{tag:'choice',text:'D4: '+v,element:event.currentTarget,data:{question:'base',answer:v}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D4 · How much is shared with tau-telecom-sft?</h3>
+    <p class="sub">Checked on Modal on 2026-10-21: <code>tau-telecom-sft-hf</code> holds <code>models--Qwen--Qwen3-4B-Instruct-2507/snapshots/cdbee75f…</code>, the exact pinned revision, and
+      <code>tau-telecom-sft-vllm</code> holds a torch compile cache. Either way, only ConvFinQA's adapter is trained.</p>
+    <fieldset>
+      <label><input type="radio" name="base" value="reuse tau's base weights: mount tau-telecom-sft-hf read-only, own vllm/runs/data volumes" checked><span><b>Reuse tau's base weights</b> <span class="badge rec">recommended</span>. Mount <code>tau-telecom-sft-hf</code> read-only with <code>HF_HUB_OFFLINE=1</code>, so there's no second download and both projects score the same bytes. Read-only means ConvFinQA can never modify tau's copy. The vLLM compile cache, runs and data stay in ConvFinQA's own volumes, because the serving config differs (<code>--max-model-len 16384</code>, LoRA settings) and two projects writing one cache could collide.</span></label>
+      <label><input type="radio" name="base" value="own volumes, same pinned revision"><span><b>Own volumes, same pinned revision.</b> One 8 GB download (≈ 5 min, ≈ $0.10), and the two projects' lifecycles stay independent.</span></label>
+      <label><input type="radio" name="base" value="score on tau's running server"><span><b>Use tau's running server.</b> tau's app has a container up right now. Serving ConvFinQA through it would mean redeploying tau's app with a second adapter and sharing its traffic during tau's own scoring, so I'd not do this.</span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="decision" data-lavish-question="order" onsubmit="event.preventDefault(); const v=new FormData(event.currentTarget).get('order'); const n=event.currentTarget.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D5 where I stop: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D5: '+v,element:event.currentTarget,data:{question:'order',answer:v,note:n}}); event.currentTarget.querySelector('.queued').textContent='queued: '+v;}">
+    <h3>D5 · Where do I stop for you?</h3>
+    <fieldset>
+      <label><input type="radio" name="order" value="build, run steps 1–2 and the base score, stop at the s24 train-set page" checked><span><b>At the train-set page</b> <span class="badge rec">recommended</span>. Build, run steps 1 and 2, and score the base (step 4, ≈ $2 of Modal) in the meantime. You approve the train set, and any top-up, before formatting and training.</span></label>
+      <label><input type="radio" name="order" value="run all six steps, report at the end, with stop rules"><span><b>Run all six steps.</b> I stop early only if Sonnet 5.5 isn't served as asked, the base harness is broken, a cut is under-covered (D2 then applies), or Modal spend passes $25.</span></label>
+      <label><input type="radio" name="order" value="build, then stop after step 1"><span><b>After step 1.</b> You see Sonnet 5.5's raw pass before any filtering decisions.</span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  Numbers checked on 2026-10-21 against <code>data/convfinqa_dataset.json</code>, <code>evaluation/splits/eval_loop_v{1,2}.json</code>, the committed prediction CSVs and <code>evaluation/mlflow_snapshot.json</code>.
+  The same-seed superset, page and holdout counts were computed with <code>splits.draw_train</code> itself; the filter and coverage previews ran on Sonnet 5's two committed train draws only.
+  tau-telecom-sft facts come from <code>src/tau_telecom_sft/cloud/modal_app.py</code>, <code>configs/sft_a.yaml</code>, <code>train/sft.py</code> and its s03/s04 plans.
+  The style is the portfolio house UI (<code>house.css</code> + P1's blue hue), the same as s21 and s22.
+</footer>
+
+</main>
+</body>
+</html>

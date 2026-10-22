@@ -151,6 +151,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Draw a fresh train split from pool-minus-gate with this seed.",
     )
     rn.add_argument(
+        "--report-ids-file",
+        default=None,
+        metavar="FILE",
+        help=(
+            "With --train-seed: run only the drawn ids listed in FILE (one per "
+            "line), in draw order. Every listed id must be in the draw."
+        ),
+    )
+    rn.add_argument(
         "--stop-at-first-wrong",
         action="store_true",
         help="End each conversation at its first wrong answer (train only).",
@@ -649,6 +658,7 @@ def main() -> None:
                 resume_from=args.resume_from,
                 sdk_model=args.sdk_model,
                 sdk_effort=args.sdk_effort,
+                report_ids_file=args.report_ids_file,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201

@@ -109,11 +109,13 @@ class Script:
         tool_calls: list[tuple[str, float, float]] | None = None,
         usage: dict[str, int] | None = None,
         is_error: bool = False,
+        thinking: str | None = None,
     ) -> None:
         self.payload = payload
         self.tool_calls = tool_calls or []
         self.usage = usage or {"input_tokens": 100, "output_tokens": 20}
         self.is_error = is_error
+        self.thinking = thinking
 
 
 class FakeSdk:
@@ -150,6 +152,12 @@ class FakeSdk:
             async def receive_response(self) -> Any:
                 script = fake.scripts.pop(0)
                 blocks: list[Any] = []
+                if script.thinking is not None:
+                    blocks.append(
+                        claude_agent_sdk.ThinkingBlock(
+                            thinking=script.thinking, signature="sig"
+                        )
+                    )
                 for name, a, b in script.tool_calls:
                     blocks.append(
                         claude_agent_sdk.ToolUseBlock(
@@ -376,6 +384,7 @@ async def test_a_two_turn_conversation_writes_the_pipelines_capture(
     assert program["sdk"]["stage_skips"] == []
     assert program["sdk"]["inline_arithmetic"] is False
     assert set(program["sdk"]) == {
+        "attempts",
         "num_turns",
         "tool_calls",
         "stage_skips",
@@ -575,6 +584,36 @@ async def test_a_corrected_reply_is_accepted(
     fake_sdk.scripts = [Script("garbage"), Script(number_turn("9"))]
     preds, _programs, captures = await _run(fake_sdk, ["a?"])
     assert preds == ["9"] and "error" not in captures[0]
+
+
+async def test_the_capture_records_how_many_attempts_a_turn_took(
+    fake_sdk: FakeSdk, fake_document: str, sdk_prompt_module: str
+) -> None:
+    """A correction retry is the harness recovering; the SFT filter needs to see it."""
+    fake_sdk.scripts = [
+        Script(number_turn("1")),
+        Script("garbage"),
+        Script(number_turn("2")),
+    ]
+    _preds, _programs, captures = await _run(fake_sdk, ["a?", "b?"])
+    assert [c["triage"]["sdk_attempts"] for c in captures] == [1, 2]
+    assert [c["sdk"]["attempts"] for c in captures] == [1, 2]
+
+
+async def test_the_capture_keeps_the_thinking_the_sdk_returned(
+    fake_sdk: FakeSdk, fake_document: str, sdk_prompt_module: str
+) -> None:
+    fake_sdk.scripts = [
+        Script(
+            program_turn(),
+            tool_calls=[("subtract", 200, 50)],
+            thinking="2020 less 2019",
+        ),
+        Script(number_turn("7")),
+    ]
+    _preds, _programs, captures = await _run(fake_sdk, ["a?", "b?"])
+    assert captures[0]["triage"]["thinking"] == ["2020 less 2019"]
+    assert captures[1]["triage"]["thinking"] == []
 
 
 # ---------------------------------------------------------------------------

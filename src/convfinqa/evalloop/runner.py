@@ -462,6 +462,36 @@ def check_resume(
         )
 
 
+def narrow_draw(
+    report_ids: list[str], draw: dict[str, Any], path: str | Path
+) -> tuple[list[str], dict[str, Any]]:
+    """Keep the drawn ids listed in `path`, in draw order; refuse any extra id."""
+    import hashlib
+
+    raw = Path(path).read_bytes()
+    listed = [line.strip() for line in raw.decode().splitlines() if line.strip()]
+    if not listed:
+        raise ValueError(f"--report-ids-file {path} lists no report ids")
+    drawn = set(report_ids)
+    extra = sorted(set(listed) - drawn)
+    if extra:
+        sample = ", ".join(extra[:3]) + ("…" if len(extra) > 3 else "")
+        raise ValueError(
+            f"--report-ids-file {Path(path).name} lists {len(extra)} ids that are "
+            f"not in seed {draw.get('draw_seed')}'s draw ({sample}): the file "
+            "narrows a draw, it never adds to one"
+        )
+    keep = set(listed)
+    kept = [r for r in report_ids if r in keep]
+    return kept, {
+        **draw,
+        "n_reports_drawn": len(report_ids),
+        "n_reports": len(kept),
+        "report_ids_file": Path(path).name,
+        "report_ids_file_sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
 def sdk_run_metrics(captures: list[dict[str, Any]]) -> dict[str, float]:
     """Run-level metrics from the ``capture["sdk"]`` dicts of an sdk pass.
 
@@ -516,6 +546,7 @@ async def run_split(
     resume_from: str | Path | None = None,
     sdk_model: str | None = None,
     sdk_effort: str | None = None,
+    report_ids_file: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run one split × version pass; return a summary with the CSV and run id.
 
@@ -550,6 +581,13 @@ async def run_split(
     run again from turn 0. Split, version, runtime and the report set are
     checked against the prior CSV first, because a resume that quietly changed
     the question set would produce a file that is not any split's evidence.
+
+    `report_ids_file` narrows a `train_seed` draw to the ids listed in it (one
+    per line), keeping the draw's order. Every listed id must be in the draw:
+    the file filters a draw, it never adds to one, so the pass stays that
+    seed's evidence. The SFT data build uses it to skip the drawn conversations
+    that share a report page with test or the sealed holdout. The file's name,
+    sha256 and the kept count are logged with the draw.
     """
     import convfinqa.prompts as prompts_pkg
     from convfinqa.evaluation.metrics import numeric_match
@@ -572,10 +610,16 @@ async def run_split(
             "it skipped with no counterpart"
         )
     draw: dict[str, Any] | None = None
+    if report_ids_file is not None and train_seed is None:
+        raise ValueError(
+            "--report-ids-file narrows a train draw; pass it with --train-seed"
+        )
     if train_seed is not None:
         report_ids, draw = draw_train(
             seed=train_seed, n_reports=n_reports or len(manifest["splits"]["train"])
         )
+        if report_ids_file is not None:
+            report_ids, draw = narrow_draw(report_ids, draw, report_ids_file)
     else:
         report_ids = split_report_ids(
             split, n_reports=n_reports, n_questions=n_questions

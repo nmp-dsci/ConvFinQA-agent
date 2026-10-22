@@ -325,6 +325,12 @@ def result_to_capture(
             "output": triage_out,
             "reasoning": result.reasoning,
             "metrics": stage_metrics,
+            # Turn-level facts the CSV keeps through `triage_io`: the attempts
+            # the reply took, and the thinking text the SDK returned with it
+            # (empty when the model returned none). Readers that predate them
+            # ignore unknown keys.
+            "sdk_attempts": metrics.get("attempts"),
+            "thinking": list(metrics.get("thinking") or []),
         },
     }
     tool_calls = sum(1 for e in trajectory if e.get("event") == "tool_call")
@@ -401,6 +407,7 @@ def result_to_capture(
         inline = _inline_arithmetic(result.answer, trajectory)
 
     capture["sdk"] = {
+        "attempts": metrics.get("attempts"),
         "num_turns": metrics.get("num_turns"),
         "tool_calls": tool_calls,
         "stage_skips": stage_skips,
@@ -488,10 +495,13 @@ async def _ask_once(client: Any, sdk: Any, prompt: str) -> tuple[Any, dict[str, 
     accepted for older SDKs), the text of the reply is the fallback.
     """
     texts: list[str] = []
+    thinking: list[str] = []
     tools_used: list[str] = []
     usage: dict[str, Any] = {}
     structured: Any = None
     started = time.perf_counter()
+    # Older SDKs have no ThinkingBlock; a missing class must not match anything.
+    thinking_block = getattr(sdk, "ThinkingBlock", None)
 
     await client.query(prompt)
     async for message in client.receive_response():
@@ -501,6 +511,8 @@ async def _ask_once(client: Any, sdk: Any, prompt: str) -> tuple[Any, dict[str, 
                     texts.append(block.text)
                 elif isinstance(block, sdk.ToolUseBlock):
                     tools_used.append(block.name)
+                elif thinking_block is not None and isinstance(block, thinking_block):
+                    thinking.append(str(getattr(block, "thinking", "") or ""))
         elif isinstance(message, sdk.ResultMessage):
             usage = {
                 "duration_ms": getattr(message, "duration_ms", None),
@@ -525,6 +537,7 @@ async def _ask_once(client: Any, sdk: Any, prompt: str) -> tuple[Any, dict[str, 
                 raise SdkTurnError(f"the SDK reported an error: {detail}")
     usage["latency_ms"] = round((time.perf_counter() - started) * 1000, 1)
     usage["tools_used"] = tools_used
+    usage["thinking"] = thinking
     return _payload_of(structured, texts), usage
 
 
@@ -584,6 +597,10 @@ async def _ask(
                 message = _correction(str(exc))
                 continue
             span.outputs(parsed.model_dump())
+            # How many tries the turn took. A schema-correction retry is the
+            # harness recovering, not the agent's behaviour, and the SFT
+            # train-set filter drops any conversation that needed one.
+            usage["attempts"] = attempt + 1
             span.set(
                 duration_ms=usage.get("duration_ms"),
                 num_turns=usage.get("num_turns"),
