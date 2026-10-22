@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open-model challenger plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .phases{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .phases .card{ min-width:0; }
+  .phases .card h3{ margin:var(--s2) 0 0; font-size:var(--t0); }
+  .phases .card p{ margin:var(--s2) 0 0; font-size:var(--t-1); }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; }
+  .tablewrap td.n, .tablewrap th.n{ overflow-wrap:normal; }
+  table.fx{ table-layout:fixed; min-width:880px; }
+  table.fx th{ white-space:normal; }
+  td.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  td.sc b{ font-size:var(--t0); }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  td .badge{ margin-top:var(--s1); }
+  td .note code{ white-space:nowrap; overflow-wrap:normal; }
+  tr.champ td{ font-weight:600; }
+  tr.dim td{ color:var(--muted); }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:720px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .fig .lbl{ fill:var(--ink); font-family:var(--sans); font-size:15px; }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .mut{ fill:var(--muted); font-family:var(--sans); font-size:14px; }
+  .fig .tick{ fill:var(--muted); font-family:var(--mono); font-size:13px; }
+  .fig .val{ fill:var(--ink); font-family:var(--mono); font-size:14px; }
+  .fig .grid{ stroke:var(--line); }
+  .fig .axis{ stroke:var(--line-3); }
+  .fig .bar{ fill:var(--line-3); }
+  .fig .bar.champ{ fill:var(--accent); }
+  .fig .bar.open{ fill:var(--amber); opacity:.85; }
+  .fig .slot{ fill:var(--bg); stroke:var(--accent); stroke-width:1.5; stroke-dasharray:5 4; }
+  .fig .cl{ stroke:var(--accent); stroke-width:2; }
+  .fig .ml{ stroke:var(--red); stroke-width:1.5; stroke-dasharray:6 4; }
+  .fig .mlt{ fill:var(--red); font-family:var(--sans); font-size:13px; }
+  .fig .clt{ fill:var(--accent); font-family:var(--sans); font-size:13px; }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.5; }
+  .fig .box.fixed{ stroke:var(--ink); stroke-width:2; }
+  .fig .box.new{ fill:var(--accent-wash); stroke:var(--accent); }
+  .fig .box.alt{ fill:var(--bg); stroke:var(--line-3); stroke-dasharray:6 4; }
+  .fig .chipr{ fill:var(--panel); stroke:var(--accent); stroke-width:1.2; }
+  .fig .t{ fill:var(--ink); font-family:var(--sans); font-size:16px; font-weight:600; }
+  .fig .d{ fill:var(--ink-2); font-family:var(--sans); font-size:14px; }
+  .fig .dm{ fill:var(--ink-2); font-family:var(--mono); font-size:13px; }
+  .fig .cx{ fill:var(--ink); font-family:var(--sans); font-size:13px; font-weight:600; }
+  .fig .cs{ fill:var(--muted); font-family:var(--mono); font-size:11.5px; }
+  .fig .a{ stroke:var(--ink-2); stroke-width:2; fill:none; }
+  .fig .a.opt{ stroke-dasharray:6 5; }
+  .fig .ah{ fill:var(--ink-2); }
+  .fig .al{ fill:var(--muted); font-family:var(--sans); font-size:13px; }
+  .checks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .checks .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .checks .card b.id{ font-family:var(--mono); color:var(--accent); margin-right:var(--s1); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:56px; margin-top:var(--s2); }
+  .copyrow{ margin-top:var(--s5); display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s24 · ConvFinQA-agent · 2026-10-21 · plan, revised after your note · nothing built · no model called</div>
+  <h1>Can an open-weight model in an open harness match Sonnet 5's 90.54%? <em>No Claude anywhere in the challenger.</em></h1>
+  <p class="lede">The champion is Claude Sonnet 5 running in Claude's own harness. The challenger is an open-weight reasoning model in an open harness built to speak that model's own protocol:
+    native tool calls over the lab's own API, and the model's reasoning carried across tool calls the way the lab specifies, at high effort. The task contract stays the same: the same six
+    calculator tools, the same <code>sdk_v1</code> instructions and answer fields, and one running history per conversation. That way the answers are scored exactly like the champion's. Each candidate
+    is screened on the champion's own train draw. At most two finalists are scored once on the 100 test conversations and judged by the rule that already judged Haiku,
+    <code>story.model_swap_verdict</code>. Claude's harness appears only as an optional control at the end.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">90.54%</div><div class="l">the bar: sdk_v1 · Sonnet 5 · high, 316 of 349 questions on <code>eval_loop_v2</code> test, committed and never re-run</div></div>
+    <div class="stat"><div class="n">3 + 2</div><div class="l">candidates: DeepSeek V4-Pro, Qwen3.8-Max and GLM-5.2. Kimi K3 is held in reserve, and Qwen3.8-27B is a stretch arm that runs on one GPU</div></div>
+    <div class="stat amber"><div class="n">−3pp</div><div class="l">the margin for "matches" applies to the lower bound of the 95% CI. Haiku 5.5 at −3.15pp had a CI of [−6.80, +0.28] and fell short</div></div>
+    <div class="stat red"><div class="n">≈ $100–200</div><div class="l">cash to the labs' APIs if every stage runs. The first review stop comes after ≈ $40–75. The challenger makes no Claude call, so it uses no subscription quota</div></div>
+  </div>
+
+  <div class="callout warn" style="margin-top:var(--s5);">
+    <p><b>One correction about the bar.</b> You described sdk_v1 as running on Sonnet 5.5. The champion record (<code>registry.json → champion_agent</code>) is sdk_v1 on
+      <b>Claude Sonnet 5</b> at high effort, measured by <code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627</code>. Sonnet 5.5 has only s23's 3-conversation train smoke run. So the bar here is
+      Sonnet 5's committed pass. If you want Sonnet 5.5 as the bar, it needs its own test pass first. That pass runs on the subscription, so it costs quota, not cash.</p>
+  </div>
+
+  <div class="phases">
+    <div class="card"><span class="badge info">P0 · no model calls</span><h3>Build the open harness</h3><p>A new <code>open_agent</code> runtime with one profile per lab. The judges learn to accept it, cost is priced from tokens, and the ceiling counts the same tokens as the champion's.</p></div>
+    <div class="card"><span class="badge warn">P1 · ≈ $3</span><h3>Smoke each candidate</h3><p>Run 3 train conversations through seven contract checks. That includes whether the reasoning survives tool calls.</p></div>
+    <div class="card"><span class="badge warn">P2 · ≈ $35–70</span><h3>Train screen</h3><p>Run seed 2027 (100 conversations, stop at the first wrong turn) for each candidate and pair it with the champion per conversation. <b>Review stop.</b></p></div>
+    <div class="card"><span class="badge warn">P3 · ≈ $40–100</span><h3>Finalists to test</h3><p>Run seed 2028 and then one test pass for each finalist (at most two). The verdict comes from <code>model_swap_verdict</code>.</p></div>
+    <div class="card"><span class="badge info">P4 · per D2</span><h3>Own harness</h3><p>DeepSeek V4-Pro also runs in DeepSeek's own harness, <code>dsh</code>. Optionally, Claude's harness serves as a control. This shows whether the harness was the limit.</p></div>
+    <div class="card"><span class="badge info">P5 · no model calls</span><h3>Record it</h3><p>Commit the CSVs, rebuild the Story timeline and write a results page. Sonnet 5 stays champion unless you decide otherwise (D5).</p></div>
+  </div>
+</header>
+
+<section id="bar">
+  <h2>01 · The bar, <em>and the rule that decides "equivalent"</em></h2>
+  <p class="sub">Every committed row is a complete pass over the gate split (<code>EVAL_MANIFEST=eval_loop_v2</code>, test: 100 conversations, 349 questions, 111 number turns and 238 program
+    turns). The dashed rows are what this plan adds. The rule is not new: it is the s19 rule that judged both Haiku challengers. It only looks at the answers, so the harness can differ.</p>
+
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 960 420" role="img" aria-labelledby="bar-t">
+      <title id="bar-t">Test accuracy of committed agents against the champion, with empty slots for the open-weight candidates</title>
+      <g id="bar-grid">
+        <line class="grid" x1="340" x2="340" y1="40" y2="380"/><line class="grid" x1="480" x2="480" y1="40" y2="380"/>
+        <line class="grid" x1="620" x2="620" y1="40" y2="380"/><line class="grid" x1="760" x2="760" y1="40" y2="380"/>
+        <line class="grid" x1="900" x2="900" y1="40" y2="380"/>
+        <line class="axis" x1="340" x2="900" y1="380" y2="380"/>
+        <text class="tick" x="340" y="400" text-anchor="middle">75%</text><text class="tick" x="480" y="400" text-anchor="middle">80%</text>
+        <text class="tick" x="620" y="400" text-anchor="middle">85%</text><text class="tick" x="760" y="400" text-anchor="middle">90%</text>
+        <text class="tick" x="900" y="400" text-anchor="middle">95%</text>
+      </g>
+      <g id="bar-champ"><title>sdk_v1 on Claude Sonnet 5 in Claude's harness, high effort: 90.54%, the champion</title>
+        <text class="lb" x="326" y="65" text-anchor="end">sdk_v1 · Sonnet 5 · high</text>
+        <rect class="bar champ" x="340" y="50" width="435" height="22" rx="3"/><text class="val" x="783" y="66">90.54% champion</text></g>
+      <g id="bar-h55"><title>sdk_v1 on Haiku 5.5, high effort: 87.39%, falls short</title>
+        <text class="lbl" x="326" y="105" text-anchor="end">sdk_v1 · Haiku 5.5 · high</text>
+        <rect class="bar" x="340" y="90" width="347" height="22" rx="3"/><text class="val" x="697" y="106">87.39% falls short</text></g>
+      <g id="bar-h45"><title>sdk_v1 on Haiku 4.5: 87.39%, falls short</title>
+        <text class="lbl" x="326" y="145" text-anchor="end">sdk_v1 · Haiku 4.5</text>
+        <rect class="bar" x="340" y="130" width="347" height="22" rx="3"/><text class="val" x="697" y="146">87.39% falls short</text></g>
+      <g id="bar-v3"><title>sdk_v3 rewritten for Haiku 5.5: 85.67%, falls short</title>
+        <text class="lbl" x="326" y="185" text-anchor="end">sdk_v3 · Haiku 5.5 · high</text>
+        <rect class="bar" x="340" y="170" width="299" height="22" rx="3"/><text class="val" x="647" y="186">85.67% falls short</text></g>
+      <g id="bar-v8"><title>Pipeline v8, four agents on DeepSeek V4-Flash (open weights, thinking off): 81.66%</title>
+        <text class="lbl" x="326" y="225" text-anchor="end">v8 pipeline · DeepSeek V4-Flash</text>
+        <rect class="bar open" x="340" y="210" width="186" height="22" rx="3"/><text class="val" x="534" y="226">81.66% open, thinking off</text></g>
+      <g id="bar-slots"><title>The three candidates this plan scores, in the open harness, not yet run</title>
+        <text class="lbl" x="326" y="275" text-anchor="end">DeepSeek V4-Pro · open harness</text>
+        <rect class="slot" x="340" y="260" width="435" height="22" rx="3"/><text class="mut" x="352" y="276">not yet run</text>
+        <text class="lbl" x="326" y="315" text-anchor="end">Qwen3.8-Max · open harness</text>
+        <rect class="slot" x="340" y="300" width="435" height="22" rx="3"/><text class="mut" x="352" y="316">not yet run</text>
+        <text class="lbl" x="326" y="355" text-anchor="end">GLM-5.2 · open harness</text>
+        <rect class="slot" x="340" y="340" width="435" height="22" rx="3"/><text class="mut" x="352" y="356">not yet run</text>
+      </g>
+      <g id="bar-lines"><title>Champion line at 90.54%, and three points below it</title>
+        <line class="cl" x1="775" x2="775" y1="34" y2="380"/><text class="clt" x="775" y="26" text-anchor="middle">champion</text>
+        <line class="ml" x1="691" x2="691" y1="34" y2="380"/><text class="mlt" x="691" y="26" text-anchor="middle">−3pp</text>
+      </g>
+    </svg>
+    <figcaption>The −3pp line is a visual cue only. The rule applies the margin to the lower bound of the paired 95% CI on Δ, not to the score. With as much disagreement as Haiku showed, an
+      open model has to land within about a point of 90.54% to pass as <i>matches</i>. The only open model already on this split is v8's V4-Flash, with thinking switched off and split across four agents.</figcaption>
+  </figure>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <colgroup><col style="width:26%"><col style="width:54%"><col style="width:20%"></colgroup>
+      <thead><tr><th>Check in <code>story.model_swap_verdict</code></th><th>What it asks of the open model</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td><code>test_beats</code></td><td>Significantly better than the champion: one-sided, cluster-corrected McNemar, p &lt; 0.05. Passing this alone gives <b>beats</b></td><td>test, paired per question</td></tr>
+        <tr><td><code>test_ci_within_margin</code></td><td>The lower bound of the cluster-bootstrap 95% CI on Δ is ≥ −3pp</td><td>test</td></tr>
+        <tr><td><code>test_not_worse</code></td><td>Not significantly worse overall</td><td>test</td></tr>
+        <tr><td><code>program_turns_not_worse</code></td><td>Not significantly worse on the 238 program turns. This is where Haiku lost 5.88pp</td><td>test</td></tr>
+        <tr><td><code>no_extra_ceiling_errors</code></td><td>No more <code>token budget exhausted</code> rows than the champion, which had none</td><td>test</td></tr>
+        <tr><td><code>train_not_worse</code></td><td>A veto: on the champion's own early-stopped draws (seeds 2027 and 2028), not worse per conversation. The champion is right to the end on 132 of 200</td><td>train, paired per conversation</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s2)"><b>Matches</b> means <code>test_ci_within_margin</code>, <code>test_not_worse</code>, <code>program_turns_not_worse</code>,
+    <code>no_extra_ceiling_errors</code> and <code>train_not_worse</code> all pass. Either <b>beats</b> or <b>matches</b> counts as "equivalent". Anything else is <b>falls short</b>.
+    The champion's pass cost $11.83 at API-equivalent prices (on the subscription) and took 787 s at concurrency 4. Those figures go beside every candidate's price and wall clock.</p>
+</section>
+
+<section id="candidates">
+  <h2>02 · What the leaderboards say, <em>and the shortlist they give</em></h2>
+  <p class="sub">The τ-knowledge board (τ³-Banking) tests customer-service agents that must retrieve from a knowledge base of about 700 documents and act through tools, with a GPT-5.2 user
+    simulator. Every model on it was measured in τ-bench's own harness: a plain tool-calling loop over each provider's API through LiteLLM, the same shape as the open harness below. The Vals Finance
+    Agent board is closer in domain. Neither is ConvFinQA, so the train screen, not the leaderboard, decides which candidates reach the test pass. The open-weights column comes from release reporting,
+    because the τ page labels only Inkling.</p>
+
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:15%"><col style="width:16%"><col style="width:12%"><col style="width:14%"><col style="width:26%"><col style="width:17%"></colgroup>
+      <thead><tr><th>Model</th><th>Weights · size</th><th><span style="text-transform:none">τ</span>-KNOWLEDGE PASS^1</th><th>Vals Finance Agent</th><th>Lab's API · reasoning control</th><th>Key in ~/.env</th></tr></thead>
+      <tbody>
+        <tr class="dim"><td>Claude Opus 5<span class="note">reference</span></td><td>closed</td><td class="sc"><b>48.7%</b><span class="note">max</span></td><td class="sc">—</td><td>—</td><td>—</td></tr>
+        <tr class="dim"><td>Claude Sonnet 4.6 · Opus 4.7<span class="note">reference</span></td><td>closed</td><td class="sc">— · <b>40.2%</b><span class="note">Opus 4.7, max</span></td><td class="sc"><b>63.33%</b> · <b>64.37%</b></td><td>—</td><td>—</td></tr>
+        <tr><td><b>Qwen3.8-Max</b><br><span class="badge rec">candidate</span></td><td>open, with limits<span class="note">≈ 2.4T MoE · a separate licence above $50M revenue for model-as-a-service</span></td><td class="sc"><b>55.2%</b><span class="note">xhigh · #1 overall</span></td><td class="sc">—<span class="note">not listed; 3.6 Max Preview 52.78%</span></td><td>Alibaba Model Studio, OpenAI-compatible<span class="note">thinking switch and budget to be confirmed in P1</span></td><td><span class="badge bad">add</span><span class="note"><code>DASHSCOPE_API_KEY</code></span></td></tr>
+        <tr><td><b>DeepSeek V4-Pro</b><br><span class="badge rec">candidate</span></td><td>open · MIT<span class="note">1.6T, 49B active</span></td><td class="sc">—<span class="note">not listed</span></td><td class="sc"><b>60.39%</b><span class="note">#4 overall, top open-weight model</span></td><td><code>api.deepseek.com</code><span class="note">thinking on by default; <code>reasoning_effort</code> low, high (default) or max. With tools, <code>reasoning_content</code> must be sent back on every later request, or the API returns a 400. <b>Own harness:</b> DeepSeek Harness (<code>dsh</code>)</span></td><td><span class="badge ok">have</span><span class="note"><code>DEEPSEEK_API_KEY</code></span></td></tr>
+        <tr><td><b>GLM-5.2</b><br><span class="badge rec">candidate</span></td><td>open · MIT<span class="note">≈ 753B, 40B active</span></td><td class="sc"><b>37.1%</b><span class="note">xhigh</span></td><td class="sc">—<span class="note">not listed; GLM 5.1 57.66%</span></td><td>Z.ai, OpenAI-compatible<span class="note">thinking switch to be confirmed in P1 · no harness of its own found</span></td><td><span class="badge bad">add</span><span class="note"><code>ZAI_API_KEY</code></span></td></tr>
+        <tr><td><b>Kimi K3</b><br><span class="badge warn">reserve</span></td><td>open · modified MIT<span class="note">2.8T · licence reports differ</span></td><td class="sc"><b>37.1%</b><span class="note">max</span></td><td class="sc">—<span class="note">not listed; K2.6 57.06%</span></td><td>Moonshot, OpenAI-compatible<span class="note">also ships its own CLI (Apache-2.0)</span></td><td><span class="badge bad">add</span><span class="note"><code>MOONSHOT_API_KEY</code></span></td></tr>
+        <tr><td><b>Qwen3.8-27B</b><br><span class="badge info">stretch</span></td><td>open · Apache-2.0<span class="note">27B dense</span></td><td class="sc">—<span class="note">not listed</span></td><td class="sc">—<span class="note">not listed</span></td><td>Ollama 0.30.10 (installed) or s23's Modal vLLM<span class="note">both OpenAI-compatible</span></td><td>none needed</td></tr>
+        <tr class="dim"><td>Inkling<span class="note">Thinking Machines</span></td><td>open · Apache-2.0<span class="note">975B, 41B active</span></td><td class="sc"><b>25.0%</b><span class="note">max</span></td><td class="sc">—<span class="note">not listed</span></td><td>—</td><td>dropped<span class="note">well below the others</span></td></tr>
+        <tr class="dim"><td>gpt-oss-120b</td><td>open · Apache-2.0<span class="note">120B</span></td><td class="sc">—<span class="note">not listed</span></td><td class="sc"><b>21.54%</b></td><td>—</td><td>dropped</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="split" style="margin-top:var(--s4)">
+    <div class="card rec"><span class="badge rec">why these three</span>
+      <ul class="tight">
+        <li><b>Qwen3.8-Max</b> is the only open model that beats a Claude flagship on τ-knowledge: 55.2% against Opus 5's 48.7%, measured in a harness much like the one planned here. It is the headline candidate.</li>
+        <li><b>DeepSeek V4-Pro</b> is the strongest open model on finance-analyst tasks (60.39%, three points under Sonnet 4.6). Its key is already in <code>~/.env</code>, so it goes first through the smoke run. It is also the only candidate whose lab ships its own agent harness and offers a documented effort control. See §03.</li>
+        <li><b>GLM-5.2</b> is tied for second among open models on τ-knowledge, has an MIT licence, and is the cheapest of the three per token.</li>
+      </ul></div>
+    <div class="card"><span class="badge warn">honest prior</span>
+      <ul class="tight">
+        <li>Haiku 5.5, a strong closed model, missed by 3.15pp on this split. The bar is tight.</li>
+        <li>None of the three can run on this M1 Pro (32 GB). "Open weights" here means calling the lab's hosted API with full-precision weights served by that lab. Self-hosting would need a multi-GPU node.</li>
+        <li>Sonnet 5 is not on either board, so no leaderboard ranks the candidates against the champion directly. Only this split can.</li>
+      </ul></div>
+  </div>
+</section>
+
+<section id="harness">
+  <h2>03 · The harness: <em>the task stays fixed and the protocol is the model's own</em></h2>
+  <p class="sub">The harness doesn't have to be Claude's. What has to match is the <b>task</b>, because the scorer reads the answers, the program and the stage record. <b>How</b> the model is driven
+    can follow each lab's own conventions. Each item in the left column comes from <code>backends/agent_sdk.py</code> and <code>config.py</code>.</p>
+
+  <div class="split" style="margin-top:var(--s3)">
+    <div class="card"><span class="badge info">fixed: the task</span>
+      <dl class="kv" style="margin-top:var(--s2)">
+        <dt>instructions</dt><dd><code>sdk_v1</code>'s content: stages, number format and the ban on mental arithmetic (16,397 characters, about 4.1k tokens; see D4)</dd>
+        <dt>tools</dt><dd>The six calculator functions from <code>pipeline/tools.py</code>, <code>{a, b}</code> each. They are the only tools</dd>
+        <dt>answer</dt><dd><code>SdkTurnResult</code>: <code>turn_type, conv_type, sub_questions, program, retrieved[], answer, reasoning</code></dd>
+        <dt>conversation</dt><dd>One running history per conversation. Turn 0 carries the report. At most 8 model rounds per question, and one correction on a bad answer</dd>
+        <dt>ceiling</dt><dd>60k new tokens per conversation, counted the same way as the champion's (input increase plus output; cache reads excluded)</dd>
+        <dt>record</dt><dd>The pipeline's stage shape via <code>result_to_capture</code>, written to the same CSV columns</dd>
+      </dl></div>
+    <div class="card rec"><span class="badge rec">the model's own: the protocol</span>
+      <dl class="kv" style="margin-top:var(--s2)">
+        <dt>wire</dt><dd>The lab's own API in OpenAI chat format, with native function calls. No Anthropic-format shim</dd>
+        <dt>reasoning</dt><dd>The lab's own switch and effort parameter (for example DeepSeek's <code>reasoning_effort</code>), set to high</dd>
+        <dt>round-trip</dt><dd>The model's reasoning goes back to it across tool calls as the lab specifies. DeepSeek requires this, and other thinking models degrade without it</dd>
+        <dt>output</dt><dd>JSON in the final message (prompted), or a native schema where the lab supports one. Never tool-mode output, which broke thinking models here in 2026-09</dd>
+        <dt>sampling</dt><dd>Each lab's recommended settings for its thinking mode. DeepSeek ignores temperature in thinking mode, and V4-Pro ignores top-p as well</dd>
+        <dt>retries</dt><dd>The lab's own throttle and balance errors map to <i>unscored</i>, not wrong</dd>
+      </dl></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s4)" id="dsh">
+    <p><b>Does DeepSeek have its own harness and a thinking-effort control? Yes, both.</b></p>
+    <ul class="tight">
+      <li><b>DeepSeek Harness</b> (<code>dsh</code>): <code>deepseek-ai/deepseek-harness</code>, built by DeepSeek AI, MIT, TypeScript on Node. Published 2026-08-13, last pushed 2026-10-17, npm
+        <code>@deepseek-ai/dsh@0.2.1-rc.2</code>. It is a <b>developer preview</b>: the README warns of "compatibility-breaking changes", so the version would be pinned.</li>
+      <li><b>It can drive one conversation as one session.</b> <code>dsh --profile headless --json "…"</code> answers one task and streams newline-delimited run events, and <code>--session-id &lt;id&gt;</code>
+        resumes the same session for the next question, just as the champion's session carries a conversation. There are also <code>acp</code> and <code>sdk</code> (stdio JSON-RPC) profiles.</li>
+      <li><b>It can host the six calculator tools.</b> The <code>@deepseek-ai/dsh-mcp-client</code> plugin loads an external MCP server over stdio and registers its tools as native tools. A small
+        Python MCP server around <code>pipeline/tools.py</code> serves them. A profile <code>--patch</code> overlay sets the sdk_v1 instructions and switches off the coding tools.</li>
+      <li><b>Effort.</b> The harness's DeepSeek adapter offers <code>off</code>, <code>low</code>, <code>high</code> and <code>max</code>, defaulting to <code>high</code>. <code>off</code> sends
+        <code>thinking: disabled</code>, and an unsupported level is refused rather than silently swapped. On the API, <code>reasoning_effort</code> takes low, high or max. A request for xhigh is treated
+        as high, so for V4-Pro "high reasoning" means <code>high</code> and the step above it is <code>max</code>.</li>
+      <li><b>What it costs here:</b> a fourth runtime (<code>dsh</code>) that drives the CLI per question and reads its run events into the stage record. The answer comes back as text and is parsed
+        the way the champion's fallback path already parses text. Its programmatic-tool-calling mode has to stay off, because the model must not compute in code instead of calling the calculator
+        (check C2). About half a day on top of P0.</li>
+    </ul>
+  </div>
+
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 960 510" role="img" aria-labelledby="h-t">
+      <title id="h-t">One open harness with a profile per lab drives each candidate over its own API; the lab's CLI and Claude's harness are optional controls for the finalist</title>
+      <g id="h-contract"><title>Held fixed: the task contract the scorer depends on</title>
+        <rect class="box fixed" x="20" y="16" width="920" height="104" rx="10"/>
+        <text class="t" x="40" y="44">the task · held fixed</text>
+        <text class="dm" x="40" y="68">sdk_v1 instructions · ≈ 4.1k tokens</text>
+        <text class="dm" x="40" y="90">6 calculator tools · {a, b}</text>
+        <text class="dm" x="40" y="112">answer · SdkTurnResult fields</text>
+        <text class="dm" x="500" y="68">one history per conversation</text>
+        <text class="dm" x="500" y="90">≤ 8 rounds per question</text>
+        <text class="dm" x="500" y="112">60k new-token ceiling</text>
+      </g>
+      <path class="a" d="M320 120 V150" marker-end="url(#arr)"/>
+      <path class="a opt" d="M800 120 V150" marker-end="url(#arr)"/>
+      <g id="h-open"><title>The open harness: one runtime, a profile per lab</title>
+        <rect class="box new" x="20" y="154" width="600" height="146" rx="10"/>
+        <text class="t" x="40" y="182">open harness · runtime open_agent</text>
+        <text class="d" x="40" y="205">pydantic-ai · native tool calls · reasoning round-trip per lab</text>
+        <rect class="chipr" x="40" y="222" width="132" height="60" rx="8"/><text class="cx" x="52" y="246">DeepSeek</text><text class="cs" x="52" y="268">V4-Pro · high</text>
+        <rect class="chipr" x="184" y="222" width="132" height="60" rx="8"/><text class="cx" x="196" y="246">Qwen</text><text class="cs" x="196" y="268">3.8-Max · high</text>
+        <rect class="chipr" x="328" y="222" width="132" height="60" rx="8"/><text class="cx" x="340" y="246">Z.ai</text><text class="cs" x="340" y="268">GLM-5.2 · high</text>
+        <rect class="chipr" x="472" y="222" width="132" height="60" rx="8"/><text class="cx" x="484" y="246">local · Modal</text><text class="cs" x="484" y="268">27B · s23 student</text>
+      </g>
+      <g id="h-ctrl"><title>The lab's own harness (DeepSeek Harness, Kimi CLI) and Claude's harness, run beside the open harness</title>
+        <rect class="box alt" x="660" y="154" width="280" height="146" rx="10"/>
+        <text class="t" x="680" y="182">own harness · controls</text>
+        <text class="d" x="680" y="208">the lab's own harness</text>
+        <text class="dm" x="680" y="228">dsh (DeepSeek) · Kimi CLI</text>
+        <text class="d" x="680" y="258">Claude's harness</text>
+        <text class="dm" x="680" y="278">Agent SDK · lab's endpoint</text>
+      </g>
+      <path class="a" d="M320 300 V330" marker-end="url(#arr)"/>
+      <g id="h-apis"><title>Each lab's own API in OpenAI chat format</title>
+        <rect class="box" x="20" y="334" width="600" height="80" rx="10"/>
+        <text class="t" x="40" y="362">each lab's own API · OpenAI chat format</text>
+        <text class="d" x="40" y="388">api.deepseek.com · Model Studio · api.z.ai · Ollama / Modal vLLM</text>
+      </g>
+      <path class="a" d="M320 414 V444" marker-end="url(#arr)"/>
+      <path class="a opt" d="M800 300 V444" marker-end="url(#arr)"/>
+      <text class="al" x="332" y="436">every turn → one CSV row</text>
+      <g id="h-judge"><title>All arms are judged by the existing machinery</title>
+        <rect class="box fixed" x="20" y="448" width="920" height="46" rx="10"/>
+        <text class="d" x="40" y="477">same CSV (runner.COLUMNS) → story.model_swap_verdict vs the champion's committed test pass and train draws → Story</text>
+      </g>
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+    </svg>
+    <figcaption>One runtime, one profile per lab. A profile holds the base URL, key, model id, reasoning parameter, round-trip rule, output mode and sampling. The s23 student is
+      just one more profile (Modal vLLM), so building this once serves both plans.</figcaption>
+  </figure>
+
+  <div class="cards" style="margin-top:var(--s4)">
+    <div class="card rec"><span class="badge rec">recommended · A</span>
+      <h3>One open harness, a profile per lab</h3>
+      <ul class="tight">
+        <li>A plain tool-calling loop over each lab's own API: the shape τ-bench measured the leaderboard in. The candidates are compared as they were ranked.</li>
+        <li>Built on pydantic-ai 1.75, which the repo already runs. <code>mlflow.pydantic_ai.autolog()</code> already traces it, so the evalloop gets spans for free, and token usage is exact per call.</li>
+        <li>s23's <code>backends/student.py</code> becomes this runtime's Modal vLLM profile.</li>
+        <li class="cost">Cost: a third runtime has to be accepted by the judges (<code>story.py:1210–1222</code>, <code>1591+</code>, <code>prior_runtime</code>, <code>_arm</code>, the gates-ledger runtime). Each lab's reasoning round-trip has to be right. A gap in A mixes model and harness effects, which is what P4 is for.</li>
+      </ul></div>
+    <div class="card"><span class="badge info">own harness · B</span>
+      <h3>The lab's own harness</h3>
+      <ul class="tight">
+        <li>The mirror image of the champion, which is Claude in Claude's own CLI. <b>DeepSeek V4-Pro in DeepSeek Harness</b> (headless, MCP calculator, effort <code>high</code>) is ready to build. Kimi K3 in Kimi CLI (Apache-2.0, print mode, stream-json, MCP config) is the other option.</li>
+        <li class="cost">Cost: one adapter per harness, and each harness's coding tools have to be switched off. dsh is a developer preview. GLM and Qwen3.8-Max have no harness of their own that I found.</li>
+      </ul></div>
+    <div class="card"><span class="badge info">optional control · C</span>
+      <h3>Claude's harness, open model</h3>
+      <ul class="tight">
+        <li>The finalist runs in the Claude Agent SDK through its lab's Anthropic-format endpoint (DeepSeek, Z.ai, Moonshot and Model Studio all have one), with everything else as in the champion. Only the model differs, so this isolates the model effect.</li>
+        <li class="cost">Cost: a <code>provider</code> billing route, provider pricing and the reroute safety fix (§04). Anthropic does not support non-Claude models through the CLI.</li>
+      </ul></div>
+    <div class="card"><span class="badge bad">not doing</span>
+      <h3>Ruled out</h3>
+      <ul class="tight">
+        <li><b>A local LiteLLM proxy</b>: the platform's rule zero forbids a project-local gateway. The shared M4 gateway is not built yet.</li>
+        <li><b>OpenRouter as the main route</b>: one model can be served by several hosts at different quantisations. Use it only as a fallback, with the provider pinned.</li>
+      </ul></div>
+  </div>
+</section>
+
+<section id="code">
+  <h2>04 · P0, what changes in code <em>before any model is called</em></h2>
+  <p class="sub">The work goes on a new branch, <code>open-agent</code>, off <code>main</code>, in its own worktree, so that <code>SFT</code>'s uncommitted work in <code>agent_sdk.py</code> and
+    <code>runner.py</code> is not touched. Every row gets a test.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:17%"><col style="width:41%"><col style="width:27%"><col style="width:15%"></colgroup>
+      <thead><tr><th>Where</th><th>Change</th><th>Why</th><th>Pinned by</th></tr></thead>
+      <tbody>
+        <tr><td><code>llm.py</code></td><td>Add <code>OPEN_PROFILES</code> (base URL, key env var, model id, reasoning parameter per effort, round-trip rule, output mode, sampling) and an <code>open_model(profile, effort)</code> factory. It must not apply <code>DISABLE_THINKING_BODY</code>, which is the pipeline's switch and would turn reasoning off</td><td><code>llm.py</code> is the only place a model may be built. The demo gate and retry policy apply, and nothing is built at import time</td><td><code>tests/test_llm.py</code>, <code>test_demo_mode.py</code></td></tr>
+        <tr><td><code>backends/open_agent.py</code> (new)</td><td>One pydantic-ai <code>Agent</code> per conversation, with the six tools from <code>pipeline/tools.py</code> and the answer type <code>SdkTurnResult</code>. <code>message_history</code> is carried across turns and <code>UsageLimits</code> caps 8 rounds per question. One correction on a bad answer. The capture comes from <code>_calc_trajectory</code> and <code>result_to_capture</code> (moved to a shared module)</td><td>The same task and the same record as the champion, in an open harness</td><td>new <code>tests/test_open_agent.py</code>, with a fake model</td></tr>
+        <tr><td><code>open_agent</code> ceiling</td><td>Count each request's input increase over the previous one in the conversation, plus output</td><td>The champion's count excludes cache reads. Counting full input on every request would end conversations at turn 2, and those errors score as <i>wrong</i></td><td>same test, with a champion-shaped fixture</td></tr>
+        <tr><td><code>evalloop/runner.py</code>, <code>cli.py</code></td><td><code>RUNTIMES</code> gets <code>open_agent</code>, with <code>--open-profile</code> and <code>--open-effort</code> on <code>run</code> and <code>gate-challenger</code>. <code>sdk_v1</code> is allowed under it. Runs are named <code>open-evalloop-&lt;split&gt;-sdk_v1·s1-&lt;model&gt;-&lt;effort&gt;-&lt;stamp&gt;</code>. Throttle and balance errors raise the unscored path</td><td>So the record says which agent answered, and a spent account is never scored as wrong</td><td>runner and CLI tests</td></tr>
+        <tr><td><code>evalloop/story.py</code>, <code>sdk_gate.py</code>, ledgers</td><td><code>sdk_model_comparison</code> and <code>challenger_comparison</code> accept the open runtimes (<code>open_agent</code>, <code>dsh</code>) and their run-name prefixes. <code>prior_runtime</code> learns the prefix, and <code>_arm</code> reads its cost. <code>log_gate_verdict</code> takes the runtime instead of hard-coding <code>agent_sdk</code>. Open draws never pool with Claude draws</td><td>Without this, the judges ignore the runs. A wrong runtime on an append-only ledger row would be wrong forever</td><td><code>tests/test_story*.py</code>, <code>test_sdk_gate.py</code></td></tr>
+        <tr><td><code>backends/dsh_agent.py</code> (new, if D2 adds it)</td><td>Runtime <code>dsh</code>. It runs <code>npx @deepseek-ai/dsh@0.2.1-rc.2 --profile headless --json --session-id …</code> once per question, with a pinned <code>--patch</code> profile: sdk_v1 instructions, coding tools and programmatic tool calling off, <code>dsh-mcp-client</code> pointed at a stdio MCP server <code>cfq</code> serving <code>pipeline/tools.py</code>, and <code>reasoningEffort: high</code>. Run events become the stage record and per-call usage</td><td>DeepSeek in its own harness, held to the same task and the same scorer</td><td>a replay test on recorded run events</td></tr>
+        <tr><td><code>tracking/cost.py</code></td><td>Add <code>PRICING</code> rows (input, cached input, output) with a date and source URL for each candidate. <code>open_session_cost_usd</code> is computed from per-call usage</td><td>Today an unknown model silently gets V4-Flash's price, and the existing <code>deepseek-v4-pro</code> row ($0.55/$2.19) predates today's conflicting quotes</td><td><code>tests/test_cost.py</code></td></tr>
+        <tr><td><code>llm.subscription_env</code>, <code>api_env</code></td><td>Blank <code>ANTHROPIC_BASE_URL</code> and <code>ANTHROPIC_AUTH_TOKEN</code> explicitly</td><td><b>A gap that exists today, separate from this study.</b> One stray line in <code>~/.env</code> would send the champion, the teacher and the judge to another server, while the run is still logged as <code>billing=subscription</code>. Ships either way</td><td><code>tests/test_llm.py</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="run">
+  <h2>05 · The run, <em>with a gate before every spend</em></h2>
+
+  <h3 style="margin-top:var(--s4)">P1 · Smoke: seven contract checks per candidate</h3>
+  <p class="sub">3 train conversations (about 12 questions) per model, run with <code>run --runtime open_agent --open-profile … --open-effort high</code>. DeepSeek goes first because its key is
+    already in <code>~/.env</code>. A model that fails C1 to C3 after one profile fix is dropped. The smoke run's measured tokens × 33 gives each model's test-pass price before anything bigger is spent.</p>
+  <div class="checks">
+    <div class="card"><b class="id">C1</b><b>Answer</b><p>At least 11 of 12 turns parse into <code>SdkTurnResult</code> within the one allowed correction.</p></div>
+    <div class="card"><b class="id">C2</b><b>Tools</b><p>Every program turn calls a calculator tool, and the answer is a value a tool returned. No inline arithmetic.</p></div>
+    <div class="card"><b class="id">C3</b><b>Reasoning is real and kept</b><p>Reasoning tokens are present on most turns at the requested effort, and no request fails for missing reasoning (DeepSeek's 400).</p></div>
+    <div class="card"><b class="id">C4</b><b>Ceiling</b><p>No conversation reaches <code>token budget exhausted</code>. New-token use is within 2× of the champion's on the same 3 conversations.</p></div>
+    <div class="card"><b class="id">C5</b><b>Cost</b><p>Cost is priced from per-call usage. A projected test pass above $40 stops for your approval.</p></div>
+    <div class="card"><b class="id">C6</b><b>Right model</b><p>Every response's model id is the candidate. Nothing is served by a fallback or a smaller model.</p></div>
+    <div class="card"><b class="id">C7</b><b>Unanswered isn't wrong</b><p>Any throttle or balance error in the smoke run lands as unscored. The mapping is unit-tested in P0 against each lab's documented error texts.</p></div>
+  </div>
+
+  <div class="steps" style="margin-top:var(--s5)">
+    <div class="step"><b>P2 · Train screen on seed 2027</b>Run <code>run --split train --version sdk_v1 --runtime open_agent --open-profile P --open-effort high --train-seed 2027 --stop-at-first-wrong</code> for each candidate that
+      passed P1. The 100 conversations are id-for-id the champion's own early-stopped draw, so they pair per conversation. A candidate is a finalist if it passes the per-conversation check the verdict's
+      train veto uses. At most two go on, best first. Under D2, DeepSeek V4-Pro is screened twice, once in the open harness and once in DeepSeek Harness. Only its better arm can go on. <b>Review stop:</b> you see the screen before any test pass.<span class="tag">≈ $12–25 per candidate · train only, test untouched</span></div>
+    <div class="step"><b>P3 · Finalists: seed 2028, then one test pass each</b>The second train seed completes the veto evidence. Then one <code>--split test</code> pass on <code>eval_loop_v2</code>, paired against
+      <code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627</code> and its train draws by <code>model_swap_verdict</code>. Test is opened once per finalist. Never sending every candidate to test and keeping the best
+      is what keeps the verdict honest.<span class="tag">≈ $20–50 per finalist · subject to the D6 cap</span></div>
+    <div class="step"><b>P4 · Optional: a harness control for the finalist</b>Run the same model in C (Claude's harness, through the lab's Anthropic-format endpoint), or in B for Kimi (Kimi CLI), for one test pass. DeepSeek's own harness is already covered by the P2 screen under D2. A finalist that falls short narrowly in A but passes in C points at
+      the harness. If it falls short in both, the model is the limit.<span class="tag">≈ $10–28 · one test pass · D2</span></div>
+    <div class="step"><b>P5 · Record</b>Commit the prediction CSVs (they are tracked, not regenerated). Then run <code>convfinqa-evalloop story</code> and <code>story_check</code>, and the open agents appear on the Story timeline beside Haiku.
+      Write a results page. Sonnet 5 stays champion unless D5 says otherwise.<span class="tag">no model calls</span></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5)">
+    <p><b>What you'd need to do.</b> Add <code>DASHSCOPE_API_KEY</code> (Alibaba Model Studio, international region) and <code>ZAI_API_KEY</code> to <code>~/.env</code>, plus
+      <code>MOONSHOT_API_KEY</code> only if Kimi K3 is used. Top up the DeepSeek balance. Each provider account should carry a hard spend limit at or below the D6 cap. Keys stay in
+      <code>~/.env</code> and are never written to runs, params, tags or traces.</p>
+  </div>
+</section>
+
+<section id="budget">
+  <h2>06 · What it costs, <em>estimated now and measured at P1</em></h2>
+  <p class="sub">These estimates come from the champion's shape: about 3 model calls per question, a repeated prefix of about 4k tokens plus the report, about 9.5M input tokens and 1–2M output tokens per
+    100-conversation pass. Published prices conflict between sources, so the smoke run replaces every figure here before P2.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:24%"><col style="width:20%"><col style="width:15%"><col style="width:16%"><col style="width:25%"></colgroup>
+      <thead><tr><th>Model</th><th>$ / M tokens · in · out</th><th>Est. per test pass</th><th>Screen + finalist (P2 + P3)</th><th>Price source</th></tr></thead>
+      <tbody>
+        <tr class="champ"><td>sdk_v1 · Sonnet 5 · high<span class="note">champion</span></td><td class="sc">subscription</td><td class="sc">$11.83<span class="note">API-equivalent</span></td><td class="sc">committed</td><td><code>sdk_session_cost_usd</code></td></tr>
+        <tr><td>DeepSeek V4-Pro</td><td class="sc">1.74 · 3.48<span class="note">cache hit 0.174</span></td><td class="sc">≈ $10–22</td><td class="sc">≈ $30–60</td><td>third-party, citing DeepSeek<span class="note">quotes conflict; <code>cost.py</code> has 0.55 · 2.19</span></td></tr>
+        <tr><td>Qwen3.8-Max</td><td class="sc">2 · 6<span class="note">cache hit 0.25</span></td><td class="sc">≈ $15–28</td><td class="sc">≈ $40–75</td><td>third-party<span class="note">prices vary by region</span></td></tr>
+        <tr><td>GLM-5.2</td><td class="sc">0.80–1.40 · 2.50–4.40</td><td class="sc">≈ $10–20</td><td class="sc">≈ $30–55</td><td>third-party<span class="note">two conflicting quotes</span></td></tr>
+        <tr class="dim"><td>Kimi K3<span class="note">reserve</span></td><td class="sc">3 · 15</td><td class="sc">≈ $30–51</td><td class="sc">≈ $85–140</td><td>Moonshot, as reported</td></tr>
+        <tr class="dim"><td>Qwen3.8-27B<span class="note">stretch</span></td><td class="sc">GPU time<span class="note">local or Modal</span></td><td class="sc">hours locally</td><td class="sc">—</td><td>the 2026-09 gpt-oss:20b run<span class="note">about 10 completions a minute on this laptop</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s2)">Wall clock: open-model APIs ran about 2× slower than Claude on Vals (DeepSeek V4 took 9m48s against Opus 4.7's 4m31s per task), so expect 25–60 min per pass at concurrency 4. The P0 build is
+    about a day with tests. It is larger than the earlier same-harness plan because the judges have to learn a third runtime.</p>
+</section>
+
+<section id="risks">
+  <h2>07 · Risks, <em>and what catches each one</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:20%"><col style="width:48%"><col style="width:32%"></colgroup>
+      <thead><tr><th>Risk</th><th>What happens</th><th>Caught by</th></tr></thead>
+      <tbody>
+        <tr><td>Reasoning lost between tool calls</td><td>DeepSeek returns a 400. Other thinking models silently reason from scratch on every round, and program turns suffer</td><td>The round-trip rule in each profile, then C3</td></tr>
+        <tr><td>Output mode fights thinking</td><td>Tool-mode output forces <code>tool_choice=required</code>, which DeepSeek's thinking mode rejects. This happened here in 2026-09</td><td>Prompted JSON by default, then C1</td></tr>
+        <tr><td>The ceiling measures something else</td><td>Conversations die early and score as wrong, which fails <code>no_extra_ceiling_errors</code></td><td>The P0 ceiling rule and its test, then C4</td></tr>
+        <tr><td>Silent model substitution</td><td>An aggregator serves a quantised copy, or an alias resolves to a smaller model</td><td>First-party APIs only, then C6</td></tr>
+        <tr><td>Model and harness are mixed</td><td>A falls short in A, and the cause could be the model or the harness</td><td>The optional P4 controls</td></tr>
+        <tr><td>Picking the best on test</td><td>Scoring every candidate on test and keeping the best inflates the verdict</td><td>The P2 screen runs on train. Test is opened once per finalist, at most two</td></tr>
+        <tr><td>The instructions were distilled for Claude</td><td>sdk_v1 may undersell another model. Even so, a rewrite for Haiku (sdk_v3) scored lower than sdk_v1</td><td>D4. One s21-style rewrite cycle is an option afterwards</td></tr>
+        <tr><td>dsh is a developer preview</td><td>A new release changes the profile or event format partway through the study</td><td>The npm version and profile patch are pinned, and the version is logged as a run param</td></tr>
+        <tr><td>Data leaves to third-party APIs</td><td>Reports and questions go to DeepSeek, Alibaba and Z.ai</td><td>The data is public SEC filings, and the model never sees gold, just as with the champion. No PII</td></tr>
+        <tr><td>Existing Claude paths get rerouted</td><td>A base URL in <code>~/.env</code> moves the champion, teacher and judge today, with no sign in the record</td><td>The P0 safety fix, shipped whatever the study finds</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="decisions">
+  <h2>08 · Your decisions</h2>
+  <p class="sub">Each decision has a recommended answer pre-selected. Queue the ones you agree with, change any you don't, or annotate anything on the page.</p>
+
+  <form class="q" data-lavish-question="candidates" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=[...f.querySelectorAll('input[name=cand]:checked')].map(i=>i.value); if(v.length&&window.lavish){window.lavish.queuePrompt('D1 candidates: '+v.join('; '),{tag:'choice',text:'D1: '+v.length+' candidates',element:f,data:{question:'candidates',answer:v}}); f.querySelector('.queued').textContent='queued: '+v.length;}">
+    <h3>D1 · Which models go into the smoke run?</h3>
+    <fieldset>
+      <label><input type="checkbox" name="cand" value="DeepSeek V4-Pro" checked><span><b>DeepSeek V4-Pro</b> <span class="badge rec">recommended</span><span class="d">Top open model on finance agents, key already held. It goes first.</span></span></label>
+      <label><input type="checkbox" name="cand" value="Qwen3.8-Max" checked><span><b>Qwen3.8-Max</b> <span class="badge rec">recommended</span><span class="d">#1 on τ-knowledge. Needs a Model Studio key.</span></span></label>
+      <label><input type="checkbox" name="cand" value="GLM-5.2" checked><span><b>GLM-5.2</b> <span class="badge rec">recommended</span><span class="d">MIT, cheapest of the three. Needs a Z.ai key.</span></span></label>
+      <label><input type="checkbox" name="cand" value="Kimi K3"><span><b>Kimi K3</b><span class="d">Reserve: ties GLM-5.2 on τ-knowledge at roughly 2–3× the price. Also the easiest candidate for the lab-CLI control.</span></span></label>
+      <label><input type="checkbox" name="cand" value="Qwen3.8-27B (Ollama local or Modal vLLM)"><span><b>Qwen3.8-27B</b><span class="d">Stretch: the only one that runs on hardware you hold, and the natural bigger brother of s23's student.</span></span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="own-harness" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('ctrl'); if(v&&window.lavish){window.lavish.queuePrompt('D2 own-harness arm: '+v,{tag:'choice',text:'D2: '+v,element:f,data:{question:'own-harness',answer:v}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · Does DeepSeek also run in its own harness?</h3>
+    <fieldset>
+      <label><input type="radio" name="ctrl" value="yes: DeepSeek V4-Pro in DeepSeek Harness (dsh) beside the open harness through the train screen; the better arm on train goes to test" checked><span><b>Yes, DeepSeek Harness beside the open harness</b> <span class="badge rec">recommended</span><span class="d">V4-Pro gets both arms through the train screen. Train decides which arm goes to test, so test is still opened only once for it. That answers "open model in its own harness" directly. It adds about half a day and one train screen (≈ $12–25).</span></span></label>
+      <label><input type="radio" name="ctrl" value="open harness only for every candidate; decide on a control after the verdict"><span><b>Open harness only</b><span class="d">One harness for every candidate. A lab's own harness or Claude's comes in only if a finalist falls short narrowly.</span></span></label>
+      <label><input type="radio" name="ctrl" value="open harness, plus the finalist in Claude's harness (C)"><span><b>Open harness, plus Claude's harness for the finalist (C)</b><span class="d">The cleanest split between model and harness, at the cost of the <code>provider</code> route.</span></span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="effort" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('effort'); if(v&&window.lavish){window.lavish.queuePrompt('D3 reasoning effort: '+v,{tag:'choice',text:'D3: '+v,element:f,data:{question:'effort',answer:v}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D3 · What reasoning effort?</h3>
+    <fieldset>
+      <label><input type="radio" name="effort" value="high for every candidate, matching the champion" checked><span><b><code>high</code> for all</b> <span class="badge rec">recommended</span><span class="d">The same level as the champion, so effort is not a second variable.</span></span></label>
+      <label><input type="radio" name="effort" value="each model's top setting (Qwen xhigh, GLM xhigh, DeepSeek max, Kimi max)"><span><b>Each model's top setting</b><span class="d">The most each model can do: xhigh for Qwen and GLM, max for DeepSeek and Kimi. DeepSeek treats xhigh as high, so its top is max. Costs more and runs slower.</span></span></label>
+      <label><input type="radio" name="effort" value="high in the screen; the finalist also gets one test pass at its max setting"><span><b>High, plus max for the finalist</b><span class="d">One extra test pass shows whether more reasoning closes a gap.</span></span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="instructions" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('instr'); if(v&&window.lavish){window.lavish.queuePrompt('D4 instructions: '+v,{tag:'choice',text:'D4: '+v,element:f,data:{question:'instructions',answer:v}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D4 · What instructions does the open model get?</h3>
+    <fieldset>
+      <label><input type="radio" name="instr" value="sdk_v1 verbatim; register the six tools under its names (mcp__cfq__add …)" checked><span><b>sdk_v1 verbatim</b> <span class="badge rec">recommended</span><span class="d">Not one word changed. The tools are registered under the names the prompt already uses, so the task is identical.</span></span></label>
+      <label><input type="radio" name="instr" value="open_v1 = sdk_v1 with plain tool names and a neutral output paragraph"><span><b>A neutral copy, <code>open_v1</code></b><span class="d">The same content, with Claude-specific tool names and output wording made neutral. It is registered as its own prompt version.</span></span></label>
+      <label><input type="radio" name="instr" value="sdk_v1, then one s21-style rewrite cycle for the finalist (cap 2)"><span><b>sdk_v1, then a rewrite cycle</b><span class="d">The teacher rewrites the instructions for the finalist on its train failures. This was tried for Haiku and did not help.</span></span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="promotion" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('promotion'); if(v&&window.lavish){window.lavish.queuePrompt('D5 if an open model passes: '+v,{tag:'choice',text:'D5: '+v,element:f,data:{question:'promotion',answer:v}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D5 · If an open model passes, what happens?</h3>
+    <fieldset>
+      <label><input type="radio" name="promotion" value="record only: verdict on the Story timeline, Sonnet 5 stays champion" checked><span><b>Record only</b> <span class="badge rec">recommended</span><span class="d">The verdict goes on the Story timeline. Serving and the demo are unchanged.</span></span></label>
+      <label><input type="radio" name="promotion" value="promote it and make serving run open_agent"><span><b>Promote it</b><span class="d"><code>champion_agent</code> learns the <code>open_agent</code> runtime, and serving gains a provider key. That is a separate piece of work.</span></span></label>
+    </fieldset>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="spend" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('spend'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D6 spend and stop point: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D6: '+v,element:f,data:{question:'spend',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D6 · How much may I spend, and where do I stop?</h3>
+    <p class="sub">All spend goes to the labs' APIs. No Claude call is billed, and the subscription-only rule for Claude stays as it is.</p>
+    <fieldset>
+      <label><input type="radio" name="spend" value="build P0, run P1 and P2, stop at the screen for review; cap $75" checked><span><b>Stop at the train screen, $75 cap</b> <span class="badge rec">recommended</span><span class="d">You choose the finalists after seeing real token counts and train results.</span></span></label>
+      <label><input type="radio" name="spend" value="run P0 to P5 with stop rules; cap $200"><span><b>Run through to the verdict, $200 cap</b><span class="d">I stop early only if every candidate fails a contract check, a projected pass is above $40, or the cap is reached.</span></span></label>
+      <label><input type="radio" name="spend" value="build P0 only and stop, no model calls"><span><b>Build P0 only</b><span class="d">The open runtime, judge support and safety fix, with tests. No spend.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <div class="copyrow">
+    <button type="button" onclick="(async (btn) => {
+      const copyRun = btn._lavishCopyRun = (btn._lavishCopyRun || 0) + 1;
+      const qs = [...document.querySelectorAll('[data-lavish-question]')];
+      const status = btn.parentElement.querySelector('[data-lavish-copy-all-status]');
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const out = [];
+      for (const q of qs) {
+        const key = q.getAttribute('data-lavish-question')?.trim() || 'Question';
+        const lines = [];
+        for (const el of q.querySelectorAll('input, select, textarea')) {
+          if (el.matches(':disabled')) continue;
+          if (el.closest('[data-lavish-question]') !== q) continue;
+          const isChoice = el.matches('input[type=checkbox], input[type=radio]');
+          if (isChoice && !el.checked) continue;
+          if (el.matches('input[type=button], input[type=submit], input[type=reset], input[type=image], input[type=hidden], input[type=file], input[type=range], input[type=color]')) continue;
+          let vals;
+          if (el instanceof HTMLSelectElement) {
+            vals = [...el.selectedOptions].filter((o) => !o.disabled && !o.closest('optgroup[disabled]')).map((o) => o.value.trim()).filter(Boolean);
+          } else {
+            const v = isChoice && (!el.hasAttribute('value') || !el.value.trim())
+              ? el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.name || ''
+              : el.value.trim();
+            vals = v ? [v] : [];
+          }
+          const label = el.name || el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.getAttribute('placeholder')?.trim() || el.tagName.toLowerCase();
+          for (const v of vals) lines.push('  ' + label + ': ' + v.split('\n').join('\n    '));
+        }
+        if (lines.length) out.push(key + ':\n' + lines.join('\n'));
+      }
+      const text = out.join('\n\n');
+      if (!text) {
+        status.textContent = qs.length ? 'No answers to copy yet.' : 'No questions or answers to copy.';
+        return;
+      }
+      status.textContent = '';
+      try {
+        if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('Clipboard API unavailable');
+        await navigator.clipboard.writeText(text);
+        if (copyRun !== btn._lavishCopyRun) return;
+        status.textContent = 'Answers copied.';
+        return;
+      } catch {}
+      if (copyRun !== btn._lavishCopyRun) return;
+      const tmp = document.createElement('textarea');
+      tmp.value = text;
+      tmp.readOnly = true;
+      tmp.setAttribute('aria-hidden', 'true');
+      tmp.style.position = 'fixed';
+      tmp.style.left = '-10000px';
+      document.body.append(tmp);
+      tmp.focus();
+      tmp.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {}
+      tmp.remove();
+      if (ok) {
+        status.textContent = 'Answers copied.';
+        return;
+      }
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const man = document.createElement('textarea');
+      man.value = text;
+      man.readOnly = true;
+      man.rows = Math.min(12, Math.max(3, text.split('\n').length));
+      man.setAttribute('aria-label', 'Answers to copy manually');
+      man.dataset.lavishCopyAllManual = '';
+      btn.insertAdjacentElement('afterend', man);
+      man.focus();
+      man.select();
+      status.textContent = 'Clipboard unavailable. Copy the answers below manually.';
+    })(this)">Copy all answers</button>
+    <span data-lavish-copy-all-status role="status" aria-live="polite"></span>
+  </div>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <p>Repo facts were checked on 2026-10-21 against <code>evaluation/registry.json</code>, <code>evaluation/story.json</code>, <code>evaluation/mlflow_snapshot.json</code>,
+    <code>backends/agent_sdk.py</code>, <code>backends/pydantic.py</code>, <code>llm.py</code>, <code>config.py</code>, <code>evalloop/{runner,cli,sdk,sdk_gate,story}.py</code> and
+    <code>tracking/cost.py</code>. Leaderboard and provider facts come from the pages below, read on 2026-10-21. Model sizes, licences and prices are from release coverage and conflict in places, so
+    P1 re-measures every price and every reasoning parameter marked "to be confirmed". The page uses the portfolio's house UI (<code>house.css</code> plus P1's blue hue), like s21 to s23.</p>
+  <ul>
+    <li><a href="https://taubench.com/leaderboard/?benchmark=knowledge">τ-bench leaderboard: τ³-Banking / τ-knowledge</a> · <a href="https://github.com/sierra-research/tau2-bench">tau2-bench harness (LiteLLM)</a></li>
+    <li><a href="https://www.vals.ai/benchmarks/finance_agent">Vals AI: Finance Agent v1.1</a></li>
+    <li><a href="https://api-docs.deepseek.com/guides/thinking_mode/">DeepSeek: thinking mode, effort and tool calls</a> · <a href="https://api-docs.deepseek.com/guides/anthropic_api">DeepSeek: Anthropic API (control C)</a></li>
+    <li><a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness (deepseek-ai/deepseek-harness)</a>: <code>docs/cli-help.md</code>, the agent notes on adapter-owned reasoning effort, the headless entry point and the MCP client · <a href="https://www.npmjs.com/package/@deepseek-ai/dsh">npm @deepseek-ai/dsh</a></li>
+    <li><a href="https://moonshotai.github.io/kimi-cli/">Kimi CLI</a> · <a href="https://www.dsebastien.net/kimi-cli/">Kimi CLI overview</a></li>
+    <li><a href="https://docs.ollama.com/api/anthropic-compatibility">Ollama: Anthropic compatibility</a> · <a href="https://openrouter.ai/docs/guides/coding-agents/claude-code-integration">OpenRouter: Claude Code integration</a></li>
+    <li><a href="https://www.deeplearning.ai/the-batch/qwen3-8-max-lands-with-a-bang">The Batch: Qwen3.8-Max and Qwen3.8-27B</a> · <a href="https://www.silicon.co.uk/ai-2/alibaba-qwen-open-631162">Silicon UK: Qwen3.8-Max open weights</a> · <a href="https://www.noze.it/en/insights/qwen-3-8-max/">noze: Qwen3.8-Max</a></li>
+    <li><a href="https://www.tomshardware.com/tech-industry/artificial-intelligence/moonshot-ai-releases-weights-for-kimi-k3-firing-a-shot-across-the-bow-of-openai-and-anthropic-open-weight-model-performs-almost-as-well-as-frontier-models-while-being-2-3x-easier-to-run">Tom's Hardware: Kimi K3 weights</a></li>
+    <li><a href="https://www.noze.it/en/insights/glm-5-2-open-weight-ai-sovereignty/">noze: GLM-5.2 under MIT</a></li>
+    <li><a href="https://deepseekai.guide/models/deepseek-v4-pro/">DeepSeek V4-Pro overview</a> · <a href="https://benchlm.ai/deepseek/api-pricing">BenchLM: DeepSeek pricing</a></li>
+    <li><a href="https://artificialanalysis.ai/articles/thinking-machines-has-released-inkling-the-new-leading-u-s-open-weights-model">Artificial Analysis: Inkling</a> · <a href="https://datanorth.ai/news/alibaba-releases-qwen3-8-27b">DataNorth: Qwen3.8-27B</a></li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>
