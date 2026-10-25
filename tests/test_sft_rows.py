@@ -193,8 +193,15 @@ def test_the_gates_charge_the_first_rule_a_conversation_fails() -> None:
         (dict(allowed=set(), n_questions=2), _frame([True, True]), "F2"),
         (ok, _frame([True, False]), "F1"),
         (dict(allowed={rid}, n_questions=3), _frame([True, True]), "F3"),
-        (ok, _frame([True, True], triage_turn_type_ok=[True, False]), "F4"),
-        (ok, _frame([True, True], calculator_ok=[True, False]), "F4"),
+        (
+            ok,
+            _frame(
+                [True, True],
+                triage_turn_type_ok=[True, False],
+                gold_program=["add(1, 2)"] * 2,
+            ),
+            "F4",
+        ),
     ]
     for kwargs, frame, rule in cases:
         with pytest.raises(build._GateError) as exc:
@@ -275,3 +282,60 @@ def test_the_student_is_never_forced_into_a_tool_call() -> None:
     assert result.output.answer == "91.0"
     assert bodies[0].get("tool_choice", "auto") == "auto"
     assert bodies[0]["temperature"] == 0.7 and bodies[0]["top_k"] == 20
+
+
+def test_a_literal_gold_program_does_not_fail_the_turn_type() -> None:
+    """Gold labels `36%` a program turn; answering it as a number is right."""
+    rid = "Single_X/2016/page_1.pdf-1"
+    history = [user("doc + q0"), *clean_turn(), user("q1"), *clean_turn()]
+    frame = _frame(
+        [True, True],
+        triage_turn_type_ok=[True, False],
+        gold_program=["add(1, 2)", "36%"],
+    )
+    build._check(rid, frame, history, allowed={rid}, n_questions=2)
+
+
+def test_a_program_answer_must_be_the_last_calculator_result() -> None:
+    """Otherwise the model did the arithmetic itself, whatever the tools said."""
+    rid = "Single_X/2016/page_1.pdf-1"
+    in_head = [
+        response(
+            thinking="add them", calls=[("mcp__cfq__add", {"a": 10.4, "b": 80.6})]
+        ),
+        returned("mcp__cfq__add", "91.0", "c0mcp__cfq__add"),
+        response(calls=[("StructuredOutput", {**ANSWER, "answer": "92.0"})]),
+        returned("StructuredOutput", "Final result processed.", "c0StructuredOutput"),
+    ]
+    no_call = [
+        response(calls=[("StructuredOutput", ANSWER)]),
+        returned("StructuredOutput", "Final result processed.", "c0StructuredOutput"),
+    ]
+    for turn in (in_head, no_call):
+        with pytest.raises(build._GateError) as exc:
+            build._check(
+                rid,
+                _frame([True]),
+                [user("doc + q0"), *turn],
+                allowed={rid},
+                n_questions=1,
+            )
+        assert exc.value.rule == "F4"
+
+
+@pytest.mark.parametrize(
+    ("answer", "result", "same"),
+    [
+        ("-7.5%", "-7.465929290934229", True),  # a percentage rounded to one decimal
+        ("14.1%", "0.1413638598681775", True),  # a fraction written as a percentage
+        ("91", "91.0", True),
+        ("0.41", "0.4118", True),
+        ("no", "False", True),  # `greater`'s result, in words
+        ("0.42", "0.4118", False),  # wrongly rounded
+        ("374", "22203.0", False),  # not the last result at all
+    ],
+)
+def test_an_answer_is_its_result_at_its_own_precision(
+    answer: str, result: str, same: bool
+) -> None:
+    assert build.answer_is_result(answer, result) is same

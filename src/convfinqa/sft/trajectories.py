@@ -35,7 +35,10 @@ def path_for(run_name: str) -> Path:
 def _run_of(run_name: str) -> Any:
     from mlflow import MlflowClient
 
-    client = MlflowClient()
+    from convfinqa.config import settings
+
+    # the central server, named outright: a bare client reads a local ./mlruns
+    client = MlflowClient(tracking_uri=settings.mlflow_tracking_uri)
     runs = client.search_runs(
         [e.experiment_id for e in client.search_experiments()],
         filter_string=f"attributes.run_name = '{run_name}'",

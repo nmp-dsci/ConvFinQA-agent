@@ -10,10 +10,12 @@ ConvFinQA and DeepSeek):
 - F1 right: every question's answer is right.
 - F3 complete: every question answered, no turn error, nothing unscored, the
   history holds one turn per question and each ends on one answer call.
-- F4 stages: gold's checkpoints hold on every turn — the turn type is right,
-  the plan executes to gold's own program value, and the calculator's result
-  is gold's. (Operand recall is recorded, not gated: it reads a value carried
-  from an earlier turn as missing — s23 measured that.)
+- F4 grounded: every turn's type is gold's (bar gold's literal-only
+  "program" turns), and a program turn's answer is its last calculator
+  result, so the tools did the arithmetic. (Operand recall and the CSV's plan
+  check are recorded, not gated: both misread an operand carried from an
+  earlier turn as missing, and the plan check compares with gold's rounded
+  answer — s23 measured both.)
 - F5 tools: no tool call was refused and none is repeated within a turn.
 - F6 first attempt: no question was re-asked with a correction.
 - F7 reasoning: no reasoning block over `MAX_REASONING_TOKENS`.
@@ -28,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import statistics
 from collections import Counter
 from datetime import UTC, datetime
@@ -105,14 +108,17 @@ def _check(
         raise _GateError(
             "F3", f"{len(turns)} turns in the history for {len(rows)} questions"
         )
+    from convfinqa.evaluation.metrics import parse_program
+
     for _, row in rows.iterrows():
         q = int(row["turn_index"])
-        if _bool(row.get("triage_turn_type_ok")) is False:
+        # Gold calls some single-figure turns "program" with a bare literal
+        # for a program (`36%`); answering such a turn as a number is right.
+        literal = not parse_program(row.get("gold_program"))
+        if _bool(row.get("triage_turn_type_ok")) is False and not literal:
             raise _GateError("F4", f"q{q}: the turn type is not gold's")
-        if _bool(row.get("preprocess_plan_ok")) is False:
-            raise _GateError("F4", f"q{q}: the plan does not execute to gold's value")
-        if _bool(row.get("calculator_ok")) is False:
-            raise _GateError("F4", f"q{q}: the calculator's result is not gold's")
+    for q, turn in enumerate(turns):
+        _check_grounded(q, turn)
     for q, turn in enumerate(turns):
         if CORRECTION_MARK in turn["prompt"]:
             raise _GateError("F6", f"q{q} was re-asked with a correction")
@@ -133,6 +139,74 @@ def _check(
                         "F5", f"q{q}: {key[0]} repeated with the same arguments"
                     )
                 seen.add(key)
+
+
+_NUMBER = re.compile(r"^\s*\$?(-?[\d,]*\.?(\d*))\s*%?\s*$")
+
+
+def answer_is_result(answer: Any, result: Any) -> bool:
+    """Is `answer` the calculator's `result`, as the prompt says to write it?
+
+    The prompt rounds (a percentage to one decimal, say) and may scale by 100,
+    so the answer is the result rounded to the answer's own precision, at a
+    scale of 1, 100 or 1/100. A comparison's ``True``/``False`` is yes/no.
+    """
+    a, r = str(answer).strip(), str(result).strip()
+    if r in ("True", "False"):
+        return a.lower() in ({"yes", "true"} if r == "True" else {"no", "false"})
+    m = _NUMBER.match(a)
+    try:
+        value = float(m.group(1).replace(",", "")) if m else None
+        exact = float(r)
+    except ValueError:
+        return False
+    if value is None:
+        return False
+    decimals = len(m.group(2)) if m else 0
+    return any(
+        abs(round(exact * scale, decimals) - value) < 10 ** -(decimals + 6)
+        or abs(exact * scale - value) <= 1e-9 * max(1.0, abs(value))
+        for scale in (1.0, 100.0, 0.01)
+    )
+
+
+def _check_grounded(q: int, turn: dict[str, Any]) -> None:
+    """F4 on a program turn: the answer is the last calculator result.
+
+    That is what makes the answer the tools' and not the model's own
+    arithmetic (s23's T5), and it is checked on what the turn actually did.
+    The CSV's ``preprocess_plan_ok`` is not used: it binds the plan only to
+    the values retrieved from the document, so a plan using an earlier turn's
+    answer reads as failing, and it compares with gold's rounded answer
+    (39 of 48 F4 drops on the first build were that). ``calculator_ok`` is
+    ``correct`` on program turns, which F1 already holds.
+    """
+    from convfinqa.sft import trajectories as tj
+
+    final: dict[str, Any] = {}
+    last_return: str | None = None
+    n_calls = 0
+    for message in turn["steps"]:
+        for part in message.get("parts") or []:
+            kind = part.get("part_kind")
+            name = str(part.get("tool_name") or "")
+            if kind == "tool-call" and name == "StructuredOutput":
+                final = tj.tool_args(part)
+            elif kind == "tool-call":
+                n_calls += 1
+            elif kind == "tool-return" and name != "StructuredOutput":
+                last_return = str(part.get("content"))
+    if str(final.get("turn_type") or "") != "program":
+        return
+    if n_calls == 0 or last_return is None:
+        raise _GateError(
+            "F4", f"q{q}: a program turn answered without a calculator call"
+        )
+    if not answer_is_result(final.get("answer"), last_return):
+        raise _GateError(
+            "F4",
+            f"q{q}: the answer {final.get('answer')!r} is not the last result {last_return}",
+        )
 
 
 def build(

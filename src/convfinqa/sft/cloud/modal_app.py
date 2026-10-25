@@ -107,6 +107,10 @@ def vllm_command(adapters: dict[str, str] | None = None) -> list[str]:
         "--max-model-len", str(MAX_MODEL_LEN),
         "--gpu-memory-utilization", "0.90",
         "--enable-prefix-caching",
+        # report prefix-cache hits as cached tokens: the runner's per-conversation
+        # token ceiling excludes cache reads (as it does for DeepSeek and Claude),
+        # and without this every re-read of the context counted as new input
+        "--enable-prompt-tokens-details",
         "--enable-auto-tool-choice",
         "--tool-call-parser", "hermes",
     ]  # fmt: skip
