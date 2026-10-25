@@ -197,6 +197,13 @@ def turn_messages(steps: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], in
             continue
         for part in message.get("parts") or []:
             kind = part.get("part_kind")
+            if kind == "tool-return" and part.get("outcome") == "retried":
+                # Pydantic AI 2.x records a refused call (a schema failure, a
+                # ModelRetry) as a tool return with this outcome, not as
+                # `retry-feedback`: F5 holds for it all the same.
+                raise RowRejectedError(
+                    "F5", f"a {part.get('tool_name')} call was sent back"
+                )
             if kind == "tool-return":
                 out.append(
                     {

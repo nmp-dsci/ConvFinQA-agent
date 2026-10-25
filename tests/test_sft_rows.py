@@ -501,3 +501,23 @@ def test_the_aimed_draw_ranks_conversations_by_expected_misses(
     pd.read_csv(val).assign(unscored=True).to_csv(tmp_path / "u.csv", index=False)
     with pytest.raises(ValueError, match="incomplete"):
         aim.miss_rates(tmp_path / "u.csv")
+
+
+def test_a_call_sent_back_as_a_retried_tool_return_fails_f5() -> None:
+    """Pydantic AI 2.x stores a refused call as a tool return, outcome "retried"."""
+    sent_back = {
+        "kind": "request",
+        "parts": [
+            {
+                "part_kind": "tool-return",
+                "tool_name": "StructuredOutput",
+                "content": "1 validation error: answer is required",
+                "tool_call_id": "c0StructuredOutput",
+                "outcome": "retried",
+            }
+        ],
+    }
+    steps = [response(calls=[("StructuredOutput", {"turn_type": "number"})]), sent_back]
+    with pytest.raises(rows.RowRejectedError) as exc:
+        rows.turn_messages([*steps, *clean_turn()])
+    assert exc.value.rule == "F5"
