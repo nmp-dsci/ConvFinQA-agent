@@ -1,0 +1,470 @@
+{
+  "name": "smoke_v1",
+  "champion": {
+    "conversations": 20,
+    "right_to_end": 13,
+    "answered_turns": 63,
+    "answered_right": 56,
+    "mean_right_before_error": 2.8
+  },
+  "candidate_early_stop": {
+    "conversations": 20,
+    "right_to_end": 14,
+    "answered_turns": 63,
+    "answered_right": 57,
+    "mean_right_before_error": 2.85
+  },
+  "candidate_full": {
+    "conversations": 20,
+    "right_to_end": 14,
+    "answered_turns": 71,
+    "answered_right": 59,
+    "mean_right_before_error": 2.85
+  },
+  "fixed": 1,
+  "broken": 0,
+  "p_better": 0.5,
+  "p_worse": 1.0,
+  "per_conversation": [
+    {
+      "report_id": "Single_BLK/2017/page_77.pdf-2",
+      "seed": 2027,
+      "champion": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      }
+    },
+    {
+      "report_id": "Single_UNP/2016/page_24.pdf-1",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 3,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Single_GS/2014/page_172.pdf-2",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 1,
+        "right": 0,
+        "right_before_error": 0
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 1,
+        "right": 0,
+        "right_before_error": 0
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 3,
+        "right": 1,
+        "right_before_error": 0
+      }
+    },
+    {
+      "report_id": "Single_HII/2015/page_120.pdf-3",
+      "seed": 2027,
+      "champion": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      }
+    },
+    {
+      "report_id": "Single_PNC/2009/page_68.pdf-2",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Single_ADBE/2018/page_88.pdf-2",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 2,
+        "right": 1,
+        "right_before_error": 1
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 2,
+        "right": 1,
+        "right_before_error": 1
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 4,
+        "right": 1,
+        "right_before_error": 1
+      }
+    },
+    {
+      "report_id": "Single_CDW/2017/page_56.pdf-3",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 3,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 3,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 5,
+        "right": 3,
+        "right_before_error": 2
+      }
+    },
+    {
+      "report_id": "Double_LLY/2018/page_75.pdf",
+      "seed": 2027,
+      "champion": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      }
+    },
+    {
+      "report_id": "Double_STT/2011/page_94.pdf",
+      "seed": 2027,
+      "champion": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Single_AMT/2008/page_34.pdf-1",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      }
+    },
+    {
+      "report_id": "Single_ECL/2017/page_68.pdf-3",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      }
+    },
+    {
+      "report_id": "Single_LKQ/2010/page_81.pdf-1",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 2,
+        "right": 2,
+        "right_before_error": 2
+      }
+    },
+    {
+      "report_id": "Single_ETR/2015/page_131.pdf-1",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Single_EMN/2006/page_110.pdf-2",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      }
+    },
+    {
+      "report_id": "Single_CAG/2007/page_73.pdf-1",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      }
+    },
+    {
+      "report_id": "Single_RE/2016/page_40.pdf-1",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 5,
+        "right": 5,
+        "right_before_error": 5
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 5,
+        "right": 5,
+        "right_before_error": 5
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 5,
+        "right": 5,
+        "right_before_error": 5
+      }
+    },
+    {
+      "report_id": "Double_AAPL/2011/page_24.pdf",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Double_BLL/2010/page_39.pdf",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 3,
+        "right": 3,
+        "right_before_error": 3
+      }
+    },
+    {
+      "report_id": "Double_FIS/2012/page_46.pdf",
+      "seed": 2028,
+      "champion": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_early_stop": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      },
+      "candidate_full": {
+        "full": true,
+        "rows": 4,
+        "right": 4,
+        "right_before_error": 4
+      }
+    },
+    {
+      "report_id": "Double_ETR/2004/page_216.pdf",
+      "seed": 2028,
+      "champion": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_early_stop": {
+        "full": false,
+        "rows": 4,
+        "right": 3,
+        "right_before_error": 3
+      },
+      "candidate_full": {
+        "full": false,
+        "rows": 6,
+        "right": 3,
+        "right_before_error": 3
+      }
+    }
+  ]
+}
