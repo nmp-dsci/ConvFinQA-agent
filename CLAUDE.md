@@ -284,6 +284,20 @@ The invariants, all pinned by tests:
   `falls_short` of the champion. Keys come only from `~/.env`/`.env`. `evalloop/smoke.py`
   picks the 20-conversation smoke from the champion's own committed seed-2027/2028 draws;
   champion numbers come only from its committed runs, nothing new runs on Claude.
+- **The SFT student (s28–s29) learns from llm_react_v1's own conversations and is scored as
+  an open agent.** `convfinqa-sft` fetches a pass's `trajectories.jsonl.gz`, gates whole
+  conversations (F1–F8, N1; `--prefix-rows` also keeps an F1 drop's turns before its first
+  wrong one) into `evaluation/sft/<version>/`, and trains a LoRA on Modal; the student is
+  Qwen3-4B on vLLM (`STUDENT_URL`), `student-qwen3-4b[-sftN-…]`, effort `none`. **Test 100
+  (`eval_loop_v2` test) is its holdout**: never collected on, trained on or used to choose;
+  `sft_v1` val picks checkpoints, and a tuned checkpoint opens test only on the owner's word.
+  `sft_v2` adds an aimed draw (`sft/aim.py`, ranked by the student's val miss rates, never
+  test's). **Two harnesses:** `pydantic_ai` is llm_react_v1's and the teacher's and does not
+  change; `pydantic_ai_checked` (`backends/open_checks.py`, H1–H3) is the student's from s29,
+  so a student baseline is re-scored under it rather than compared across harnesses. Pydantic
+  AI 2.x records a refused call as a `tool-return` with `outcome: "retried"` (not
+  `retry-feedback`) and can fold a turn's closing tool return into the next question's
+  request; `sft/trajectories.turns` and `sft/rows` handle both (`tests/test_sft_rows.py`).
 - **The write-up is `docs/optimization/agent-sdk.html`**, rendered by `story` from the same
   `story.json` (`runtime_comparison`, `sdk_campaigns`, `sdk_champion`) and covered by
   `story_check`. Every comparison field is `None` until an SDK run exists — the page says
