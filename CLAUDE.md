@@ -272,6 +272,18 @@ The invariants, all pinned by tests:
   (which then takes `--target-class`); `--version sdk_vN` under the wrong runtime fails at
   parse time. New subcommands: `sdk-distil`, `backfill-ledgers [--no-mlflow]`,
   `ledger-trace --question-id|--edit-id`.
+- **The open runtime, `--runtime open_agent`, is a record-only challenger** (s25–s27;
+  `backends/open_agent.py`, display name `llm_react_v1` from `llm.OPEN_AGENT_NAMES`). It runs
+  the champion's single-session contract — the `sdk_v1` prompt, six `mcp__cfq__*` tools,
+  `StructuredOutput` schema and limits imported from `agent_sdk`, never copied — in one
+  Pydantic AI agent on DeepSeek (`deepseek-flash`, thinking high). It is **not a new prompt
+  version** (the prompt is byte-identical to `sdk_v1`; prompts are identified by hash). The
+  module docstring lists the only accepted differences. `gate-challenger --runtime open_agent`
+  writes its gates row with `runtime=open_agent` (never `agent_sdk` — the ledger is
+  append-only) and **refuses `--promote`**: serving has no open runtime. Result o01-e01:
+  `falls_short` of the champion. Keys come only from `~/.env`/`.env`. `evalloop/smoke.py`
+  picks the 20-conversation smoke from the champion's own committed seed-2027/2028 draws;
+  champion numbers come only from its committed runs, nothing new runs on Claude.
 - **The write-up is `docs/optimization/agent-sdk.html`**, rendered by `story` from the same
   `story.json` (`runtime_comparison`, `sdk_campaigns`, `sdk_champion`) and covered by
   `story_check`. Every comparison field is `None` until an SDK run exists — the page says
