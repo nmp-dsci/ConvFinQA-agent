@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -252,7 +252,7 @@ def test_ttl_eviction_cleans_session_and_lock() -> None:
         session = client.post("/sessions", json={"report_id": rid}).json()
         store = client.app.state.session_store
         state = store.get(session["session_id"])
-        state.updated_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+        state.updated_at = datetime.now(UTC) - timedelta(seconds=10)
         evicted = store.evict_expired()
         assert session["session_id"] in evicted
         assert session["session_id"] not in store.sessions

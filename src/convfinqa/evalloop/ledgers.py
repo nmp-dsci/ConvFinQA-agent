@@ -31,7 +31,7 @@ import re
 import tempfile
 import uuid
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -284,12 +284,12 @@ def path(name: str) -> Path:
 
 def now_iso() -> str:
     """UTC timestamp, seconds precision — the form every ``*_at`` column holds."""
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def new_id(prefix: str) -> str:
     """A fresh id: ``<prefix>-<utc stamp>-<random>``, sortable by creation."""
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     return f"{prefix}-{stamp}-{uuid.uuid4().hex[:8]}"
 
 
@@ -1122,7 +1122,7 @@ def backfill_ledgers(
                 "total_cost_usd": metrics.get("teacher_cost_usd", 0.0),
             },
             proposed_at=datetime.fromtimestamp(
-                run.info.start_time / 1000, tz=timezone.utc
+                run.info.start_time / 1000, tz=UTC
             ).isoformat(timespec="seconds"),
         )
         if not before:
@@ -1216,7 +1216,7 @@ def backfill_ledgers(
                 # The baseline of a recorded gate was the champion it challenged.
                 champion_after=cand_v if promoted else base_v,
                 gated_at=datetime.fromtimestamp(
-                    run.info.start_time / 1000, tz=timezone.utc
+                    run.info.start_time / 1000, tz=UTC
                 ).isoformat(timespec="seconds"),
             )
         )

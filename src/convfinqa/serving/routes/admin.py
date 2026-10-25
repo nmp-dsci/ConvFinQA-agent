@@ -289,7 +289,7 @@ async def research_stream(request: Request) -> StreamingResponse:
             while True:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=15.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Keep-alive: App Runner drops idle connections, and a
                     # research round can be quiet for minutes at a time.
                     yield ": keep-alive\n\n"

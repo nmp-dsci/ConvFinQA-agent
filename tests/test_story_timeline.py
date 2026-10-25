@@ -6,14 +6,14 @@ no CSVs. The timeline is what the Optimise › Story tab and the Runs ledger dra
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 
 from convfinqa.evalloop import story
 
-T0 = datetime(2026, 9, 3, 15, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 9, 3, 15, 0, tzinfo=UTC)
 
 
 def _ms(minutes: int) -> int:

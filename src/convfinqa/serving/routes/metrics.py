@@ -29,7 +29,7 @@ series always spans the run history rather than an arbitrary yesterday.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Query
@@ -88,7 +88,7 @@ def _parse(created_at: Any) -> datetime | None:
         stamp = datetime.fromisoformat(str(created_at))
     except (TypeError, ValueError):
         return None
-    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
 
 def _floor(stamp: datetime, unit: str) -> datetime:
@@ -225,7 +225,7 @@ async def production_metrics(
     group is returned with zero counts and `None` where a statistic has no
     sample, so the frontend renders one layout in every case.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     store = get_store()
     rows = store.metric_rows(limit=limit) if store is not None else []
 

@@ -16,7 +16,7 @@ longer matches the registry it claims to describe.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from statistics import NormalDist
 from typing import Any
@@ -285,7 +285,7 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         steps=steps,
     )
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         # Set when the campaign sections were carried from an earlier build.
         "campaign_record_from": campaign_record_from,
         "champion": champion,
@@ -655,9 +655,7 @@ def _run_date(run_name: str, at_ms: Any) -> str | None:
         return "-".join(found.groups())
     if not at_ms:
         return None
-    return (
-        datetime.fromtimestamp(float(at_ms) / 1000, tz=timezone.utc).date().isoformat()
-    )
+    return datetime.fromtimestamp(float(at_ms) / 1000, tz=UTC).date().isoformat()
 
 
 def _champion_at(

@@ -166,12 +166,35 @@ def test_calculator_has_six_tools() -> None:
     assert set(tools) == {"add", "subtract", "multiply", "divide", "exp", "greater"}
 
 
+class _RequestSeenError(Exception):
+    """Ends a stubbed run once the model has seen its request."""
+
+
 def test_each_agent_uses_optimized_instructions() -> None:
-    """Each Pydantic AI agent is constructed with its optimized instructions."""
-    agents = default_agents()
-    for key, ag in agents.items():
-        # Pydantic AI stores instructions as a list[str]
-        assert ag._instructions == [PROMPTS[key]]
+    """Each agent sends its optimized prompt as the instructions of its request.
+
+    Read from the request the model receives, not from the agent's private
+    fields: those changed shape between Pydantic AI 1.x and 2.x, while what
+    reaches the model is the contract. Pydantic AI strips the trailing newline.
+    """
+    from pydantic_ai.messages import ModelMessage, ModelRequest
+    from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+    for key, ag in default_agents().items():
+        seen: list[str | None] = []
+
+        def capture(
+            messages: list[ModelMessage], info: AgentInfo, seen: list[str | None] = seen
+        ) -> Any:
+            seen.extend(m.instructions for m in messages if isinstance(m, ModelRequest))
+            raise _RequestSeenError
+
+        with (
+            ag.override(model=FunctionModel(capture)),
+            pytest.raises(_RequestSeenError),
+        ):
+            ag.run_sync("what was the revenue in 2019?")
+        assert seen == [PROMPTS[key].strip()], key
 
 
 # ---------------------------------------------------------------------------

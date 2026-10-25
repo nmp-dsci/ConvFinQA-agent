@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import random
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -115,7 +115,7 @@ def build_manifest() -> dict[str, Any]:
         raise AssertionError("train and val share a page")
     return {
         "name": "sft_v1",
-        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "unit": "conversation",
         "page_rule": "strip ^(Single|Double)_ and -N$; no page in two sets",
         "gate_manifest": GATE_MANIFEST,

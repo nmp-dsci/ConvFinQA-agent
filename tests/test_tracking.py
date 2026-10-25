@@ -907,6 +907,53 @@ def test_span_trim_substitutes_a_registered_prompt_for_its_ledger_name() -> None
     assert message["parts"][0]["content"].startswith("what was the change")
 
 
+def test_an_autologged_run_stores_prompt_refs_not_prompt_text() -> None:
+    """End to end through MLflow's autologger, into the test's throwaway store.
+
+    Pydantic AI 2.x changed what the autologger emits: a model span is named
+    after the model class (`TestModel.request`, `OpenAIChatModel.request`)
+    rather than `InstrumentedModel.request`, and the instructions arrive twice,
+    on each message and as `instruction_parts`. A trimmer keyed on the old name
+    stops substituting without any error, so the stored trace is what is read.
+    """
+    import mlflow
+    from pydantic_ai.models.test import TestModel
+
+    from convfinqa.backends.pydantic import make_agents
+    from convfinqa.pipeline.prompts_loader import PROMPTS
+    from convfinqa.tracking import mlflow_log, span_trim, tracing
+
+    # The prompt index is cached per process; an earlier test may have built
+    # it against a temporary registry that does not hold these prompts.
+    span_trim._prompt_index.cache_clear()
+    assert tracing.enable()
+    mlflow_log._mlflow()  # this test's store, even if tracing was enabled earlier
+    # Re-pointing MLflow at a new store rebuilds its tracer provider, so a
+    # trimmer installed by an earlier test's `enable()` is gone; reinstall it.
+    tracing._install_trimmer()
+    calculator = make_agents(PROMPTS)["calculator"]
+    with calculator.override(model=TestModel(call_tools=["subtract"])):
+        calculator.run_sync("what is 200 less 50?")
+    mlflow.flush_trace_async_logging()
+    trace = mlflow.get_trace(mlflow.get_last_active_trace_id())
+    assert trace is not None
+
+    requests = [s for s in trace.data.spans if s.name.endswith(".request")]
+    assert requests, [s.name for s in trace.data.spans]
+    for span in requests:
+        texts = [m.get("instructions") for m in span.inputs["messages"]]
+        texts += [
+            p["content"]
+            for p in span.inputs["model_request_parameters"]["instruction_parts"]
+        ]
+        assert texts and all(
+            t is None or t.startswith("<prompt_ref: calculator") for t in texts
+        ), texts
+    run = next(s for s in trace.data.spans if s.name == "Agent.run")
+    assert run.outputs["_state"] == span_trim.DROPPED
+    assert [s.name for s in trace.data.spans if s.span_type == "TOOL"] == ["subtract"]
+
+
 def test_span_trim_never_raises_and_respects_the_escape_hatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

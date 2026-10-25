@@ -250,7 +250,7 @@ async def call_with_budget(
     limit = timeout if timeout is not None else settings.llm_timeout_seconds
     try:
         return await asyncio.wait_for(fn(), timeout=limit)
-    except asyncio.TimeoutError as exc:
+    except TimeoutError as exc:
         raise LLMUnavailableError(
             f"model call exceeded {limit:.0f}s and was abandoned"
         ) from exc

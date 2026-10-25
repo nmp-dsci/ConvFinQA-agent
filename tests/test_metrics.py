@@ -75,9 +75,7 @@ def test_demo_and_recording_errors_keep_their_own_codes() -> None:
 
 def test_timeout_beats_the_declared_code() -> None:
     """An abandoned call is a timeout, even though it is raised as unavailable."""
-    import asyncio
-
-    assert classify(asyncio.TimeoutError()) == "timeout"
+    assert classify(TimeoutError()) == "timeout"
 
 
 def test_rate_limit_is_read_off_the_response() -> None:
