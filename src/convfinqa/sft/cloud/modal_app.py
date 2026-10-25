@@ -54,6 +54,11 @@ ADAPTERS: dict[str, str] = {
     f"{BASE_NAME}-sft1-e{epoch}": f"20261025T040743Z_train_sft1/checkpoints/checkpoint-{step}"
     for epoch, step in ((1, 21), (2, 42), (3, 63))
 }
+# s29: sft2 saves every half-epoch, and each is scored on val while the run goes on
+ADAPTERS |= {
+    f"{BASE_NAME}-sft2-e{epoch}": f"20261025T113733Z_train_sft2/checkpoints/checkpoint-{step}"
+    for epoch, step in (("0p5", 29), ("1", 58), ("1p5", 87), ("2", 116))
+}
 
 TRAIN_PINS = (
     "torch==2.14.1",
@@ -139,8 +144,20 @@ def vllm_command(adapters: dict[str, str] | None = None) -> list[str]:
 class Student:
     @modal.enter()
     def start(self) -> None:
-        """Start vLLM; Modal routes the port to it once it listens."""
-        self.process = subprocess.Popen(vllm_command(ADAPTERS))
+        """Start vLLM; Modal routes the port to it once it listens.
+
+        It serves the adapters whose checkpoint is complete (the trainer writes
+        ``trainer_state.json`` last), so a run still training serves the
+        half-epochs it has saved; a container started later serves the rest.
+        """
+        ready = {
+            name: path
+            for name, path in ADAPTERS.items()
+            if (Path("/runs") / path / "trainer_state.json").exists()
+        }
+        for name in ADAPTERS.keys() - ready.keys():
+            print(f"not serving {name}: {ADAPTERS[name]} has no complete checkpoint")
+        self.process = subprocess.Popen(vllm_command(ready))
 
     @modal.exit()
     def stop(self) -> None:

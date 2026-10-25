@@ -462,3 +462,13 @@ def test_a_temperature_is_a_students_alone(monkeypatch: pytest.MonkeyPatch) -> N
     model = llm.open_agent_model("student-qwen3-4b-sft1-e2", "none", temperature=0.2)
     assert model.settings is not None and model.settings["temperature"] == 0.2
     llm.reset_provider()
+
+
+def test_the_server_serves_every_student_the_runner_names() -> None:
+    from convfinqa.llm import STUDENT_MODELS
+    from convfinqa.sft.cloud import modal_app
+
+    served = {modal_app.BASE_NAME, *modal_app.ADAPTERS}
+    assert served == set(STUDENT_MODELS)
+    command = modal_app.vllm_command(modal_app.ADAPTERS)
+    assert command[command.index("--max-loras") + 1] == str(len(modal_app.ADAPTERS))
