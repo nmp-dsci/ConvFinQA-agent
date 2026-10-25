@@ -25,6 +25,11 @@ mechanics the harness forces:
   reply and answers the correction after it. Here a rejected run can end on a
   tool call with no tool result, which DeepSeek refuses, so the correction is
   sent with the question again on the history as it stood before the attempt.
+- **A failed turn stays in the history.** Claude's session keeps the exchange
+  of a turn that never produced a valid reply. Here that turn enters the
+  history as its exact prompt and a plain-text reply saying no valid answer
+  was produced — not the rejected attempts, which may end on an unpaired tool
+  call — so the report document and every question stay in view.
 - **Tool schemas are closed.** Pydantic AI's OpenAI schema transformer adds
   `"additionalProperties": false` to each tool's parameters; otherwise the
   schema is the SDK's, byte for byte.
@@ -201,6 +206,23 @@ def _usage_of(messages: list[Any], model: str, at: datetime) -> dict[str, Any]:
     }
 
 
+NO_VALID_ANSWER = "I could not produce a valid answer to that question."
+
+
+def _failed_turn(prompt: str) -> list[Any]:
+    from pydantic_ai.messages import (
+        ModelRequest,
+        ModelResponse,
+        TextPart,
+        UserPromptPart,
+    )
+
+    return [
+        ModelRequest(parts=[UserPromptPart(content=prompt)]),
+        ModelResponse(parts=[TextPart(content=NO_VALID_ANSWER)]),
+    ]
+
+
 async def _ask(
     agent: Any,
     prompt: str,
@@ -335,6 +357,7 @@ async def run_conversation(
                         ) from exc
                     except SdkTurnError as exc:
                         cap["error"] = str(exc)
+                        history = [*history, *_failed_turn(prompt)]
                     else:
                         tokens_total += _tokens_used(usage)
                         cap.update(

@@ -256,6 +256,24 @@ def test_a_rejected_reply_is_corrected_with_the_sdk_text(
     assert caps[0]["triage"]["sdk_attempts"] == 2
 
 
+def test_a_failed_turn_stays_in_the_history_of_the_next(
+    deepseek: FakeDeepSeek,
+) -> None:
+    bad = {"turn_type": "number", "conv_type": "Type I"}
+    deepseek.replies = [
+        *[reply(calls=[("StructuredOutput", bad)]) for _ in range(4)],
+        reply(calls=[("StructuredOutput", number_turn("50"))]),
+    ]
+    preds, _progs, caps, _traj = run(["the revenue?", "and in 2019?"])
+    assert preds == ["", "50"]
+    assert "error" in caps[0] and not caps[0].get("answer")
+    sent = deepseek.bodies[-1]["messages"]
+    assert [m["role"] for m in sent] == ["system", "user", "assistant", "user"]
+    assert "revenue was 200 in 2020" in sent[1]["content"]
+    assert "the revenue?" in sent[1]["content"]
+    assert "and in 2019?" in sent[3]["content"]
+
+
 @pytest.mark.parametrize("status", [402, 429, 503])
 def test_a_provider_that_will_not_answer_is_unscored_not_wrong(
     deepseek: FakeDeepSeek, status: int
