@@ -14,6 +14,7 @@ year-old run must not silently reprice it.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from typing import Any
 
 # USD per 1M tokens. Update deliberately, and treat a change as a new bundle —
@@ -25,6 +26,41 @@ PRICING: dict[str, tuple[float, float]] = {
 }
 
 DEFAULT_MODEL = "deepseek-v4-flash"
+
+# The open runtime (s25) is priced on DeepSeek's current three-way card — a
+# cache hit, a cache miss and output — because a session re-reads its whole
+# context on every call and most of that is served from DeepSeek's cache, at a
+# fiftieth of the miss price. Peak rates, USD per 1M tokens, published on
+# api-docs.deepseek.com/quick_start/pricing (read 2026-10-25); off-peak is half.
+DEEPSEEK_CARD: dict[str, tuple[float, float, float]] = {
+    # model: (cache hit, cache miss, output)
+    "deepseek-flash": (0.006, 0.30, 1.20),
+    "deepseek-v4-pro": (0.044, 1.32, 3.96),
+}
+
+
+def deepseek_peak(at: datetime) -> bool:
+    """DeepSeek's peak window: 01:00–04:00 and 06:00–10:00 UTC, Monday to Friday."""
+    utc = at.astimezone(UTC)
+    return utc.weekday() < 5 and (1 <= utc.hour < 4 or 6 <= utc.hour < 10)
+
+
+def deepseek_cost_usd(
+    model: str,
+    *,
+    cache_hit_tokens: int,
+    cache_miss_tokens: int,
+    output_tokens: int,
+    at: datetime,
+) -> float:
+    """What one open-runtime call cost, on the card in force at `at`."""
+    hit, miss, out = DEEPSEEK_CARD.get(model, DEEPSEEK_CARD["deepseek-flash"])
+    scale = 1.0 if deepseek_peak(at) else 0.5
+    return (
+        scale
+        * (cache_hit_tokens * hit + cache_miss_tokens * miss + output_tokens * out)
+        / 1_000_000
+    )
 
 
 def price_for(model: str) -> tuple[float, float]:

@@ -1,0 +1,11 @@
+Single_AMT/2008/page_34.pdf-1
+Single_ECL/2017/page_68.pdf-3
+Single_LKQ/2010/page_81.pdf-1
+Single_ETR/2015/page_131.pdf-1
+Single_EMN/2006/page_110.pdf-2
+Single_CAG/2007/page_73.pdf-1
+Single_RE/2016/page_40.pdf-1
+Double_AAPL/2011/page_24.pdf
+Double_BLL/2010/page_39.pdf
+Double_FIS/2012/page_46.pdf
+Double_ETR/2004/page_216.pdf

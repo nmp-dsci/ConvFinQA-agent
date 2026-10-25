@@ -9,6 +9,7 @@ import {
   formatPp,
   ledgerRows,
   orderPasses,
+  agentLabel,
   passLabel,
   recordSentence,
   shortModel,
@@ -96,6 +97,14 @@ describe('the words', () => {
     expect(shortModel('deepseek-v4-flash')).toBe('deepseek-v4-flash');
     expect(passLabel(PASSES[1])).toBe('llm-v2');
     expect(passLabel(PASSES[6])).toBe('sdk-v1 · haiku-5-5');
+  });
+
+  it('names an open-agent pass for its agent, not for the champion’s prompt it runs', () => {
+    const open = { ...PASSES[6], runtime: 'open_agent' as const, model: 'deepseek-flash', agent_name: 'llm_react_v1' };
+    expect(passLabel(open)).toBe('llm_react_v1 · deepseek-flash');
+    expect(agentLabel({ ...open, effort: 'high' })).toBe('llm_react_v1 · deepseek-flash · high');
+    // Without a name it falls back to the version, as before.
+    expect(passLabel({ ...open, agent_name: null })).toBe('sdk-v1 · deepseek-flash');
   });
 
   it('formats days and deltas', () => {

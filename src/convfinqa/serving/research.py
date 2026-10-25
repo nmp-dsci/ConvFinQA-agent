@@ -23,7 +23,7 @@ import os
 import sys
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from convfinqa.config import REPO_ROOT
@@ -112,10 +112,10 @@ class ResearchRunner:
         if self.busy:
             raise RuntimeError("A research round is already running.")
         job = ResearchJob(
-            job_id=datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
+            job_id=datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
             kind=kind,
             args=args,
-            started_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
         )
         command = self._command(kind, args)
         self.current = job
@@ -146,7 +146,7 @@ class ResearchRunner:
         finally:
             if job.status == "running":
                 job.status = "succeeded" if job.returncode == 0 else "failed"
-            job.finished_at = datetime.now(timezone.utc).isoformat()
+            job.finished_at = datetime.now(UTC).isoformat()
             self.history.append(job)
             await self._publish({"event": "job_end", "job": job.as_dict()})
             self._process = None

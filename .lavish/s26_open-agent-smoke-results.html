@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open agent smoke results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; vertical-align:top; }
+  .tablewrap td.n, .tablewrap th.n{ overflow-wrap:normal; }
+  table.fx{ table-layout:fixed; min-width:820px; }
+  table.fx.narrow{ min-width:620px; }
+  table.fx th{ white-space:normal; }
+  td.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .ok{ color:var(--accent); font-weight:600; }
+  .bad{ color:var(--red); font-weight:600; }
+  .muted2{ color:var(--muted); }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:760px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .fig .cell.ok{ fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.5; }
+  .fig .cell.bad{ fill:var(--red-soft); stroke:var(--red); stroke-width:1.5; }
+  .fig .cm{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .lbs{ fill:var(--muted); font-family:var(--sans); font-size:12.5px; }
+  .fig .tick{ fill:var(--muted); font-family:var(--mono); font-size:12px; }
+  .checks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .checks .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .checks .card b.id{ font-family:var(--mono); color:var(--accent); margin-right:var(--s1); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:56px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s26 · ConvFinQA-agent · 2026-10-25 · results · smoke for the s25 plan · branch <code>open-agents</code></div>
+  <h1>sdk_v1 on DeepSeek Flash in Pydantic AI kept pace with Sonnet 5 on its own 20 conversations. <em>Same prompt, almost the same answers, a fraction of the price.</em></h1>
+  <p class="lede">The champion's prompt, tools, answer schema and limits ran unchanged on <code>deepseek-flash</code> (DeepSeek-V4.1-Flash-1017, effort <code>high</code>) in Pydantic AI 2.61.
+    The 20 train conversations are ones the champion already answered, and every champion number here comes from its committed runs, so nothing new ran on Claude.
+    Flash answered every turn, and its scores are read two ways: in the champion's own mode (stopping at the first wrong turn), which is the like-for-like comparison, and over every turn.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">14 vs 13</div><div class="l">conversations right to the end, of 20: Flash against the champion. One fixed, none broken (one-sided McNemar p = 0.5)</div></div>
+    <div class="stat"><div class="n">90.5% vs 88.9%</div><div class="l">turns right in the champion's mode: 57 of 63 against 56 of 63, on exactly the same 63 turns</div></div>
+    <div class="stat amber"><div class="n">83.1%</div><div class="l">Flash over every turn, 59 of 71. The champion was never run past a wrong turn on train, so it has no such figure</div></div>
+    <div class="stat red"><div class="n">$0.044</div><div class="l">for the whole smoke at off-peak rates, in 106 s. The champion's turns cost about 26× more per turn at DeepSeek's peak rate, 52× at off-peak</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5)">
+    <p><b>What this is and isn't.</b> It is the smoke you asked for: the open runtime works end to end, it passes every contract check, and its accuracy is in line with the champion's on the same 20.
+      It is not a verdict. Twenty conversations can't separate two agents this close (p = 0.5). Under your rule, the next step is the <b>full train score</b> on both of the champion's draws,
+      200 conversations, and it waits for your approval below.</p>
+  </div>
+</header>
+
+<section id="conversations">
+  <h2>01 · Conversation level, <em>the repo's train comparison</em></h2>
+  <p class="sub">This is how the repo compares train draws (<code>story._train_pair_from_csvs</code>): each conversation is right to the end or not, and the two agents are paired conversation by conversation.
+    The top row of the strip is the champion's committed record; the bottom row is Flash read in the same stop-at-first-wrong mode.</p>
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 920 160" role="img" aria-labelledby="strip-t">
+      <title id="strip-t">Right to the end or not, per smoke conversation S01–S20, for the champion and for Flash</title>
+      <text class="lb" x="236" y="62" text-anchor="end">Sonnet 5 · champion</text>
+      <text class="lbs" x="236" y="78" text-anchor="end">committed runs · 13 of 20</text>
+      <text class="lb" x="236" y="108" text-anchor="end">Flash · Pydantic AI</text>
+      <text class="lbs" x="236" y="124" text-anchor="end">smoke · 14 of 20</text>
+<g><title>S01 Single_AMT/2008/page_34.pdf-1 — Sonnet 5: right to the end</title><rect class="cell ok" x="250" y="40" width="27" height="34" rx="4"/><text class="cm" x="263.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S01 Single_AMT/2008/page_34.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="250" y="86" width="27" height="34" rx="4"/><text class="cm" x="263.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="263.5" y="148" text-anchor="middle">01</text>
+<g><title>S02 Single_BLK/2017/page_77.pdf-2 — Sonnet 5: right to the end</title><rect class="cell ok" x="283" y="40" width="27" height="34" rx="4"/><text class="cm" x="296.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S02 Single_BLK/2017/page_77.pdf-2 — Flash: right to the end</title><rect class="cell ok" x="283" y="86" width="27" height="34" rx="4"/><text class="cm" x="296.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="296.5" y="148" text-anchor="middle">02</text>
+<g><title>S03 Single_ECL/2017/page_68.pdf-3 — Sonnet 5: right to the end</title><rect class="cell ok" x="316" y="40" width="27" height="34" rx="4"/><text class="cm" x="329.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S03 Single_ECL/2017/page_68.pdf-3 — Flash: right to the end</title><rect class="cell ok" x="316" y="86" width="27" height="34" rx="4"/><text class="cm" x="329.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="329.5" y="148" text-anchor="middle">03</text>
+<g><title>S04 Single_LKQ/2010/page_81.pdf-1 — Sonnet 5: right to the end</title><rect class="cell ok" x="349" y="40" width="27" height="34" rx="4"/><text class="cm" x="362.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S04 Single_LKQ/2010/page_81.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="349" y="86" width="27" height="34" rx="4"/><text class="cm" x="362.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="362.5" y="148" text-anchor="middle">04</text>
+<g><title>S05 Single_ETR/2015/page_131.pdf-1 — Sonnet 5: right to the end</title><rect class="cell ok" x="382" y="40" width="27" height="34" rx="4"/><text class="cm" x="395.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S05 Single_ETR/2015/page_131.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="382" y="86" width="27" height="34" rx="4"/><text class="cm" x="395.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="395.5" y="148" text-anchor="middle">05</text>
+<g><title>S06 Single_UNP/2016/page_24.pdf-1 — Sonnet 5: wrong at q2</title><rect class="cell bad" x="415" y="40" width="27" height="34" rx="4"/><text class="cm" x="428.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S06 Single_UNP/2016/page_24.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="415" y="86" width="27" height="34" rx="4"/><text class="cm" x="428.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="428.5" y="148" text-anchor="middle">06</text>
+<g><title>S07 Single_GS/2014/page_172.pdf-2 — Sonnet 5: wrong at q0</title><rect class="cell bad" x="448" y="40" width="27" height="34" rx="4"/><text class="cm" x="461.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S07 Single_GS/2014/page_172.pdf-2 — Flash: wrong at q0</title><rect class="cell bad" x="448" y="86" width="27" height="34" rx="4"/><text class="cm" x="461.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="461.5" y="148" text-anchor="middle">07</text>
+<g><title>S08 Single_HII/2015/page_120.pdf-3 — Sonnet 5: right to the end</title><rect class="cell ok" x="481" y="40" width="27" height="34" rx="4"/><text class="cm" x="494.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S08 Single_HII/2015/page_120.pdf-3 — Flash: right to the end</title><rect class="cell ok" x="481" y="86" width="27" height="34" rx="4"/><text class="cm" x="494.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="494.5" y="148" text-anchor="middle">08</text>
+<g><title>S09 Single_PNC/2009/page_68.pdf-2 — Sonnet 5: wrong at q3</title><rect class="cell bad" x="514" y="40" width="27" height="34" rx="4"/><text class="cm" x="527.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S09 Single_PNC/2009/page_68.pdf-2 — Flash: wrong at q3</title><rect class="cell bad" x="514" y="86" width="27" height="34" rx="4"/><text class="cm" x="527.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="527.5" y="148" text-anchor="middle">09</text>
+<g><title>S10 Single_EMN/2006/page_110.pdf-2 — Sonnet 5: right to the end</title><rect class="cell ok" x="547" y="40" width="27" height="34" rx="4"/><text class="cm" x="560.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S10 Single_EMN/2006/page_110.pdf-2 — Flash: right to the end</title><rect class="cell ok" x="547" y="86" width="27" height="34" rx="4"/><text class="cm" x="560.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="560.5" y="148" text-anchor="middle">10</text>
+<g><title>S11 Single_CAG/2007/page_73.pdf-1 — Sonnet 5: right to the end</title><rect class="cell ok" x="580" y="40" width="27" height="34" rx="4"/><text class="cm" x="593.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S11 Single_CAG/2007/page_73.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="580" y="86" width="27" height="34" rx="4"/><text class="cm" x="593.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="593.5" y="148" text-anchor="middle">11</text>
+<g><title>S12 Single_ADBE/2018/page_88.pdf-2 — Sonnet 5: wrong at q1</title><rect class="cell bad" x="613" y="40" width="27" height="34" rx="4"/><text class="cm" x="626.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S12 Single_ADBE/2018/page_88.pdf-2 — Flash: wrong at q1</title><rect class="cell bad" x="613" y="86" width="27" height="34" rx="4"/><text class="cm" x="626.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="626.5" y="148" text-anchor="middle">12</text>
+<g><title>S13 Single_RE/2016/page_40.pdf-1 — Sonnet 5: right to the end</title><rect class="cell ok" x="646" y="40" width="27" height="34" rx="4"/><text class="cm" x="659.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S13 Single_RE/2016/page_40.pdf-1 — Flash: right to the end</title><rect class="cell ok" x="646" y="86" width="27" height="34" rx="4"/><text class="cm" x="659.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="659.5" y="148" text-anchor="middle">13</text>
+<g><title>S14 Single_CDW/2017/page_56.pdf-3 — Sonnet 5: wrong at q2</title><rect class="cell bad" x="679" y="40" width="27" height="34" rx="4"/><text class="cm" x="692.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S14 Single_CDW/2017/page_56.pdf-3 — Flash: wrong at q2</title><rect class="cell bad" x="679" y="86" width="27" height="34" rx="4"/><text class="cm" x="692.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="692.5" y="148" text-anchor="middle">14</text>
+<g><title>S15 Double_AAPL/2011/page_24.pdf — Sonnet 5: right to the end</title><rect class="cell ok" x="712" y="40" width="27" height="34" rx="4"/><text class="cm" x="725.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S15 Double_AAPL/2011/page_24.pdf — Flash: right to the end</title><rect class="cell ok" x="712" y="86" width="27" height="34" rx="4"/><text class="cm" x="725.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="725.5" y="148" text-anchor="middle">15</text>
+<g><title>S16 Double_BLL/2010/page_39.pdf — Sonnet 5: right to the end</title><rect class="cell ok" x="745" y="40" width="27" height="34" rx="4"/><text class="cm" x="758.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S16 Double_BLL/2010/page_39.pdf — Flash: right to the end</title><rect class="cell ok" x="745" y="86" width="27" height="34" rx="4"/><text class="cm" x="758.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="758.5" y="148" text-anchor="middle">16</text>
+<g><title>S17 Double_FIS/2012/page_46.pdf — Sonnet 5: right to the end</title><rect class="cell ok" x="778" y="40" width="27" height="34" rx="4"/><text class="cm" x="791.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S17 Double_FIS/2012/page_46.pdf — Flash: right to the end</title><rect class="cell ok" x="778" y="86" width="27" height="34" rx="4"/><text class="cm" x="791.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="791.5" y="148" text-anchor="middle">17</text>
+<g><title>S18 Double_LLY/2018/page_75.pdf — Sonnet 5: right to the end</title><rect class="cell ok" x="811" y="40" width="27" height="34" rx="4"/><text class="cm" x="824.5" y="62" text-anchor="middle">✓</text></g>
+<g><title>S18 Double_LLY/2018/page_75.pdf — Flash: right to the end</title><rect class="cell ok" x="811" y="86" width="27" height="34" rx="4"/><text class="cm" x="824.5" y="108" text-anchor="middle">✓</text></g>
+<text class="tick" x="824.5" y="148" text-anchor="middle">18</text>
+<g><title>S19 Double_STT/2011/page_94.pdf — Sonnet 5: wrong at q3</title><rect class="cell bad" x="844" y="40" width="27" height="34" rx="4"/><text class="cm" x="857.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S19 Double_STT/2011/page_94.pdf — Flash: wrong at q3</title><rect class="cell bad" x="844" y="86" width="27" height="34" rx="4"/><text class="cm" x="857.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="857.5" y="148" text-anchor="middle">19</text>
+<g><title>S20 Double_ETR/2004/page_216.pdf — Sonnet 5: wrong at q3</title><rect class="cell bad" x="877" y="40" width="27" height="34" rx="4"/><text class="cm" x="890.5" y="62" text-anchor="middle">✗</text></g>
+<g><title>S20 Double_ETR/2004/page_216.pdf — Flash: wrong at q3</title><rect class="cell bad" x="877" y="86" width="27" height="34" rx="4"/><text class="cm" x="890.5" y="108" text-anchor="middle">✗</text></g>
+<text class="tick" x="890.5" y="148" text-anchor="middle">20</text>
+    </svg>
+    <figcaption>✓ means right to the end; ✗ means a wrong turn stopped the conversation. Only S06 differs: the champion missed q2 and Flash didn't. Numbers match the S-ids of the s25 plan.</figcaption>
+  </figure>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx narrow">
+      <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
+      <thead><tr><th>Conversation level</th><th>Sonnet 5 · champion</th><th>Flash · Pydantic AI</th></tr></thead>
+      <tbody>
+        <tr><td>Right to the end</td><td class="sc">13 of 20</td><td class="sc"><b>14 of 20</b></td></tr>
+        <tr><td>Fixed · broken against the champion</td><td class="sc">—</td><td class="sc">1 · 0</td></tr>
+        <tr><td>One-sided McNemar: p toward better · p toward worse</td><td class="sc">—</td><td class="sc">0.5 · 1.0</td></tr>
+        <tr><td>Mean turns right before the first error</td><td class="sc">2.80</td><td class="sc">2.85</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <colgroup><col style="width:6%"><col style="width:38%"><col style="width:13%"><col style="width:13%"><col style="width:15%"><col style="width:15%"></colgroup>
+      <thead><tr><th class="n">ID</th><th>Conversation</th><th>Champion</th><th>Flash, champion's mode</th><th>Flash, every turn</th><th>Outcome</th></tr></thead>
+      <tbody>
+<tr><td class="n">S01</td><td><code>Single_AMT/2008/page_34.pdf-1</code><span class="note">seed 2028 · Type I · 2 turns</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc">2/2</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S02</td><td><code>Single_BLK/2017/page_77.pdf-2</code><span class="note">seed 2027 · Type I · 2 turns</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc">2/2</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S03</td><td><code>Single_ECL/2017/page_68.pdf-3</code><span class="note">seed 2028 · Type I · 2 turns</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc">2/2</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S04</td><td><code>Single_LKQ/2010/page_81.pdf-1</code><span class="note">seed 2028 · Type I · 2 turns</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc"><span class="ok">✓ 2/2</span></td><td class="sc">2/2</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S05</td><td><code>Single_ETR/2015/page_131.pdf-1</code><span class="note">seed 2028 · Type I · 3 turns</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc">3/3</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S06</td><td><code>Single_UNP/2016/page_24.pdf-1</code><span class="note">seed 2027 · Type I · 3 turns</span></td><td class="sc"><span class="bad">✗ at q2</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc">3/3</td><td><span class="ok"><b>Flash fixed</b></span></td></tr>
+<tr><td class="n">S07</td><td><code>Single_GS/2014/page_172.pdf-2</code><span class="note">seed 2027 · Type I · 3 turns</span></td><td class="sc"><span class="bad">✗ at q0</span></td><td class="sc"><span class="bad">✗ at q0</span></td><td class="sc">1/3<span class="note">wrong: q0, q2</span></td><td><span class="muted2">both wrong</span></td></tr>
+<tr><td class="n">S08</td><td><code>Single_HII/2015/page_120.pdf-3</code><span class="note">seed 2027 · Type I · 4 turns</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc">4/4</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S09</td><td><code>Single_PNC/2009/page_68.pdf-2</code><span class="note">seed 2027 · Type I · 4 turns</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc">3/4<span class="note">wrong: q3</span></td><td><span class="muted2">both wrong</span></td></tr>
+<tr><td class="n">S10</td><td><code>Single_EMN/2006/page_110.pdf-2</code><span class="note">seed 2028 · Type I · 4 turns</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc">4/4</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S11</td><td><code>Single_CAG/2007/page_73.pdf-1</code><span class="note">seed 2028 · Type I · 4 turns</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc">4/4</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S12</td><td><code>Single_ADBE/2018/page_88.pdf-2</code><span class="note">seed 2027 · Type I · 4 turns</span></td><td class="sc"><span class="bad">✗ at q1</span></td><td class="sc"><span class="bad">✗ at q1</span></td><td class="sc">1/4<span class="note">wrong: q1, q2, q3</span></td><td><span class="muted2">both wrong</span></td></tr>
+<tr><td class="n">S13</td><td><code>Single_RE/2016/page_40.pdf-1</code><span class="note">seed 2028 · Type I · 5 turns</span></td><td class="sc"><span class="ok">✓ 5/5</span></td><td class="sc"><span class="ok">✓ 5/5</span></td><td class="sc">5/5</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S14</td><td><code>Single_CDW/2017/page_56.pdf-3</code><span class="note">seed 2027 · Type I · 5 turns</span></td><td class="sc"><span class="bad">✗ at q2</span></td><td class="sc"><span class="bad">✗ at q2</span></td><td class="sc">3/5<span class="note">wrong: q2, q4</span></td><td><span class="muted2">both wrong</span></td></tr>
+<tr><td class="n">S15</td><td><code>Double_AAPL/2011/page_24.pdf</code><span class="note">seed 2028 · Type II · 3 turns</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc">3/3</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S16</td><td><code>Double_BLL/2010/page_39.pdf</code><span class="note">seed 2028 · Type II · 3 turns</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc"><span class="ok">✓ 3/3</span></td><td class="sc">3/3</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S17</td><td><code>Double_FIS/2012/page_46.pdf</code><span class="note">seed 2028 · Type II · 4 turns</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc">4/4</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S18</td><td><code>Double_LLY/2018/page_75.pdf</code><span class="note">seed 2027 · Type II · 4 turns</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc"><span class="ok">✓ 4/4</span></td><td class="sc">4/4</td><td><span class="ok">both right</span></td></tr>
+<tr><td class="n">S19</td><td><code>Double_STT/2011/page_94.pdf</code><span class="note">seed 2027 · Type II · 4 turns</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc">3/4<span class="note">wrong: q3</span></td><td><span class="muted2">both wrong</span></td></tr>
+<tr><td class="n">S20</td><td><code>Double_ETR/2004/page_216.pdf</code><span class="note">seed 2028 · Type II · 6 turns</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc"><span class="bad">✗ at q3</span></td><td class="sc">3/6<span class="note">wrong: q3, q4, q5</span></td><td><span class="muted2">both wrong</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="questions">
+  <h2>02 · Question level, <em>two honest readings</em></h2>
+  <p class="sub">Like for like means the champion's mode, which only counts the turns up to the first wrong one. Both agents happened to stop on exactly the same 63 turns.
+    "Every turn" uses Flash's full run, and the champion column shows — there because its train runs stop at the first error.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+      <thead><tr><th>Turns right</th><th>Champion · its mode</th><th>Flash · same mode</th><th>Flash · every turn</th></tr></thead>
+      <tbody>
+        <tr><td><b>All turns</b></td><td class="sc"><b>56 / 63 · 88.9%</b></td><td class="sc"><b>57 / 63 · 90.5%</b></td><td class="sc"><b>59 / 71 · 83.1%</b></td></tr>
+        <tr><td>Number turns</td><td class="sc">19 / 20 · 95.0%</td><td class="sc">19 / 20 · 95.0%</td><td class="sc">20 / 22 · 90.9%</td></tr>
+        <tr><td>Program turns</td><td class="sc">37 / 43 · 86.0%</td><td class="sc">38 / 43 · 88.4%</td><td class="sc">39 / 49 · 79.6%</td></tr>
+        <tr><td>Type I conversations</td><td class="sc">51 / 56 · 91.1%</td><td class="sc">52 / 56 · 92.9%</td><td class="sc">54 / 62 · 87.1%</td></tr>
+        <tr><td>Type II conversations</td><td class="sc">5 / 7 · 71.4%</td><td class="sc">5 / 7 · 71.4%</td><td class="sc">5 / 9 · 55.6%</td></tr>
+        <tr><td>Champion, every turn</td><td class="sc">— <span class="note">never run past a wrong turn on train</span></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx narrow">
+      <colgroup><col style="width:52%"><col style="width:48%"></colgroup>
+      <thead><tr><th>The 63 turns both agents answered</th><th>Turns</th></tr></thead>
+      <tbody>
+        <tr><td>Both right</td><td class="sc">56</td></tr>
+        <tr><td>Only Flash right</td><td class="sc">1 <span class="note">S06 · UNP q2</span></td></tr>
+        <tr><td>Only the champion right</td><td class="sc">0</td></tr>
+        <tr><td>Both wrong</td><td class="sc">6</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="misses">
+  <h2>03 · Where they went wrong, <em>mostly identically</em></h2>
+  <p class="sub">These are the first wrong turn of every conversation either agent missed. On five of the six shared misses, Flash gave the champion's exact wrong answer. Two models
+    reproducing each other's mistakes points at the prompt, or at the gold label, rather than at the model. GS q0 (net change 1538 against −2.7) and PNC q3
+    (65.0% against 0.649) look like gold or format questions. The prompt tells the agent to multiply by 100 and append %.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:40%"><col style="width:13%"><col style="width:16%"><col style="width:16%"><col style="width:15%"></colgroup>
+      <thead><tr><th>First wrong turn</th><th>Gold</th><th>Champion</th><th>Flash</th><th>Same?</th></tr></thead>
+      <tbody>
+<tr><td><code>Single_UNP/2016/page_24.pdf-1</code> q2<span class="note">what is the net change divided by the 2015 value?</span></td><td class="sc">2.5%</td><td class="sc"><span class="bad">0.02</span></td><td class="sc"><span class="ok">0.024645969498910677</span></td><td>different</td></tr>
+<tr><td><code>Single_GS/2014/page_172.pdf-2</code> q0<span class="note">what was the net change in common share repurchases from 2012 to 2013?</span></td><td class="sc">1538</td><td class="sc"><span class="bad">-2.7</span></td><td class="sc"><span class="bad">-2.7</span></td><td>same answer</td></tr>
+<tr><td><code>Single_PNC/2009/page_68.pdf-2</code> q3<span class="note">and how much does this amount represent in relation to the 2009 pretax expense, in percentage?</span></td><td class="sc">0.649</td><td class="sc"><span class="bad">65.0%</span></td><td class="sc"><span class="bad">65.0%</span></td><td>same answer</td></tr>
+<tr><td><code>Single_ADBE/2018/page_88.pdf-2</code> q1<span class="note">what was the high rate?</span></td><td class="sc">27%</td><td class="sc"><span class="bad">26.0</span></td><td class="sc"><span class="bad">26.0</span></td><td>same answer</td></tr>
+<tr><td><code>Single_CDW/2017/page_56.pdf-3</code> q2<span class="note">what is the change in ash conversion cycle?</span></td><td class="sc">2</td><td class="sc"><span class="bad">-2</span></td><td class="sc"><span class="bad">-2.0</span></td><td>same answer</td></tr>
+<tr><td><code>Double_STT/2011/page_94.pdf</code> q3<span class="note">and concerning the entire period, what becomes this percentage of long-term debt due in less that one year to the total?</span></td><td class="sc">20%</td><td class="sc"><span class="bad">21.3%</span></td><td class="sc"><span class="bad">17.3%</span></td><td>different</td></tr>
+<tr><td><code>Double_ETR/2004/page_216.pdf</code> q3<span class="note">in that same year, what was the payment for waterford lease obligation?</span></td><td class="sc">35.4</td><td class="sc"><span class="bad">14.8</span></td><td class="sc"><span class="bad">14.8</span></td><td>same answer</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout warn" style="margin-top:var(--s4)">
+    <p><b>Flash's one "fix" was lucky formatting.</b> On UNP q2 the champion rounded to <code>0.02</code> and missed. Flash left the raw fraction <code>0.0246…</code>, which breaks the
+      prompt's rule (percentages as <code>2.5%</code>). The scorer accepts it as 2.5% anyway. It's still a correct answer, but not a behavioural edge.</p>
+  </div>
+</section>
+
+<section id="contract">
+  <h2>04 · The contract checks</h2>
+  <div class="checks">
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C1</b><b>Same contract.</b> The P0 tests assert it on the wire. The system message is exactly <code>SDK_PROMPT</code>, and the tools are the six <code>mcp__cfq__*</code> plus <code>StructuredOutput</code>, with the SDK's descriptions and schema. The one addition is <code>additionalProperties: false</code>.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C2</b><b>Answers parse.</b> All 71 of 71 replies validated on the first attempt. Neither the correction retry nor any turn error was needed.</p></div>
+    <div class="card"><span class="badge warn">1 of 47</span><p><b class="id">C3</b><b>Tools do the arithmetic.</b> No stage skips. ADBE q1 answered <code>26.0</code> after calling only <code>greater</code>, which is one in-head answer, and it was wrong. The champion had 1 in 200 conversations. A second flag (AAPL q2, <code>yes</code> from <code>True</code>) is the detector, not the model.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C4</b><b>Reasoning survives.</b> No 400s. Reasoning came back on all 71 turns, 14,285 reasoning tokens in total (about 200 a turn), at effort <code>high</code>.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C5</b><b>Ceiling.</b> No <code>token budget exhausted</code> rows. 91–95% of input was served from DeepSeek's cache.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C6</b><b>Right model.</b> The served model was <code>deepseek-flash</code> on every response of both passes (MLflow param <code>served_models</code>).</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C7</b><b>Unanswered isn't wrong.</b> Nothing was unscored and nothing was rate-limited. The 402, 429 and 503 handling is unit-tested.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">C8</b><b>Same scorer.</b> Both CSVs carry every column, the stage panel computed, and the full message history of each conversation is on the run as <code>trajectories.jsonl.gz</code>.</p></div>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">One fix came out of the live run: the traces stored the 17 KB <code>sdk_v1</code> prompt in full on every message, and one conversation was 1.5 MB.
+    The trimmer now stores it as <code>sdk s1@5e96f2bf</code> (commit <code>b077fd0</code>). No answer or score was affected.</p>
+</section>
+
+<section id="cost">
+  <h2>05 · Cost and speed</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
+      <thead><tr><th></th><th>Sonnet 5 · champion<span class="note">its two train draws, 200 conversations</span></th><th>Flash · Pydantic AI<span class="note">this smoke, 20 conversations</span></th></tr></thead>
+      <tbody>
+        <tr><td>Price per answered turn</td><td class="sc">$0.0325<span class="note">API-equivalent; billed to the subscription</span></td><td class="sc">$0.00062<span class="note">off-peak; ≈ $0.00125 at peak</span></td></tr>
+        <tr><td>Model calls per turn</td><td class="sc">2.93</td><td class="sc">2.08</td></tr>
+        <tr><td>Calculator calls per turn</td><td class="sc">0.84</td><td class="sc">0.97</td></tr>
+        <tr><td>Wall clock per conversation (concurrency 4)</td><td class="sc">6.8 s</td><td class="sc">5.3 s</td></tr>
+        <tr><td>Stage skips</td><td class="sc">8 in 200</td><td class="sc">0 in 20</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="next">
+  <h2>06 · Next: the full train score, <em>on your approval</em></h2>
+  <p class="sub">This is your rule: when the smoke shows similar accuracy and you approve, the full train score runs, and that finishes this branch.</p>
+  <ul class="sub">
+    <li><b>What runs:</b> Flash on both of the champion's draws (seeds 2027 and 2028, 100 conversations each), stopping at the first wrong turn as the champion's runs did.</li>
+    <li><b>How it is judged:</b> the repo's train rule, unchanged (<code>story._train_pairs</code>). It is an exact one-sided McNemar test on right-to-the-end, pooled over both draws: <i>matches</i> if it is not significantly worse, <i>beats</i> if it is significantly better.</li>
+    <li><b>Also reported:</b> the turn accuracy and the result without the 20 smoke conversations.</li>
+    <li><b>Cost:</b> at the smoke's measured rate, about $0.40 off-peak or $0.80 at peak. The balance, about $2.33, covers it.</li>
+  </ul>
+  <form class="q" data-lavish-question="full-train" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('go'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('Full train score: '+v+(n?' — note: '+n:''),{tag:'choice',text:'Full train: '+v,element:f,data:{question:'full-train',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>Approve the full train score?</h3>
+    <fieldset>
+      <label><input type="radio" name="go" value="approve: run Flash on both champion train draws (2027, 2028), stop at first wrong, DeepSeek cap $2; then record the verdict and finish the branch" checked><span><b>Approve</b> <span class="badge rec">recommended</span><span class="d">Two passes of 100 conversations, under a $2 cap. Then the verdict, a results update, and the branch is ready to merge.</span></span></label>
+      <label><input type="radio" name="go" value="hold: do not run the full train yet"><span><b>Hold</b><span class="d">Leave the smoke as the record for now.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <p>Everything here is read from committed files and the central MLflow server, on 2026-10-25. The page uses the portfolio's house UI (<code>house.css</code> plus this project's blue hue), like s25.</p>
+  <ul>
+    <li><b>Flash smoke passes:</b> <code>open-evalloop-train9-sdk_v1·s1-pyd-deepseek-flash-high-20261025_114744</code> (seed 2027, MLflow run <code>6c8d8462</code>) and <code>open-evalloop-train11-sdk_v1·s1-pyd-deepseek-flash-high-20261025_114855</code> (seed 2028, run <code>84a2c861</code>).</li>
+    <li><b>Champion records:</b> <code>sdk-evalloop-train100-sdk_v1·s1-20260905_180924</code> (seed 2027) and <code>…_184211</code> (seed 2028).</li>
+    <li><b>Smoke set:</b> <code>evaluation/splits/smoke_v1.json</code>. <b>Comparison:</b> <code>evaluation/smoke/smoke_v1_pyd-deepseek-flash-high.json</code> (<code>convfinqa-evalloop smoke-compare</code>).</li>
+    <li><b>Commits on <code>open-agents</code>:</b> <code>fee49f3</code> upgrade · <code>98295ae</code> open runtime · <code>b077fd0</code> trace fix · <code>e7b4742</code> smoke data.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

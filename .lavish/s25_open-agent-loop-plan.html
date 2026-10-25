@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open agent loop plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .phases{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .phases .card{ min-width:0; }
+  .phases .card h3{ margin:var(--s2) 0 0; font-size:var(--t0); }
+  .phases .card p{ margin:var(--s2) 0 0; font-size:var(--t-1); }
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; vertical-align:top; }
+  .tablewrap td.n, .tablewrap th.n{ overflow-wrap:normal; }
+  table.fx{ table-layout:fixed; min-width:860px; }
+  table.fx.narrow{ min-width:640px; }
+  table.fx th{ white-space:normal; }
+  td.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  td .note code{ white-space:nowrap; overflow-wrap:normal; }
+  td .badge{ margin-top:var(--s1); }
+  .ok{ color:var(--accent); font-weight:600; }
+  .bad{ color:var(--red); font-weight:600; }
+  .warnc{ color:var(--amber); font-weight:600; }
+  tr.chg td{ background:var(--accent-wash); }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:720px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.5; }
+  .fig .box.fixed{ stroke:var(--ink); stroke-width:2; }
+  .fig .box.new{ fill:var(--accent-wash); stroke:var(--accent); stroke-width:2; }
+  .fig .t{ fill:var(--ink); font-family:var(--sans); font-size:16px; font-weight:600; }
+  .fig .d{ fill:var(--ink-2); font-family:var(--sans); font-size:14px; }
+  .fig .cs{ fill:var(--muted); font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; }
+  .fig .cs.acc{ fill:var(--accent); }
+  .fig .a{ stroke:var(--ink-2); stroke-width:2; fill:none; }
+  .fig .ah{ fill:var(--ink-2); }
+  .checks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .checks .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .checks .card b.id{ font-family:var(--mono); color:var(--accent); margin-right:var(--s1); }
+  .cards .card p, .cards .card ul{ font-size:var(--t-1); }
+  .cards .card ul{ padding-left:1.1em; margin:var(--s2) 0 0; }
+  pre.cmd{ font-family:var(--mono); font-size:var(--t-2); background:var(--band); border:1px solid var(--line); border-radius:var(--r); padding:var(--s3); overflow-x:auto; white-space:pre; margin-top:var(--s3); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:56px; margin-top:var(--s2); }
+  .copyrow{ margin-top:var(--s5); display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap; }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s25 · ConvFinQA-agent · 2026-10-25 · plan, decided · branch <code>open-agents</code> · nothing built · no model called</div>
+  <h1>Run sdk_v1 on DeepSeek in an open-source harness, unchanged. <em>Only the harness and the model move.</em></h1>
+  <p class="lede">The goal is to prove that an open-weight model in an open-source harness does what the champion, sdk_v1 on Claude Sonnet 5 at high effort, already does. DeepSeek's Flash model goes first,
+    through the DeepSeek API. The prompt, the messages, the six calculator tools, the answer schema, the correction retry and the caps are <b>imported</b> from the code the champion runs, never copied or edited.
+    The yardstick is the champion's own committed runs and nothing else. Nothing new is run for Claude. The steps:</p>
+  <ol class="lede">
+    <li><b>Smoke:</b> 20 train conversations the champion already answered.</li>
+    <li><b>Your approval.</b></li>
+    <li><b>The full train score:</b> both of the champion's train draws, 200 conversations. Then this branch is done.</li>
+  </ol>
+  <p class="lede">Owning the harness and the provider is what makes tracing and fine-tuning possible later.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">132 of 200</div><div class="l">the yardstick: the champion was right to the end on 132 of its 200 train conversations (seeds 2027 and 2028), with 562 of 630 answered turns right (89.21%)</div></div>
+    <div class="stat"><div class="n">13 of 20</div><div class="l">the champion on the smoke 20, from the same runs: right to the end on 13, with 56 of 63 answered turns right (88.89%)</div></div>
+    <div class="stat amber"><div class="n">0</div><div class="l">new Claude runs. Every champion figure on this page comes from its committed CSVs</div></div>
+    <div class="stat red"><div class="n">≈ $0.2–0.5</div><div class="l">estimated for one Flash smoke pass. The full train score is ≈ $2–5. The DeepSeek account holds $2.37</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5);">
+    <p><b>Decided by you on this page:</b></p>
+    <ul>
+      <li>The smoke is 20 train conversations the champion already ran. A conversation is the sampling unit, because each one is multi-turn.</li>
+      <li>The comparison uses the champion's runs only. Haiku is dropped.</li>
+      <li>When the smoke shows similar accuracy and you approve, the full train score runs, and that finishes this branch.</li>
+      <li>Test, V4-Pro and fine-tuning come later.</li>
+    </ul>
+  </div>
+
+  <div class="callout warn" style="margin-top:var(--s3);">
+    <p><b>The research changed the harness recommendation.</b> You named LangChain's Deep Agents, so it was checked first, against the package source (v0.7.32, released 2026-10-23).
+      With DeepSeek's thinking mode on, it fails in three places, all in the LangChain layer underneath it:</p>
+    <ul>
+      <li><code>langchain-deepseek</code> never sends <code>reasoning_content</code> back, so DeepSeek returns HTTP 400 once tools are in play (issue #40219; the fix is open as PR #40254).</li>
+      <li>Its structured-output strategies either force tool use or send a <code>json_schema</code> response format, and DeepSeek rejects both while thinking.</li>
+      <li>Its filesystem and subagent tools cannot be removed.</li>
+    </ul>
+    <p>Pydantic AI, which this repo already runs, sends the reasoning back today. So it is <b>option A</b>, and Deep Agents is <b>option B</b> with what it would take (§02).
+      Also verified against DeepSeek's <code>/models</code> endpoint:</p>
+    <ul>
+      <li><code>deepseek-flash</code> is DeepSeek-V4.1-Flash-1017, released 17 October. That is the newest DeepSeek model.</li>
+      <li><code>deepseek-v4-pro</code> is V4-Pro GA, from 13 August. There is no V4.1 Pro yet.</li>
+    </ul>
+  </div>
+
+  <div class="phases">
+    <div class="card"><span class="badge info">P0 · no model calls</span><h3>Build the open runtime</h3><p>Upgrade Pydantic AI from 1.75 to 2.61 first, as its own commit. Then build an <code>open_agent</code> backend that imports the champion's whole contract, plus contract tests, the smoke manifest and support for the new runtime in the judges.</p></div>
+    <div class="card"><span class="badge warn">P1 · ≈ $0.2–0.5 a pass</span><h3>Smoke: 20 conversations</h3><p>Run Flash · high on the 20, stopping at the first wrong turn as the champion's runs did. Eight contract checks, and the scores beside the champion's. <b>Stop for your approval.</b></p></div>
+    <div class="card"><span class="badge warn">P2 · ≈ $2–5</span><h3>Full train score</h3><p>After your approval, run Flash on both of the champion's train draws, 200 conversations, and pair them per conversation with its committed runs. <b>Then the branch is done.</b></p></div>
+    <div class="card"><span class="badge info">P3 · no model calls</span><h3>Record it</h3><p>Commit the CSVs, record the verdict on the Story, and save the trajectories in the format the s23 fine-tuning work will need.</p></div>
+    <div class="card"><span class="badge info">later · not this branch</span><h3>Test, V4-Pro, fine-tuning</h3><p>The 100 test conversations, a bigger model and an SFT student all build on this runtime once train says it works.</p></div>
+  </div>
+</header>
+
+<section id="contract">
+  <h2>01 · What "lift and shift" means, <em>line by line</em></h2>
+  <p class="sub">Every row below was read from the code the champion runs. Shaded rows are the only things that change. Wherever a row says "same", the open backend imports the object itself,
+    so the two cannot drift. A P0 contract test also records the outgoing DeepSeek request and compares it with the champion's inputs.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:16%"><col style="width:36%"><col style="width:36%"><col style="width:12%"></colgroup>
+      <thead><tr><th>Part</th><th>Claude Agent SDK today</th><th>Open agent (Pydantic AI + DeepSeek)</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>System prompt</td><td><code>SDK_PROMPT</code> from <code>prompts/sdk_v1.py</code>, 16,820 bytes. It is passed as the whole <code>system_prompt</code> with <code>setting_sources=[]</code>, so nothing is added<span class="note"><code>llm.py:592–596</code></span></td><td>The same string as the Agent's only <code>instructions</code>. Its sha256 must equal <code>prompt_refs.sha(SDK_PROMPT)</code> in the recorded request</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Turn 0 message</td><td><code>render_chat_inputs(report_id, document, question)</code><span class="note"><code>agent_sdk.py:427</code></span></td><td>The same function: <code>agent_sdk._first_message</code></td><td><span class="ok">same</span></td></tr>
+        <tr><td>Later turns</td><td><code>render_chat_inputs(question)</code> in the same session<span class="note"><code>agent_sdk.py:438</code></span></td><td><code>agent_sdk._later_message</code>, appended to the same message history</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Calculator tools</td><td>Six tools: <code>mcp__cfq__add</code>, <code>subtract</code>, <code>multiply</code>, <code>divide</code>, <code>exp</code> and <code>greater</code>. Each is described as <code>Return {name}(a, b). {doc}</code> and takes the schema <code>{a: number, b: number}</code><span class="note"><code>llm.py:384–386</code> · <code>agent_sdk.py:248–264</code></span></td><td>The same names (the prompt names them at <code>sdk_v1.py:82</code>), descriptions, schema and Python functions. A tool error comes back as <code>error: …</code> text, as today</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Built-in tools</td><td>None: <code>tools=[]</code> switches off every Claude Code tool<span class="note"><code>llm.py:597</code></span></td><td>None. Pydantic AI adds no tools of its own</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Answer schema</td><td><code>SdkTurnResult</code> as a JSON-schema <code>output_format</code>. Claude Code delivers it as a <code>StructuredOutput</code> tool (the first API call carries 7 tools) and re-prompts once if it is invalid<span class="note"><code>llm.py:600</code> · Agent SDK structured-outputs docs</span></td><td><code>ToolOutput(SdkTurnResult, name="StructuredOutput")</code> with one harness-internal output retry. That is the same mechanism under the same name</td><td><span class="warnc">mapped</span></td></tr>
+        <tr><td>Correction</td><td>Two attempts per question. On an invalid reply the session gets the text from <code>_correction()</code><span class="note"><code>agent_sdk.py:62, 442</code></span></td><td>The same loop and the same text, imported</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Steps per question</td><td><code>max_turns=8</code><span class="note"><code>config.py:111</code></span></td><td><code>UsageLimits(request_limit=8)</code> on each question's run</td><td><span class="warnc">mapped</span></td></tr>
+        <tr><td>Token ceiling</td><td>60,000 per conversation, counting new input, output and cache writes. Cache reads are excluded<span class="note"><code>config.py:114</code> · <code>agent_sdk._tokens_used</code></span></td><td>60,000, counting DeepSeek's cache-miss input plus output. Output already includes reasoning tokens</td><td><span class="warnc">mapped</span></td></tr>
+        <tr><td>Session</td><td>One <code>ClaudeSDKClient</code> per conversation, so every turn sees the earlier ones, including its own tool calls<span class="note"><code>agent_sdk.run_conversation</code>, <code>:652</code></span></td><td>One message history per conversation. Every <code>reasoning_content</code> is sent back, because DeepSeek returns 400 without it when tools are present</td><td><span class="warnc">mapped</span></td></tr>
+        <tr><td>Capture and score</td><td><code>result_to_capture</code> → CSV → <code>stage_scores</code><span class="note"><code>agent_sdk.py:299</code></span></td><td>The same function, the same columns and the same scorer</td><td><span class="ok">same</span></td></tr>
+        <tr><td>Refusals</td><td>A spent subscription is <i>unscored</i>, never wrong (<code>RATE_LIMIT_MARKERS</code>)</td><td>DeepSeek's 429 (busy), 402 (no balance) and 503 (overloaded) are unscored, and the pass is finished with <code>--resume-from</code></td><td><span class="warnc">mapped</span></td></tr>
+        <tr class="chg"><td><b>Harness</b></td><td>Claude Agent SDK driving the closed <code>claude</code> CLI as a subprocess, traced by hand</td><td>A Pydantic AI <code>Agent</code>: 2.61 after P0's upgrade (the repo pins 1.75 today). It runs in-process, is open source and is autologged to MLflow</td><td><b>changes</b></td></tr>
+        <tr class="chg"><td><b>Model and effort</b></td><td><code>claude-sonnet-5</code> · high, the champion</td><td><code>deepseek-flash</code> (V4.1-Flash-1017) with thinking on and <code>reasoning_effort="high"</code>, then <code>deepseek-v4-pro</code> (V4-Pro GA). DeepSeek's levels are low, high and max</td><td><b>changes</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="harness">
+  <h2>02 · The harness, <em>and why Pydantic AI comes before Deep Agents</em></h2>
+  <p class="sub">The champion's harness is deliberately bare: no built-in tools, no inherited instructions, six calculators and a structured answer. So the best open harness is the one that adds
+    nothing the model can see and still handles DeepSeek's thinking protocol correctly.</p>
+
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 960 500" role="img" aria-labelledby="h-t">
+      <title id="h-t">Four layers: the task contract and the scorer are shared; only the harness and the model change</title>
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <g id="h-contract"><title>The task contract, imported by both runtimes</title>
+        <rect class="box fixed" x="40" y="20" width="880" height="96" rx="8"/>
+        <text class="cs" x="60" y="44">CONTRACT · FIXED · IMPORTED, NEVER COPIED</text>
+        <text class="t" x="60" y="70">sdk_v1 prompt · turn messages · six mcp__cfq__ tools · SdkTurnResult</text>
+        <text class="d" x="60" y="96">one correction · 8 steps per question · 60k-token ceiling per conversation</text></g>
+      <g id="h-arrows1"><path class="a" d="M245,116 L245,146" marker-end="url(#ar)"/><path class="a" d="M715,116 L715,146" marker-end="url(#ar)"/></g>
+      <g id="h-claude"><title>Today's harness: Claude Agent SDK</title>
+        <rect class="box" x="40" y="150" width="410" height="90" rx="8"/>
+        <text class="cs" x="60" y="174">HARNESS · TODAY</text>
+        <text class="t" x="60" y="200">Claude Agent SDK → claude CLI</text>
+        <text class="d" x="60" y="224">closed source · subprocess · traced by hand</text></g>
+      <g id="h-open"><title>The new harness: Pydantic AI</title>
+        <rect class="box new" x="510" y="150" width="410" height="90" rx="8"/>
+        <text class="cs acc" x="530" y="174">HARNESS · CHANGES</text>
+        <text class="t" x="530" y="200">Pydantic AI Agent · 2.61 · in-process</text>
+        <text class="d" x="530" y="224">open source · MLflow autolog · full message record</text></g>
+      <g id="h-arrows2"><path class="a" d="M245,240 L245,276" marker-end="url(#ar)"/><path class="a" d="M715,240 L715,276" marker-end="url(#ar)"/></g>
+      <g id="h-claude-model"><title>Claude models</title>
+        <rect class="box" x="40" y="280" width="410" height="90" rx="8"/>
+        <text class="cs" x="60" y="304">MODEL · TODAY</text>
+        <text class="t" x="60" y="330">Claude Sonnet 5 · high</text>
+        <text class="d" x="60" y="354">the champion · 132 of 200 train conversations right</text></g>
+      <g id="h-open-model"><title>DeepSeek models through the DeepSeek API</title>
+        <rect class="box new" x="510" y="280" width="410" height="90" rx="8"/>
+        <text class="cs acc" x="530" y="304">MODEL · CHANGES</text>
+        <text class="t" x="530" y="330">deepseek-flash · high</text>
+        <text class="d" x="530" y="354">then deepseek-v4-pro · DeepSeek API, per token</text></g>
+      <g id="h-arrows3"><path class="a" d="M245,370 L245,406" marker-end="url(#ar)"/><path class="a" d="M715,370 L715,406" marker-end="url(#ar)"/></g>
+      <g id="h-score"><title>Shared scoring and the verdict</title>
+        <rect class="box fixed" x="40" y="410" width="880" height="72" rx="8"/>
+        <text class="cs" x="60" y="434">SCORING · FIXED</text>
+        <text class="t" x="60" y="462">result_to_capture → CSV → stage_scores → paired per conversation vs the champion</text></g>
+    </svg>
+    <figcaption>A difference between the two columns can only come from the harness or the model. A second open harness (option B) would separate those two if it is ever needed.</figcaption>
+  </figure>
+
+  <div class="cards" style="margin-top:var(--s4)">
+    <div class="card rec"><span class="badge rec">recommended · A</span>
+      <h3>Pydantic AI <span class="sub">MIT · already a dependency · upgrade 1.75 → 2.61</span></h3>
+      <ul>
+        <li><b>Reasoning round-trip works.</b> Its DeepSeek provider stores reasoning as a thinking part and sends it back in the <code>reasoning_content</code> field (shipped in 1.26). That is the rule DeepSeek enforces with a 400.</li>
+        <li><b>The answer works like Claude's.</b> An output tool named <code>StructuredOutput</code> carries <code>SdkTurnResult</code>, with one built-in retry. Our <code>_correction</code> loop sits outside it, unchanged.</li>
+        <li><b>The model sees nothing extra:</b> the six tools plus the output tool, and the instructions as given.</li>
+        <li><b>Tracing is already on.</b> <code>mlflow.pydantic_ai.autolog()</code> runs inside <code>tracing.enable()</code> and keeps the thinking parts in the spans.</li>
+        <li><b>The fine-tuning record is lossless.</b> <code>ModelMessagesTypeAdapter</code> dumps each conversation with its reasoning and tool calls.</li>
+        <li><b>Version: upgrade to 2.61.</b> The repo pins 1.75.0, from 1 April. 2.61.0, from 24 October, handles DeepSeek's thinking rules natively, as the table below shows.</li>
+        <li><b>One gap remains in every version.</b> The DeepSeek profile matches <code>deepseek-v4-*</code>, so the new <code>deepseek-flash</code> id needs one explicit profile in <code>llm.py</code> (open issue #8353).</li>
+      </ul></div>
+    <div class="card"><span class="badge info">option · B</span>
+      <h3>LangChain Deep Agents <span class="sub">MIT · v0.7.32 · adds langchain, langgraph, langchain-deepseek</span></h3>
+      <ul>
+        <li><b>Its strength:</b> it is the open-source analogue of Claude Code itself, with planning, a filesystem, subagents and summarisation. Since 0.7 it adds no base prompt of its own.</li>
+        <li><b>Blocked with thinking on:</b>
+          <ul>
+            <li>No reasoning round-trip: issue #40219, with fix PR #40254 unmerged since 7 Sep.</li>
+            <li><code>ToolStrategy</code> forces <code>tool_choice</code>, which returns 400.</li>
+            <li><code>ProviderStrategy</code> sends <code>json_schema</code>, which DeepSeek does not accept.</li>
+          </ul></li>
+        <li><b>Not lift-and-shift:</b> the filesystem and subagent middleware cannot be removed, so the model always sees <code>read_file</code> and friends. A plain <code>create_agent</code> avoids that, but still has the DeepSeek problems.</li>
+        <li><b>Weaker record:</b> reasoning is dropped from MLflow's LLM spans and from <code>convert_to_openai_messages</code>.</li>
+        <li><b>What it would take:</b> a <code>ChatDeepSeek</code> subclass that re-attaches the reasoning, plus a custom output tool. The other route is thinking off, which changes the agent. Revisit when #40254 lands.</li>
+      </ul></div>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)" id="pai-version">
+    <table class="fx">
+      <colgroup><col style="width:17%"><col style="width:12%"><col style="width:38%"><col style="width:33%"></colgroup>
+      <thead><tr><th>Pydantic AI version</th><th>Released</th><th>DeepSeek V4 with thinking on</th><th>What it costs the repo</th></tr></thead>
+      <tbody>
+        <tr><td><b>1.75.0</b><span class="note">pinned today</span></td><td class="sc">2026-04-01</td><td>Sends reasoning back. <span class="bad">✗</span> Doesn't know V4 rejects a forced tool call. <span class="bad">✗</span> Doesn't send the empty <code>reasoning_content</code> DeepSeek requires on a tool-call turn that had no thinking</td><td>Nothing</td></tr>
+        <tr><td><b>1.107.9</b><span class="note">latest 1.x</span></td><td class="sc">2026-10-21</td><td><span class="ok">✓</span> Knows V4 rejects a forced tool call. <span class="bad">✗</span> Still lacks the empty-field fix</td><td>A lock bump. V2 deprecation warnings start to appear</td></tr>
+        <tr><td><b>2.61.0</b><span class="note">latest</span></td><td class="sc">2026-10-24</td><td><span class="ok">✓</span> Sends the field on every tool-call turn. <span class="ok">✓</span> Decides forced tool choice per request. <span class="ok">✓</span> Maps effort to DeepSeek's low, high and max. <span class="ok">✓</span> Thinking on by default</td><td>A major version: profiles become dicts (<code>merge_profile</code>), <code>end_strategy</code> defaults to <code>graceful</code>, and the instrumentation format is new. The repo uses little of it: <code>Agent</code>, <code>OpenAIChatModel</code>, <code>OpenAIProvider</code>, <code>PromptedOutput</code>, <code>ModelSettings</code>, <code>TestModel</code> and two message parts</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s2)"><b>Recommended (D2): upgrade to 2.61 as P0's first commit, on its own.</b> The commit is gated by the full test suite and an MLflow autolog check.
+    One open question is tracing: MLflow's tested autolog range ends at Pydantic AI 2.51 (on MLflow 3.17), and the repo's MLflow client is 3.12. If autolog breaks, the client moves
+    to 3.17, which is inside the platform's <code>&lt;4</code> rule. The fallback is 1.107.9 with a small history fix for the empty field.</p>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <colgroup><col style="width:19%"><col style="width:27%"><col style="width:27%"><col style="width:27%"></colgroup>
+      <thead><tr><th>What the model sees</th><th>Claude Agent SDK (today)</th><th>A · Pydantic AI</th><th>B · Deep Agents</th></tr></thead>
+      <tbody>
+        <tr><td>Instructions</td><td><code>SDK_PROMPT</code> only</td><td><span class="ok">✓</span> <code>SDK_PROMPT</code> only</td><td><span class="ok">✓</span> your text plus an empty base (since 0.7)</td></tr>
+        <tr><td>Tools</td><td>6 calculators + <code>StructuredOutput</code></td><td><span class="ok">✓</span> 6 calculators + <code>StructuredOutput</code></td><td><span class="bad">✗</span> plus <code>read_file</code> and others. Some can only be hidden through a global profile</td></tr>
+        <tr><td>Reasoning between calls</td><td>kept by the CLI</td><td><span class="ok">✓</span> sent back as <code>reasoning_content</code></td><td><span class="bad">✗</span> not sent back, so a 400 (#40219)</td></tr>
+        <tr><td>Answer delivery</td><td>output tool, enforced by the CLI</td><td><span class="warnc">~</span> output tool, not forced. Text replies are retried</td><td><span class="bad">✗</span> forced tool or <code>json_schema</code>, both rejected</td></tr>
+        <tr><td>Retries</td><td>1 harness re-prompt + our <code>_correction</code></td><td><span class="ok">✓</span> 1 output retry + our <code>_correction</code></td><td><span class="warnc">~</span> uncapped validation retries (#40753)</td></tr>
+        <tr><td>Steps per question</td><td><code>max_turns=8</code></td><td><span class="ok">✓</span> <code>request_limit=8</code></td><td><span class="ok">✓</span> <code>ModelCallLimitMiddleware(8)</code></td></tr>
+        <tr><td>Traces in MLflow</td><td>hand-built spans</td><td><span class="ok">✓</span> autolog, thinking kept</td><td><span class="warnc">~</span> autolog, reasoning dropped from LLM spans</td></tr>
+        <tr><td>Fine-tuning export</td><td>none (closed CLI)</td><td><span class="ok">✓</span> lossless JSON with thinking</td><td><span class="warnc">~</span> OpenAI-format export drops reasoning</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s4)">
+    <p><b>Not doing.</b></p>
+    <ul>
+      <li><b>DeepSeek's own harness (<code>dsh</code>):</b> a developer preview that brings its own system prompt, a bash tool and auto-compaction. It uploads session logs to DeepSeek by default and has no structured output.</li>
+      <li><b>The Agent SDK pointed at DeepSeek's Anthropic endpoint:</b> it keeps the closed CLI, the endpoint has no structured output, and <code>sdk_child_env</code> refuses API billing by design.</li>
+      <li><b>OpenAI Agents SDK:</b> its structured output needs <code>json_schema</code>, and its traces go to OpenAI unless disabled.</li>
+      <li><b>smolagents and Strands:</b> one replaces the system prompt; the other drops reasoning between turns.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="smoke">
+  <h2>03 · The smoke: <em>20 train conversations the champion already answered</em></h2>
+  <p class="sub">A conversation is the unit that is sampled, because each one is multi-turn. The 20 hold 71 turns between them.</p>
+  <ul class="sub">
+    <li><b>Where from:</b> the champion's own train draws, seeds 2027 and 2028 (<code>…20260905_180924</code> and <code>…20260905_184211</code>). None sit on a report page that test or the sealed holdout uses, which keeps a later test run clean.</li>
+    <li><b>How:</b> a seeded search (seed 2033, 200,000 stratified draws) kept only sets that cover every case in the left column. It then took the one closest to the draws' own mix and to the champion's record on them.</li>
+    <li><b>Reproducible:</b> P0's <code>make-smoke</code> command reproduces the pick from committed code and writes <code>evaluation/splits/smoke_v1.json</code>.</li>
+  </ul>
+
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:36%"><col style="width:32%"><col style="width:32%"></colgroup>
+      <thead><tr><th>What it covers</th><th>Smoke · 20 conversations</th><th>Full train · the champion's two draws</th></tr></thead>
+      <tbody>
+        <tr><td>Conversations</td><td class="sc">20 <span class="note">9 from 2027, 11 from 2028</span></td><td class="sc">200 <span class="note">196 distinct; 4 appear in both draws</span></td></tr>
+        <tr><td>Turns (questions)</td><td class="sc">71</td><td class="sc">723</td></tr>
+        <tr><td>Hybrid (Type II) conversations</td><td class="sc">6 (30%)</td><td class="sc">60 of 196 (31%)</td></tr>
+        <tr><td>Program turns</td><td class="sc">47 (66%)</td><td class="sc">65%</td></tr>
+        <tr><td>Turns per conversation</td><td class="sc">2–6, mean 3.55</td><td class="sc">2–8, mean 3.69</td></tr>
+        <tr><td>Longest program: 1 · 2 · 3+ steps</td><td class="sc">3 · 14 · 3</td><td class="sc">14% · 71% · 15%</td></tr>
+        <tr><td>Operations</td><td>add, subtract, multiply, divide, greater</td><td>the same (neither uses <code>exp</code>)</td></tr>
+        <tr><td>Answers with % · negative · yes/no</td><td class="sc">14 · 4 · 1</td><td class="sc">70% · 18% · 0.5%</td></tr>
+        <tr><td>Values from table · text · both<span class="note">heuristic: where a gold operand appears</span></td><td class="sc">12 · 7 · 1</td><td class="sc">59% · 34% · 7%</td></tr>
+        <tr><td>Awkward tables: non-numeric · duplicate columns</td><td class="sc">3 · 1</td><td class="sc">13% · 3%</td></tr>
+        <tr><td><b>Champion right to the end</b></td><td class="sc"><b>13 of 20 (65%)</b></td><td class="sc"><b>132 of 200 (66%)</b></td></tr>
+        <tr><td><b>Champion's answered turns right</b><span class="note">runs stop at the first wrong turn</span></td><td class="sc"><b>56 of 63 (88.89%)</b></td><td class="sc"><b>562 of 630 (89.21%)</b></td></tr>
+        <tr><td>Mean turns right before the first error</td><td class="sc">2.80</td><td class="sc">2.81</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <colgroup><col style="width:6%"><col style="width:28%"><col style="width:8%"><col style="width:9%"><col style="width:12%"><col style="width:9%"><col style="width:17%"><col style="width:11%"></colgroup>
+      <thead><tr><th class="n">ID</th><th>Conversation</th><th>Draw</th><th>Type</th><th>Turns</th><th>Longest program</th><th>Operations · source · flags</th><th>Champion</th></tr></thead>
+      <tbody>
+<tr><td class="n">S01</td><td><code>Single_AMT/2008/page_34.pdf-1</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">2 <span class="note">2 prog · 0 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">table · %, negative</span></td><td class="sc"><span class="ok">✓ 2/2</span></td></tr>
+<tr><td class="n">S02</td><td><code>Single_BLK/2017/page_77.pdf-2</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">2 <span class="note">2 prog · 0 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">text · %, negative, duplicate columns</span></td><td class="sc"><span class="ok">✓ 2/2</span></td></tr>
+<tr><td class="n">S03</td><td><code>Single_ECL/2017/page_68.pdf-3</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">2 <span class="note">2 prog · 0 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">table · %</span></td><td class="sc"><span class="ok">✓ 2/2</span></td></tr>
+<tr><td class="n">S04</td><td><code>Single_LKQ/2010/page_81.pdf-1</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">2 <span class="note">2 prog · 0 num</span></td><td class="sc">2</td><td>add<span class="note">text</span></td><td class="sc"><span class="ok">✓ 2/2</span></td></tr>
+<tr><td class="n">S05</td><td><code>Single_ETR/2015/page_131.pdf-1</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">3 <span class="note">2 prog · 1 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">table · %</span></td><td class="sc"><span class="ok">✓ 3/3</span></td></tr>
+<tr><td class="n">S06</td><td><code>Single_UNP/2016/page_24.pdf-1</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">3 <span class="note">2 prog · 1 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">table · %</span></td><td class="sc"><span class="bad">✗ at q2.0</span><span class="note">2 right first</span></td></tr>
+<tr><td class="n">S07</td><td><code>Single_GS/2014/page_172.pdf-2</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">3 <span class="note">2 prog · 1 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">text · %</span></td><td class="sc"><span class="bad">✗ at q0.0</span><span class="note">0 right first</span></td></tr>
+<tr><td class="n">S08</td><td><code>Single_HII/2015/page_120.pdf-3</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">2</td><td>add<span class="note">table</span></td><td class="sc"><span class="ok">✓ 4/4</span></td></tr>
+<tr><td class="n">S09</td><td><code>Single_PNC/2009/page_68.pdf-2</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">text</span></td><td class="sc"><span class="bad">✗ at q3.0</span><span class="note">3 right first</span></td></tr>
+<tr><td class="n">S10</td><td><code>Single_EMN/2006/page_110.pdf-2</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">table · %, negative, non-numeric cells</span></td><td class="sc"><span class="ok">✓ 4/4</span></td></tr>
+<tr><td class="n">S11</td><td><code>Single_CAG/2007/page_73.pdf-1</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">2</td><td>add · subtract<span class="note">table</span></td><td class="sc"><span class="ok">✓ 4/4</span></td></tr>
+<tr><td class="n">S12</td><td><code>Single_ADBE/2018/page_88.pdf-2</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">2</td><td>add · divide<span class="note">table · %</span></td><td class="sc"><span class="bad">✗ at q1.0</span><span class="note">1 right first</span></td></tr>
+<tr><td class="n">S13</td><td><code>Single_RE/2016/page_40.pdf-1</code></td><td class="sc">2028</td><td>Type I</td><td class="sc">5 <span class="note">4 prog · 1 num</span></td><td class="sc">4</td><td>add<span class="note">table · non-numeric cells</span></td><td class="sc"><span class="ok">✓ 5/5</span></td></tr>
+<tr><td class="n">S14</td><td><code>Single_CDW/2017/page_56.pdf-3</code></td><td class="sc">2027</td><td>Type I</td><td class="sc">5 <span class="note">3 prog · 2 num</span></td><td class="sc">3</td><td>divide · multiply · subtract<span class="note">text</span></td><td class="sc"><span class="bad">✗ at q2.0</span><span class="note">2 right first</span></td></tr>
+<tr><td class="n">S15</td><td><code>Double_AAPL/2011/page_24.pdf</code></td><td class="sc">2028</td><td>Type II</td><td class="sc">3 <span class="note">3 prog · 0 num</span></td><td class="sc">2</td><td>divide · greater · subtract<span class="note">table · %, yes/no</span></td><td class="sc"><span class="ok">✓ 3/3</span></td></tr>
+<tr><td class="n">S16</td><td><code>Double_BLL/2010/page_39.pdf</code></td><td class="sc">2028</td><td>Type II</td><td class="sc">3 <span class="note">3 prog · 0 num</span></td><td class="sc">2</td><td>divide · subtract<span class="note">both · %</span></td><td class="sc"><span class="ok">✓ 3/3</span></td></tr>
+<tr><td class="n">S17</td><td><code>Double_FIS/2012/page_46.pdf</code></td><td class="sc">2028</td><td>Type II</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">1</td><td>divide<span class="note">table · %</span></td><td class="sc"><span class="ok">✓ 4/4</span></td></tr>
+<tr><td class="n">S18</td><td><code>Double_LLY/2018/page_75.pdf</code></td><td class="sc">2027</td><td>Type II</td><td class="sc">4 <span class="note">4 prog · 0 num</span></td><td class="sc">3</td><td>divide · multiply · subtract<span class="note">text · %, negative</span></td><td class="sc"><span class="ok">✓ 4/4</span></td></tr>
+<tr><td class="n">S19</td><td><code>Double_STT/2011/page_94.pdf</code></td><td class="sc">2027</td><td>Type II</td><td class="sc">4 <span class="note">2 prog · 2 num</span></td><td class="sc">1</td><td>divide<span class="note">table · %</span></td><td class="sc"><span class="bad">✗ at q3.0</span><span class="note">3 right first</span></td></tr>
+<tr><td class="n">S20</td><td><code>Double_ETR/2004/page_216.pdf</code></td><td class="sc">2028</td><td>Type II</td><td class="sc">6 <span class="note">2 prog · 4 num</span></td><td class="sc">1</td><td>divide · subtract<span class="note">text · %, non-numeric cells</span></td><td class="sc"><span class="bad">✗ at q3.0</span><span class="note">3 right first</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s4)">
+    <p><b>How the smoke is compared.</b> Flash runs exactly as the champion's train runs did, <b>stopping at the first wrong turn</b>, so every conversation is compared like for like:
+      right to the end or not, and how many turns were right before the first error. This is the comparison the repo already makes for train
+      (<code>story._train_pair_from_csvs</code>), applied to these 20.</p>
+  </div>
+</section>
+
+<section id="scoring">
+  <h2>04 · How it is scored, <em>from smoke to the train verdict</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:13%"><col style="width:25%"><col style="width:12%"><col style="width:34%"><col style="width:16%"></colgroup>
+      <thead><tr><th>Stage</th><th>What runs</th><th>Conversations</th><th>Compared with, and what decides</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><b>P1</b> smoke</td><td><code>deepseek-flash</code> · high in Pydantic AI on the 20, stopping at the first wrong turn<span class="note">served by DeepSeek-V4.1-Flash-1017, the newest Flash (17 Oct)</span></td><td class="sc">20</td><td>The champion's committed records on the same 20: 13 right to the end, and 56 of 63 answered turns right. Checks C1–C8 must pass. <b>You decide whether the accuracy is similar.</b> I stop here for your approval</td><td>≈ $0.2–0.5 a pass</td></tr>
+        <tr><td><b>P2</b> full train<span class="note">after your approval</span></td><td>Flash on both of the champion's train draws (seeds 2027 and 2028), stopping at the first wrong turn</td><td class="sc">200</td><td>The verdict below, against the champion's two committed draws. It is also reported without the 20 smoke conversations, since the plumbing was tuned on them. <b>Then the branch is done</b></td><td>≈ $2–5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx narrow">
+      <colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+      <thead><tr><th>The verdict (P2)</th><th>The repo's train rule, unchanged: <code>story._train_pairs</code>, the check behind s19's <code>train_not_worse</code></th></tr></thead>
+      <tbody>
+        <tr><td><b>Unit</b></td><td>The conversation: right to the end or not. Both arms stop at the first wrong turn, so later turns exist only where an arm was right. Pairing turns would compare each arm on a set chosen by its own mistakes</td></tr>
+        <tr><td><b>Test</b></td><td>Exact one-sided McNemar on the conversations one arm got right to the end and the other didn't ("fixed" vs "broken"), pooled over both draws</td></tr>
+        <tr><td><b>Matches</b></td><td>Not significantly worse: p toward worse ≥ 0.05</td></tr>
+        <tr><td><b>Beats</b></td><td>Significantly better: p toward better &lt; 0.05</td></tr>
+        <tr><td><b>Falls short</b></td><td>Significantly worse: p toward worse &lt; 0.05</td></tr>
+        <tr><td><b>Shown beside it</b></td><td>
+          <ul>
+            <li>Right to the end, 132 of 200 for the champion.</li>
+            <li>Answered turns right, 89.21% for the champion.</li>
+            <li>Mean turns right before the first error.</li>
+            <li>Fixed and broken counts per draw.</li>
+            <li>Token-ceiling errors (the champion had none).</li>
+            <li>The served model id, cost and wall clock.</li>
+          </ul></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s2)">"Not significantly worse" on 200 conversations is not proof of equal, so the page also prints the difference in right-to-the-end rate with its 95% interval. That lets you see how close is close.</p>
+
+  <h3 style="margin-top:var(--s5)">The smoke checks</h3>
+  <div class="checks">
+    <div class="card"><b class="id">C1</b><b>Same contract</b><p>The recorded request has exactly <code>SDK_PROMPT</code> (sha equal) as instructions. The tools are exactly the six <code>mcp__cfq__*</code> plus <code>StructuredOutput</code>, with descriptions and schemas equal to the SDK's.</p></div>
+    <div class="card"><b class="id">C2</b><b>Answers parse</b><p>At least 95% of answered turns validate as <code>SdkTurnResult</code> within the allowed correction.</p></div>
+    <div class="card"><b class="id">C3</b><b>Tools do the arithmetic</b><p>Every program turn calls a calculator, and <code>inline_arithmetic</code> is false. The answer is a value a tool returned.</p></div>
+    <div class="card"><b class="id">C4</b><b>Reasoning survives</b><p>No 400 from missing <code>reasoning_content</code>. Reasoning tokens appear on most calls, and effort <code>high</code> is on the run.</p></div>
+    <div class="card"><b class="id">C5</b><b>Ceiling</b><p>No <code>token budget exhausted</code> rows. New tokens per conversation are reported.</p></div>
+    <div class="card"><b class="id">C6</b><b>Right model</b><p>Every response's served model id is recorded, and it is the same across the smoke and the full train.</p></div>
+    <div class="card"><b class="id">C7</b><b>Unanswered isn't wrong</b><p>A 429, 402 or 503 lands as unscored and aborts the conversation. The pass then finishes with <code>--resume-from</code>.</p></div>
+    <div class="card"><b class="id">C8</b><b>Same scorer</b><p>The CSV has every <code>ROW_COLUMNS</code> column, the stage panel computes, and the Story reads the run.</p></div>
+  </div>
+
+  <pre class="cmd">uv run convfinqa-evalloop make-smoke --name smoke_v1                       # P0: writes evaluation/splits/smoke_v1.json
+EVAL_MANIFEST=smoke_v1 uv run convfinqa-evalloop run --split smoke --version sdk_v1 --runtime open_agent \
+  --open-harness pydantic_ai --open-model deepseek-flash --open-effort high --stop-at-first-wrong   # P1 smoke
+#   → open-evalloop-smoke-sdk_v1·s1-pyd-deepseek-flash-high-&lt;stamp&gt;.csv, set beside the champion's records on the 20
+for seed in 2027 2028; do                                                                           # P2, after approval
+  EVAL_MANIFEST=eval_loop_v2 uv run convfinqa-evalloop run --split train --version sdk_v1 --runtime open_agent \
+    --open-harness pydantic_ai --open-model deepseek-flash --open-effort high --train-seed $seed --stop-at-first-wrong
+done</pre>
+</section>
+
+<section id="build">
+  <h2>05 · What P0 builds, <em>file by file</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+      <thead><tr><th>File</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td><code>pyproject.toml</code>, <code>uv.lock</code> <span class="badge info">P0a · own commit</span></td><td>Pin <code>pydantic-ai&gt;=2.61,&lt;3</code> and relock. Today the floor is <code>&gt;=0.2</code> and the lock holds 1.75.0. Steps:
+          <ul>
+            <li>Migrate any profile reads to <code>merge_profile</code>.</li>
+            <li>Run the full suite.</li>
+            <li>Confirm a zero-cost <code>TestModel</code> run still autologs to the central MLflow.</li>
+          </ul>
+          If autolog fails on the 3.12 client, bump the client to 3.17.x. If that fails too, use 1.107.9 (D2). The pipeline's committed scores are not re-run</td></tr>
+        <tr><td><code>src/convfinqa/llm.py</code></td><td><code>open_agent_model(model, effort)</code> is the only place the DeepSeek chat model is built, behind <code>guard_llm_call()</code>. It uses <code>DeepSeekProvider</code> and the key from <code>DEEPSEEK_API_KEY</code>, with thinking <b>on</b> (unlike the pipeline's <code>DISABLE_THINKING_BODY</code>) and <code>reasoning_effort</code>. An explicit profile marks <code>deepseek-flash</code> as a V4 model: thinking supported and on by default, and no forced tool choice while thinking. 2.61 recognises only <code>deepseek-v4-*</code> (#8353). Nothing is built at import time</td></tr>
+        <tr><td><code>src/convfinqa/backends/open_agent.py</code> <span class="badge info">new</span></td><td><code>run_conversation(...)</code> has the same signature and return contract as <code>agent_sdk.run_conversation</code>. It imports the whole contract: <code>SdkTurnResult</code>, the message builders, <code>_correction</code>, <code>ATTEMPTS_PER_TURN</code>, the tool functions and descriptions, <code>result_to_capture</code> and the ceiling rule. It keeps one message history per conversation and maps DeepSeek's usage into the capture</td></tr>
+        <tr><td><code>src/convfinqa/evalloop/runner.py</code>, <code>cli.py</code></td><td><code>RUNTIMES</code> gains <code>open_agent</code>, with <code>--open-harness</code>, <code>--open-model</code> and <code>--open-effort</code>. Run names follow <code>open-evalloop-&lt;split&gt;-sdk_v1·s1-pyd-&lt;model&gt;-&lt;effort&gt;-&lt;stamp&gt;</code>. Params and tags cover harness, harness version, requested and served model, effort and billing (<code>deepseek-api</code>). <code>--resume-from</code> refuses a mismatch</td></tr>
+        <tr><td><code>src/convfinqa/evalloop/smoke.py</code> <span class="badge info">new</span></td><td><code>make-smoke</code> runs the seeded coverage search from §03 over the champion's two train draws and writes <code>smoke_v1.json</code>, with its coverage table. The runner accepts the <code>smoke</code> split with <code>--stop-at-first-wrong</code>, and both gates refuse it as promotion evidence</td></tr>
+        <tr><td><code>evalloop/story.py</code>, <code>sdk_gate.py</code></td><td>Widen the <code>agent_sdk</code>-only judges (<code>sdk_model_comparison</code>, <code>challenger_comparison</code>, <code>prior_runtime</code>, <code>_arm</code>, <code>log_gate_verdict</code>) to the single-session runtimes. Agents are keyed on (runtime, harness, model, effort). <code>_train_pair_from_csvs</code> gains a subset form, so the smoke can be paired against the champion's draws filtered to the 20</td></tr>
+        <tr><td><code>src/convfinqa/tracking/cost.py</code></td><td>Price <code>deepseek-flash</code> and <code>deepseek-v4-pro</code> on cache hit, cache miss and output, and record which pricing window (peak or off-peak) a pass ran in. Today's flash entry, (0.28, 0.42), is stale</td></tr>
+        <tr><td>Tracing and trajectories</td><td>The run, report and question spans match the SDK runtime's. Pydantic AI's own spans come from the existing autolog. Each conversation's full message list (<code>ModelMessagesTypeAdapter</code>) is saved as <code>trajectories.jsonl.gz</code> on the MLflow run, which is what s23's fine-tuning will read</td></tr>
+        <tr><td><code>tests/test_open_agent_backend.py</code> <span class="badge info">new</span></td><td>Each test drives the real backend against a fake DeepSeek HTTP endpoint and asserts on the outgoing JSON:
+          <ul>
+            <li>The instructions are <code>SDK_PROMPT</code>, and the tool names, descriptions and schemas equal the SDK's.</li>
+            <li>Every earlier assistant message carries its <code>reasoning_content</code>, and <code>tool_choice</code> is never <code>required</code>.</li>
+            <li>The correction text is sent on an invalid reply.</li>
+            <li>The ceiling fires.</li>
+            <li>A 429, 402 or 503 lands as unscored.</li>
+            <li>The capture has the same keys as an <code>agent_sdk</code> capture.</li>
+          </ul></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="budget">
+  <h2>06 · Cost and time</h2>
+  <p class="sub">The estimates are built from the champion's runs:</p>
+  <ul class="sub">
+    <li><b>The champion's train draws:</b> 630 answered turns.</li>
+    <li><b>Per call, assumed:</b> 3–5 model calls per turn, about 12k tokens of context per call, and most input served from DeepSeek's cache.</li>
+    <li><b>Prices:</b> DeepSeek's published Flash rates are $0.006 per million tokens on a cache hit, $0.30 on a miss and $1.20 for output at peak. Off-peak is half.</li>
+  </ul>
+  <p class="sub">P1 measures the real token counts, and P2's estimate is redone from them before it runs.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
+      <thead><tr><th>Step</th><th>DeepSeek cash</th><th>Wall clock</th></tr></thead>
+      <tbody>
+        <tr><td>P1 Flash smoke, per pass</td><td class="sc">≈ $0.2–0.5</td><td class="sc">≈ 3 min at concurrency 8</td></tr>
+        <tr><td>P2 Flash full train, both draws</td><td class="sc">≈ $2–5</td><td class="sc">≈ 20 min</td></tr>
+        <tr><td>Claude</td><td class="sc">$0</td><td class="sc">nothing runs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s2)">The $2.37 balance covers several smoke passes. Top it up by about $10 before P2. Peak hours are 01:00–04:00 and 06:00–10:00 UTC on weekdays, which is 12:00–15:00 and
+    17:00–21:00 in Sydney. Running outside them halves the bill.</p>
+</section>
+
+<section id="risks">
+  <h2>07 · Risks</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:28%"><col style="width:46%"><col style="width:26%"></colgroup>
+      <thead><tr><th>Risk</th><th>Why it matters</th><th>Handling</th></tr></thead>
+      <tbody>
+        <tr><td>A reasoning gap returns 400</td><td>DeepSeek wants <code>reasoning_content</code> back on every earlier turn, and on a tool-call turn even when it is empty. 2.61 does both. 1.75 and 1.107 send back only what they received</td><td>C4 and a P0 test. On a 1.x fallback, a small history processor adds the empty field</td></tr>
+        <tr><td>The answer arrives as text</td><td>Thinking mode cannot force the output tool, so the model may answer in prose. Claude's CLI enforced the tool</td><td>Pydantic AI's retry plus our <code>_correction</code>. C2 counts it</td></tr>
+        <tr><td>Longer reasoning hits the 60k ceiling</td><td>The ceiling stays as it is, but DeepSeek may think at more length than Claude</td><td>C5. Hits are reported as ceiling errors and never quietly raised</td></tr>
+        <tr><td>The model behind an id moves</td><td><code>deepseek-flash</code> moved to V4.1-Flash-1017 on 17 October. The pipeline's <code>deepseek-v4-flash</code> silently moved with it</td><td>C6. The served id goes on every run, and the smoke and full train must match</td></tr>
+        <tr><td>"high" is not Claude's "high"</td><td>Effort is a different knob on a different model, and thinking mode ignores temperature</td><td>Accepted. That is part of "the model changes". Effort sits in the run name</td></tr>
+        <tr><td>The smoke is tuned on train</td><td>P1's plumbing fixes are made while looking at 20 of the 196 conversations P2 scores</td><td>P2 is reported with and without the 20. The prompt is never edited</td></tr>
+        <tr><td>Train is not the promotion split</td><td>The repo promotes only on test, so a train verdict can't move the champion</td><td>Intended. This branch proves the open runtime works, and test comes later</td></tr>
+        <tr><td>Busy-hour 503s and dropped requests</td><td>DeepSeek drops a request that has not started after 10 minutes</td><td>Unscored, never wrong (C7), then <code>--resume-from</code></td></tr>
+        <tr><td>The upgrade touches the pipeline and tracing</td><td>2.61 is a major version, and the four pipeline agents share the package. MLflow's tested autolog range ends at 2.51</td><td>P0a is its own commit, gated by the full suite and an autolog check, with 1.107.9 as the fallback</td></tr>
+        <tr><td>The open runtime touches Claude's environment</td><td>s24 found <code>ANTHROPIC_BASE_URL</code>/<code>AUTH_TOKEN</code> are not blanked for Claude calls. That is unrelated to DeepSeek but still open</td><td><code>open_agent</code> reads only <code>DEEPSEEK_API_KEY</code>. The s24 fix ships separately</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="decisions">
+  <h2>08 · Decided</h2>
+  <p class="sub">You answered on 2026-10-25. The build follows these answers.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+      <thead><tr><th>Decision</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td>Harness</td><td>A · Pydantic AI, with an explicit DeepSeek profile for <code>deepseek-flash</code>. LangChain comes later, only if wanted</td></tr>
+        <tr><td>Pydantic AI version</td><td>2.61, upgraded as P0's own first commit and gated by the full suite and an MLflow autolog check. 1.107.9 is the fallback</td></tr>
+        <tr><td>Smoke set</td><td>The 20 train conversations in §03, compared with the champion's committed runs only. No Haiku, and no new Claude runs</td></tr>
+        <tr><td>Effort</td><td><code>high</code></td></tr>
+        <tr><td>If the smoke is clearly worse</td><td>Fix contract-check failures as plumbing. An accuracy shortfall moves to <code>deepseek-v4-pro</code> on the same smoke</td></tr>
+        <tr><td>Stop point and spend</td><td>Build P0 and run the Flash smoke, with a DeepSeek cap of $5. Then stop and publish a results page comparing Pydantic AI + DeepSeek Flash with sdk_v1, at question and conversation level. The full train score runs only after your approval</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <p>Repo facts were checked on 2026-10-25 against <code>backends/agent_sdk.py</code>, <code>llm.py</code>, <code>config.py</code>, <code>prompts/sdk_v1.py</code>, <code>evalloop/runner.py</code>,
+    <code>evalloop/story.py</code>, <code>evaluation/registry.json</code>, the committed test and train CSVs, the installed <code>pydantic_ai</code> 1.75 source, and the published 1.107.9 and 2.61.0 wheels (read, not installed). The DeepSeek model ids and balance
+    come from the API's <code>/models</code> and <code>/user/balance</code> endpoints; no model was called. The smoke set and its coverage were computed in a scratch script
+    and are reproduced by P0's <code>make-smoke</code>. The page uses the portfolio's house UI (<code>house.css</code> plus this project's blue hue).</p>
+  <ul>
+    <li><a href="https://api-docs.deepseek.com/quick_start/pricing">DeepSeek: models and pricing</a> · <a href="https://api-docs.deepseek.com/guides/thinking_mode">thinking mode and the reasoning round-trip</a> · <a href="https://api-docs.deepseek.com/api/create-chat-completion">chat completion API (tool_choice, reasoning_effort)</a> · <a href="https://api-docs.deepseek.com/quick_start/rate_limit">rate limits</a> · <a href="https://api-docs.deepseek.com/guides/anthropic_api">Anthropic endpoint</a></li>
+    <li><a href="https://pypi.org/project/pydantic-ai/#history">pydantic-ai release history (2.61.0 on 2026-10-24; 1.107.9 on 2026-10-21; 1.75.0 on 2026-04-01)</a> · <a href="https://github.com/pydantic/pydantic-ai/blob/main/docs/changelog.md">changelog, v2.0.0b1 breaking changes</a> · <a href="https://github.com/mlflow/mlflow/blob/v3.17.2/mlflow/ml-package-versions.yml">MLflow autolog tested versions</a></li>
+    <li><a href="https://github.com/pydantic/pydantic-ai/blob/v2.61.0/pydantic_ai_slim/pydantic_ai/providers/deepseek.py">Pydantic AI DeepSeek provider</a> · <a href="https://github.com/pydantic/pydantic-ai/pull/3536">PR #3536 (reasoning sent back)</a> · <a href="https://github.com/pydantic/pydantic-ai/issues/8353">#8353 (deepseek-flash profile)</a> · <a href="https://pydantic.dev/docs/ai/harness/">pydantic-ai-harness</a></li>
+    <li><a href="https://pypi.org/project/deepagents/0.7.32/">deepagents 0.7.32</a> · <a href="https://github.com/langchain-ai/deepagents/releases/tag/deepagents%3D%3D0.7.0">0.7.0 release notes</a> · <a href="https://github.com/langchain-ai/deepagents/blob/deepagents%3D%3D0.7.32/libs/deepagents/deepagents/profiles/harness/harness_profiles.py">harness profiles</a> · <a href="https://docs.langchain.com/oss/python/langchain/structured-output">LangChain structured output</a></li>
+    <li><a href="https://github.com/langchain-ai/langchain/issues/40219">langchain #40219 (reasoning_content not sent back)</a> · <a href="https://github.com/langchain-ai/langchain/pull/40254">PR #40254</a> · <a href="https://github.com/langchain-ai/langchain/issues/40769">#40769 (forced tool_choice)</a> · <a href="https://github.com/langchain-ai/langchain/issues/40753">#40753 (uncapped retries)</a></li>
+    <li><a href="https://mlflow.org/docs/latest/genai/tracing/integrations/listing/pydantic_ai">MLflow: Pydantic AI tracing</a> · <a href="https://mlflow.org/docs/latest/genai/tracing/integrations/listing/deepagent/">MLflow: Deep Agents tracing</a> · <a href="https://code.claude.com/docs/en/agent-sdk/structured-outputs">Claude Agent SDK: structured outputs</a></li>
+    <li><a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a> · <a href="https://openai.github.io/openai-agents-python/models/">OpenAI Agents SDK: other models</a> · <a href="https://api-docs.deepseek.com/news/news261017">DeepSeek V4.1-Flash release (open weights)</a></li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

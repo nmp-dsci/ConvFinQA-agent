@@ -75,7 +75,7 @@ export const PAPER_HUMAN = {
 // Arms
 // ---------------------------------------------------------------------------
 
-export type RuntimeKey = 'pipeline' | 'agent_sdk';
+export type RuntimeKey = 'pipeline' | 'agent_sdk' | 'open_agent';
 
 export interface ArmDescription {
   key: RuntimeKey;
@@ -106,6 +106,13 @@ export const ARMS: Record<RuntimeKey, ArmDescription> = {
       'one Claude Agent SDK session per conversation, the six calculator functions as its only tools, one prompt; it reports the same four stages so the same panel applies.',
     aliasNote:
       'champion — the universal champion since 2026-10-15; the pipeline keeps pipeline_champion',
+  },
+  open_agent: {
+    key: 'open_agent',
+    title: 'one open-model session',
+    architecture:
+      'llm_react_v1: the champion’s sdk_v1 prompt and six calculator tools, unchanged, in a Pydantic AI tool-calling loop on a DeepSeek model.',
+    aliasNote: 'no alias — a challenger; serving has no open runtime, so it cannot be promoted',
   },
 };
 

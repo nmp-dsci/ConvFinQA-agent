@@ -45,7 +45,7 @@ export function PassLedger({
         <div className="ledger-filters" role="group" aria-label="filter the passes">
           <ChipGroup
             name="runtime"
-            options={runtimes.map((r) => ({ value: r, label: r === 'agent_sdk' ? 'single session' : 'pipeline' }))}
+            options={runtimes.map((r) => ({ value: r, label: runtimeLabel(r) }))}
             current={filters.runtime}
             onPick={(v) => set('runtime', v)}
           />
@@ -171,7 +171,7 @@ function Row({ row: r, showSplit }: { row: LedgerRow; showSplit: boolean }) {
           )}
         </td>
       )}
-      <td>{r.runtime === 'agent_sdk' ? 'single session' : 'pipeline'}</td>
+      <td>{runtimeLabel(r.runtime)}</td>
       <td className="mono nowrap">{shortModel(r.model) || NO_VALUE}</td>
       <td className="mono">{r.effort ?? NO_VALUE}</td>
       <td className="num">{formatPercent(r.accuracy)}</td>
@@ -234,4 +234,11 @@ function Versus({ row: r }: { row: LedgerRow }) {
       </span>
     </>
   );
+}
+
+/** How the ledger names a runtime: the Claude session, the open agent (s25), or the pipeline. */
+function runtimeLabel(runtime: string): string {
+  if (runtime === 'agent_sdk') return 'single session';
+  if (runtime === 'open_agent') return 'open agent';
+  return 'pipeline';
 }

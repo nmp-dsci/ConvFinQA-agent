@@ -34,6 +34,9 @@ from convfinqa.evalloop import ledgers
 from convfinqa.evalloop.teacher import OPTIMIZATION_EXPERIMENT
 
 RUNTIME = "agent_sdk"
+# The runtimes a challenger *agent* can run on: Claude's harness, and the same
+# sdk_vN contract on an open model in an open harness (s25).
+CHALLENGER_RUNTIMES = ("agent_sdk", "open_agent")
 
 
 def gate_overall(
@@ -130,12 +133,18 @@ def log_gate_verdict(
     outcome = str(verdict.get("outcome") or "")
     base_agent = tuple(verdict.get("baseline_agent") or ("", ""))
     cand_agent = tuple(verdict.get("candidate_agent") or ("", ""))
+    # The challenger's runtime: an open-agent challenger's row must not say
+    # `agent_sdk`, or the append-only ledger files it under Claude's history.
+    runtime = str(verdict.get("runtime") or RUNTIME)
+    harness = str(verdict.get("candidate_harness") or "")
+    prefix = "open-gate" if runtime == "open_agent" else "sdk-gate"
     with mlflow_log.run(
-        f"sdk-gate-{verdict['candidate_version']}-vs-{verdict['baseline_version']}",
+        f"{prefix}-{verdict['candidate_version']}-vs-{verdict['baseline_version']}",
         kind="gate",
         version=verdict["candidate_version"],
         params={
-            "runtime": RUNTIME,
+            "runtime": runtime,
+            **({"candidate_harness": harness} if harness else {}),
             "baseline_version": verdict["baseline_version"],
             "candidate_version": verdict["candidate_version"],
             "target_agent": "",
@@ -153,7 +162,7 @@ def log_gate_verdict(
         tags={
             "loop": "evalloop",
             "stage": "gate",
-            "runtime": RUNTIME,
+            "runtime": runtime,
             "promoted": "true" if promoted else "false",
             "gate_passed": "true" if gate_passed else "false",
             "target_class": target_class,
@@ -170,7 +179,7 @@ def log_gate_verdict(
                 "rule": rule,
                 "outcome": outcome,
                 "reason": verdict["reason"],
-                "runtime": RUNTIME,
+                "runtime": runtime,
                 "target_class": target_class,
                 **{
                     k: stats[k]
@@ -239,7 +248,7 @@ def log_gate_verdict(
             candidate_eval_run_id=ledgers.eval_run_ids(cand_csv),
             gate_run_id=str(rec.run_id),
             rewrite_id=rewrite_id,
-            runtime=RUNTIME,
+            runtime=runtime,
             campaign=campaign,
             label=label,
             consecutive_rejections=consecutive_rejections,
@@ -273,6 +282,8 @@ def gate_challenger(
     target_class: str | None = None,
     base_agent_csv: Path | str | None = None,
     eval_records: list[dict[str, Any]] | None = None,
+    runtime: str = RUNTIME,
+    harness: str = "",
 ) -> tuple[dict[str, Any], Any]:
     """A challenger agent against the champion's committed evidence; the s19 rule decides.
 
@@ -288,7 +299,17 @@ def gate_challenger(
     (sdk_v1 on Haiku 5.5, for sdk_v3 on Haiku 5.5). It decides nothing; it
     answers "did the rewrite help this model", which the verdict against the
     champion cannot.
+
+    `runtime` is the challenger's: ``open_agent`` (s25) is the same prompt on
+    an open model in an open harness, with `sdk_model`/`sdk_effort` naming that
+    model and effort and `harness` the harness. The rule, the baseline and the
+    pairing are the same; only the record says which runtime the challenger ran.
     """
+    if runtime not in CHALLENGER_RUNTIMES:
+        raise ValueError(
+            f"runtime {runtime!r} has no challenger agent; expected one of "
+            f"{CHALLENGER_RUNTIMES}"
+        )
     from convfinqa.evalloop import story
     from convfinqa.evalloop.gate import gate_runs
     from convfinqa.evalloop.runner import PREDICTIONS_DIR
@@ -304,7 +325,7 @@ def gate_challenger(
         )
     champion_version = str(champion.get("version"))
     champion_agent = (str(champion.get("model")), str(champion.get("effort")))
-    if (sdk_model, sdk_effort) == champion_agent:
+    if runtime == RUNTIME and (sdk_model, sdk_effort) == champion_agent:
         raise SystemExit(
             f"{sdk_model} · {sdk_effort} is the champion's own agent; a prompt "
             "challenger on it is judged by the house gate (`gate_overall`)"
@@ -359,11 +380,14 @@ def gate_challenger(
             "promotable": passed,
             "baseline_agent": champion_agent,
             "candidate_agent": (sdk_model, sdk_effort),
+            "runtime": runtime,
+            "candidate_harness": harness,
             "challenger_pair": pair,
             "challenger_verdict": swap,
             "house_reason": house,
             "reason": (
-                f"challenger {candidate_version} · {sdk_model} · {sdk_effort} vs "
+                f"challenger {candidate_version} · {sdk_model} · {sdk_effort}"
+                f"{f' ({runtime} · {harness})' if runtime != RUNTIME else ''} vs "
                 f"champion {champion_version} · {champion_agent[0]} · "
                 f"{champion_agent[1]}: {swap.get('reason')}"
             ),

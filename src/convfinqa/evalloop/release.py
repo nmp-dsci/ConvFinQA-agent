@@ -17,7 +17,7 @@ looks unburned is the worst outcome this module exists to prevent.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -80,7 +80,7 @@ async def run_release(
     doc = registry.load()  # reload: the runs registered themselves meanwhile
     doc.history.append(
         {
-            "at": datetime.now(timezone.utc).isoformat(),
+            "at": datetime.now(UTC).isoformat(),
             "event": "holdout_opened",
             "candidate": candidate,
             "baseline": baseline,

@@ -84,6 +84,18 @@ def _prompt_index() -> dict[str, str]:
             for agent, text in prompts_pkg.load(version).items():
                 h = prompt_hash(text)
                 out[prompt_hash(text.strip())] = by_hash.get(h) or f"{agent} ?@{h}"
+        # The single-session prompts too. The Agent SDK runtime stores them by
+        # reference already, but the open runtime (s25) is autologged, and
+        # there a 17 KB `sdk_v1` rides on every message of every request — a
+        # five-turn conversation was a 1.5 MB trace before this.
+        sdk_seq = {
+            str(e.get("hash", "")): str(e.get("seq", "?"))
+            for e in (doc.sdk_prompts or [])
+        }
+        for version in prompts_pkg.sdk_versions():
+            text = prompts_pkg.load_sdk(version)
+            h = prompt_hash(text)
+            out[prompt_hash(text.strip())] = f"sdk {sdk_seq.get(h) or '?'}@{h}"
     except Exception:  # noqa: BLE001 — no index just means no substitution
         log.debug("prompt index unavailable; prompts stay inline", exc_info=True)
     return out
@@ -150,6 +162,15 @@ def _trim_model_request(value: Any) -> Any:
     """
     if not isinstance(value, dict):
         return value
+    # Pydantic AI 2.x also hands the autologger the same instructions a second
+    # time, as `model_request_parameters.instruction_parts`.
+    params = value.get("model_request_parameters")
+    if isinstance(params, dict):
+        for part in params.get("instruction_parts") or []:
+            if isinstance(part, dict) and isinstance(part.get("content"), str):
+                part_ref = _prompt_ref(part["content"])
+                if part_ref:
+                    part["content"] = f"<prompt_ref: {part_ref}>"
     messages = value.get("messages")
     if not isinstance(messages, list):
         return value
@@ -177,6 +198,21 @@ TRIMMERS = {
     "InstrumentedModel.request": ("inputs", _trim_model_request),
 }
 
+# MLflow's Pydantic AI 2.x autologger names a model span after the model class
+# (`OpenAIChatModel.request`, `TestModel.request`) where 1.x always said
+# `InstrumentedModel.request`; matching only the old name stopped every prompt
+# substitution without an error. Tool spans are now named after the tool and
+# carry only the call, so `ToolManager.execute_tool_call` no longer appears.
+_MODEL_REQUEST_SUFFIX = ".request"
+
+
+def _rule_for(name: str) -> tuple[str, Any] | None:
+    """The trimmer for a span name, by exact name or the model-request suffix."""
+    rule = TRIMMERS.get(name)
+    if rule is None and name.endswith(_MODEL_REQUEST_SUFFIX):
+        rule = TRIMMERS["InstrumentedModel.request"]
+    return rule
+
 
 def trim_span(span: Any) -> None:
     """MLflow span processor: shrink the known-repetitive payloads in place.
@@ -188,7 +224,7 @@ def trim_span(span: Any) -> None:
     if not enabled():
         return
     try:
-        rule = TRIMMERS.get(getattr(span, "name", ""))
+        rule = _rule_for(str(getattr(span, "name", "")))
         if rule is None:
             return
         slot, trim = rule

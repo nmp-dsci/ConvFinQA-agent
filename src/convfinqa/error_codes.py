@@ -24,7 +24,7 @@ import asyncio
 from enum import Enum
 
 
-class ErrorCode(str, Enum):
+class ErrorCode(str, Enum):  # noqa: UP042 — StrEnum changes str()/format() of members
     """The closed set of codes a failed turn is classified into."""
 
     LLM_UNAVAILABLE = "llm_unavailable"

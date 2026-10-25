@@ -13,7 +13,8 @@ import type { ExperimentRun } from '../../types';
 import { NO_VALUE } from '../landing/format';
 import { modelShortName } from './runtimeStory';
 
-export type Runtime = 'pipeline' | 'agent_sdk';
+/** `open_agent` (s25): the sdk prompt on an open model in an open harness. */
+export type Runtime = 'pipeline' | 'agent_sdk' | 'open_agent';
 
 /** One experiment row with the arm it belongs to, read off the list it came from. */
 export interface ExperimentRow extends CampaignExperiment {
@@ -34,7 +35,8 @@ export function experimentRows(data: CampaignsResponse | undefined): ExperimentR
     })),
     ...(data?.sdk_experiments ?? []).map((e) => ({
       ...e,
-      runtime: 'agent_sdk' as const,
+      // A session-runtime experiment is Claude's unless its row says open_agent.
+      runtime: e.runtime === 'open_agent' ? ('open_agent' as const) : ('agent_sdk' as const),
     })),
   ];
 }
@@ -46,7 +48,7 @@ export function campaignNames(data: CampaignsResponse | undefined): string[] {
 
 /** The champion's version for the row's own arm: the agent for the session, the bundle for the pipeline. */
 export function championOf(row: ExperimentRow, data: CampaignsResponse | undefined): string | null {
-  return row.runtime === 'agent_sdk'
+  return row.runtime !== 'pipeline'
     ? (data?.champion_agent?.version ?? data?.champion ?? null)
     : (data?.pipeline_champion ?? null);
 }
@@ -88,6 +90,15 @@ export function runAgent(run: Pick<ExperimentRun, 'kind' | 'params'>): RunAgent 
   const split = p.split || null;
   if (run.kind !== 'evalloop') {
     return { split, runtime: null, model: null, effort: null, effortWhy: null };
+  }
+  if (p.runtime === 'open_agent') {
+    return {
+      split,
+      runtime: 'open_agent',
+      model: p.open_model || null,
+      effort: p.open_effort || null,
+      effortWhy: p.open_effort ? null : 'run has no open_effort param',
+    };
   }
   if (p.runtime === 'agent_sdk') {
     return {

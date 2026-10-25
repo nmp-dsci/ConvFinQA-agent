@@ -6,14 +6,14 @@ no CSVs. The timeline is what the Optimise › Story tab and the Runs ledger dra
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 
 from convfinqa.evalloop import story
 
-T0 = datetime(2026, 9, 3, 15, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 9, 3, 15, 0, tzinfo=UTC)
 
 
 def _ms(minutes: int) -> int:
@@ -278,3 +278,114 @@ def test_a_gated_challenger_reads_as_its_verdict_not_the_house_gate() -> None:
     assert row["outcome"] == "falls_short" and row["label"] == "h01-e01"
     assert row["vs"]["p_value"] == 0.0109
     assert row["vs"]["p_kind"] == "one-sided toward worse"
+
+
+def test_an_open_agent_pass_is_its_own_agent_not_sdk_v1s_accuracy() -> None:
+    """s25: sdk_v1 on DeepSeek Flash in Pydantic AI is a challenger, not sdk_v1.
+
+    Read as a pipeline run, the open pass (newer) displaced the champion's own
+    sdk_v1 pass as "sdk_v1's accuracy" on the page.
+    """
+    open_pass = _run(
+        "open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_130000",
+        5000,
+        "sdk_v1",
+        0.84,
+    )
+    open_pass["params"] = {
+        "split": "test",
+        "prompts_version": "sdk_v1",
+        "runtime": "open_agent",
+        "open_harness": "pydantic_ai",
+        "open_model": "deepseek-flash",
+        "open_effort": "high",
+        "lm_mini": "deepseek-v4-flash",
+    }
+    records = [*RECORDS, open_pass]
+    assert story._agent_of_record(open_pass) == ("deepseek-flash", "high")
+    assert story._test_passes_by_version(records)["sdk_v1"]["run_name"] == S1
+    timeline = story.test_timeline(records, [], challengers={"pairs": []}, steps=[])
+    row = next(r for r in timeline if r["run_name"] == open_pass["run_name"])
+    assert (row["runtime"], row["model"], row["effort"]) == (
+        "open_agent",
+        "deepseek-flash",
+        "high",
+    )
+
+
+def _open_run(
+    stamp: str,
+    minutes: int,
+    accuracy: float,
+    *,
+    model: str = "deepseek-flash",
+    split: str = "test",
+    **metrics: Any,
+) -> dict[str, Any]:
+    size = "test100" if split == "test" else "train100"
+    rec = _run(
+        f"open-evalloop-{size}-sdk_v1·s1-pyd-{model}-high-{stamp}",
+        minutes,
+        "sdk_v1",
+        accuracy,
+        split=split,
+        **metrics,
+    )
+    rec["params"] = {
+        "split": split,
+        "prompts_version": "sdk_v1",
+        "runtime": "open_agent",
+        "open_harness": "pydantic_ai",
+        "open_model": model,
+        "open_effort": "high",
+    }
+    return rec
+
+
+def test_an_open_agent_is_named_and_on_the_board_beside_the_champions() -> None:
+    """It runs sdk_v1 unchanged, so the pages call it `llm_react_v1` — "sdk-v1"
+    on a DeepSeek pass read as the champion — and the runtime comparison
+    carries its best complete test pass as a third arm, never in place of
+    either champion's."""
+    flash = _open_run("20261025_120625", 5000, 0.876791)
+    # Higher, but it measured a subset of the split: never the arm.
+    cut = _open_run(
+        "20261026_090000",
+        6000,
+        0.95,
+        model="deepseek-v4-pro",
+        complete=0.0,
+        n_unscored=40,
+    )
+    draw = _open_run("20261025_121052", 5100, 0.88, split="train")
+    records = [*RECORDS, flash, cut, draw]
+
+    timeline = story.test_timeline(records, [], challengers={"pairs": []}, steps=[])
+    names = {r["run_name"]: r["agent_name"] for r in timeline}
+    assert names[flash["run_name"]] == "llm_react_v1"
+    assert names[S1] is None and names[V8] is None
+    assert [
+        t["agent_name"]
+        for t in story.train_passes(records)
+        if t["runtime"] == "open_agent"
+    ] == ["llm_react_v1"]
+
+    comparison = story.runtime_comparison(
+        records, [], champion="v8", sdk_champion="sdk_v1"
+    )
+    assert comparison["open_agent"]["run_name"] == flash["run_name"]
+    assert comparison["open_agent"]["agent_name"] == "llm_react_v1"
+    assert comparison["open_agent"]["model"] == "deepseek-flash"
+    assert comparison["agent_sdk"]["run_name"] == S1
+    assert comparison["pipeline"]["run_name"] == V8
+
+
+def test_an_unnamed_open_agent_keeps_no_name_rather_than_a_guessed_one() -> None:
+    """A harness/prompt pair with no entry in `llm.OPEN_AGENT_NAMES` is shown by
+    its version, not handed the name of a different agent."""
+    other = _open_run("20261027_090000", 7000, 0.8)
+    other["params"]["prompts_version"] = "sdk_v3"
+    assert story._agent_name_of(other) is None
+    assert (
+        story._agent_name_of(_open_run("20261025_120625", 5000, 0.87)) == "llm_react_v1"
+    )

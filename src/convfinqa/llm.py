@@ -231,9 +231,96 @@ def get_model(model_name: str | None = None) -> OpenAIChatModel:
 
 
 def reset_provider() -> None:
-    """Drop the cached provider. For tests that flip settings between cases."""
-    global _provider
+    """Drop the cached providers. For tests that flip settings between cases."""
+    global _provider, _open_provider
     _provider = None
+    _open_provider = None
+
+
+# --- The open runtime (s25): sdk_v1's contract on an open model ---------------
+#
+# The same DeepSeek account as the pipeline, and a different model call: the
+# pipeline switches thinking off (`DISABLE_THINKING_BODY`), while the open
+# agent is the champion's contract lifted onto an open model and so reasons, at
+# an effort that is part of what the agent is. DeepSeek's thinking protocol —
+# send `reasoning_content` back on every tool-call turn, never force a tool
+# while thinking — is Pydantic AI's DeepSeek profile, which is why it is used.
+OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai",)
+OPEN_MODELS: tuple[str, ...] = ("deepseek-flash", "deepseek-v4-pro")
+OPEN_EFFORTS: tuple[str, ...] = ("low", "high", "max")
+OPEN_BILLING = "deepseek-api"
+
+# `deepseek-flash` is DeepSeek V4.1 Flash, but Pydantic AI recognises a V4 model
+# only by the `deepseek-v4-` prefix (pydantic-ai #8353). Profiled under its own
+# name it would be treated as a model that cannot think, and forced into a tool
+# call that thinking mode rejects with a 400; so it is profiled as the V4 model
+# it is. `deepseek-v4-flash` is the retired name DeepSeek routes to it.
+_OPEN_PROFILE_AS = {"deepseek-flash": "deepseek-v4-flash"}
+
+_open_provider: Any = None
+
+
+def _open_http_client() -> httpx.AsyncClient:
+    """The open runtime's HTTP client: the pipeline's timeout and retry policy."""
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(settings.llm_timeout_seconds, connect=10.0),
+        transport=_RetryTransport(
+            max_attempts=settings.llm_max_attempts,
+            timeout=settings.llm_timeout_seconds,
+        ),
+    )
+
+
+def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
+    """A DeepSeek chat model for the open runtime, thinking at `effort`.
+
+    Refuses a model or effort outside the declared sets rather than passing it
+    through: DeepSeek maps unknown efforts silently (`xhigh` becomes `high`),
+    and a run named for one effort that ran at another is not that agent's
+    evidence.
+    """
+    guard_llm_call()
+    if model not in OPEN_MODELS:
+        raise ValueError(f"unknown open model {model!r}; expected one of {OPEN_MODELS}")
+    if effort not in OPEN_EFFORTS:
+        raise ValueError(
+            f"unknown open effort {effort!r}; expected one of {OPEN_EFFORTS}"
+        )
+    from pydantic_ai.providers.deepseek import DeepSeekProvider
+
+    global _open_provider
+    if _open_provider is None:
+        _open_provider = DeepSeekProvider(
+            api_key=settings.require_deepseek_api_key(),
+            http_client=_open_http_client(),
+        )
+    return OpenAIChatModel(
+        model,
+        provider=_open_provider,
+        profile=DeepSeekProvider.model_profile(_OPEN_PROFILE_AS.get(model, model)),
+        settings=ModelSettings(thinking=effort),  # type: ignore[typeddict-item]
+    )
+
+
+def open_model_slug(harness: str, model: str) -> str:
+    """The run-name slug of an open agent: `pyd-deepseek-flash`."""
+    short = {"pydantic_ai": "pyd"}.get(harness, harness.replace("_", "-"))
+    return f"{short}-{model}"
+
+
+#: What the app calls an open agent: a harness running a prompt. The prompt is
+#: sdk_v1 byte for byte, so the agent cannot take the prompt's name: "sdk-v1"
+#: on a DeepSeek pass reads as the champion. The model and effort stay beside
+#: the name, as they do for a Claude agent. Run names, CSVs and ledger rows
+#: keep what they recorded; this is the label the pages show.
+OPEN_AGENT_NAMES: dict[tuple[str, str], str] = {
+    ("pydantic_ai", "sdk_v1"): "llm_react_v1",
+}
+
+
+def open_agent_name(harness: str, version: str) -> str | None:
+    """`llm_react_v1` for Pydantic AI running sdk_v1; None for an unnamed pair."""
+    return OPEN_AGENT_NAMES.get((harness, version))
 
 
 async def call_with_budget(
@@ -250,7 +337,7 @@ async def call_with_budget(
     limit = timeout if timeout is not None else settings.llm_timeout_seconds
     try:
         return await asyncio.wait_for(fn(), timeout=limit)
-    except asyncio.TimeoutError as exc:
+    except TimeoutError as exc:
         raise LLMUnavailableError(
             f"model call exceeded {limit:.0f}s and was abandoned"
         ) from exc

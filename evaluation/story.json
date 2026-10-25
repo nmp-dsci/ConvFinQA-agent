@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-15T10:23:31+00:00",
+ "generated_at": "2026-10-25T01:36:14+00:00",
  "campaign_record_from": "2026-09-08T03:54:37+00:00",
  "champion": "sdk_v1",
  "champion_agent": {
@@ -474,6 +474,54 @@
    ]
   },
   {
+   "name": "o01",
+   "runtime": "open_agent",
+   "experiments": [
+    {
+     "label": "o01-e01",
+     "at": 1792891107367,
+     "runtime": "open_agent",
+     "target_agent": "",
+     "target_class": "",
+     "edits": [],
+     "baseline_version": "sdk_v1",
+     "candidate_version": "sdk_v1",
+     "promoted": false,
+     "accuracy_delta": -0.028653,
+     "cluster_p_one_sided": 0.909275,
+     "delta_ci": [
+      -0.071038,
+      0.011331
+     ],
+     "n_compared": 349.0,
+     "fixed": 7.0,
+     "broken": 17.0,
+     "target_metric_delta": null,
+     "rationale": "",
+     "summary_of_changes": "",
+     "prompt_chars": {
+      "before": null,
+      "after": null
+     },
+     "diff": "",
+     "panel_baseline": {
+      "triage": 0.974212,
+      "preprocess": 0.875536,
+      "retriever": 0.785693,
+      "calculator": 0.881857
+     },
+     "panel_candidate": {
+      "triage": 0.974212,
+      "preprocess": 0.833333,
+      "retriever": 0.804851,
+      "calculator": 0.835443
+     },
+     "accuracy_baseline": 0.905444,
+     "accuracy_candidate": 0.876791
+    }
+   ]
+  },
+  {
    "name": "s01",
    "runtime": "agent_sdk",
    "experiments": [
@@ -583,7 +631,8 @@
    "wall": 343.55,
    "program_accuracy": 0.392405,
    "model": null,
-   "effort": null
+   "effort": null,
+   "agent_name": null
   },
   "agent_sdk": {
    "version": "sdk_v1",
@@ -603,7 +652,29 @@
    "wall": 786.8,
    "program_accuracy": 0.409283,
    "model": "claude-sonnet-5",
-   "effort": "high"
+   "effort": "high",
+   "agent_name": null
+  },
+  "open_agent": {
+   "version": "sdk_v1",
+   "run_name": "open-evalloop-test100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_120625",
+   "accuracy": 0.876791,
+   "by_turn_type": {
+    "number": 0.963964,
+    "program": 0.836134
+   },
+   "panel": {
+    "triage": 0.974212,
+    "preprocess": 0.833333,
+    "retriever": 0.804851,
+    "calculator": 0.835443
+   },
+   "cost": 0.22212,
+   "wall": 261.67,
+   "program_accuracy": 0.392405,
+   "model": "deepseek-flash",
+   "effort": "high",
+   "agent_name": "llm_react_v1"
   },
   "gate": {
    "delta_pp": 8.8825,
@@ -670,6 +741,7 @@
     "program_accuracy": 0.409283,
     "model": "claude-sonnet-5",
     "effort": "high",
+    "agent_name": null,
     "n_scored": null
    },
    {
@@ -691,6 +763,7 @@
     "program_accuracy": 0.388186,
     "model": "claude-haiku-5-5",
     "effort": "high",
+    "agent_name": null,
     "n_scored": 349
    },
    {
@@ -712,6 +785,7 @@
     "program_accuracy": 0.388186,
     "model": "claude-haiku-4-5-20251001",
     "effort": "high",
+    "agent_name": null,
     "n_scored": 349
    }
   ],
@@ -1062,7 +1136,8 @@
      ]
     },
     "at": 1788649518750,
-    "candidate_accuracy": 0.873926
+    "candidate_accuracy": 0.873926,
+    "runtime": "agent_sdk"
    },
    {
     "version": "sdk_v1",
@@ -1200,7 +1275,8 @@
      ]
     },
     "at": 1792047191004,
-    "candidate_accuracy": 0.873926
+    "candidate_accuracy": 0.873926,
+    "runtime": "agent_sdk"
    },
    {
     "version": "sdk_v3",
@@ -1338,7 +1414,147 @@
      ]
     },
     "at": 1792057969765,
-    "candidate_accuracy": 0.856734
+    "candidate_accuracy": 0.856734,
+    "runtime": "agent_sdk"
+   },
+   {
+    "version": "sdk_v1",
+    "baseline_version": "sdk_v1",
+    "baseline_model": "claude-sonnet-5",
+    "baseline_effort": "high",
+    "candidate_model": "deepseek-flash",
+    "candidate_effort": "high",
+    "baseline_run": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
+    "candidate_run": "open-evalloop-test100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_120625",
+    "n_compared": 349,
+    "delta_pp": -2.8653,
+    "p_value": 0.090725,
+    "p_worse": 0.090725,
+    "p_better": 0.909275,
+    "ci": [
+     -0.071038,
+     0.011331
+    ],
+    "fixed": 7,
+    "broken": 17,
+    "significant": false,
+    "by_turn_type": {
+     "number": {
+      "n": 111,
+      "baseline_accuracy": 0.954955,
+      "candidate_accuracy": 0.963964,
+      "delta_pp": 0.9009,
+      "fixed": 3,
+      "broken": 2,
+      "n_flip_clusters": 3,
+      "cluster_z": 0.3333,
+      "cluster_p_one_sided": 0.369441,
+      "mcnemar_p_one_sided": 0.5
+     },
+     "program": {
+      "n": 238,
+      "baseline_accuracy": 0.882353,
+      "candidate_accuracy": 0.836134,
+      "delta_pp": -4.6218,
+      "fixed": 4,
+      "broken": 15,
+      "n_flip_clusters": 13,
+      "cluster_z": -1.9149,
+      "cluster_p_one_sided": 0.972244,
+      "mcnemar_p_one_sided": 0.99778748
+     }
+    },
+    "ceiling_errors": {
+     "baseline": 0,
+     "candidate": 0
+    },
+    "cluster_z": -1.3363,
+    "train": {
+     "by_seed": [
+      {
+       "seed": "2027",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
+       "candidate_run": "open-evalloop-train100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_121052",
+       "n_conversations": 100,
+       "baseline_full": 64,
+       "candidate_full": 63,
+       "fixed": 5,
+       "broken": 6,
+       "p_better": 0.72558594,
+       "p_worse": 0.5,
+       "baseline_mean_right_before_error": 2.78,
+       "candidate_mean_right_before_error": 2.71
+      },
+      {
+       "seed": "2028",
+       "baseline_run": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
+       "candidate_run": "open-evalloop-train100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_121450",
+       "n_conversations": 100,
+       "baseline_full": 68,
+       "candidate_full": 62,
+       "fixed": 3,
+       "broken": 9,
+       "p_better": 0.98071289,
+       "p_worse": 0.07299805,
+       "baseline_mean_right_before_error": 2.84,
+       "candidate_mean_right_before_error": 2.73
+      }
+     ],
+     "pooled": {
+      "n_draws": 2,
+      "n_conversations": 200,
+      "baseline_full": 132,
+      "candidate_full": 125,
+      "fixed": 8,
+      "broken": 15,
+      "p_better": 0.95343018,
+      "p_worse": 0.10501981
+     }
+    },
+    "verdict": {
+     "version": "sdk_v1",
+     "candidate_model": "deepseek-flash",
+     "candidate_effort": "high",
+     "candidate_run": "open-evalloop-test100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_120625",
+     "outcome": "falls_short",
+     "reason": "falls_short: \u0394 -2.87pp, CI low -7.1038pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse",
+     "margin_pp": 3.0,
+     "checks": [
+      {
+       "name": "test_beats",
+       "ok": false,
+       "detail": "\u0394 -2.87pp, one-sided cluster p 0.909275"
+      },
+      {
+       "name": "test_ci_within_margin",
+       "ok": false,
+       "detail": "95% CI lower bound -7.1038pp vs \u22123.0pp"
+      },
+      {
+       "name": "test_not_worse",
+       "ok": true,
+       "detail": "one-sided p toward worse 0.090725"
+      },
+      {
+       "name": "program_turns_not_worse",
+       "ok": false,
+       "detail": "program turns: p toward worse 0.027756"
+      },
+      {
+       "name": "train_not_worse",
+       "ok": true,
+       "detail": "conversations right to the end 132 \u2192 125 of 200, p toward worse 0.10501981"
+      },
+      {
+       "name": "no_extra_ceiling_errors",
+       "ok": true,
+       "detail": "token-ceiling errors 0 \u2192 0"
+      }
+     ]
+    },
+    "at": 1792890385955,
+    "candidate_accuracy": 0.876791,
+    "runtime": "open_agent"
    }
   ]
  },
@@ -1349,6 +1565,7 @@
    "run_id": "7e2c876dea6449dc8fc15ce195c278df",
    "run_name": "evalloop-test100-v2\u00b7t2p2r2c2-20260904_032533",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1369,6 +1586,7 @@
    "run_id": "eebbb681691d4c0dbc12635a1a6a4152",
    "run_name": "evalloop-test100-v6\u00b7t2p5r2c2-20260904_035752",
    "version": "v6",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1397,6 +1615,7 @@
    "run_id": "c9efb25955eb4300b227d5b0cd791d0e",
    "run_name": "evalloop-test100-v7\u00b7t2p6r2c2-20260904_043438",
    "version": "v7",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1425,6 +1644,7 @@
    "run_id": "9d317903854b422d988232bc9f54181b",
    "run_name": "evalloop-test100-v8\u00b7t2p2r5c2-20260904_052739",
    "version": "v8",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1453,6 +1673,7 @@
    "run_id": "0ab67b770baf4842b2d10536d5ef340f",
    "run_name": "evalloop-test100-v9\u00b7t2p2r6c2-20260904_132436",
    "version": "v9",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1481,6 +1702,7 @@
    "run_id": "948682ba1e754c79ac4cd477b5e63eb7",
    "run_name": "evalloop-test100-v10\u00b7t2p7r5c2-20260904_134753",
    "version": "v10",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1509,6 +1731,7 @@
    "run_id": "709d69ef223741138655673051bab8ad",
    "run_name": "evalloop-test100-v11\u00b7t2p8r5c2-20260904_224529",
    "version": "v11",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1537,6 +1760,7 @@
    "run_id": "e5fd7554a6564dd7abfc23ca307bb43e",
    "run_name": "evalloop-test100-v12\u00b7t2p9r5c2-20260904_230420",
    "version": "v12",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1565,6 +1789,7 @@
    "run_id": "4d56d6f5c8e04d439079cd853558b539",
    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_132411",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -1585,6 +1810,7 @@
    "run_id": "5344cc1fc70f4237ab13691b7feffb7a",
    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-20260905_174627",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -1613,6 +1839,7 @@
    "run_id": "e55d8cdc3d5245bba04a94459e0d140e",
    "run_name": "sdk-evalloop-test100-sdk_v2\u00b7s2-20260905_182812",
    "version": "sdk_v2",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -1641,6 +1868,7 @@
    "run_id": "4edad254f7d04f5f8c1d31cd112c1113",
    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-4-5-20260906_090517",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-4-5-20251001",
    "effort": "high",
@@ -1669,6 +1897,7 @@
    "run_id": "0fc31febec374ba5ad08f68c476f0691",
    "run_name": "sdk-evalloop-test100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_175310",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -1697,6 +1926,7 @@
    "run_id": "0b23f5dc4ef84ad09fd1856279f47f36",
    "run_name": "sdk-evalloop-test100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205249",
    "version": "sdk_v3",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -1714,6 +1944,35 @@
     "model": "claude-sonnet-5",
     "delta_pp": -4.8711,
     "p_value": 0.010945,
+    "p_kind": "one-sided toward worse",
+    "paired": true,
+    "champion_of_the_day": "sdk_v1"
+   }
+  },
+  {
+   "at_ms": 1792890385955,
+   "date": "2026-10-25",
+   "run_id": "f7d1b1b9e70141d9930e359e73002588",
+   "run_name": "open-evalloop-test100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_120625",
+   "version": "sdk_v1",
+   "agent_name": "llm_react_v1",
+   "runtime": "open_agent",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "accuracy": 0.876791,
+   "n_scored": 349,
+   "n_questions": 349,
+   "complete": true,
+   "cost": 0.22212,
+   "champion_run": false,
+   "label": "o01-e01",
+   "outcome": "falls_short",
+   "reason": "falls_short: \u0394 -2.87pp, CI low -7.1038pp (margin \u22123.0pp); failed test_ci_within_margin, program_turns_not_worse",
+   "vs": {
+    "version": "sdk_v1",
+    "model": "claude-sonnet-5",
+    "delta_pp": -2.8653,
+    "p_value": 0.090725,
     "p_kind": "one-sided toward worse",
     "paired": true,
     "champion_of_the_day": "sdk_v1"
@@ -1841,6 +2100,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train10-v2-20260902_140405",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1856,6 +2116,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train10-v3_1-20260902_140503",
    "version": "v3_1",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1871,6 +2132,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train10-v3_1-20260902_191330",
    "version": "v3_1",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1886,6 +2148,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train10-v3_1-20260902_191532",
    "version": "v3_1",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1901,6 +2164,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train10-v4-20260902_200228",
    "version": "v4",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1916,6 +2180,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train50-v3_1\u00b7t3p3r3c3-20260902_220512",
    "version": "v3_1",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1931,6 +2196,7 @@
    "date": "2026-09-02",
    "run_name": "evalloop-train50-v5\u00b7t3p4r3c3-20260902_221337",
    "version": "v5",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1946,6 +2212,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train3-v2\u00b7t2p2r2c2-20260904_032419",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1961,6 +2228,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train3-v2\u00b7t2p2r2c2-20260904_032453",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1976,6 +2244,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_033142",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -1991,6 +2260,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_040339",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2006,6 +2276,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_044011",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2021,6 +2292,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v2\u00b7t2p2r2c2-20260904_050321",
    "version": "v2",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2036,6 +2308,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_131251",
    "version": "v8",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2051,6 +2324,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_133622",
    "version": "v8",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2066,6 +2340,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_223427",
    "version": "v8",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2081,6 +2356,7 @@
    "date": "2026-09-04",
    "run_name": "evalloop-train100-v8\u00b7t2p2r5c2-20260904_225226",
    "version": "v8",
+   "agent_name": null,
    "runtime": "pipeline",
    "model": "deepseek-v4-flash",
    "effort": null,
@@ -2096,6 +2372,7 @@
    "date": "2026-09-05",
    "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132102",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -2111,6 +2388,7 @@
    "date": "2026-09-05",
    "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132131",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -2126,6 +2404,7 @@
    "date": "2026-09-05",
    "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-20260905_132311",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -2141,6 +2420,7 @@
    "date": "2026-09-05",
    "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_180924",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -2156,6 +2436,7 @@
    "date": "2026-09-05",
    "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-20260905_184211",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-sonnet-5",
    "effort": "high",
@@ -2171,6 +2452,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-haiku-5-5-high-20261015_174508",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2186,6 +2468,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_180335",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2201,6 +2484,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train100-sdk_v1\u00b7s1-haiku-5-5-high-20261015_181237",
    "version": "sdk_v1",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2216,6 +2500,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train3-sdk_v3\u00b7s3-haiku-5-5-high-20261015_205216",
    "version": "sdk_v3",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2231,6 +2516,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_210314",
    "version": "sdk_v3",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2246,6 +2532,7 @@
    "date": "2026-10-15",
    "run_name": "sdk-evalloop-train100-sdk_v3\u00b7s3-haiku-5-5-high-20261015_211244",
    "version": "sdk_v3",
+   "agent_name": null,
    "runtime": "agent_sdk",
    "model": "claude-haiku-5-5",
    "effort": "high",
@@ -2254,6 +2541,86 @@
    "train_seed": "2028",
    "stop_at_first_wrong": true,
    "campaign": "h01",
+   "complete": true
+  },
+  {
+   "at_ms": 1792557041406,
+   "date": "2026-10-21",
+   "run_name": "sdk-evalloop-train3-sdk_v1\u00b7s1-sonnet-5-5-high-20261021_153040",
+   "version": "sdk_v1",
+   "agent_name": null,
+   "runtime": "agent_sdk",
+   "model": "claude-sonnet-5-5",
+   "effort": "high",
+   "accuracy": 0.25,
+   "n_questions": 12,
+   "train_seed": "2027",
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792889265157,
+   "date": "2026-10-25",
+   "run_name": "open-evalloop-train9-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_114744",
+   "version": "sdk_v1",
+   "agent_name": "llm_react_v1",
+   "runtime": "open_agent",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "accuracy": 0.727273,
+   "n_questions": 33,
+   "train_seed": "2027",
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792889336074,
+   "date": "2026-10-25",
+   "run_name": "open-evalloop-train11-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_114855",
+   "version": "sdk_v1",
+   "agent_name": "llm_react_v1",
+   "runtime": "open_agent",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "accuracy": 0.921053,
+   "n_questions": 38,
+   "train_seed": "2028",
+   "stop_at_first_wrong": false,
+   "campaign": null,
+   "complete": true
+  },
+  {
+   "at_ms": 1792890652677,
+   "date": "2026-10-25",
+   "run_name": "open-evalloop-train100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_121052",
+   "version": "sdk_v1",
+   "agent_name": "llm_react_v1",
+   "runtime": "open_agent",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "accuracy": 0.87987,
+   "n_questions": 308,
+   "train_seed": "2027",
+   "stop_at_first_wrong": true,
+   "campaign": "o01",
+   "complete": true
+  },
+  {
+   "at_ms": 1792890891458,
+   "date": "2026-10-25",
+   "run_name": "open-evalloop-train100-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_121450",
+   "version": "sdk_v1",
+   "agent_name": "llm_react_v1",
+   "runtime": "open_agent",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "accuracy": 0.877814,
+   "n_questions": 311,
+   "train_seed": "2028",
+   "stop_at_first_wrong": true,
+   "campaign": "o01",
    "complete": true
   }
  ],
@@ -2333,8 +2700,8 @@
       "n_false_alarms": 30,
       "meets_target": false,
       "auroc": 0.6209245742092457,
-      "brier": 0.1258794547697372,
-      "ece": 0.1273404605263182,
+      "brier": 0.12587945476973683,
+      "ece": 0.12734046052631576,
       "coverage_at_target": 0.006578947368421052,
       "threshold_at_target": 0.997,
       "high_band_accuracy_ci": [
@@ -2365,8 +2732,8 @@
       "n_false_alarms": 27,
       "meets_target": false,
       "auroc": 0.5242136555427694,
-      "brier": 0.11811411174785175,
-      "ece": 0.11113180515759728,
+      "brier": 0.11811411174785101,
+      "ece": 0.11113180515759319,
       "coverage_at_target": 0.0,
       "threshold_at_target": null,
       "high_band_accuracy_ci": [
@@ -2402,8 +2769,8 @@
       "n_false_alarms": 8,
       "meets_target": false,
       "auroc": 0.5481481481481482,
-      "brier": 0.12958224637681157,
-      "ece": 0.13760869565217396,
+      "brier": 0.1295822463768116,
+      "ece": 0.13760869565217387,
       "coverage_at_target": 0.08695652173913043,
       "threshold_at_target": 0.995,
       "high_band_accuracy_ci": [

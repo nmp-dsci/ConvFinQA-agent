@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -38,7 +38,7 @@ class SessionState:
 
     def touch(self) -> None:
         """Mark the session as recently used, deferring TTL eviction."""
-        self.updated_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(UTC)
 
     def as_response(self) -> SessionResponse:
         """Serialise for the API."""
@@ -74,7 +74,7 @@ class SessionStore:
         """Open a session against `report_id`. Raises KeyError if unknown."""
         if self._valid_reports is not None and report_id not in self._valid_reports:
             raise KeyError(report_id)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         state = SessionState(
             session_id=str(uuid4()),
             report_id=report_id,
@@ -122,7 +122,7 @@ class SessionStore:
 
     def evict_expired(self) -> list[str]:
         """Remove sessions idle beyond the TTL; return their ids."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired = [
             sid
             for sid, state in self.sessions.items()
