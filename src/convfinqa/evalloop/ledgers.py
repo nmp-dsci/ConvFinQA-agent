@@ -794,7 +794,7 @@ def gate_row(
 
             champion_after = (
                 registry.sdk_champion()
-                if runtime == "agent_sdk"
+                if runtime in ("agent_sdk", "open_agent")
                 else registry.pipeline_champion()
             ) or ""
         except Exception:  # noqa: BLE001 — no registry is an empty cell, not a crash

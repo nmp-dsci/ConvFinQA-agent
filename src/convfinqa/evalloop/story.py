@@ -83,9 +83,8 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         name = run.data.params.get("campaign") or run.data.tags.get("campaign") or "—"
         if campaigns and name not in campaigns:
             continue
-        is_sdk = (
-            run.data.tags.get("runtime") or run.data.params.get("runtime")
-        ) == "agent_sdk"
+        run_runtime = run.data.tags.get("runtime") or run.data.params.get("runtime")
+        is_sdk = run_runtime in SESSION_RUNTIMES
         candidate = run.data.params.get("candidate_version", "")
         baseline = run.data.params.get("baseline_version", "")
         proposal = by_version_proposal.get(candidate)
@@ -102,7 +101,7 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
             {
                 "label": run.data.params.get("experiment_label", ""),
                 "at": run.info.start_time,
-                "runtime": "agent_sdk" if is_sdk else "pipeline",
+                "runtime": str(run_runtime) if is_sdk else "pipeline",
                 # For the SDK arm the target is a failure class, and it sits in
                 # `target_agent` too so every reader of an experiment row
                 # (page, app, chart) shows *something* without branching.
@@ -195,9 +194,11 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
     try:
         from convfinqa.evalloop import ledgers
 
-        sdk_gate_rows = ledgers.load("gates", runtime="agent_sdk").to_dict(
-            orient="records"
-        )
+        sdk_gate_rows = [
+            row
+            for runtime in SESSION_RUNTIMES
+            for row in ledgers.load("gates", runtime=runtime).to_dict(orient="records")
+        ]
     except Exception:  # noqa: BLE001 — no ledger means no SDK gate yet
         sdk_gate_rows = []
     model_comparison = sdk_model_comparison(eval_records, sdk_champion=sdk_champion)
@@ -223,7 +224,14 @@ def collect(campaigns: list[str] | None = None) -> dict[str, Any]:
         {"name": name, "experiments": rows} for name, rows in sorted(grouped.items())
     ]
     sdk_campaigns_out: list[dict[str, Any]] = [
-        {"name": name, "runtime": "agent_sdk", "experiments": rows}
+        {
+            "name": name,
+            # A campaign runs one runtime: o01 is the open agent's, s01/h01 Claude's.
+            "runtime": "open_agent"
+            if rows and all(r.get("runtime") == "open_agent" for r in rows)
+            else "agent_sdk",
+            "experiments": rows,
+        }
         for name, rows in sorted(sdk_grouped.items())
     ]
     try:
@@ -372,9 +380,27 @@ def all_eval_records(client: Any = None) -> list[dict[str, Any]]:
     )
 
 
+#: The runtimes that answer a conversation in one session from an `sdk_vN`
+#: prompt: Claude's harness, and the same contract on an open model (s25).
+SESSION_RUNTIMES = ("agent_sdk", "open_agent")
+
+
+def _runtime_of(record: dict[str, Any]) -> str:
+    """The runtime an eval run ran on, as the page names it."""
+    runtime = str((record.get("params") or {}).get("runtime") or "")
+    return runtime if runtime in SESSION_RUNTIMES else "pipeline"
+
+
 def _agent_of_record(record: dict[str, Any]) -> tuple[str, str] | None:
-    """(model, effort) of an sdk eval run; None for a pipeline run."""
+    """(model, effort) of a session run; None for a pipeline run.
+
+    An open-agent run (s25) is its own agent — `open_model`, `open_effort` —
+    never the champion's. Read as a pipeline run, its `sdk_v1` test pass
+    became "sdk_v1's accuracy" and displaced the champion's own.
+    """
     params = record.get("params") or {}
+    if params.get("runtime") == "open_agent":
+        return str(params.get("open_model") or ""), str(params.get("open_effort") or "")
     if params.get("runtime") != "agent_sdk":
         return None
     return _sdk_model_of(record, sdk_reference_model()), _sdk_effort_of(record)
@@ -445,7 +471,7 @@ def _with_gate_accuracies(
     by_pair = {
         (str(g.get("baseline_version")), str(g.get("candidate_version"))): g
         for g in gate_rows
-        if g.get("runtime") == "agent_sdk"
+        if g.get("runtime") in SESSION_RUNTIMES
     }
     out: list[dict[str, Any]] = []
     for row in experiments:
@@ -618,7 +644,7 @@ def train_passes(eval_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "date": _run_date(name, rec.get("start_time")),
                 "run_name": name,
                 "version": str(params.get("prompts_version") or ""),
-                "runtime": "agent_sdk" if agent else "pipeline",
+                "runtime": _runtime_of(rec),
                 "model": agent[0] if agent else _pipeline_model(rec),
                 "effort": agent[1] if agent else None,
                 "accuracy": metrics.get("accuracy"),
@@ -718,7 +744,7 @@ def test_timeline(
             "run_id": rec.get("run_id"),
             "run_name": name,
             "version": version,
-            "runtime": "agent_sdk" if agent else "pipeline",
+            "runtime": _runtime_of(rec),
             "model": agent[0] if agent else _pipeline_model(rec),
             "effort": agent[1] if agent else None,
             "accuracy": metrics.get("accuracy"),
@@ -896,6 +922,8 @@ def _arm(record: dict[str, Any] | None) -> dict[str, Any]:
     keys = (
         ("sdk_session_cost_usd",)
         if params.get("runtime") == "agent_sdk"
+        else ("open_cost_usd",)
+        if params.get("runtime") == "open_agent"
         else ("cost_usd", "total_cost_usd")
     )
     cost = None
@@ -917,9 +945,11 @@ def _arm(record: dict[str, Any] | None) -> dict[str, Any]:
         "cost": cost,
         "wall": metrics.get("wall_seconds"),
         "program_accuracy": metrics.get("program_accuracy"),
-        "model": params.get("sdk_model") or None,
+        "model": params.get("sdk_model") or params.get("open_model") or None,
         "effort": _sdk_effort_of(record)
         if params.get("runtime") == "agent_sdk"
+        else params.get("open_effort")
+        if params.get("runtime") == "open_agent"
         else None,
     }
 
@@ -1160,7 +1190,9 @@ MODEL_SWAP_ALPHA = 0.05
 
 
 def _agent_key(record: dict[str, Any], reference_model: str) -> tuple[str, str]:
-    """(model, effort) of an sdk run: what the agent was, not just its prompt."""
+    """(model, effort) of a session run: what the agent was, not just its prompt."""
+    if (record.get("params") or {}).get("runtime") == "open_agent":
+        return _agent_of_record(record) or ("", "")
     return _sdk_model_of(record, reference_model), _sdk_effort_of(record)
 
 
@@ -1618,7 +1650,9 @@ def challenger_comparison(
         "accuracy": champion_agent.get("accuracy"),
     }
     sdk = [
-        r for r in eval_records if (r.get("params") or {}).get("runtime") == "agent_sdk"
+        r
+        for r in eval_records
+        if (r.get("params") or {}).get("runtime") in SESSION_RUNTIMES
     ]
 
     def version_of(r: dict[str, Any]) -> str:
@@ -1631,7 +1665,7 @@ def challenger_comparison(
     for r in sdk:
         params = r.get("params") or {}
         if params.get("split") != "test" or not str(r.get("run_name") or "").startswith(
-            "sdk-evalloop-test100-"
+            ("sdk-evalloop-test100-", "open-evalloop-test100-")
         ):
             continue
         if not _complete(r) or (r.get("metrics") or {}).get("accuracy") is None:
@@ -1661,6 +1695,7 @@ def challenger_comparison(
         )
         pair["at"] = run.get("start_time")
         pair["candidate_accuracy"] = (run.get("metrics") or {}).get("accuracy")
+        pair["runtime"] = _runtime_of(run)
         out["pairs"].append(pair)
     return out
 

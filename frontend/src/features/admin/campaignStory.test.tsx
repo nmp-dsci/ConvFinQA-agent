@@ -232,6 +232,38 @@ describe('the runs table', () => {
     });
   });
 
+  it('reads an open-agent run as its own runtime and model, not the pipeline’s', () => {
+    expect(
+      runAgent(
+        run('evalloop', {
+          split: 'test',
+          runtime: 'open_agent',
+          open_model: 'deepseek-flash',
+          open_effort: 'high',
+          lm_mini: 'deepseek-v4-flash',
+        }),
+      ),
+    ).toEqual({
+      split: 'test',
+      runtime: 'open_agent',
+      model: 'deepseek-flash',
+      effort: 'high',
+      effortWhy: null,
+    });
+  });
+
+  it('keeps an open-agent experiment’s runtime and judges it against the champion agent', () => {
+    const data = {
+      ...DATA,
+      sdk_experiments: [
+        ...(DATA.sdk_experiments ?? []),
+        { ...(DATA.sdk_experiments ?? [])[0], label: 'o01-e01', runtime: 'open_agent' },
+      ],
+    } as CampaignsResponse;
+    const open = experimentRows(data).find((r) => r.label === 'o01-e01');
+    expect(open?.runtime).toBe('open_agent');
+  });
+
   it('says why an effort is absent rather than guessing one', () => {
     const old = runAgent(
       run('evalloop', {

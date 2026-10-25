@@ -278,3 +278,36 @@ def test_a_gated_challenger_reads_as_its_verdict_not_the_house_gate() -> None:
     assert row["outcome"] == "falls_short" and row["label"] == "h01-e01"
     assert row["vs"]["p_value"] == 0.0109
     assert row["vs"]["p_kind"] == "one-sided toward worse"
+
+
+def test_an_open_agent_pass_is_its_own_agent_not_sdk_v1s_accuracy() -> None:
+    """s25: sdk_v1 on DeepSeek Flash in Pydantic AI is a challenger, not sdk_v1.
+
+    Read as a pipeline run, the open pass (newer) displaced the champion's own
+    sdk_v1 pass as "sdk_v1's accuracy" on the page.
+    """
+    open_pass = _run(
+        "open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_130000",
+        5000,
+        "sdk_v1",
+        0.84,
+    )
+    open_pass["params"] = {
+        "split": "test",
+        "prompts_version": "sdk_v1",
+        "runtime": "open_agent",
+        "open_harness": "pydantic_ai",
+        "open_model": "deepseek-flash",
+        "open_effort": "high",
+        "lm_mini": "deepseek-v4-flash",
+    }
+    records = [*RECORDS, open_pass]
+    assert story._agent_of_record(open_pass) == ("deepseek-flash", "high")
+    assert story._test_passes_by_version(records)["sdk_v1"]["run_name"] == S1
+    timeline = story.test_timeline(records, [], challengers={"pairs": []}, steps=[])
+    row = next(r for r in timeline if r["run_name"] == open_pass["run_name"])
+    assert (row["runtime"], row["model"], row["effort"]) == (
+        "open_agent",
+        "deepseek-flash",
+        "high",
+    )

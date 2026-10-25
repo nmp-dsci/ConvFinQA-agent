@@ -374,6 +374,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Promote prompt, model and effort together when the rule passes.",
     )
+    gch.add_argument(
+        "--runtime",
+        default="agent_sdk",
+        choices=("agent_sdk", "open_agent"),
+        help=(
+            "The challenger's runtime. open_agent (s25) is the same prompt on an "
+            "open model in an open harness; name it with --open-model/--open-effort."
+        ),
+    )
+    gch.add_argument("--open-harness", default="pydantic_ai", choices=("pydantic_ai",))
+    gch.add_argument("--open-model", default=None, metavar="MODEL")
+    gch.add_argument("--open-effort", default=None, choices=("low", "high", "max"))
 
     kp = sub.add_parser(
         "kappa",
@@ -953,6 +965,22 @@ def main() -> None:
         champion = registry.champion_agent() or {}
         model = args.sdk_model or str(champion.get("model") or "")
         effort = args.sdk_effort or str(champion.get("effort") or "")
+        harness = ""
+        if args.runtime == "open_agent":
+            if args.sdk_model or args.sdk_effort:
+                ap.error("--runtime open_agent takes --open-model/--open-effort")
+            if not args.open_model:
+                ap.error("--runtime open_agent needs --open-model")
+            if args.promote:
+                # The champion record runs on the Agent SDK; serving has no
+                # open_agent path, so promoting would point it at a model the
+                # runtime it reads cannot run. Record the verdict instead.
+                ap.error(
+                    "--promote is refused for an open_agent challenger: serving "
+                    "cannot run it yet; the verdict is recorded without it"
+                )
+            model, effort = args.open_model, args.open_effort or "high"
+            harness = args.open_harness
         train: dict[str, str] = {}
         for csv in args.candidate_train_csv:
             seed = sdk_gate.train_seed_of(csv)
@@ -967,6 +995,8 @@ def main() -> None:
             candidate_train=train,
             target_class=args.target_class,
             base_agent_csv=args.base_agent_csv,
+            runtime=args.runtime,
+            harness=harness,
         )
         promoted = False
         if args.promote and verdict["promotable"]:

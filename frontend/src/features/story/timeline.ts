@@ -308,7 +308,7 @@ export interface LedgerRow {
   label: string;
   run_name: string;
   version: string;
-  runtime: 'pipeline' | 'agent_sdk';
+  runtime: 'pipeline' | 'agent_sdk' | 'open_agent';
   model: string | null;
   effort: string | null;
   accuracy: number | null;

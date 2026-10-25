@@ -1670,3 +1670,83 @@ def test_loop_runs_serve_the_sdk_passes_with_their_agent() -> None:
     assert sonnet["model_slug"] is None and abs(sonnet["accuracy"] - 0.905444) < 1e-6
     v5 = next(r for r in runs.values() if r["version"] == "v5" and r["split"] == "test")
     assert v5["runtime"] == "pipeline" and v5["composition"] == "t3.p4.r3.c3"
+
+
+def test_an_open_agent_challengers_gate_row_says_open_agent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """s25: the gates ledger is append-only; an open-agent row filed as
+    `agent_sdk` would sit in Claude's history for good."""
+    from convfinqa.evalloop import ledgers, sdk_gate
+    from convfinqa.tracking import mlflow_log, registry
+
+    monkeypatch.setenv(ledgers.LEDGER_DIR_ENV, str(tmp_path / "ledgers"))
+    monkeypatch.setattr(mlflow_log, "_mlflow", lambda: _FakeMlflow())
+    monkeypatch.setattr(sdk_gate, "sdk_prompt_hash", lambda v: f"{v}-hash")
+    monkeypatch.setattr(registry, "sdk_champion", lambda path=None: "sdk_v1")
+    stats = {
+        "accuracy_delta": -0.02, "cluster_p_one_sided": 0.9, "n_compared": 349,
+        "fail_to_pass": 8, "pass_to_fail": 15, "delta_ci_lo": -0.05,
+        "delta_ci_hi": 0.01, "evidence_split": "test",
+    }  # fmt: skip
+    sdk_gate.log_gate_verdict(
+        {
+            "baseline_version": "sdk_v1",
+            "candidate_version": "sdk_v1",
+            "evidence_split": "test",
+            "promotable": False,
+            "gate_passed": False,
+            "rule": "model_swap",
+            "outcome": "falls_short",
+            "baseline_agent": ("claude-sonnet-5", "high"),
+            "candidate_agent": ("deepseek-flash", "high"),
+            "runtime": "open_agent",
+            "candidate_harness": "pydantic_ai",
+            "reason": "falls_short",
+            "comparison": stats,
+        },
+        campaign="o01",
+        label="o01-e01",
+        promoted=False,
+        champion_after="sdk_v1",
+    )
+    row = ledgers.load("gates").iloc[0]
+    assert row["runtime"] == "open_agent"
+    assert (row["candidate_sdk_model"], row["candidate_sdk_effort"]) == (
+        "deepseek-flash",
+        "high",
+    )
+    assert bool(row["promoted"]) is False and row["champion_after"] == "sdk_v1"
+    assert ledgers.load("gates", runtime="agent_sdk").empty
+
+
+def test_gate_challenger_refuses_to_promote_an_open_agent(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Serving runs the champion record on the Agent SDK; it has no open_agent path."""
+    import sys
+
+    from convfinqa.evalloop import cli
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "convfinqa-evalloop",
+            "gate-challenger",
+            "--candidate-csv",
+            "x.csv",
+            "--candidate-version",
+            "sdk_v1",
+            "--runtime",
+            "open_agent",
+            "--open-model",
+            "deepseek-flash",
+            "--promote",
+        ],
+    )
+    with pytest.raises(SystemExit):
+        cli.main()
+    assert (
+        "--promote is refused for an open_agent challenger" in capsys.readouterr().err
+    )

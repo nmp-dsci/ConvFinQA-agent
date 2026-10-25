@@ -334,7 +334,8 @@ export interface TestPass {
   run_id: string | null;
   run_name: string;
   version: string;
-  runtime: 'pipeline' | 'agent_sdk';
+  /** `open_agent` (s25): the sdk prompt on an open model in an open harness. */
+  runtime: 'pipeline' | 'agent_sdk' | 'open_agent';
   /** sdk: the model id; pipeline: the model all four agents run on. */
   model: string | null;
   /** sdk only. */
@@ -388,7 +389,7 @@ export interface TrainPass {
   date: string | null;
   run_name: string;
   version: string;
-  runtime: 'pipeline' | 'agent_sdk';
+  runtime: 'pipeline' | 'agent_sdk' | 'open_agent';
   model: string | null;
   effort: string | null;
   accuracy: number | null;
