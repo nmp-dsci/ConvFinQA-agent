@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open agent verdict</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; vertical-align:top; }
+  .tablewrap td.n, .tablewrap th.n{ overflow-wrap:normal; }
+  table.fx{ table-layout:fixed; min-width:820px; }
+  table.fx.narrow{ min-width:620px; }
+  table.fx th{ white-space:normal; }
+  td.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .ok{ color:var(--accent); font-weight:600; }
+  .bad{ color:var(--red); font-weight:600; }
+  .muted2{ color:var(--muted); }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:760px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .lbs{ fill:var(--muted); font-family:var(--sans); font-size:12.5px; }
+  .fig .tick{ fill:var(--muted); font-family:var(--mono); font-size:12px; }
+  .fig .axis{ stroke:var(--line-3); stroke-width:1; }
+  .fig .zero{ stroke:var(--ink-2); stroke-width:1.5; }
+  .fig .margin{ stroke:var(--amber); stroke-width:1.5; stroke-dasharray:5 4; }
+  .fig .zone{ fill:var(--amber-soft); }
+  .fig .ci{ stroke-width:3; stroke-linecap:round; }
+  .fig .ci.bad{ stroke:var(--red); }
+  .fig .ci.ok{ stroke:var(--accent); }
+  .fig .pt.bad{ fill:var(--red); }
+  .fig .pt.ok{ fill:var(--accent); }
+  .fig .val{ fill:var(--ink); font-family:var(--mono); font-size:12.5px; }
+  .fig .tag{ fill:var(--amber); font-family:var(--sans); font-size:12px; font-weight:600; }
+  .fig .tag0{ fill:var(--ink-2); font-family:var(--sans); font-size:12px; font-weight:600; }
+  .checks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .checks .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .checks .card b.id{ font-family:var(--mono); color:var(--accent); margin-right:var(--s1); }
+  .split2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .split2 > *{ min-width:0; }
+  details.flips{ margin-top:var(--s4); }
+  details.flips summary{ cursor:pointer; font-weight:600; }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:56px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s27 · ConvFinQA-agent · 2026-10-25 · verdict · experiment o01-e01 · branch <code>open-agents</code></div>
+  <h1>DeepSeek Flash in Pydantic AI falls short of the champion by 2.9 points on test. <em>Level on number turns, behind on program turns, at a fiftieth of the price.</em></h1>
+  <p class="lede">The champion's prompt, tools, answer schema and limits ran unchanged on <code>deepseek-flash</code> (V4.1-Flash-1017, thinking <code>high</code>) in Pydantic AI 2.61.
+    Flash was scored on the 100 test conversations and on the champion's two train draws. It was then judged as a challenger against the champion's committed runs (sdk_v1 · Sonnet 5 · high), by the rule the Haiku challenger faced.
+    Test decides; train can only veto. As you chose, the verdict is <b>recorded only</b>: the champion is unchanged.</p>
+
+  <div class="verdict">
+    <div class="stat red"><div class="n">falls short</div><div class="l">2 of the 6 checks failed: the CI's lower bound is below the −3pp margin, and program turns are significantly worse</div></div>
+    <div class="stat"><div class="n">87.7% vs 90.5%</div><div class="l">test, question level: 306 against 316 of 349. Δ −2.87pp, 95% CI [−7.10, +1.13], with 7 fixed and 17 broken</div></div>
+    <div class="stat"><div class="n">75 vs 78</div><div class="l">test, conversation level: right to the end, of 100. Flash fixed 5 and broke 8</div></div>
+    <div class="stat amber"><div class="n">125 vs 132</div><div class="l">train, conversation level, of 200 over both draws. Not significantly worse (p 0.105), so no veto</div></div>
+    <div class="stat accent"><div class="n">$0.60 vs $32.28</div><div class="l">all three passes, Flash at off-peak against the champion's API-equivalent: about 54× cheaper, or about 27× at DeepSeek's peak rate</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5)">
+    <p><b>What the record says.</b> Gate <code>g-20261025011827-008370d3</code> is in <code>gates.jsonl</code> with <code>runtime=open_agent</code>, <code>verdict_outcome=falls_short</code>, <code>promoted=false</code> and <code>champion_after=sdk_v1</code>.
+      The Story's test timeline now ends with the row <i>sdk_v1 · flash · high, 87.7%, −2.87pp vs sdk_v1, falls short · o01-e01</i>, and <code>story_check</code> passes.
+      Promotion was never possible here: <code>gate-challenger</code> refuses <code>--promote</code> for an open agent, because serving has no open runtime.</p>
+  </div>
+</header>
+
+<section id="checks">
+  <h2>01 · The verdict, <em>check by check</em></h2>
+  <p class="sub">This is <code>story.model_swap_verdict</code>, unchanged. To pass, a challenger <i>beats</i> the champion (house gate) or <i>matches</i> it. Matching requires that the test CI's lower bound is no worse than −3pp, that neither test nor program turns are significantly worse, and that there are no extra ceiling errors. Train only vetoes.</p>
+  <div class="checks">
+    <div class="card"><span class="badge bad">fail</span><p><b class="id">test_beats</b>Δ −2.87pp with a one-sided cluster p of 0.909 toward better. It does not beat the champion.</p></div>
+    <div class="card"><span class="badge bad">fail</span><p><b class="id">test_ci_within_margin</b>The 95% CI's lower bound is <b>−7.10pp</b>, against a −3pp margin. The point estimate (−2.87pp) sits just inside the margin, but the interval doesn't, so this decides the verdict.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">test_not_worse</b>The one-sided p toward worse is 0.091. Overall, Flash isn't significantly worse at α 0.05.</p></div>
+    <div class="card"><span class="badge bad">fail</span><p><b class="id">program_turns_not_worse</b>Program turns fell from 88.2% to 83.6% (4 fixed, 15 broken), with p toward worse 0.028. That is significant, and the gap is all here.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">train_not_worse</b>Right to the end on 132 → 125 of 200, with p toward worse 0.105. Lower, but not significantly, so train doesn't veto.</p></div>
+    <div class="card"><span class="badge ok">pass</span><p><b class="id">no_extra_ceiling_errors</b>There were 0 token-ceiling errors on either side. Nothing was rate-limited or unscored, and every reply was served by <code>deepseek-flash</code>.</p></div>
+  </div>
+</section>
+
+<section id="questions">
+  <h2>02 · Question level on test, <em>paired question by question</em></h2>
+  <p class="sub">Both agents answered all 349 test questions, so this comparison is exact pairing on the same set. The intervals are the gate's cluster bootstrap, which resamples conversations rather than questions, because a conversation's turns share an error.</p>
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 920 250" role="img" aria-labelledby="ci-t">
+      <title id="ci-t">Paired accuracy difference, Flash minus the champion, with 95% cluster bootstrap intervals, against the −3pp margin</title>
+      <rect class="zone" x="270" y="30" width="261" height="170"/>
+      <text class="tag" x="276" y="46">below the −3pp margin</text>
+      <line class="margin" x1="531" y1="30" x2="531" y2="200"/>
+      <line class="zero" x1="629" y1="30" x2="629" y2="200"/>
+      <text class="tag0" x="635" y="46">no difference</text>
+
+      <text class="lb" x="252" y="78" text-anchor="end">All 349 questions</text>
+      <text class="lbs" x="252" y="94" text-anchor="end">316 → 306</text>
+      <line class="ci bad" x1="397" y1="82" x2="666" y2="82"/>
+      <circle class="pt bad" cx="535" cy="82" r="6"/>
+      <text class="val" x="676" y="86">−2.87 [−7.10, +1.13]</text>
+
+      <text class="lb" x="252" y="128" text-anchor="end">Number turns, 111</text>
+      <text class="lbs" x="252" y="144" text-anchor="end">106 → 107</text>
+      <line class="ci ok" x1="500" y1="132" x2="840" y2="132"/>
+      <circle class="pt ok" cx="658" cy="132" r="6"/>
+      <text class="val" x="666" y="120">+0.90 [−3.96, +6.48]</text>
+
+      <text class="lb" x="252" y="178" text-anchor="end">Program turns, 238</text>
+      <text class="lbs" x="252" y="194" text-anchor="end">210 → 199</text>
+      <line class="ci bad" x1="321" y1="182" x2="616" y2="182"/>
+      <circle class="pt bad" cx="478" cy="182" r="6"/>
+      <text class="val" x="676" y="186">−4.62 [−9.43, −0.41]</text>
+
+      <line class="axis" x1="270" y1="205" x2="890" y2="205"/>
+      <text class="tick" x="303" y="224" text-anchor="middle">−10</text>
+      <text class="tick" x="466" y="224" text-anchor="middle">−5</text>
+      <text class="tick" x="531" y="224" text-anchor="middle">−3</text>
+      <text class="tick" x="629" y="224" text-anchor="middle">0</text>
+      <text class="tick" x="792" y="224" text-anchor="middle">+5</text>
+      <text class="tick" x="890" y="224" text-anchor="end">pp</text>
+    </svg>
+    <figcaption>Number turns are level with the champion, and their interval spans zero. Program turns are lower, and their whole interval sits below zero. The overall interval crosses the −3pp line, and that is the failed margin check.</figcaption>
+  </figure>
+
+  <div class="split2">
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:44%"><col style="width:28%"><col style="width:28%"></colgroup>
+        <thead><tr><th>Turns right, test</th><th>Sonnet 5 · champion</th><th>Flash · Pydantic AI</th></tr></thead>
+        <tbody>
+          <tr><td><b>All 349</b></td><td class="sc"><b>316 · 90.5%</b></td><td class="sc"><b>306 · 87.7%</b></td></tr>
+          <tr><td>Number turns, 111</td><td class="sc">106 · 95.5%</td><td class="sc">107 · 96.4%</td></tr>
+          <tr><td>Program turns, 238</td><td class="sc">210 · 88.2%</td><td class="sc">199 · 83.6%</td></tr>
+          <tr><td>Type I turns, 300</td><td class="sc">273 · 91.0%</td><td class="sc">268 · 89.3%</td></tr>
+          <tr><td>Type II (hybrid) turns, 49</td><td class="sc">43 · 87.8%</td><td class="sc">38 · 77.6%</td></tr>
+          <tr><td>Turn q0 · q1, 100 each</td><td class="sc">94 · 94</td><td class="sc">93 · 93</td></tr>
+          <tr><td>Turn q2, 76</td><td class="sc">66 · 86.8%</td><td class="sc">64 · 84.2%</td></tr>
+          <tr><td>Turn q3, 48</td><td class="sc">42 · 87.5%</td><td class="sc">39 · 81.3%</td></tr>
+          <tr><td>Turn q4 and later, 25</td><td class="sc">20 · 80.0%</td><td class="sc">17 · 68.0%</td></tr>
+          <tr><td>Wrong after an earlier wrong turn</td><td class="sc">24</td><td class="sc">32</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:60%"><col style="width:40%"></colgroup>
+        <thead><tr><th>The 349 paired questions</th><th>Questions</th></tr></thead>
+        <tbody>
+          <tr><td>Both right</td><td class="sc">299</td></tr>
+          <tr><td>Only Flash right (fixed)</td><td class="sc"><span class="ok">7</span></td></tr>
+          <tr><td>Only the champion right (broken)</td><td class="sc"><span class="bad">17</span></td></tr>
+          <tr><td>Both wrong</td><td class="sc">26</td></tr>
+          <tr><td>Conversations with a flip</td><td class="sc">14 of 100</td></tr>
+          <tr><td>One-sided clustered McNemar, p toward better · toward worse</td><td class="sc">0.909 · 0.091</td></tr>
+          <tr><td>P(Δ &gt; 0), bootstrap</td><td class="sc">0.074</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">Flash keeps pace on early turns and falls behind as conversations get longer: −1pp at q0 and q1, −12pp from q4 on. The q4+ and Type II rows are small, at 25 and 49 turns.</p>
+</section>
+
+<section id="conversations">
+  <h2>03 · Conversation level, <em>test and train</em></h2>
+  <p class="sub">A conversation counts once it is right to the end. On test both agents answered every turn, so the pairing is exact. On train both stopped at the first wrong turn, the champion's mode, and the pairing is the repo's <code>story._train_pairs</code>: an exact one-sided McNemar test per draw, then pooled.</p>
+  <div class="split2">
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:50%"><col style="width:25%"><col style="width:25%"></colgroup>
+        <thead><tr><th>Test, 100 conversations</th><th>Champion</th><th>Flash</th></tr></thead>
+        <tbody>
+          <tr><td><b>Right to the end</b></td><td class="sc"><b>78</b></td><td class="sc"><b>75</b></td></tr>
+          <tr><td>Both right · neither</td><td class="sc" colspan="2">70 · 17</td></tr>
+          <tr><td>Fixed · broken</td><td class="sc" colspan="2"><span class="ok">5</span> · <span class="bad">8</span></td></tr>
+          <tr><td>Exact one-sided McNemar, toward worse</td><td class="sc" colspan="2">p 0.29</td></tr>
+          <tr><td>Mean turns right before the first error</td><td class="sc">3.03</td><td class="sc">2.92</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+        <thead><tr><th>Train, right to the end</th><th>Seed 2027</th><th>Seed 2028</th><th>Pooled, 200</th></tr></thead>
+        <tbody>
+          <tr><td>Champion</td><td class="sc">64</td><td class="sc">68</td><td class="sc"><b>132</b></td></tr>
+          <tr><td>Flash</td><td class="sc">63</td><td class="sc">62</td><td class="sc"><b>125</b></td></tr>
+          <tr><td>Fixed · broken</td><td class="sc">5 · 6</td><td class="sc">3 · 9</td><td class="sc"><span class="ok">8</span> · <span class="bad">15</span></td></tr>
+          <tr><td>p toward worse</td><td class="sc">0.500</td><td class="sc">0.073</td><td class="sc">0.105</td></tr>
+          <tr><td>Turns right, champion's mode</td><td class="sc">278/314 → 271/308</td><td class="sc">284/316 → 273/311</td><td class="sc">89.2% → 87.9%</td></tr>
+          <tr><td>Mean turns right before the first error</td><td class="sc">2.78 → 2.71</td><td class="sc">2.84 → 2.73</td><td class="sc">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:var(--s4)">
+    <p><b>The smoke held up. It was too small to settle the question.</b> Flash's full-train passes re-ran the 20 smoke conversations and got exactly the smoke's result again: 14 against the champion's 13.
+      The whole train gap is in the other 180 conversations, 111 against 119. As s26 said, 20 conversations can't separate two agents this close.</p>
+  </div>
+</section>
+
+<section id="flips">
+  <h2>04 · Where the 17 breaks came from</h2>
+  <p class="sub">Each of the 24 test flips, read by hand against gold. The scorer is the same for both agents: it compares at the integer, or at 3 decimal places across a % sign. So an unrounded <code>1.7843</code> misses a gold <code>178%</code>, and a champion's <code>67.5%</code> misses a gold <code>67.48%</code>. Those format flips run both ways and roughly cancel. On reasoning alone the count is <b>2 fixed against 14 broken</b>.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:24%"><col style="width:10%"><col style="width:10%"><col style="width:56%"></colgroup>
+      <thead><tr><th>Kind of flip</th><th>Broken</th><th>Fixed</th><th>Cases</th></tr></thead>
+      <tbody>
+        <tr><td><b>Format only</b><span class="note">right value, rounded differently from gold</span></td><td class="sc">3</td><td class="sc">5</td>
+          <td>Broken: <code>Double_C</code> q3 and q6 (<code>1.7843</code> for 178%, <code>−0.7187</code> for −72%), <code>Single_UNP/2008</code> q3 (<code>0.2431</code> for 24%).
+            Fixed: <code>JPM</code> q2, <code>BDX</code> q3 and <code>ZBH</code> q3, where the champion's rounding lost the match. Also <code>Double_CB/2010</code> q0 and q1, where the champion wrote <code>4.2 billion</code>, which the scorer can't parse.</td></tr>
+        <tr><td><b>Operand order</b><span class="note">right numbers, sign flipped</span></td><td class="sc">3</td><td class="sc">0</td>
+          <td><code>Single_LMT/2016</code> q2 (2003 for −2003), <code>Single_MMM/2007</code> q2 (−18 for 18) and its q3 follow-on (−52.9% for 52.9%). Flash wrote <code>subtract(B, A)</code> where the conversation meant later minus earlier.</td></tr>
+        <tr><td><b>Wrong operands or plan</b><span class="note">attributed mostly to preprocess</span></td><td class="sc">11</td><td class="sc">2</td>
+          <td><code>Double_CB/2009</code> q0–q4, <b>5 of the 17 in one conversation</b>: Flash added two statutory lines where gold reads one, and every later turn inherited it.
+            <code>Single_IP/2007</code> q0 and q1 (divided by 1,000 instead of multiplying), <code>Double_AWK/2015</code> q2 and q3, <code>Single_ETR/2008</code> q4, and <code>Single_GIS/2017</code> q0.
+            Fixed: <code>Double_AES/2016</code> q0 and q2, where the champion read 6 for 3.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="split2">
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
+        <thead><tr><th>Flips by attributed stage<span class="note">gold-derived, from the gates row</span></th><th>Fixed</th><th>Broken</th></tr></thead>
+        <tbody>
+          <tr><td>Preprocess (the plan)</td><td class="sc">1</td><td class="sc"><span class="bad">11</span></td></tr>
+          <tr><td>Calculator</td><td class="sc">5</td><td class="sc">4</td></tr>
+          <tr><td>Retriever</td><td class="sc">0</td><td class="sc">1</td></tr>
+          <tr><td>Triage</td><td class="sc">1</td><td class="sc">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table class="fx narrow" style="min-width:0">
+        <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
+        <thead><tr><th>Stage panel, test</th><th>Champion</th><th>Flash</th></tr></thead>
+        <tbody>
+          <tr><td>Triage turn type</td><td class="sc">97.4%</td><td class="sc">97.4%</td></tr>
+          <tr><td>Preprocess plan executes to gold</td><td class="sc">87.6%</td><td class="sc"><span class="bad">83.3%</span></td></tr>
+          <tr><td>Retriever operand recall</td><td class="sc">78.6%</td><td class="sc"><span class="ok">80.5%</span></td></tr>
+          <tr><td>Calculator executes to gold</td><td class="sc">88.2%</td><td class="sc"><span class="bad">83.5%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">So Flash finds the numbers at least as well as Sonnet 5. It loses on what to do with them: which two lines to combine, and which way round to subtract. That is a reasoning gap, not a plumbing one. Every reply parsed, nothing hit a ceiling, and the calculator tools did the arithmetic. There were 2 in-head answers in 349 turns, against the champion's 5.</p>
+  <details class="flips">
+    <summary>All 24 flips, with gold and both answers</summary>
+    <div class="tablewrap" style="margin-top:var(--s3)">
+      <table class="fx">
+        <colgroup><col style="width:34%"><col style="width:12%"><col style="width:13%"><col style="width:17%"><col style="width:24%"></colgroup>
+        <thead><tr><th>Question</th><th>Gold</th><th>Champion</th><th>Flash</th><th>Kind</th></tr></thead>
+        <tbody>
+<tr><td><code>Double_C/2009/page_48.pdf</code> q3<span class="note">what percentage change does this represent?</span></td><td class="sc">178%</td><td class="sc"><span class="ok">1.78</span></td><td class="sc"><span class="bad">1.7843…</span></td><td>broken · format</td></tr>
+<tr><td><code>Double_C/2009/page_48.pdf</code> q6<span class="note">what percentage change does this represent?</span></td><td class="sc">-72%</td><td class="sc"><span class="ok">-0.72</span></td><td class="sc"><span class="bad">-0.7187…</span></td><td>broken · format</td></tr>
+<tr><td><code>Single_UNP/2008/page_83.pdf-3</code> q3<span class="note">what is the ratio of capital leases to the sum?</span></td><td class="sc">24%</td><td class="sc"><span class="ok">0.24</span></td><td class="sc"><span class="bad">0.2431…</span></td><td>broken · format</td></tr>
+<tr><td><code>Single_LMT/2016/page_85.pdf-1</code> q2<span class="note">so what was the difference in these two values?</span></td><td class="sc">-2003</td><td class="sc"><span class="ok">-2003</span></td><td class="sc"><span class="bad">2003</span></td><td>broken · operand order</td></tr>
+<tr><td><code>Single_MMM/2007/page_68.pdf-1</code> q2<span class="note">what was, then, the change in the value?</span></td><td class="sc">18</td><td class="sc"><span class="ok">18</span></td><td class="sc"><span class="bad">-18</span></td><td>broken · operand order</td></tr>
+<tr><td><code>Single_MMM/2007/page_68.pdf-1</code> q3<span class="note">and how much does this change represent in relation to the original value?</span></td><td class="sc">52.9%</td><td class="sc"><span class="ok">52.9%</span></td><td class="sc"><span class="bad">-52.9%</span></td><td>broken · operand order, follow-on</td></tr>
+<tr><td><code>Single_ETR/2008/page_314.pdf-3</code> q4<span class="note">what proportion of total revenue does this represent?</span></td><td class="sc">76.5%</td><td class="sc"><span class="ok">76.5%</span></td><td class="sc"><span class="bad">3.8%</span></td><td>broken · operands</td></tr>
+<tr><td><code>Double_CB/2009/page_220.pdf</code> q0<span class="note">ratio of statutory capital and surplus to statutory net income in 2009?</span></td><td class="sc">3.76</td><td class="sc"><span class="ok">3.76</span></td><td class="sc"><span class="bad">4.52</span></td><td>broken · operands</td></tr>
+<tr><td><code>Double_CB/2009/page_220.pdf</code> q1<span class="note">what is the statutory net income in 2009?</span></td><td class="sc">2472</td><td class="sc"><span class="ok">2472</span></td><td class="sc"><span class="bad">3342</span></td><td>broken · operands, follow-on</td></tr>
+<tr><td><code>Double_CB/2009/page_220.pdf</code> q2<span class="note">what about in 2008?</span></td><td class="sc">2196</td><td class="sc"><span class="ok">2196</span></td><td class="sc"><span class="bad">3014</span></td><td>broken · operands, follow-on</td></tr>
+<tr><td><code>Double_CB/2009/page_220.pdf</code> q3<span class="note">what is the net change?</span></td><td class="sc">276</td><td class="sc"><span class="ok">276</span></td><td class="sc"><span class="bad">328</span></td><td>broken · operands, follow-on</td></tr>
+<tr><td><code>Double_CB/2009/page_220.pdf</code> q4<span class="note">what growth rate does this represent?</span></td><td class="sc">12.6%</td><td class="sc"><span class="ok">12.6%</span></td><td class="sc"><span class="bad">10.9%</span></td><td>broken · operands, follow-on</td></tr>
+<tr><td><code>Single_GIS/2017/page_86.pdf-4</code> q0<span class="note">net change in operating leases from 2017 to 2018?</span></td><td class="sc">-69.3</td><td class="sc"><span class="ok">-69.3</span></td><td class="sc"><span class="bad">-17.1</span></td><td>broken · operands</td></tr>
+<tr><td><code>Single_IP/2007/page_30.pdf-1</code> q0<span class="note">what is 2017 north american printing paper sales by 1000?</span></td><td class="sc">3500</td><td class="sc"><span class="ok">3500</span></td><td class="sc"><span class="bad">3.5</span></td><td>broken · plan</td></tr>
+<tr><td><code>Single_IP/2007/page_30.pdf-1</code> q1<span class="note">what is that divided by 2007 sales?</span></td><td class="sc">54%</td><td class="sc"><span class="ok">0.54</span></td><td class="sc"><span class="bad">0.000536</span></td><td>broken · plan, follow-on</td></tr>
+<tr><td><code>Double_AWK/2015/page_117.pdf</code> q2<span class="note">what was, then, the change over the year?</span></td><td class="sc">21.97</td><td class="sc"><span class="ok">21.97</span></td><td class="sc"><span class="bad">16.65</span></td><td>broken · operands</td></tr>
+<tr><td><code>Double_AWK/2015/page_117.pdf</code> q3<span class="note">this change as a percentage of the 2013 fair value?</span></td><td class="sc">54.7%</td><td class="sc"><span class="ok">54.7%</span></td><td class="sc"><span class="bad">41.5%</span></td><td>broken · operands, follow-on</td></tr>
+<tr><td><code>Double_AES/2016/page_185.pdf</code> q0</td><td class="sc">3</td><td class="sc"><span class="bad">6</span></td><td class="sc"><span class="ok">3</span></td><td>fixed · operands</td></tr>
+<tr><td><code>Double_AES/2016/page_185.pdf</code> q2</td><td class="sc">5%</td><td class="sc"><span class="bad">10.0%</span></td><td class="sc"><span class="ok">5%</span></td><td>fixed · operands, follow-on</td></tr>
+<tr><td><code>Double_CB/2010/page_113.pdf</code> q0</td><td class="sc">4.2</td><td class="sc"><span class="bad">4.2 billion</span></td><td class="sc"><span class="ok">4.2</span></td><td>fixed · format</td></tr>
+<tr><td><code>Double_CB/2010/page_113.pdf</code> q1</td><td class="sc">3.2</td><td class="sc"><span class="bad">3.2 billion</span></td><td class="sc"><span class="ok">3.2</span></td><td>fixed · format</td></tr>
+<tr><td><code>Single_JPM/2014/page_65.pdf-1</code> q2</td><td class="sc">67.48%</td><td class="sc"><span class="bad">67.5%</span></td><td class="sc"><span class="ok">0.6748</span></td><td>fixed · format</td></tr>
+<tr><td><code>Single_BDX/2016/page_21.pdf-1</code> q3</td><td class="sc">76.4%</td><td class="sc"><span class="bad">0.76</span></td><td class="sc"><span class="ok">0.7638…</span></td><td>fixed · format</td></tr>
+<tr><td><code>Single_ZBH/2003/page_58.pdf-1</code> q3</td><td class="sc">1.0485</td><td class="sc"><span class="bad">104.9%</span></td><td class="sc"><span class="ok">1.0485…</span></td><td>fixed · format</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section id="cost">
+  <h2>05 · Cost and speed</h2>
+  <p class="sub">The champion's figures are API-equivalent (<code>sdk_session_cost_usd</code>); its passes were billed to the subscription. Flash's are DeepSeek's off-peak rates, because all three passes ran on a Sunday. The account balance fell from $2.37 to $1.74. That $0.63 is the smoke's $0.044 plus these three passes, which checks the cost accounting against the bill.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:40%"><col style="width:30%"><col style="width:30%"></colgroup>
+      <thead><tr><th></th><th>Sonnet 5 · Agent SDK</th><th>Flash · Pydantic AI</th></tr></thead>
+      <tbody>
+        <tr><td>Test pass, 349 turns</td><td class="sc">$11.83</td><td class="sc">$0.222</td></tr>
+        <tr><td>Train draws, 2 × 100 conversations</td><td class="sc">$20.46</td><td class="sc">$0.374</td></tr>
+        <tr><td><b>All three passes</b></td><td class="sc"><b>$32.28</b></td><td class="sc"><b>$0.596</b><span class="note">≈ 54× less off-peak, ≈ 27× at peak</span></td></tr>
+        <tr><td>Per test turn</td><td class="sc">$0.0339</td><td class="sc">$0.00064</td></tr>
+        <tr><td>Model calls · calculator calls per turn</td><td class="sc">2.96 · 0.92</td><td class="sc">2.06 · 1.05</td></tr>
+        <tr><td>Wall clock, test pass</td><td class="sc">787 s<span class="note">concurrency 4</span></td><td class="sc">262 s<span class="note">concurrency 8, so not like for like</span></td></tr>
+        <tr><td>Reasoning tokens, test</td><td class="sc">— <span class="note">the CLI doesn't report them</span></td><td class="sc">99,556<span class="note">≈ 285 a turn</span></td></tr>
+        <tr><td>Input served from cache</td><td class="sc">≈ 100%</td><td class="sc">95%</td></tr>
+        <tr><td>In-head answers · stage skips, test</td><td class="sc">5 · 3</td><td class="sc">2 · 2</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="next">
+  <h2>06 · What next</h2>
+  <p class="sub">Your D5 answer on s25 was "V4-Pro if Flash falls short", and it has fallen short. You also asked me to stop for review, and both next steps spend money or push, so they wait for your answer here.</p>
+  <ul class="sub">
+    <li><b>V4-Pro, as o01-e02.</b> Same prompt, same harness, same gate. Only <code>--open-model deepseek-v4-pro</code> changes. Pro is DeepSeek's larger model (V4-Pro GA; there is no V4.1 Pro).
+      At Flash's measured tokens and Pro's rates, a test pass is about <b>$0.85 off-peak</b>, or $1.70 at peak; more if Pro reasons longer. The two train draws add about $1.40 off-peak.
+      The $1.74 balance covers the test pass, not test plus train. So I'd run test first and ask for a top-up only if it beats or matches. Off-peak lasts until Monday 01:00 UTC, which is 12:00 AEDT.</li>
+    <li><b>The branch.</b> <code>open-agents</code> has 8 commits and nothing pushed: the upgrade, the open runtime, the smoke, the challenger plumbing, and this experiment's data. It stands on its own. A V4-Pro result would be one more data commit.</li>
+  </ul>
+
+  <form class="q" data-lavish-question="next-experiment" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('next'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('Next experiment: '+v+(n?' — note: '+n:''),{tag:'choice',text:'Next: '+v,element:f,data:{question:'next-experiment',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>Run V4-Pro?</h3>
+    <fieldset>
+      <label><input type="radio" name="next" value="run V4-Pro on test as o01-e02 now, off-peak, DeepSeek cap $1.50; gate it record-only; ask before the train draws" checked><span><b>Run V4-Pro on test</b> <span class="badge rec">recommended</span><span class="d">One test pass, about $0.85, capped at $1.50. Gated against the champion. Train draws only after a beats or matches, and after a top-up.</span></span></label>
+      <label><input type="radio" name="next" value="stop at Flash: o01-e01 is the open-agent record; no V4-Pro"><span><b>Stop at Flash</b><span class="d">The record is o01-e01. No more DeepSeek spend.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="branch" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('branch'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('Branch open-agents: '+v+(n?' — note: '+n:''),{tag:'choice',text:'Branch: '+v,element:f,data:{question:'branch',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>Ship the branch?</h3>
+    <fieldset>
+      <label><input type="radio" name="branch" value="commit the s27 page, open the PR and run /no-mistakes now; V4-Pro (if any) goes on a follow-up branch" checked><span><b>PR now</b> <span class="badge rec">recommended</span><span class="d">Commit this page, push, open the PR and run /no-mistakes. V4-Pro, if you run it, gets its own follow-up branch.</span></span></label>
+      <label><input type="radio" name="branch" value="wait: keep open-agents local until the V4-Pro result is in, then one PR"><span><b>After V4-Pro</b><span class="d">One PR holding both experiments.</span></span></label>
+      <label><input type="radio" name="branch" value="hold: do not push open-agents yet"><span><b>Hold</b><span class="d">Keep everything local for now.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <p>Everything here is read from committed files and the central MLflow server, on 2026-10-25. The flip kinds in §04 were read by hand from the two test CSVs; every other number comes from the gate, the Story or the CSVs.
+    The page uses the portfolio's house UI (<code>house.css</code> plus this project's blue hue), like s25 and s26.</p>
+  <ul>
+    <li><b>Flash passes:</b> test <code>open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625</code> (MLflow run <code>f7d1b1b9</code>). Train seed 2027 <code>…-20261025_121052</code> (<code>68125f69</code>) and seed 2028 <code>…-20261025_121450</code> (<code>48a09fcd</code>).</li>
+    <li><b>Champion evidence:</b> test <code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627</code>, and train <code>sdk-evalloop-train100-sdk_v1·s1-20260905_180924</code> (2027) and <code>…_184211</code> (2028).</li>
+    <li><b>Verdict:</b> gate <code>g-20261025011827-008370d3</code>, MLflow gate run <code>8da4389c</code>. <code>evaluation/diagnostics/evalloop/gates.jsonl</code>, and <code>story.json → challengers.pairs</code> (runtime <code>open_agent</code>).</li>
+    <li><b>Commits on <code>open-agents</code>:</b> <code>fee49f3</code> upgrade · <code>98295ae</code> open runtime · <code>b077fd0</code> trace fix · <code>e7b4742</code> smoke data · <code>c75519c</code> challenger plumbing · <code>c2249a3</code> o01-e01 data.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>
