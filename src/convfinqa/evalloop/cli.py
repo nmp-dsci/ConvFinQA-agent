@@ -78,12 +78,13 @@ def check_runtime(
     for version in versions:
         if not version:
             continue
-        if prompts_pkg.is_sdk_version(version) != (runtime == "agent_sdk"):
+        session = runtime in ("agent_sdk", "open_agent")
+        if prompts_pkg.is_sdk_version(version) != session:
             wanted = "agent_sdk" if prompts_pkg.is_sdk_version(version) else "pipeline"
             ap.error(
                 f"version {version!r} belongs to --runtime {wanted}, not "
-                f"{runtime!r}: sdk_vN prompts run under agent_sdk, vN bundles "
-                "under pipeline"
+                f"{runtime!r}: sdk_vN prompts run under agent_sdk (or open_agent), "
+                "vN bundles under pipeline"
             )
 
 
@@ -180,11 +181,38 @@ def build_parser() -> argparse.ArgumentParser:
     rn.add_argument(
         "--runtime",
         default="pipeline",
-        choices=("pipeline", "agent_sdk"),
+        choices=("pipeline", "agent_sdk", "open_agent"),
         help=(
-            "Who walks the conversations: the four-agent pipeline (a vN bundle) "
-            "or one Claude Agent SDK session per conversation. "
-            "--version sdk_vN requires --runtime agent_sdk."
+            "Who walks the conversations: the four-agent pipeline (a vN bundle), "
+            "one Claude Agent SDK session per conversation, or (s25) the same "
+            "sdk_vN contract on an open model in an open harness. "
+            "--version sdk_vN requires agent_sdk or open_agent."
+        ),
+    )
+    from convfinqa.llm import OPEN_EFFORTS, OPEN_HARNESSES, OPEN_MODELS
+
+    rn.add_argument(
+        "--open-harness",
+        default=None,
+        choices=OPEN_HARNESSES,
+        help="open_agent only: the harness (default: pydantic_ai).",
+    )
+    rn.add_argument(
+        "--open-model",
+        default=None,
+        choices=OPEN_MODELS,
+        help=(
+            "open_agent only: the DeepSeek model (default: deepseek-flash). "
+            "Goes into the run name as pyd-<model>."
+        ),
+    )
+    rn.add_argument(
+        "--open-effort",
+        default=None,
+        choices=OPEN_EFFORTS,
+        help=(
+            "open_agent only: DeepSeek's reasoning effort (default: high). Part "
+            "of what the agent is, so it goes into the run name."
         ),
     )
     rn.add_argument(
@@ -209,6 +237,32 @@ def build_parser() -> argparse.ArgumentParser:
             "run name after the model slug and is the sdk_effort param and tag."
         ),
     )
+
+    mk = sub.add_parser(
+        "make-smoke",
+        help=(
+            "s25: pick the open-agent smoke set from the champion's train draws "
+            "and write its manifest and one --report-ids-file per seed."
+        ),
+    )
+    mk.add_argument("--name", default="smoke_v1")
+    mk.add_argument("--tries", type=int, default=200_000)
+    mk.add_argument(
+        "--force", action="store_true", help="Overwrite an existing manifest."
+    )
+    sc = sub.add_parser(
+        "smoke-compare",
+        help="s25: a smoke pass beside the champion's records, per question and conversation.",
+    )
+    sc.add_argument(
+        "--csv",
+        action="append",
+        required=True,
+        metavar="SEED=CSV",
+        help="One smoke pass per seed, e.g. 2027=evaluation/predictions/evalloop/<run>.csv",
+    )
+    sc.add_argument("--name", default="smoke_v1")
+    sc.add_argument("--out", default=None, help="Also write the comparison here.")
 
     gt = sub.add_parser("gate", help="Paired comparison of two run CSVs.")
     gt.add_argument("--baseline-csv", required=True)
@@ -643,6 +697,12 @@ def main() -> None:
             ap.error("--sdk-model applies to --runtime agent_sdk only")
         if args.sdk_effort and args.runtime != "agent_sdk":
             ap.error("--sdk-effort applies to --runtime agent_sdk only")
+        if args.runtime != "open_agent" and (
+            args.open_harness or args.open_model or args.open_effort
+        ):
+            ap.error(
+                "--open-harness/--open-model/--open-effort need --runtime open_agent"
+            )
         summary = asyncio.run(
             run_split(
                 args.split,
@@ -659,9 +719,35 @@ def main() -> None:
                 sdk_model=args.sdk_model,
                 sdk_effort=args.sdk_effort,
                 report_ids_file=args.report_ids_file,
+                open_harness=args.open_harness,
+                open_model=args.open_model,
+                open_effort=args.open_effort,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201
+
+    elif args.cmd == "make-smoke":
+        from convfinqa.evalloop import smoke
+
+        path = smoke.write(args.name, force=args.force, tries=args.tries)
+        print(path.read_text())  # noqa: T201
+
+    elif args.cmd == "smoke-compare":
+        from pathlib import Path
+
+        from convfinqa.evalloop import smoke
+
+        csvs: dict[int, Path] = {}
+        for item in args.csv:
+            seed, _, path_text = item.partition("=")
+            if not path_text:
+                ap.error(f"--csv {item!r}: expected SEED=CSV")
+            csvs[int(seed)] = Path(path_text)
+        comparison = smoke.compare(csvs, args.name)
+        text = json.dumps(comparison, indent=2)
+        if args.out:
+            Path(args.out).write_text(text + "\n")
+        print(text)  # noqa: T201
 
     elif args.cmd == "gate":
         from convfinqa.evalloop.gate import gate_runs, promote_winner

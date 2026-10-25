@@ -43,7 +43,10 @@ from convfinqa.tracking import cost, tracing
 
 PREDICTIONS_DIR = EVAL_ROOT / "predictions" / "evalloop"
 
-RUNTIMES = ("pipeline", "agent_sdk")
+RUNTIMES = ("pipeline", "agent_sdk", "open_agent")
+# The runtimes that answer a conversation in one session from an `sdk_vN`
+# prompt: Claude's harness, and the same contract on an open model (s25).
+SESSION_RUNTIMES = ("agent_sdk", "open_agent")
 
 # One conversation, any runtime: (report_id, questions, captures=, stop_after=)
 # -> (preds, programs). Both runtimes are bound to this shape before the pass
@@ -172,6 +175,69 @@ def sdk_conversation_fn(
         )
 
     return run
+
+
+class OpenConversationFn:
+    """`backends.open_agent.run_conversation` with its agent bound.
+
+    A class rather than a closure so the pass can collect what every
+    conversation's history held — `trajectories`, report id to the full
+    message list — and log it once as the run's trajectory artifact.
+    """
+
+    def __init__(self, system_prompt: str, version: str, model: str, effort: str):
+        self.system_prompt = system_prompt
+        self.version = version
+        self.model = model
+        self.effort = effort
+        self.trajectories: dict[str, Any] = {}
+
+    async def __call__(
+        self, report_id: str, questions: list[str], **kw: Any
+    ) -> tuple[list[str], list[str]]:
+        """Walk one conversation; its history lands in `self.trajectories`."""
+        from convfinqa.backends import open_agent
+
+        return await open_agent.run_conversation(
+            report_id,
+            questions,
+            system_prompt=self.system_prompt,
+            version=self.version,
+            model=self.model,
+            effort=self.effort,
+            trajectories=self.trajectories,
+            **kw,
+        )
+
+
+def _log_trajectories(rec: Any, run_name: str, trajectories: dict[str, Any]) -> None:
+    """Log each conversation's full message history as one gzipped JSONL artifact.
+
+    The lossless record a later fine-tune trains on: reasoning, tool calls,
+    tool results and replies, in Pydantic AI's own message schema. It goes to
+    the run, not to git — it is dev data, like the traces.
+    """
+    import gzip
+    import json
+    import tempfile
+
+    if not trajectories:
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "trajectories.jsonl.gz"
+        with gzip.open(path, "wt", encoding="utf-8") as fh:
+            for report_id, messages in trajectories.items():
+                fh.write(
+                    json.dumps(
+                        {
+                            "run_name": run_name,
+                            "report_id": report_id,
+                            "messages": messages,
+                        }
+                    )
+                    + "\n"
+                )
+        rec.artifact(path)
 
 
 def _name_slug_parts(path: Path | str) -> list[str]:
@@ -322,6 +388,8 @@ def prior_runtime(df: pd.DataFrame, path: Path | str) -> str:
             return named[0]
     if Path(path).name.startswith("sdk-evalloop"):
         return "agent_sdk"
+    if Path(path).name.startswith("open-evalloop"):
+        return "open_agent"
     versions = {str(v) for v in df.get("model_version_id", pd.Series(dtype=str))}
     if any(prompts_pkg.is_sdk_version(v) for v in versions):
         return "agent_sdk"
@@ -547,6 +615,9 @@ async def run_split(
     sdk_model: str | None = None,
     sdk_effort: str | None = None,
     report_ids_file: str | Path | None = None,
+    open_harness: str | None = None,
+    open_model: str | None = None,
+    open_effort: str | None = None,
 ) -> dict[str, Any]:
     """Run one split × version pass; return a summary with the CSV and run id.
 
@@ -573,6 +644,10 @@ async def run_split(
     four agents) or ``agent_sdk`` (an ``sdk_vN`` prompt, one Claude session).
     Version names and runtimes are checked against each other, because a
     bundle cannot run in a session and a session prompt cannot build agents.
+    ``open_agent`` (s25) runs an ``sdk_vN`` prompt unchanged on an open model:
+    `open_harness`, `open_model` and `open_effort` pick the agent, are refused
+    on any other runtime, and name the run ``open-evalloop-…·s1-pyd-<model>-
+    <effort>-<stamp>``.
 
     `resume_from` completes a pass that was cut short — by a rate limit, or by
     anything else that left rows unscored. Conversations the prior CSV answered
@@ -626,10 +701,16 @@ async def run_split(
         )
     if runtime not in RUNTIMES:
         raise ValueError(f"unknown runtime {runtime!r}; expected one of {RUNTIMES}")
-    if prompts_pkg.is_sdk_version(version) != (runtime == "agent_sdk"):
+    if prompts_pkg.is_sdk_version(version) != (runtime in SESSION_RUNTIMES):
         raise ValueError(
             f"version {version!r} does not belong to runtime {runtime!r}: "
-            "sdk_vN prompts run under --runtime agent_sdk, vN bundles under pipeline"
+            "sdk_vN prompts run under --runtime agent_sdk or open_agent, vN "
+            "bundles under pipeline"
+        )
+    if runtime != "open_agent" and (open_harness or open_model or open_effort):
+        raise ValueError(
+            "--open-harness, --open-model and --open-effort apply to "
+            "--runtime open_agent only"
         )
     if sdk_model is not None and runtime != "agent_sdk":
         raise ValueError(
@@ -656,6 +737,27 @@ async def run_split(
                 f"unknown effort {sdk_effort!r}; expected one of {SDK_EFFORTS}"
             )
         model_slug = sdk_model_slug(sdk_model)
+    if runtime == "open_agent":
+        from convfinqa.llm import (
+            OPEN_EFFORTS,
+            OPEN_HARNESSES,
+            OPEN_MODELS,
+            open_model_slug,
+        )
+
+        open_harness = open_harness or OPEN_HARNESSES[0]
+        open_model = open_model or OPEN_MODELS[0]
+        open_effort = open_effort or "high"
+        for value, allowed, flag in (
+            (open_harness, OPEN_HARNESSES, "--open-harness"),
+            (open_model, OPEN_MODELS, "--open-model"),
+            (open_effort, OPEN_EFFORTS, "--open-effort"),
+        ):
+            if value not in allowed:
+                raise ValueError(f"{flag} {value!r}; expected one of {allowed}")
+        model_slug = open_model_slug(open_harness, open_model)
+    # The effort the run name carries, whichever session runtime ran.
+    name_effort = sdk_effort if runtime == "agent_sdk" else open_effort
     examples = examples_for(report_ids)
     n_questions = sum(len(ex.questions) for ex in examples)
 
@@ -671,7 +773,7 @@ async def run_split(
             report_ids=report_ids,
             train_seed=train_seed,
             sdk_model_slug=model_slug,
-            sdk_effort=sdk_effort if runtime == "agent_sdk" else None,
+            sdk_effort=name_effort if runtime in SESSION_RUNTIMES else None,
         )
         reused = reusable_conversations(prior, examples)
     to_run = [ex for ex in examples if str(ex.report_id) not in reused]
@@ -707,6 +809,34 @@ async def run_split(
         # The slug sits between the composition and the stamp, so a listing
         # sorted by name groups a prompt's runs and reads the model off each.
         prefix = "sdk-evalloop"
+    elif runtime == "open_agent":
+        from importlib.metadata import version as package_version
+
+        from convfinqa.config import settings
+        from convfinqa.llm import OPEN_BILLING
+
+        system_prompt = prompts_pkg.load_sdk(version)
+        composition = prompt_ledger.sdk_composition_string(
+            prompt_ledger.ensure_sdk(version)
+        )
+        run_conversation = OpenConversationFn(
+            system_prompt, version, str(open_model), str(open_effort)
+        )
+        runtime_params.update(
+            {
+                "open_harness": open_harness,
+                "open_harness_version": package_version("pydantic-ai-slim"),
+                "open_model": open_model,
+                "open_effort": open_effort,
+                "billing": OPEN_BILLING,
+                "max_turns": settings.sdk_max_turns,
+                "sdk_total_tokens_limit": settings.sdk_total_tokens_limit,
+            }
+        )
+        runtime_tags["open_model"] = str(open_model)
+        runtime_tags["open_effort"] = str(open_effort)
+        runtime_tags["open_harness"] = str(open_harness)
+        prefix = "open-evalloop"
     else:
         from convfinqa.backends.pydantic import make_agents
 
@@ -724,7 +854,7 @@ async def run_split(
         f"{prefix}-{split}{len(report_ids)}-{version}"
         f"·{composition.replace('.', '')}"
         f"{'-' + model_slug if model_slug else ''}"
-        f"{'-' + str(sdk_effort) if model_slug else ''}-{stamp}"
+        f"{'-' + str(name_effort) if model_slug else ''}-{stamp}"
     )
 
     print(  # noqa: T201
@@ -952,6 +1082,21 @@ async def run_split(
         }
         metrics.update(program_accuracy(scored))
         metrics.update(stage_scores.run_metrics(scored))
+        if runtime == "open_agent":
+            captures_all = [c for out in results for c in out.captures]
+            metrics.update(sdk_run_metrics(captures_all))
+            sdks = [c.get("sdk") or {} for c in captures_all]
+            # Priced per call on DeepSeek's card in force when it ran.
+            metrics["open_cost_usd"] = round(
+                sum(float(s.get("cost_usd") or 0.0) for s in sdks), 6
+            )
+            metrics["reasoning_tokens"] = float(
+                sum(int(s.get("reasoning_tokens") or 0) for s in sdks)
+            )
+            served = sorted({m for s in sdks for m in s.get("served_models") or []})
+            rec.param("served_models", ",".join(served) or "none")
+            if isinstance(run_conversation, OpenConversationFn):
+                _log_trajectories(rec, run_name, run_conversation.trajectories)
         if runtime == "agent_sdk":
             metrics.update(
                 sdk_run_metrics([c for out in results for c in out.captures])
