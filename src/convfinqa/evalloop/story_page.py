@@ -408,9 +408,13 @@ def _timeline_section(rows: list[dict[str, Any]]) -> str:
         agent = " · ".join(
             x for x in (_short_model(r.get("model")), r.get("effort")) if x
         )
+        # An open agent is named for itself; its prompt is the champion's.
+        name = r.get("agent_name")
+        if name:
+            agent += f" · prompt {r.get('version')}"
         body.append(
             f"<tr><td>{_e(r.get('date') or '—')}</td>"
-            f"<td><code>{_e(r.get('version'))}</code> {_e(agent)}</td>"
+            f"<td><code>{_e(name or r.get('version'))}</code> {_e(agent)}</td>"
             f"<td>{_pct(r.get('accuracy'))}</td><td>{against}</td>"
             f"<td>{_e(OUTCOME_WORDS.get(str(r.get('outcome')), r.get('outcome')))}"
             f"{(' · ' + _e(r['label'])) if r.get('label') else ''}</td></tr>"

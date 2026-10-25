@@ -414,8 +414,10 @@ def _campaigns_response(campaign: str, _stamp: int) -> CampaignsResponse:
         if campaign and name != campaign:
             continue
         rows = entry.get("experiments", [])
-        sdk_experiments.extend(_experiment(name, row, "agent_sdk") for row in rows)
-        sdk_summaries.append(_summary(name, rows, "agent_sdk"))
+        # A session campaign is Claude's or the open agent's (o01); the story says which.
+        runtime = entry.get("runtime") or "agent_sdk"
+        sdk_experiments.extend(_experiment(name, row, runtime) for row in rows)
+        sdk_summaries.append(_summary(name, rows, runtime))
     return CampaignsResponse(
         champion=data.get("champion"),
         champion_accuracy=data.get("champion_accuracy"),

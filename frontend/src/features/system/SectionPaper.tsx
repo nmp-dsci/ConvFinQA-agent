@@ -68,7 +68,7 @@ function pct(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value * 100 : null;
 }
 
-const OUR_ORDER: RuntimeKey[] = ['agent_sdk', 'pipeline'];
+const OUR_ORDER: RuntimeKey[] = ['agent_sdk', 'open_agent', 'pipeline'];
 
 /**
  * The paper's rows plus one per runtime arm, sorted on execution accuracy. Our rows come from
@@ -99,7 +99,10 @@ export function boardRows(data: SystemData): BoardRow[] {
     const arm = data.runtimes?.[key] ?? null;
     const exe = pct(arm?.accuracy);
     const prog = pct(arm?.program_accuracy);
-    const version = versionLabel(arm?.version) || (key === 'agent_sdk' ? 'sdk champion' : 'champion');
+    const version =
+      arm?.agent_name ||
+      versionLabel(arm?.version) ||
+      (key === 'agent_sdk' ? 'sdk champion' : key === 'open_agent' ? 'open agent' : 'champion');
     return {
       key: `ours-${key}`,
       system: `${version} · ${ARMS[key].title}${arm?.model ? ` (${arm.model})` : ''}`,
@@ -143,7 +146,7 @@ function BoardFigure({ rows }: { rows: BoardRow[] }) {
       title="fig 1 · execution accuracy, every system on one axis"
       caption={
         <>
-          Our two runtimes in the accent colour, the paper&rsquo;s systems in grey, the paper&rsquo;s
+          Our three runtimes in the accent colour, the paper&rsquo;s systems in grey, the paper&rsquo;s
           human expert as the vertical rule. Read the caveat under the figure before the gaps.
         </>
       }
@@ -234,8 +237,9 @@ export function LeaderboardSection({ data }: { data: SystemData }) {
       lede={
         <>
           The paper&rsquo;s side is fixed and cited. Ours is read live from{' '}
-          <Mono>/eval/campaigns</Mono> — both runtime champions, scored on the same unseen gate
-          split — so promoting a challenger moves the row. The caveats are part of the figure.
+          <Mono>/eval/campaigns</Mono> — both runtime champions and the open agent{' '}
+          <Mono>llm_react_v1</Mono>, a challenger with no champion of its own, all scored on the same
+          unseen gate split — so promoting a challenger moves the row. The caveats are part of the figure.
         </>
       }
     >

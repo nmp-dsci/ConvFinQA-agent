@@ -121,6 +121,8 @@ export interface RuntimeArm {
   model?: string | null;
   /** The sdk arm's effort (`sdk_effort`, or dated against the low pin); null on the pipeline arm. */
   effort?: string | null;
+  /** The open arm's name (`llm_react_v1`); null on the other two. */
+  agent_name?: string | null;
 }
 
 /** One turn-type slice of the cross-runtime gate. */
@@ -153,6 +155,8 @@ export interface RuntimeGate {
 export interface RuntimeComparison {
   pipeline: RuntimeArm;
   agent_sdk: RuntimeArm;
+  /** The open runtime's best complete test pass (s25): a challenger, never a champion. Absent from older stories. */
+  open_agent?: RuntimeArm;
   gate: RuntimeGate | null;
 }
 
@@ -334,6 +338,8 @@ export interface TestPass {
   run_id: string | null;
   run_name: string;
   version: string;
+  /** An open agent's name (`llm_react_v1`): it runs `version` unchanged, so the version alone names the champion. */
+  agent_name?: string | null;
   /** `open_agent` (s25): the sdk prompt on an open model in an open harness. */
   runtime: 'pipeline' | 'agent_sdk' | 'open_agent';
   /** sdk: the model id; pipeline: the model all four agents run on. */
@@ -389,6 +395,7 @@ export interface TrainPass {
   date: string | null;
   run_name: string;
   version: string;
+  agent_name?: string | null;
   runtime: 'pipeline' | 'agent_sdk' | 'open_agent';
   model: string | null;
   effort: string | null;

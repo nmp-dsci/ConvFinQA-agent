@@ -406,6 +406,22 @@ def _agent_of_record(record: dict[str, Any]) -> tuple[str, str] | None:
     return _sdk_model_of(record, sdk_reference_model()), _sdk_effort_of(record)
 
 
+def _agent_name_of(record: dict[str, Any]) -> str | None:
+    """What the pages call an open-agent run (`llm_react_v1`); None otherwise.
+
+    It runs the champion's prompt unchanged, so its version alone names the
+    champion. `llm.open_agent_name` is the one table of names.
+    """
+    from convfinqa.llm import open_agent_name
+
+    params = record.get("params") or {}
+    if params.get("runtime") != "open_agent":
+        return None
+    return open_agent_name(
+        str(params.get("open_harness") or ""), str(params.get("prompts_version") or "")
+    )
+
+
 #: Passes that ran out of subscription before the unscored rule existed
 #: (2026-09-05): their rate-limited turns were scored as wrong, so their
 #: records carry no `complete` metric to say what they are. Named here rather
@@ -644,6 +660,7 @@ def train_passes(eval_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "date": _run_date(name, rec.get("start_time")),
                 "run_name": name,
                 "version": str(params.get("prompts_version") or ""),
+                "agent_name": _agent_name_of(rec),
                 "runtime": _runtime_of(rec),
                 "model": agent[0] if agent else _pipeline_model(rec),
                 "effort": agent[1] if agent else None,
@@ -744,6 +761,7 @@ def test_timeline(
             "run_id": rec.get("run_id"),
             "run_name": name,
             "version": version,
+            "agent_name": _agent_name_of(rec),
             "runtime": _runtime_of(rec),
             "model": agent[0] if agent else _pipeline_model(rec),
             "effort": agent[1] if agent else None,
@@ -907,6 +925,8 @@ _ARM_KEYS = (
     # The sdk arm's effort — part of what the agent is. From the `sdk_effort`
     # param, or dated against the effort pin for a run older than the param.
     "effort",
+    # The open arm's name (`llm_react_v1`); None on the other two.
+    "agent_name",
 )
 
 
@@ -951,6 +971,7 @@ def _arm(record: dict[str, Any] | None) -> dict[str, Any]:
         else params.get("open_effort")
         if params.get("runtime") == "open_agent"
         else None,
+        "agent_name": _agent_name_of(record),
     }
 
 
@@ -1109,7 +1130,10 @@ def runtime_comparison(
     champion's model — can re-label the verdict. Without a gate row the arm
     falls back to the latest ``sdk-evalloop-test100-*`` run of `sdk_champion`
     on the reference model. Runs of the same prompt on other agents are
-    reported by `sdk_model_comparison`, not here. Every field is None until
+    reported by `sdk_model_comparison`, not here. A third arm, ``open_agent``,
+    is the open runtime's best complete test pass (s25): it has no champion
+    and no gate here, so it is on the board as a challenger and nothing reads
+    it as one of the two runtimes being compared. Every field is None until
     the corresponding run exists; the page must not read absence as zero.
     """
     reference_model = reference_model or sdk_reference_model()
@@ -1174,9 +1198,27 @@ def runtime_comparison(
                 "gate_id": gate_row.get("gate_id"),
             }
         )
+    # The open runtime has no champion, so its arm is its best complete test
+    # pass: a challenger on the board, never the champion's row.
+    open_runs = [
+        r
+        for r in tests
+        if (r.get("params") or {}).get("runtime") == "open_agent"
+        and str(r.get("run_name") or "").startswith("open-evalloop-test100-")
+        and _complete(r)
+    ]
+    best_open = max(
+        open_runs,
+        key=lambda r: (
+            (r.get("metrics") or {}).get("accuracy") or 0,
+            r.get("start_time") or 0,
+        ),
+        default=None,
+    )
     return {
         "pipeline": _arm(_latest(pipeline_runs)),
         "agent_sdk": _arm(_latest(sdk_runs)),
+        "open_agent": _arm(best_open),
         "gate": gate,
     }
 

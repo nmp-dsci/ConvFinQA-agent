@@ -308,6 +308,21 @@ def open_model_slug(harness: str, model: str) -> str:
     return f"{short}-{model}"
 
 
+#: What the app calls an open agent: a harness running a prompt. The prompt is
+#: sdk_v1 byte for byte, so the agent cannot take the prompt's name: "sdk-v1"
+#: on a DeepSeek pass reads as the champion. The model and effort stay beside
+#: the name, as they do for a Claude agent. Run names, CSVs and ledger rows
+#: keep what they recorded; this is the label the pages show.
+OPEN_AGENT_NAMES: dict[tuple[str, str], str] = {
+    ("pydantic_ai", "sdk_v1"): "llm_react_v1",
+}
+
+
+def open_agent_name(harness: str, version: str) -> str | None:
+    """`llm_react_v1` for Pydantic AI running sdk_v1; None for an unnamed pair."""
+    return OPEN_AGENT_NAMES.get((harness, version))
+
+
 async def call_with_budget(
     fn: Callable[[], Awaitable[T]],
     *,

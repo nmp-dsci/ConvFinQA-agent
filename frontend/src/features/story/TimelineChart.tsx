@@ -89,7 +89,7 @@ export function clampCentre(x: number, width: number, min: number, max: number):
 
 /** The two lines under a point: its version, then its model (single session) and accuracy. */
 export function labelLines(p: TestPass): string[] {
-  const head = versionLabel(p.version) || p.version;
+  const head = p.agent_name || versionLabel(p.version) || p.version;
   const pct = formatPercent(p.accuracy);
   return [head, p.runtime !== 'pipeline' && p.model ? `${shortModel(p.model)} · ${pct}` : pct];
 }

@@ -30,16 +30,26 @@ export function shortModel(model: string | null | undefined): string {
   return parts.join('-') || model;
 }
 
-/** `sdk-v1 · haiku-5-5` for a single-session pass; `llm-v8` for a pipeline one. */
-export function passLabel(pass: Pick<TestPass, 'version' | 'runtime' | 'model'>): string {
-  const version = versionLabel(pass.version) || pass.version || 'no version';
-  return pass.runtime === 'agent_sdk' && pass.model ? `${version} · ${shortModel(pass.model)}` : version;
+/**
+ * `sdk-v1 · haiku-5-5` for a single-session pass, `llm_react_v1 · flash` for an open-agent one
+ * (named for itself: it runs sdk_v1 unchanged, so "sdk-v1" would read as the champion), and
+ * `llm-v8` for a pipeline one.
+ */
+export function passLabel(pass: Pick<TestPass, 'version' | 'runtime' | 'model' | 'agent_name'>): string {
+  const version = pass.agent_name || versionLabel(pass.version) || pass.version || 'no version';
+  return pass.runtime !== 'pipeline' && pass.model ? `${version} · ${shortModel(pass.model)}` : version;
 }
 
 /** The agent a step or pass names: version, model and effort together. */
-export function agentLabel(item: { version: string; runtime: string; model: string | null; effort: string | null }): string {
+export function agentLabel(item: {
+  version: string;
+  runtime: string;
+  model: string | null;
+  effort: string | null;
+  agent_name?: string | null;
+}): string {
   const head = passLabel(item as TestPass);
-  return item.runtime === 'agent_sdk' && item.effort ? `${head} · ${item.effort}` : head;
+  return item.runtime !== 'pipeline' && item.effort ? `${head} · ${item.effort}` : head;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -282,7 +292,7 @@ export function storySummary(model: TimelineModel): StorySummary {
 
 /** One challenger in words: `haiku-5-5 −3.15pp (falls short)`. */
 export function challengerPhrase(pass: TestPass): string {
-  const who = pass.runtime === 'agent_sdk' ? passLabel(pass) : versionLabel(pass.version);
+  const who = pass.runtime !== 'pipeline' ? passLabel(pass) : versionLabel(pass.version);
   return `${who} ${formatPp(pass.vs?.delta_pp)} (${OUTCOMES[pass.outcome].word})`;
 }
 
