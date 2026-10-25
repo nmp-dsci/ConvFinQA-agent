@@ -272,11 +272,57 @@
   <div class="steps">
     <div class="step"><b>N0 · Fix I1 and rebuild v1 as v1.1 (free)</b>Same 334 conversations, the tool reply restored at every boundary. Re-run the mask check. Everything later builds on the fixed builder.<span class="tag">code: trajectories.turns · test · convfinqa-sft build --version v1_1</span></div>
     <div class="step"><b>N1 · Add prefix rows from the dropped conversations (free)</b>+113 rows, +242 turns, from conversations the teacher got partly right. They are mostly opening turns, so they teach lookups in hard reports (headers, Type II) more than late-turn reasoning.<span class="tag">builder: F1 becomes "cut at the first wrong turn" when ≥ 1 turn precedes it</span></div>
-    <div class="step"><b>N2 · Grow the draw from n = 600 to 1,000 (≈ $0.80 DeepSeek, off-peak)</b>The seed-2027 draw of 1,000 holds the 600, so the 552 already collected are reused and only <b>+347</b> new page-clean conversations run (≈ 1,240 questions). At the observed 60% yield that is ≈ +210 whole rows, plus their prefixes. Cut as an <code>sft_v2</code> manifest; val and test unchanged.<span class="tag">≈ 545 whole rows + ≈ 190 prefix rows in v2</span></div>
+    <div class="step"><b>N2 · Grow the draw, aimed at what epoch 2 misses (≈ $1.90 DeepSeek, off-peak)</b>Each of the 2,089 page-clean conversations left in the pool is scored from gold alone, before the teacher runs: the number of its turns epoch 2 is expected to miss. Each turn's chance of a miss is epoch 2's val error rate for its operation, raised by 1.43× from question 5 onward. The 600 highest-scoring conversations are collected: every one with 5+ questions (535), plus 65 more. Against the random grow to n = 1,000 (+347), that is 6× the turns at question 5 or later, twice the Type II conversations and 4× the three-number sums, for 2.5× the cost. It is cut as an <code>sft_v2</code> manifest; val and test are unchanged. <a href="#n2-detail">Detail below.</a><span class="tag">≈ 655 whole rows + ≈ 270 prefix rows in v2</span></div>
     <div class="step"><b>N3 · Repair the teacher's failed turns with gold, checked by the scorer (≈ $0.30)</b>For each dropped conversation, re-run only the failing turn with the gold answer given to Flash as a hint, keep it only if the answer and the calculator path pass F1/F4, then strip the hint from the row. This is the one source of rows for the header, Type II and long-conversation cases the student fails. Risk: hinted reasoning can read as reverse-engineered; check a sample by hand before training on it.</div>
-    <div class="step"><b>N4 · Oversample what val and test show is weak</b>Weight ×2 the rows that hold the failing shapes, found by a scan of the rows themselves, not of val or test: Type II, 5+ turns, garbled <code>"$ N"</code> headers, a table-printed minus the teacher stripped, a figure stated in the text in millions or billions. Cheap, but it shifts the mix, so keep it behind val.</div>
-    <div class="step"><b>Train from epoch 2</b>Load the epoch 2 adapter and continue with a fresh optimizer: lr 5e-5 (half), cosine, 2 epochs over v2 with a checkpoint every half-epoch. The old 334 rows get their 3rd and 4th passes, which is where val dipped (epoch 3), so the new rows should be at least half of each epoch. Run a from-base v2 control too (3 epochs at 1e-4) if the warm start doesn't clear epoch 2 on val. ≈ 5–6 h, ≈ $6 per run.</div>
+    <div class="step"><b>N4 · Oversample what val and test show is weak</b>Weight ×2 the rows that hold the failing shapes, found by a scan of the rows themselves, not of val or test: Type II, 5+ turns, garbled <code>"$ N"</code> headers, a table-printed minus the teacher stripped, a figure stated in the text in millions or billions. Cheap, but it shifts the mix, so keep it behind val. With the aimed N2, take Type II and 5+ turns off this list, because the draw already over-represents them. Weight only what a draw can't aim at: headers, printed minus signs and text units.</div>
+    <div class="step"><b>Train from epoch 2</b>Load the epoch 2 adapter and continue with a fresh optimizer: lr 5e-5 (half), cosine, 2 epochs over v2 with a checkpoint every half-epoch. The old 334 rows get their 3rd and 4th passes, which is where val dipped (epoch 3), so the new rows should be at least half of each epoch. Run a from-base v2 control too (3 epochs at 1e-4) if the warm start doesn't clear epoch 2 on val. With the aimed 600, v2 holds ≈ 3× v1's tokens, so an epoch takes ≈ 3 h on the L4: ≈ 6–7 h and ≈ $7 per run.</div>
     <div class="step"><b>Judge it the same way</b>Score each checkpoint on the same val 100 against epoch 2's committed pass (paired, cluster-corrected). Open test 100 once for the val pick and compare it with epoch 2's committed test pass. Report the share of the base-to-Flash gap closed.</div>
+  </div>
+
+  <h3 id="n2-detail" style="margin-top:var(--s6)">N2 in detail: <em>which conversations to add</em></h3>
+  <p class="sub">The review asked whether the grow step can pick the kinds of conversation the student gets wrong, such as program turns, instead of a random draw. It can. The selection reads only the gold labels of train-side conversations, which are known before anything runs. The weights come from val, not test, so the next test pass stays an honest check.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:34%"><col style="width:16%"><col style="width:14%"><col style="width:14%"><col style="width:22%"></colgroup>
+      <thead><tr><th>turn kind, from gold</th><th class="sc rec">epoch 2 · val (n)</th><th class="sc">epoch 2 · test</th><th class="sc">teacher · the 552</th><th>reading</th></tr></thead>
+      <tbody>
+        <tr><td>number turn (a lookup)</td><td class="sc rec">81.5% (135)</td><td class="sc">92.0%</td><td class="sc">87.9%</td><td>strong</td></tr>
+        <tr><td>program, last operation subtract</td><td class="sc rec">74.0% (73)</td><td class="sc">70.7%</td><td class="sc">80.7%</td><td>near the mean</td></tr>
+        <tr><td>program, last operation add</td><td class="sc rec">64.5% (31)</td><td class="sc">75.6%</td><td class="sc">81.7%</td><td>weak</td></tr>
+        <tr><td>program, last operation divide</td><td class="sc rec">64.9% (111)</td><td class="sc">74.5%</td><td class="sc">75.5%</td><td>weak; the teacher too</td></tr>
+        <tr><td><b>program, last operation multiply</b></td><td class="sc rec"><b>40.0% (15)</b></td><td class="sc"><b>15.4%</b> (13)</td><td class="sc">65.9%</td><td>weakest, both splits</td></tr>
+        <tr><td><b>question 5 or later</b> · questions 1–4</td><td class="sc rec"><b>55.9% (34)</b> · 73.4%</td><td class="sc">64.0 · 78.4%</td><td class="sc">73.5 · 81.7%</td><td>late turns, ×1.43 the miss rate</td></tr>
+        <tr><td>Type II · Type I turns</td><td class="sc rec">67.6 · 74.2%</td><td class="sc">75.7 · 78.2%</td><td class="sc">78.7 · 82.2%</td><td>weak, mostly via length</td></tr>
+        <tr><td>three-number sum (two chained adds)</td><td class="sc rec">58.8% (17)</td><td class="sc">69.6%</td><td class="sc">85.6%</td><td>weak; the teacher is fine</td></tr>
+        <tr><td>negative gold answer</td><td class="sc rec">71.9% (32)</td><td class="sc">69.8%</td><td class="sc">73.5%</td><td>not weak on val, so not weighted</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Filtering on <code>turn_type = program</code> alone would select everything: every one of the 2,089 conversations left has at least one program turn, and 66% of their turns are program turns. The weakness sits in the operation and in how late the turn comes. Garbled <code>"$ N"</code> headers carry no dataset flag (<code>has_duplicate_columns</code> is false on all six header failures), so a draw can't aim at them without scanning each table. That scan is N4's, and it could also run at draw time.</p>
+
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:32%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:17%"></colgroup>
+      <thead><tr><th>added to the 552, from the 2,089 left</th><th class="sc">random · n = 1,000</th><th class="sc">aimed · same 347</th><th class="sc rec">aimed · 600 ✓</th><th class="sc">wide rule · 886</th></tr></thead>
+      <tbody>
+        <tr><td>conversations · questions</td><td class="sc">347 · 1,239</td><td class="sc">347 · 1,943</td><td class="sc rec"><b>600 · 3,152</b></td><td class="sc">886 · 4,011</td></tr>
+        <tr><td>program turns</td><td class="sc">829</td><td class="sc">1,202</td><td class="sc rec">1,803</td><td class="sc">2,433</td></tr>
+        <tr><td>multiply turns</td><td class="sc">63</td><td class="sc">104</td><td class="sc rec">143</td><td class="sc">345</td></tr>
+        <tr><td>turns at question 5 or later</td><td class="sc">117</td><td class="sc">555</td><td class="sc rec"><b>752</b> (all of them)</td><td class="sc">752</td></tr>
+        <tr><td>Type II conversations</td><td class="sc">111</td><td class="sc">182</td><td class="sc rec">230</td><td class="sc">259</td></tr>
+        <tr><td>three-number-sum conversations</td><td class="sc">32</td><td class="sc">111</td><td class="sc rec">126</td><td class="sc">233</td></tr>
+        <tr><td>turns epoch 2 is expected to miss</td><td class="sc">362</td><td class="sc">610</td><td class="sc rec">946</td><td class="sc">1,215</td></tr>
+        <tr><td>whole rows after the gate (expected)</td><td class="sc">≈ 210</td><td class="sc">≈ 175</td><td class="sc rec">≈ 320</td><td class="sc">≈ 505</td></tr>
+        <tr><td>DeepSeek, at v1's $ per question</td><td class="sc">≈ $0.75</td><td class="sc">≈ $1.18</td><td class="sc rec">≈ $1.91</td><td class="sc">≈ $2.44</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Aimed</b> means ranked by the expected-miss score above. The 600 are every remaining conversation with 5+ questions, plus the 65 next by score. <b>Wide rule</b> takes every remaining conversation with 5+ questions, a three-number sum or a multiply turn. Expected rows apply the 552's keep rate by Type II and length (69% for short Type I down to 43% for long Type II), times v1's 334 of 353 after the other gates.</p>
+
+  <div class="cards3">
+    <div class="card"><span class="badge warn">yield</span><h3>The hard ones fail the gate more</h3><p>An aimed draw keeps ≈ 54% of its conversations against ≈ 61% for a random one. The turns it drops are the late ones it was chosen for. N1's prefix rows only recover opening turns, so pair the aimed draw with N3: a gold-hinted repair is the only way a dropped conversation's late turns become rows.</p></div>
+    <div class="card"><span class="badge">mix</span><h3>Keep a random base</h3><p>Val and test are random draws. The 334 v1 rows stay in as the random base, and after the aimed 600 about half of v2's rows are long or hard conversations. Watch number turns on val (epoch 2: 83.2%). If they fall, add the random +347 as well: 91 of them are already in the aimed 600, so it adds 256 conversations for ≈ $0.46.</p></div>
+    <div class="card"><span class="badge">holdout</span><h3>Aimed by val, not test</h3><p>Test agrees on every weakness used here (program 70.6%, multiply 15%, question 5+ 64%). Negative gold answers look weak on test only (69.8% test, 71.9% val), so they get no weight; printed minus signs are left to T1 and N4. Val now steers the data as well as picking the checkpoint, so the next val gain will read a little high. Test settles it.</p></div>
   </div>
 
   <div class="split2">
@@ -307,9 +353,10 @@
       <fieldset>
         <label><input type="checkbox" name="items" value="N0" data-label="fix dropped tool reply, rebuild" checked> <span>N0 · Fix I1 and rebuild <span class="d">free; a builder bug</span></span></label>
         <label><input type="checkbox" name="items" value="N1" data-label="prefix rows" checked> <span>N1 · Prefix rows <span class="d">free; +242 turns</span></span></label>
-        <label><input type="checkbox" name="items" value="N2" data-label="grow draw to n=1000" checked> <span>N2 · Grow to n = 1,000 <span class="d">≈ $0.80 DeepSeek; +347 conversations</span></span></label>
+        <label><input type="checkbox" name="items" value="N2" data-label="aimed grow: the 600 remaining conversations epoch 2 is expected to miss most on (val rates)" checked> <span>N2 · Aimed grow, 600 conversations <span class="d">≈ $1.91 DeepSeek; every 5+ question conversation left, plus 65</span></span></label>
+        <label><input type="checkbox" name="items" value="N2r" data-label="random grow to n=1000 (+347)"> <span>N2r · Random grow to n = 1,000 as well <span class="d">+256 beyond the aimed 600 (91 overlap), ≈ $0.46; a random base for the mix</span></span></label>
         <label><input type="checkbox" name="items" value="N3" data-label="gold-checked repair of failed turns"> <span>N3 · Gold-hinted repair <span class="d">≈ $0.30; check a sample by hand first</span></span></label>
-        <label><input type="checkbox" name="items" value="N4" data-label="oversample Type II, long, header, printed-minus, text-unit rows"> <span>N4 · Oversample weak shapes <span class="d">free; Type II, long, headers, printed minus, text units</span></span></label>
+        <label><input type="checkbox" name="items" value="N4" data-label="oversample header, printed-minus, text-unit rows (Type II and long come from the aimed N2)"> <span>N4 · Oversample weak shapes <span class="d">free; headers, printed minus, text units (N2 covers Type II and long)</span></span></label>
       </fieldset>
       <textarea placeholder="note (optional)"></textarea>
       <div class="row"><button type="submit">Queue selected items</button><span class="queued"></span></div>
