@@ -907,6 +907,29 @@ def test_span_trim_substitutes_a_registered_prompt_for_its_ledger_name() -> None
     assert message["parts"][0]["content"].startswith("what was the change")
 
 
+def test_span_trim_substitutes_a_session_prompt_too() -> None:
+    """The open runtime (s25) is autologged, so `sdk_v1` reaches the trimmer.
+
+    Unsubstituted it rode in full on every message of every request: one
+    five-turn conversation of the first live smoke was a 1.5 MB trace.
+    """
+    import convfinqa.prompts as prompts_pkg
+    from convfinqa.tracking import span_trim
+
+    span_trim._prompt_index.cache_clear()
+    as_delivered = prompts_pkg.load_sdk("sdk_v1").strip()
+    out = span_trim._trim_model_request(
+        {
+            "messages": [
+                {"instructions": as_delivered, "parts": [{"content": "q?"}]},
+                {"instructions": as_delivered, "parts": []},
+            ]
+        }
+    )
+    refs = {m["instructions"] for m in out["messages"]}
+    assert refs == {"<prompt_ref: sdk s1@5e96f2bf>"}
+
+
 def test_an_autologged_run_stores_prompt_refs_not_prompt_text() -> None:
     """End to end through MLflow's autologger, into the test's throwaway store.
 

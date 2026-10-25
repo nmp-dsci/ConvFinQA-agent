@@ -84,6 +84,18 @@ def _prompt_index() -> dict[str, str]:
             for agent, text in prompts_pkg.load(version).items():
                 h = prompt_hash(text)
                 out[prompt_hash(text.strip())] = by_hash.get(h) or f"{agent} ?@{h}"
+        # The single-session prompts too. The Agent SDK runtime stores them by
+        # reference already, but the open runtime (s25) is autologged, and
+        # there a 17 KB `sdk_v1` rides on every message of every request — a
+        # five-turn conversation was a 1.5 MB trace before this.
+        sdk_seq = {
+            str(e.get("hash", "")): str(e.get("seq", "?"))
+            for e in (doc.sdk_prompts or [])
+        }
+        for version in prompts_pkg.sdk_versions():
+            text = prompts_pkg.load_sdk(version)
+            h = prompt_hash(text)
+            out[prompt_hash(text.strip())] = f"sdk {sdk_seq.get(h) or '?'}@{h}"
     except Exception:  # noqa: BLE001 — no index just means no substitution
         log.debug("prompt index unavailable; prompts stay inline", exc_info=True)
     return out
