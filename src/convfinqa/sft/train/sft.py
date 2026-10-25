@@ -12,6 +12,9 @@ tau-telecom-sft's trainer (`train/sft.py`), trimmed to what runs on Modal:
   checkpoint per epoch, and the final adapter with its sha256. A job given a
   run id that already holds a checkpoint resumes from the newest complete one,
   because Modal re-runs a preempted input with the same arguments.
+- A config with ``init_adapter`` (s29's warm start) continues an earlier run's
+  adapter, a path under the runs volume, with a fresh optimizer and schedule;
+  its LoRA shape is the adapter's, and its files' sha256 goes into run.json.
 """
 
 from __future__ import annotations
@@ -84,6 +87,15 @@ def _sha256_dir(path: Path) -> tuple[str, int]:
     return h.hexdigest(), size
 
 
+def _adapter_sha256(path: Path) -> str:
+    """The sha256 of an adapter's own files, not a checkpoint's optimizer state."""
+    h = hashlib.sha256()
+    for name in ("adapter_config.json", "adapter_model.safetensors"):
+        h.update(name.encode())
+        h.update((path / name).read_bytes())
+    return h.hexdigest()
+
+
 def train(
     config_path: Path,
     *,
@@ -133,6 +145,10 @@ def train(
             "base_model": cfg["base_model"],
             "revision": cfg["revision"],
             "dataset": cfg["dataset"],
+            "init_adapter": cfg.get("init_adapter"),
+            "init_adapter_sha256": _adapter_sha256(runs_root / cfg["init_adapter"])
+            if cfg.get("init_adapter")
+            else None,
             "train_sha256": stats["train_sha256"],
             "system_sha256": stats.get("system_sha256"),
             "tools_sha256": stats.get("tools_sha256"),
@@ -156,6 +172,18 @@ def train(
     model = AutoModelForCausalLM.from_pretrained(
         cfg["base_model"], revision=cfg["revision"], dtype=torch.bfloat16
     )
+    peft_config: Any = LoraConfig(task_type="CAUSAL_LM", **cfg["lora"])
+    if cfg.get("init_adapter"):
+        from peft import PeftModel
+
+        init = runs_root / cfg["init_adapter"]
+        if not (init / "adapter_model.safetensors").exists():
+            raise FileNotFoundError(f"init_adapter {init} holds no adapter")
+        if sft_kwargs.get("gradient_checkpointing"):
+            model.enable_input_require_grads()
+        model = PeftModel.from_pretrained(model, str(init), is_trainable=True)
+        peft_config = None  # the adapter's own shape, trained on from where it was
+        print(f"warm start from {cfg['init_adapter']}")
     dataset = Dataset.from_list(
         [{"messages": r["messages"], "tools": json.dumps(r["tools"])} for r in rows]
     )
@@ -169,7 +197,7 @@ def train(
         args=args,
         train_dataset=dataset,
         processing_class=tokenizer,
-        peft_config=LoraConfig(task_type="CAUSAL_LM", **cfg["lora"]),
+        peft_config=peft_config,
         callbacks=[folder],
     )
 
@@ -235,11 +263,13 @@ def train(
     trainer.save_model(str(adapter))
     tokenizer.save_pretrained(str(adapter))
     sha, size = _sha256_dir(adapter)
+    # keyed by epoch to two places: s29 checkpoints every half-epoch
     epochs = {
-        str(
-            round(float(json.loads((p / "trainer_state.json").read_text())["epoch"]))
-        ): p.name
-        for p in sorted((run_dir / "checkpoints").glob("checkpoint-*"))
+        f"{float(json.loads((p / 'trainer_state.json').read_text())['epoch']):.2f}": p.name
+        for p in sorted(
+            (run_dir / "checkpoints").glob("checkpoint-*"),
+            key=lambda p: int(p.name.rsplit("-", 1)[1]),
+        )
         if (p / "trainer_state.json").exists()
     }
     meta.update(

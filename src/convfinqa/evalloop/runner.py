@@ -185,11 +185,21 @@ class OpenConversationFn:
     message list — and log it once as the run's trajectory artifact.
     """
 
-    def __init__(self, system_prompt: str, version: str, model: str, effort: str):
+    def __init__(
+        self,
+        system_prompt: str,
+        version: str,
+        model: str,
+        effort: str,
+        harness: str = "pydantic_ai",
+        temperature: float | None = None,
+    ):
         self.system_prompt = system_prompt
         self.version = version
         self.model = model
         self.effort = effort
+        self.harness = harness
+        self.temperature = temperature
         self.trajectories: dict[str, Any] = {}
 
     async def __call__(
@@ -206,6 +216,8 @@ class OpenConversationFn:
             model=self.model,
             effort=self.effort,
             trajectories=self.trajectories,
+            harness=self.harness,
+            temperature=self.temperature,
             **kw,
         )
 
@@ -252,6 +264,14 @@ def _name_slug_parts(path: Path | str) -> list[str]:
     return parts[1:-1]
 
 
+def _name_efforts() -> set[str]:
+    """Every effort a session run name can end its slug on: the SDK's and the
+    open runtime's (a student's is ``none``, which no SDK effort is)."""
+    from convfinqa.llm import OPEN_EFFORTS, SDK_EFFORTS
+
+    return set(SDK_EFFORTS) | set(OPEN_EFFORTS)
+
+
 def prior_sdk_model(path: Path | str) -> str | None:
     """The model slug an sdk run name carries, or None for a pre-slug name.
 
@@ -261,20 +281,16 @@ def prior_sdk_model(path: Path | str) -> str | None:
     (`…·s1-20260905_174627`) returns None: those runs all ran the default
     model, and their MLflow `sdk_model` param is the record.
     """
-    from convfinqa.llm import SDK_EFFORTS
-
     middle = _name_slug_parts(path)
-    if middle and middle[-1] in SDK_EFFORTS:
+    if middle and middle[-1] in _name_efforts():
         middle = middle[:-1]
     return "-".join(middle) if middle else None
 
 
 def prior_sdk_effort(path: Path | str) -> str | None:
     """The effort an sdk run name carries, or None for a name from before it did."""
-    from convfinqa.llm import SDK_EFFORTS
-
     middle = _name_slug_parts(path)
-    return middle[-1] if middle and middle[-1] in SDK_EFFORTS else None
+    return middle[-1] if middle and middle[-1] in _name_efforts() else None
 
 
 async def _run_conversations(
@@ -613,6 +629,12 @@ def sdk_run_metrics(captures: list[dict[str, Any]]) -> dict[str, float]:
         # overstates a pass; `cost.sdk_session_cost_usd` is the price paid.
         "sdk_cost_usd": round(sum(float(r.get("cost_usd") or 0.0) for r in rows), 6),
     }
+    checked = [r for r in rows if "harness_retry" in r]
+    if checked:  # the checked open harness (s29): questions a check sent back
+        for check in ("H2", "H3"):
+            out[f"harness_retries_{check.lower()}"] = float(
+                sum(1 for r in checked if r["harness_retry"] == check)
+            )
     if rows:
         turns = [float(r["num_turns"]) for r in rows if r.get("num_turns") is not None]
         if turns:
@@ -647,6 +669,7 @@ async def run_split(
     open_harness: str | None = None,
     open_model: str | None = None,
     open_effort: str | None = None,
+    student_temperature: float | None = None,
 ) -> dict[str, Any]:
     """Run one split × version pass; return a summary with the CSV and run id.
 
@@ -740,7 +763,9 @@ async def run_split(
             "sdk_vN prompts run under --runtime agent_sdk or open_agent, vN "
             "bundles under pipeline"
         )
-    if runtime != "open_agent" and (open_harness or open_model or open_effort):
+    if runtime != "open_agent" and (
+        open_harness or open_model or open_effort or student_temperature is not None
+    ):
         raise ValueError(
             "--open-harness, --open-model and --open-effort apply to "
             "--runtime open_agent only"
@@ -793,7 +818,11 @@ async def run_split(
             if value not in allowed:
                 raise ValueError(f"{flag} {value!r}; expected one of {allowed}")
         check_open_agent(open_model, open_effort)
-        model_slug = open_model_slug(open_harness, open_model)
+        if student_temperature is not None and open_model not in STUDENT_MODELS:
+            raise ValueError(
+                f"--student-temperature applies to a student model, not {open_model!r}"
+            )
+        model_slug = open_model_slug(open_harness, open_model, student_temperature)
     # The effort the run name carries, whichever session runtime ran.
     name_effort = sdk_effort if runtime == "agent_sdk" else open_effort
     examples = examples_for(report_ids)
@@ -851,7 +880,12 @@ async def run_split(
         from importlib.metadata import version as package_version
 
         from convfinqa.config import settings
-        from convfinqa.llm import OPEN_BILLING, STUDENT_BILLING, STUDENT_MODELS
+        from convfinqa.llm import (
+            OPEN_BILLING,
+            STUDENT_BILLING,
+            STUDENT_MODELS,
+            STUDENT_SAMPLING,
+        )
 
         student = open_model in STUDENT_MODELS
         if student:
@@ -870,7 +904,12 @@ async def run_split(
             prompt_ledger.ensure_sdk(version)
         )
         run_conversation = OpenConversationFn(
-            system_prompt, version, str(open_model), str(open_effort)
+            system_prompt,
+            version,
+            str(open_model),
+            str(open_effort),
+            harness=str(open_harness),
+            temperature=student_temperature,
         )
         runtime_params.update(
             {
@@ -878,6 +917,9 @@ async def run_split(
                 "open_harness_version": package_version("pydantic-ai-slim"),
                 "open_model": open_model,
                 "open_effort": open_effort,
+                "student_temperature": student_temperature
+                if student_temperature is not None
+                else (STUDENT_SAMPLING["temperature"] if student else None),
                 "billing": STUDENT_BILLING if student else OPEN_BILLING,
                 "max_turns": settings.sdk_max_turns,
                 "sdk_total_tokens_limit": settings.sdk_total_tokens_limit,

@@ -246,7 +246,9 @@ def reset_provider() -> None:
 # an effort that is part of what the agent is. DeepSeek's thinking protocol —
 # send `reasoning_content` back on every tool-call turn, never force a tool
 # while thinking — is Pydantic AI's DeepSeek profile, which is why it is used.
-OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai",)
+# `pydantic_ai_checked` (s29) is the same harness with three turn checks for
+# the SFT student (`backends.open_checks`); the plain one is unchanged.
+OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai", "pydantic_ai_checked")
 DEEPSEEK_OPEN_MODELS: tuple[str, ...] = ("deepseek-flash", "deepseek-v4-pro")
 # The SFT student (s28): Qwen3-4B-Instruct-2507 on vLLM on Modal, untrained,
 # and the sft1 adapter at each epoch's checkpoint (val picks one). A
@@ -291,8 +293,13 @@ def _open_http_client() -> httpx.AsyncClient:
     )
 
 
-def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
+def open_agent_model(
+    model: str, effort: str, *, temperature: float | None = None
+) -> OpenAIChatModel:
     """A DeepSeek chat model for the open runtime, thinking at `effort`.
+
+    `temperature` overrides a student's sampling temperature (s29's D4); it is
+    refused for a DeepSeek model, whose sampling the provider sets.
 
     Refuses a model or effort outside the declared sets rather than passing it
     through: DeepSeek maps unknown efforts silently (`xhigh` becomes `high`),
@@ -302,7 +309,9 @@ def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
     guard_llm_call()
     check_open_agent(model, effort)
     if model in STUDENT_MODELS:
-        return _student_model(model)
+        return _student_model(model, temperature)
+    if temperature is not None:
+        raise ValueError(f"a sampling temperature applies to a student, not {model!r}")
     from pydantic_ai.providers.deepseek import DeepSeekProvider
 
     global _open_provider
@@ -341,7 +350,7 @@ def check_open_agent(model: str, effort: str) -> None:
 _student_provider: Any = None
 
 
-def _student_model(model: str) -> OpenAIChatModel:
+def _student_model(model: str, temperature: float | None = None) -> OpenAIChatModel:
     """The student on vLLM, with tool choice left to the model.
 
     Pydantic AI forces a tool call when the only output is a tool, and vLLM
@@ -375,11 +384,14 @@ def _student_model(model: str) -> OpenAIChatModel:
                 ),
             ),
         )
+    sampling = dict(STUDENT_SAMPLING)
+    if temperature is not None:
+        sampling["temperature"] = temperature
     return OpenAIChatModel(
         model,
         provider=_student_provider,
         profile=_student_profile(),
-        settings=ModelSettings(**STUDENT_SAMPLING),  # type: ignore[typeddict-item]
+        settings=ModelSettings(**sampling),  # type: ignore[typeddict-item]
     )
 
 
@@ -414,10 +426,19 @@ def student_wire_model(
     )
 
 
-def open_model_slug(harness: str, model: str) -> str:
-    """The run-name slug of an open agent: `pyd-deepseek-flash`."""
-    short = {"pydantic_ai": "pyd"}.get(harness, harness.replace("_", "-"))
-    return f"{short}-{model}"
+def open_model_slug(harness: str, model: str, temperature: float | None = None) -> str:
+    """The run-name slug of an open agent: `pyd-deepseek-flash`.
+
+    The checked harness is `pydchk`, and a student sampled away from its
+    default temperature carries it: `pydchk-student-qwen3-4b-sft1-e2-t0p2`.
+    """
+    short = {"pydantic_ai": "pyd", "pydantic_ai_checked": "pydchk"}.get(
+        harness, harness.replace("_", "-")
+    )
+    slug = f"{short}-{model}"
+    if temperature is not None and temperature != STUDENT_SAMPLING["temperature"]:
+        slug += "-t" + f"{temperature:g}".replace(".", "p")
+    return slug
 
 
 #: What the app calls an open agent: a harness running a prompt. The prompt is

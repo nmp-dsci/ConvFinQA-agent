@@ -1,0 +1,32 @@
+# s29: the second fine-tune (owner's D1–D3, 2026-10-25). Warm start from sft1's epoch 2
+# (checkpoint-42, val 71.8%, test 100 77.4%) on data v2: v1's conversations rebuilt with
+# the tool reply restored (N0), prefix rows from F1 drops (N1), and the aimed 600 (N2),
+# collected by llm_react_v1 unchanged. Half sft1's learning rate, 2 epochs, a checkpoint
+# every half-epoch; each is served and scored on sft_v1 val against epoch 2.
+label: sft2
+base_model: Qwen/Qwen3-4B-Instruct-2507
+revision: cdbee75f17c01a7cc42f958dc650907174af0554
+dataset: v2
+init_adapter: 20261025T040743Z_train_sft1/checkpoints/checkpoint-42
+lora:  # sft1's; the warm start trains the adapter it loads, in that adapter's shape
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: all-linear
+sft:
+  max_length: 24576
+  assistant_only_loss: true
+  packing: false
+  learning_rate: 5.0e-5
+  lr_scheduler_type: cosine
+  warmup_steps: 0.05
+  num_train_epochs: 2
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  gradient_checkpointing: true
+  bf16: true
+  logging_steps: 1
+  # a checkpoint every quarter of the run, i.e. every half-epoch
+  save_strategy: steps
+  save_steps: 0.25
+  seed: 300

@@ -339,3 +339,165 @@ def test_an_answer_is_its_result_at_its_own_precision(
     answer: str, result: str, same: bool
 ) -> None:
     assert build.answer_is_result(answer, result) is same
+
+
+# --- s29: the dropped tool reply (N0), prefix rows (N1), the aimed draw (N2) -----
+
+
+def merged_history() -> list[dict[str, Any]]:
+    """Two turns as Pydantic AI often stores them: q0's StructuredOutput return
+    shares one request with q1's prompt."""
+    q0 = clean_turn()[:-1]  # without its own closing return
+    closing_and_q1 = {
+        "kind": "request",
+        "parts": [
+            {
+                "part_kind": "tool-return",
+                "tool_name": "StructuredOutput",
+                "content": "Final result processed.",
+                "tool_call_id": "c0StructuredOutput",
+            },
+            {"part_kind": "user-prompt", "content": "q1"},
+        ],
+    }
+    return [user("doc + q0"), *q0, closing_and_q1, *clean_turn()]
+
+
+def test_a_tool_return_folded_into_the_next_question_closes_its_own_turn() -> None:
+    from convfinqa.sft import trajectories as tj
+
+    turns = tj.turns(merged_history())
+    assert [t["prompt"] for t in turns] == ["doc + q0", "q1"]
+    closing = turns[0]["steps"][-1]["parts"]
+    assert [p["part_kind"] for p in closing] == ["tool-return"]
+    row, _ = rows.to_row("Single_X/2016/page_1.pdf-1", merged_history())
+    roles = [m["role"] for m in row["messages"]]
+    # every answer call is followed by its tool reply, as the student is served
+    one_turn = ["user", "assistant", "tool", "assistant", "tool"]
+    assert roles == ["system", *one_turn, *one_turn]
+
+
+def test_a_prefix_keeps_its_last_tool_reply_and_nothing_after() -> None:
+    from convfinqa.sft import trajectories as tj
+
+    cut = tj.prefix(merged_history(), 1)
+    assert len(tj.turns(cut)) == 1
+    assert "q1" not in json.dumps(cut)
+    assert cut[-1]["parts"][0]["content"] == "Final result processed."
+
+
+def test_an_f1_drop_keeps_its_turns_before_the_first_wrong_one(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import gzip
+
+    from convfinqa.sft import splits, tokens
+    from convfinqa.sft import trajectories as tj
+
+    late, early = "Single_X/2016/page_1.pdf-1", "Single_Y/2016/page_2.pdf-1"
+    run = "open-evalloop-train2-sdk_v1·s1-pyd-deepseek-flash-high-20261026_000000"
+    traj = tmp_path / f"{run}.jsonl.gz"
+    with gzip.open(traj, "wt") as f:
+        for rid in (late, early):
+            f.write(json.dumps({"report_id": rid, "messages": merged_history()}) + "\n")
+    csv = tmp_path / f"{run}.csv"
+    pd.DataFrame(
+        {
+            "report_id": [late, late, early, early],
+            "turn_index": [0, 1, 0, 1],
+            "correct": [True, False, False, True],
+            "error": [None] * 4,
+            "split": ["train"] * 4,
+        }
+    ).to_csv(csv, index=False)
+    monkeypatch.setattr(tj, "path_for", lambda name: traj)
+    monkeypatch.setattr(
+        splits,
+        "load",
+        lambda name="sft_v1": {"splits": {"train": [late, early], "val": []}},
+    )
+    monkeypatch.setattr(splits, "excluded_pages", lambda: set())
+    monkeypatch.setattr(build, "_questions", lambda: {late: 2, early: 2})
+    monkeypatch.setattr(build, "SFT_ROOT", tmp_path / "sft")
+    monkeypatch.setattr(tokens, "count", lambda row: 100)
+    monkeypatch.setattr(tokens, "count_text", lambda text: 10)
+
+    without = build.build([csv], version="pytest")
+    assert without["n_rows"] == 0
+    stats = build.build([csv], version="pytest", prefix_rows=True)
+    assert (stats["n_rows"], stats["n_prefix_rows"], stats["n_turns"]) == (1, 1, 1)
+    out = tmp_path / "sft" / "pytest"
+    (row,) = [json.loads(x) for x in (out / "train.jsonl").read_text().splitlines()]
+    assert row["meta"]["prefix"] is True and row["meta"]["report_id"] == late
+    assert [m["role"] for m in row["messages"]] == [
+        "system",
+        "user",
+        "assistant",
+        "tool",
+        "assistant",
+        "tool",
+    ]
+    drops = {
+        d["report_id"]: d
+        for d in map(json.loads, (out / "drops.jsonl").read_text().splitlines())
+    }
+    assert drops[late]["rule"] == "F1" and drops[late]["prefix_turns"] == 1
+    assert "prefix_turns" not in drops[early]  # wrong at q0: nothing precedes it
+
+
+def _gold(rows_: list[tuple[str, int, str]]) -> pd.DataFrame:
+    from convfinqa.sft import aim
+
+    qa = pd.DataFrame(rows_, columns=["report_id", "q_order", "turn_program"])
+    qa["bucket"] = qa["turn_program"].map(aim.bucket)
+    qa["late"] = qa["q_order"] >= aim.LATE_FROM
+    return qa
+
+
+def test_the_aimed_draw_ranks_conversations_by_expected_misses(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from convfinqa.sft import aim
+
+    assert aim.bucket("subtract(1, 2), divide(#0, 2)") == "divide"
+    assert aim.bucket("206588") == "lookup"
+    gold = _gold(
+        [
+            # val: lookups right, divides wrong, a late lookup wrong
+            *[("V", i, "1") for i in range(4)],
+            ("V", 4, "1"),
+            ("W", 0, "divide(1, 2)"),
+            ("W", 1, "divide(1, 2)"),
+            # candidates
+            ("long", 0, "1"),
+            ("long", 1, "1"),
+            ("long", 2, "1"),
+            ("long", 3, "1"),
+            ("long", 4, "divide(1, 2)"),
+            ("div", 0, "divide(1, 2)"),
+            ("look", 0, "1"),
+            ("look2", 0, "1"),
+        ]
+    )
+    monkeypatch.setattr(aim, "gold_turns", lambda: gold)
+    val = tmp_path / "val.csv"
+    pd.DataFrame(
+        {
+            "report_id": ["V"] * 5 + ["W"] * 2,
+            "turn_index": [0, 1, 2, 3, 4, 0, 1],
+            "correct": [True, True, True, True, False, False, False],
+            "split": ["train"] * 7,
+        }
+    ).to_csv(val, index=False)
+    rates = aim.miss_rates(val)
+    assert rates["miss_by_bucket"]["divide"] > rates["miss_by_bucket"]["lookup"]
+    assert rates["late_ratio"] > 1
+    ranked = aim.top({"long", "div", "look", "look2"}, rates, 4)
+    assert [r for r, _ in ranked] == ["long", "div", "look", "look2"]  # ties by id
+
+    pd.read_csv(val).assign(split="test").to_csv(tmp_path / "t.csv", index=False)
+    with pytest.raises(ValueError, match="train-side"):
+        aim.miss_rates(tmp_path / "t.csv")
+    pd.read_csv(val).assign(unscored=True).to_csv(tmp_path / "u.csv", index=False)
+    with pytest.raises(ValueError, match="incomplete"):
+        aim.miss_rates(tmp_path / "u.csv")

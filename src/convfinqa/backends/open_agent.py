@@ -37,6 +37,10 @@ mechanics the harness forces:
   tool-call turn and no tool is forced while thinking; both are Pydantic AI's
   DeepSeek profile (`llm.open_agent_model`), not code here.
 
+The harness `pydantic_ai_checked` (s29) adds three turn checks for the SFT
+student, H1–H3 in `open_checks`; the plain `pydantic_ai` harness is unchanged,
+so llm_react_v1 and the data it collects are what they were.
+
 A provider that will not answer — no balance, rate-limited or overloaded after
 the transport's retries — raises `SdkRateLimitError`, exactly as a spent Claude
 subscription does: the turn is unscored, never wrong, and the pass is finished
@@ -97,9 +101,13 @@ def tool_description(name: str) -> str:
 
 
 def _tool_function(
-    name: str, trajectory: list[dict[str, Any]]
+    name: str, trajectory: list[dict[str, Any]], *, checks: bool = False
 ) -> Callable[..., Awaitable[str]]:
-    """One calculator, recording the same two events `agent_sdk` records."""
+    """One calculator, recording the same two events `agent_sdk` records.
+
+    Under `checks` (H1) an argument beyond ``a`` and ``b`` is a tool error;
+    without, it raises as it always did, so the plain harness is unchanged.
+    """
     fn = _TOOL_FNS[name]
 
     async def call(a: Any = None, b: Any = None) -> str:
@@ -114,31 +122,75 @@ def _tool_function(
         trajectory.append({"event": "tool_return", "tool": name, "result": text})
         return text
 
-    return call
+    if not checks:
+        return call
+
+    async def checked(a: Any = None, b: Any = None, **extra: Any) -> str:
+        if extra:
+            from convfinqa.backends.open_checks import extra_argument_error
+
+            args = {"a": a, "b": b, **extra}
+            text = extra_argument_error(name, extra)
+            trajectory.append({"event": "tool_call", "tool": name, "args": args})
+            trajectory.append({"event": "tool_return", "tool": name, "result": text})
+            return text
+        return await call(a, b)
+
+    return checked
 
 
 def build_agent(
-    system_prompt: str, model: Any, trajectory: list[dict[str, Any]]
+    system_prompt: str,
+    model: Any,
+    trajectory: list[dict[str, Any]],
+    *,
+    checks: dict[str, Any] | None = None,
 ) -> Any:
-    """The open agent: the prompt, the six tools and the output tool, nothing else."""
-    from pydantic_ai import Agent, Tool
+    """The open agent: the prompt, the six tools and the output tool, nothing else.
+
+    `checks`, when given, is the checked harness's per-question state
+    (``{"retried": False}``, reset by the caller at each question, then the
+    name of the check that sent the reply back): the tools
+    take H1 and the reply must pass H2 and H3, with one retry per question.
+    Its output tool allows one more retry than the plain harness, so a failed
+    check never spends the retry a malformed reply would need.
+    """
+    from pydantic_ai import Agent, ModelRetry, RunContext, Tool
     from pydantic_ai.output import ToolOutput
 
     tools = [
         Tool.from_schema(
-            _tool_function(name, trajectory),
+            _tool_function(name, trajectory, checks=checks is not None),
             name=f"mcp__{SDK_MCP_SERVER}__{name}",
             description=tool_description(name),
             json_schema=dict(_TOOL_SCHEMA),
         )
         for name in SDK_CALCULATOR_TOOLS
     ]
-    return Agent(
+    agent = Agent(
         model,
         instructions=system_prompt,
         tools=tools,
-        output_type=ToolOutput(SdkTurnResult, name=OUTPUT_TOOL_NAME, max_retries=1),
+        output_type=ToolOutput(
+            SdkTurnResult,
+            name=OUTPUT_TOOL_NAME,
+            max_retries=1 if checks is None else 2,
+        ),
     )
+    if checks is not None:
+        from convfinqa.backends.open_checks import failed_check
+
+        @agent.output_validator
+        def _turn_checks(ctx: RunContext[Any], output: SdkTurnResult) -> SdkTurnResult:
+            if checks["retried"]:
+                return output
+            failed = failed_check(output, list(ctx.messages))
+            if failed is None:
+                return output
+            checks["retried"] = failed[0]
+            raise ModelRetry(failed[1])
+
+    return agent
 
 
 def unavailable(exc: BaseException) -> str | None:
@@ -287,6 +339,8 @@ async def run_conversation(
     max_turns: int | None = None,
     version: str = "",
     trajectories: dict[str, Any] | None = None,
+    harness: str = "pydantic_ai",
+    temperature: float | None = None,
 ) -> tuple[list[str], list[str]]:
     """Walk one conversation over one message history; return (preds, programs).
 
@@ -300,12 +354,21 @@ async def run_conversation(
     """
     from pydantic_ai.messages import ModelMessagesTypeAdapter
 
+    from convfinqa.backends.open_checks import CHECKED_HARNESS
     from convfinqa.config import settings
     from convfinqa.data.loader import _DOCS
     from convfinqa.llm import open_agent_model
 
     trajectory: list[dict[str, Any]] = []
-    agent = build_agent(system_prompt, open_agent_model(model, effort), trajectory)
+    checks: dict[str, Any] | None = (
+        {"retried": False} if harness == CHECKED_HARNESS else None
+    )
+    agent = build_agent(
+        system_prompt,
+        open_agent_model(model, effort, temperature=temperature),
+        trajectory,
+        checks=checks,
+    )
     turns = max_turns or settings.sdk_max_turns
     document = _DOCS[report_id]
     conversation = ConversationHistory()
@@ -337,6 +400,9 @@ async def run_conversation(
                     )
                 else:
                     trajectory.clear()
+                    if checks is not None:
+                        checks.clear()
+                        checks["retried"] = False
                     prompt = (
                         _first_message(report_id, document, question)
                         if i == 0
@@ -371,6 +437,9 @@ async def run_conversation(
                         )
                         cap["sdk"]["served_models"] = usage["served_models"]
                         cap["sdk"]["reasoning_tokens"] = usage["reasoning_tokens"]
+                        if checks is not None:
+                            # which check sent this question back, if one did
+                            cap["sdk"]["harness_retry"] = checks["retried"] or ""
                         answer = result.answer
                         program = (
                             result.program if result.turn_type == "program" else ""

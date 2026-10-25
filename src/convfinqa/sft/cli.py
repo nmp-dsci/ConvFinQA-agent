@@ -2,6 +2,8 @@
 
     convfinqa-sft fetch --csv <pass>.csv          # its trajectories into evaluation/sft/
     convfinqa-sft build --csv <pass>.csv          # gate, render, write evaluation/sft/v1/
+    convfinqa-sft splits --val-csv <e2 val>.csv   # write sft_v2: sft_v1 + the aimed draw
+    convfinqa-sft build --csv <a>.csv --csv <b>.csv --version v2 --manifest sft_v2 --prefix-rows
     convfinqa-sft upload                          # the dataset onto Modal's data volume
     convfinqa-sft serve                           # deploy the vLLM student server on Modal
     convfinqa-sft train [--max-steps N --longest K]  # LoRA on Modal (spawned, detached)
@@ -46,6 +48,18 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("build", help="gate the passes and write the dataset")
     p.add_argument("--csv", type=Path, action="append", required=True)
     p.add_argument("--version", default="v1")
+    p.add_argument("--manifest", default="sft_v1", choices=("sft_v1", "sft_v2"))
+    p.add_argument(
+        "--prefix-rows",
+        action="store_true",
+        help="also keep an F1 drop's turns before its first wrong answer (s29 N1)",
+    )
+
+    p = sub.add_parser(
+        "splits", help="write sft_v2: sft_v1's train plus the aimed draw (s29 N2)"
+    )
+    p.add_argument("--val-csv", type=Path, required=True)
+    p.add_argument("--force", action="store_true")
 
     p = sub.add_parser("upload", help="put the dataset on Modal's data volume")
     p.add_argument("--version", default="v1")
@@ -71,13 +85,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "build":
         from convfinqa.sft import build
 
-        stats = build.build([Path(c) for c in args.csv], version=args.version)
+        stats = build.build(
+            [Path(c) for c in args.csv],
+            version=args.version,
+            manifest_name=args.manifest,
+            prefix_rows=args.prefix_rows,
+        )
         print(
             json.dumps(
                 {
                     k: stats[k]
                     for k in (
                         "n_rows",
+                        "n_prefix_rows",
                         "n_turns",
                         "n_dropped",
                         "drops_by_rule",
@@ -88,6 +108,13 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.cmd == "splits":
+        from convfinqa.sft import splits
+
+        path = splits.write_manifest_v2(args.val_csv, force=args.force)
+        manifest = splits.load("sft_v2")
+        print(path, json.dumps(manifest["stats"]), splits.COLLECT_V2_PATH)
         return 0
     if args.cmd == "upload":
         from convfinqa.sft.cloud.modal_app import DATA_VOLUME

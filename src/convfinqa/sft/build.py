@@ -22,6 +22,11 @@ ConvFinQA and DeepSeek):
 - F8 length: the rendered row fits `MAX_ROW_TOKENS`, never truncated.
 - N1, from `rows`: the text-answer detour collapses, or the row drops.
 
+With ``prefix_rows`` (s29's N1), a conversation dropped by F1 at question k > 0
+also gives a *prefix row*: its first k questions, all right, cut before the
+first wrong one and put through every gate again. The drop is still recorded,
+with ``prefix_turns`` (or ``prefix_rule``, the gate the prefix failed).
+
 Writes ``evaluation/sft/<version>/train.jsonl`` with ``stats.json`` (counts,
 lengths, every sha256 the trainer checks), ``drops.jsonl`` and ``card.md``.
 """
@@ -30,14 +35,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import statistics
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from convfinqa.backends.open_checks import answer_is_result
 from convfinqa.config import EVAL_ROOT
+
+__all__ = ["answer_is_result", "build", "card"]
 
 MAX_REASONING_TOKENS = 2048
 MAX_ROW_TOKENS = 24576
@@ -90,7 +97,8 @@ def _check(
 
     if report_id not in allowed:
         raise _GateError(
-            "F2", "not in the sft_v1 train split (or on a test, holdout or val page)"
+            "F2",
+            "not in the manifest's train split (or on a test, holdout or val page)",
         )
     if not bool(rows["correct"].all()):
         wrong = [int(i) for i in rows.loc[~rows["correct"].astype(bool), "turn_index"]]
@@ -141,33 +149,8 @@ def _check(
                 seen.add(key)
 
 
-_NUMBER = re.compile(r"^\s*\$?(-?[\d,]*\.?(\d*))\s*%?\s*$")
-
-
-def answer_is_result(answer: Any, result: Any) -> bool:
-    """Is `answer` the calculator's `result`, as the prompt says to write it?
-
-    The prompt rounds (a percentage to one decimal, say) and may scale by 100,
-    so the answer is the result rounded to the answer's own precision, at a
-    scale of 1, 100 or 1/100. A comparison's ``True``/``False`` is yes/no.
-    """
-    a, r = str(answer).strip(), str(result).strip()
-    if r in ("True", "False"):
-        return a.lower() in ({"yes", "true"} if r == "True" else {"no", "false"})
-    m = _NUMBER.match(a)
-    try:
-        value = float(m.group(1).replace(",", "")) if m else None
-        exact = float(r)
-    except ValueError:
-        return False
-    if value is None:
-        return False
-    decimals = len(m.group(2)) if m else 0
-    return any(
-        abs(round(exact * scale, decimals) - value) < 10 ** -(decimals + 6)
-        or abs(exact * scale - value) <= 1e-9 * max(1.0, abs(value))
-        for scale in (1.0, 100.0, 0.01)
-    )
+# `answer_is_result` lives with the checked harness (s29 H2), which asks the
+# same question of a live reply; F4 asks it of a recorded one.
 
 
 def _check_grounded(q: int, turn: dict[str, Any]) -> None:
@@ -209,8 +192,50 @@ def _check_grounded(q: int, turn: dict[str, Any]) -> None:
         )
 
 
+def _first_wrong(rows: Any) -> int | None:
+    """The turn index of a conversation's first wrong answer, if it has one."""
+    wrong = rows.loc[~rows["correct"].astype(bool), "turn_index"]
+    return int(wrong.min()) if len(wrong) else None
+
+
+def _render(
+    report_id: str,
+    rows: Any,
+    messages: list[dict[str, Any]] | None,
+    *,
+    allowed: set[str],
+    n_questions: int | None,
+    prompt_version: str,
+) -> tuple[dict[str, Any], int]:
+    """Gate one conversation (F2–F8, N1) and render it; return the row and its tokens."""
+    from convfinqa.sft import rows as rows_mod
+    from convfinqa.sft import tokens
+    from convfinqa.sft import trajectories as tj
+
+    _check(report_id, rows, messages, allowed=allowed, n_questions=n_questions)
+    if messages is None:  # unreachable: F3 refuses a conversation with no history
+        raise _GateError("F3", "no message history for this conversation")
+    row, _ = rows_mod.to_row(report_id, messages, version=prompt_version)
+    thinking = [
+        tokens.count_text(str(p.get("content") or ""))
+        for m in messages
+        for p in tj.parts(m, "thinking")
+    ]
+    if thinking and max(thinking) > MAX_REASONING_TOKENS:
+        raise _GateError("F7", f"a reasoning block of {max(thinking)} tokens")
+    n_tokens = tokens.count(row)
+    if n_tokens > MAX_ROW_TOKENS:
+        raise _GateError("F8", f"{n_tokens} tokens")
+    return row, n_tokens
+
+
 def build(
-    csvs: list[Path], *, version: str = "v1", prompt_version: str = "sdk_v1"
+    csvs: list[Path],
+    *,
+    version: str = "v1",
+    prompt_version: str = "sdk_v1",
+    manifest_name: str = "sft_v1",
+    prefix_rows: bool = False,
 ) -> dict[str, Any]:
     """Gate every conversation in `csvs`, write the dataset, return its stats."""
     import pandas as pd
@@ -219,7 +244,7 @@ def build(
     from convfinqa.sft import splits, tokens
     from convfinqa.sft import trajectories as tj
 
-    manifest = splits.load()
+    manifest = splits.load(manifest_name)
     sealed_pages = splits.excluded_pages()
     val_pages = {splits.page_of(r) for r in manifest["splits"]["val"]}
     allowed = {
@@ -254,42 +279,49 @@ def build(
             if rid in seen:
                 continue
             group = group.sort_values("turn_index")
+            history = histories.get(rid)
+            is_prefix = False
             try:
-                _check(
+                row, n_tokens = _render(
                     rid,
                     group,
-                    histories.get(rid),
+                    history,
                     allowed=allowed,
                     n_questions=n_q.get(rid),
+                    prompt_version=prompt_version,
                 )
-                row, meta = rows_mod.to_row(rid, histories[rid], version=prompt_version)
-                thinking = [
-                    tokens.count_text(str(p.get("content") or ""))
-                    for m in histories[rid]
-                    for p in tj.parts(m, "thinking")
-                ]
-                if thinking and max(thinking) > MAX_REASONING_TOKENS:
-                    raise _GateError(
-                        "F7", f"a reasoning block of {max(thinking)} tokens"
-                    )
-                n_tokens = tokens.count(row)
-                if n_tokens > MAX_ROW_TOKENS:
-                    raise _GateError("F8", f"{n_tokens} tokens")
             except (_GateError, rows_mod.RowRejectedError) as exc:
-                drops.append(
-                    {
-                        "report_id": rid,
-                        "run_name": name,
-                        "rule": exc.rule,
-                        "detail": exc.detail,
-                    }
-                )
-                continue
+                drop: dict[str, Any] = {
+                    "report_id": rid,
+                    "run_name": name,
+                    "rule": exc.rule,
+                    "detail": exc.detail,
+                }
+                k = _first_wrong(group) if exc.rule == "F1" else None
+                if not (prefix_rows and k and history is not None):
+                    drops.append(drop)
+                    continue
+                group = group[group["turn_index"] < k]
+                try:
+                    row, n_tokens = _render(
+                        rid,
+                        group,
+                        tj.prefix(history, k),
+                        allowed=allowed,
+                        n_questions=k,
+                        prompt_version=prompt_version,
+                    )
+                except (_GateError, rows_mod.RowRejectedError) as again:
+                    drops.append({**drop, "prefix_rule": again.rule})
+                    continue
+                drops.append({**drop, "prefix_turns": k})
+                is_prefix = True
             seen.add(rid)
             row["meta"].update(
                 {
                     "run_name": name,
                     "tokens": n_tokens,
+                    "prefix": is_prefix,
                     "type2": rid.startswith("Double_"),
                     "operand_recall": [
                         None if pd.isna(v) else float(v)
@@ -312,8 +344,14 @@ def build(
     stats: dict[str, Any] = {
         "version": version,
         "built_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "manifest": manifest_name,
         "unit": "conversation",
-        "row_shape": "A: one row per whole conversation, loss on every assistant message",
+        "row_shape": "A: one row per whole conversation, loss on every assistant message"
+        + (
+            "; plus prefix rows (a conversation's turns before its first wrong one)"
+            if prefix_rows
+            else ""
+        ),
         "student": f"{tokens.STUDENT}@{tokens.REVISION}",
         "prompt": f"student_v1 = {prompt_version} + STUDENT_FORMAT",
         "system_sha256": _sha(wire["system"].encode()),
@@ -321,6 +359,10 @@ def build(
         "train_sha256": _sha(train),
         "sources": sources,
         "n_rows": len(kept),
+        "n_prefix_rows": sum(bool(r["meta"].get("prefix")) for r in kept),
+        "n_prefix_turns": sum(
+            int(r["meta"]["n_turns"]) for r in kept if r["meta"].get("prefix")
+        ),
         "n_turns": sum(int(r["meta"]["n_turns"]) for r in kept),
         "n_type2": sum(bool(r["meta"]["type2"]) for r in kept),
         "n_detours_collapsed": sum(int(r["meta"]["n_detours"]) for r in kept),
@@ -357,7 +399,8 @@ def card(stats: dict[str, Any]) -> str:
 Built {stats["built_at"]} by `convfinqa-sft build` (s28). Unit: the whole conversation.
 Row shape {stats["row_shape"]}.
 
-- **Rows:** {stats["n_rows"]} conversations, {stats["n_turns"]} questions, {stats["n_type2"]} Type II.
+- **Rows:** {stats["n_rows"]} conversations, {stats["n_turns"]} questions, {stats["n_type2"]} Type II;
+  {stats.get("n_prefix_rows", 0)} are prefix rows ({stats.get("n_prefix_turns", 0)} questions). Manifest `{stats.get("manifest", "sft_v1")}`.
 - **Tokens:** {t["total"]:,} in all; median {t["median"]:,}, min {t["min"]:,}, max {t["max"]:,} per row
   (the student's tokenizer and chat template).
 - **Prompt:** {stats["prompt"]}; system sha256 `{stats["system_sha256"][:12]}`, tools sha256
@@ -371,6 +414,8 @@ Row shape {stats["row_shape"]}.
 {sources}
 
 ## Dropped ({stats["n_dropped"]}), by the first rule each failed
+
+A drop with a prefix row still counts here: the conversation was not kept whole.
 
 | rule | conversations |
 |---|---|

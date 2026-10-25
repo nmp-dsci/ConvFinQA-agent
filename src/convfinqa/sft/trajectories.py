@@ -105,6 +105,13 @@ def turns(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     A turn is ``{"prompt": the user message text, "steps": [every message
     after it, up to the next question]}``. The opening request also carries
     the system prompt as ``instructions``.
+
+    Pydantic AI may fold the previous turn's last tool return (the
+    ``StructuredOutput`` "Final result processed.") into the request that asks
+    the next question. That return closes the previous turn, and the student
+    is always sent it as a tool message before the next question, so it goes
+    back to the end of the previous turn's steps (s29's I1: 44% of v1's turn
+    boundaries had lost it).
     """
     out: list[dict[str, Any]] = []
     for message in messages:
@@ -112,9 +119,43 @@ def turns(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
             parts(message, "user-prompt") if message.get("kind") == "request" else []
         )
         if prompts:
+            closing = [
+                p
+                for p in message.get("parts") or []
+                if p.get("part_kind") not in ("user-prompt", "system-prompt")
+            ]
+            if closing and out:
+                out[-1]["steps"].append({**message, "parts": closing})
             out.append({"prompt": str(prompts[0].get("content") or ""), "steps": []})
         elif out:
             out[-1]["steps"].append(message)
+    return out
+
+
+def prefix(messages: list[dict[str, Any]], n_turns: int) -> list[dict[str, Any]]:
+    """The history of a conversation's first `n_turns` questions, nothing after.
+
+    The request that opens question `n_turns` is cut, but any tool return it
+    carries for the question before it is kept (see `turns`).
+    """
+    out: list[dict[str, Any]] = []
+    seen = 0
+    for message in messages:
+        prompts = (
+            parts(message, "user-prompt") if message.get("kind") == "request" else []
+        )
+        if prompts:
+            if seen == n_turns:
+                closing = [
+                    p
+                    for p in message.get("parts") or []
+                    if p.get("part_kind") not in ("user-prompt", "system-prompt")
+                ]
+                if closing:
+                    out.append({**message, "parts": closing})
+                break
+            seen += 1
+        out.append(message)
     return out
 
 

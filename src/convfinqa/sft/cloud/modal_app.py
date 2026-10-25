@@ -70,7 +70,7 @@ TRAIN_MEMORY_GIB = 16
 # Modal list prices (tau, 19 Oct): the L4, then per core and per GiB, per second
 GPU_USD_PER_S = 0.000222
 TRAIN_USD_PER_S = GPU_USD_PER_S + TRAIN_CPU * 0.0000131 + TRAIN_MEMORY_GIB * 0.00000222
-TRAIN_HOURS = 8
+TRAIN_HOURS = 12  # s29: v2 is ≈ 3× v1, 2 epochs on one L4
 REPO = "/repo"
 PACKAGE = Path(__file__).resolve().parents[1]  # src/convfinqa/sft
 
