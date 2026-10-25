@@ -394,14 +394,14 @@
       "version": "sdk_v1",
       "registered_at": "2026-09-05T03:21:07.518128+00:00",
       "source": "evalloop",
-      "bundle_id": "c189ea35d620",
+      "bundle_id": "59dd05a29ad0",
       "bundle": {
         "prompts_version": "sdk_v1",
         "gepa_overlay": null,
         "lm_mini": "deepseek-v4-flash",
         "lm_max": "deepseek-v4-pro",
         "dataset_hash": "d012d251fcb9",
-        "code_sha": "c75519c",
+        "code_sha": "39dbbca",
         "composition": "s1",
         "v_sdk": "s1@5e96f2bf"
       },
@@ -423,7 +423,10 @@
         "84a2c86185804f5e98d2bb79481dd893",
         "f7d1b1b9e70141d9930e359e73002588",
         "68125f694a27440a991422fc826a27da",
-        "48a09fcd4c8b48c6b0d3cc256584978f"
+        "48a09fcd4c8b48c6b0d3cc256584978f",
+        "ec04a5e25e5e46b08116c3529818436c",
+        "edf5eb47345744bea118a1639e953b8a",
+        "b41cfac1b64343fe96c1bc64ed2af2db"
       ],
       "metrics": {},
       "notes": ""
