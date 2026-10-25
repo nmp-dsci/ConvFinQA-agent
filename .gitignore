@@ -60,3 +60,7 @@ frontend/tsconfig.*.tsbuildinfo
 # The archived sqlite store `tracking_uri()` falls back to only when
 # MLFLOW_TRACKING_URI is explicitly empty.
 mlflow.db
+# SFT training runs (s28): the run record (run.json, metrics.jsonl, mask.json) is
+# committed; the weights stay on Modal's convfinqa-sft-runs volume, ~140 MB each.
+runs/sft/*/adapter/
+runs/sft/*/checkpoints/

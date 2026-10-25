@@ -248,10 +248,16 @@ def reset_provider() -> None:
 # while thinking — is Pydantic AI's DeepSeek profile, which is why it is used.
 OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai",)
 DEEPSEEK_OPEN_MODELS: tuple[str, ...] = ("deepseek-flash", "deepseek-v4-pro")
-# The SFT student (s28): Qwen3-4B-Instruct-2507 on vLLM on Modal, untrained
-# and with the sft1 adapter. A non-thinking model, so its effort is "none":
-# its reasoning is the visible `<reasoning>` text it was trained to write.
-STUDENT_MODELS: tuple[str, ...] = ("student-qwen3-4b", "student-qwen3-4b-sft1")
+# The SFT student (s28): Qwen3-4B-Instruct-2507 on vLLM on Modal, untrained,
+# and the sft1 adapter at each epoch's checkpoint (val picks one). A
+# non-thinking model, so its effort is "none": its reasoning is the visible
+# `<reasoning>` text it was trained to write.
+STUDENT_MODELS: tuple[str, ...] = (
+    "student-qwen3-4b",
+    "student-qwen3-4b-sft1-e1",
+    "student-qwen3-4b-sft1-e2",
+    "student-qwen3-4b-sft1-e3",
+)
 OPEN_MODELS: tuple[str, ...] = (*DEEPSEEK_OPEN_MODELS, *STUDENT_MODELS)
 OPEN_EFFORTS: tuple[str, ...] = ("low", "high", "max", "none")
 OPEN_BILLING = "deepseek-api"
