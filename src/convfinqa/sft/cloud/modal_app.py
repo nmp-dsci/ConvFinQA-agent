@@ -50,7 +50,10 @@ MAX_MODEL_LEN = 32768
 MINUTES = 60
 LORA_RANK = 16
 # {served name: path under /runs} — a checkpoint per epoch, so val can pick one.
-ADAPTERS: dict[str, str] = {}
+ADAPTERS: dict[str, str] = {
+    f"{BASE_NAME}-sft1-e{epoch}": f"20261025T040743Z_train_sft1/checkpoints/checkpoint-{step}"
+    for epoch, step in ((1, 21), (2, 42), (3, 63))
+}
 
 TRAIN_PINS = (
     "torch==2.14.1",
