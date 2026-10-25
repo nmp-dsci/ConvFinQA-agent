@@ -1,0 +1,49 @@
+{
+  "version": "v2",
+  "built_at": "2026-10-25T11:32:18Z",
+  "manifest": "sft_v2",
+  "unit": "conversation",
+  "row_shape": "A: one row per whole conversation, loss on every assistant message; plus prefix rows (a conversation's turns before its first wrong one)",
+  "student": "Qwen/Qwen3-4B-Instruct-2507@cdbee75f17c01a7cc42f958dc650907174af0554",
+  "prompt": "student_v1 = sdk_v1 + STUDENT_FORMAT",
+  "system_sha256": "819137b929da1e6a3bef42898f35e8693e4494fd32e108c80169e8957aafccc0",
+  "tools_sha256": "02fce9ed893e670cc7d8862ce5e88d23842ee6065b7fb55bf2cf487c9740ac49",
+  "train_sha256": "fc63c1d8e64bfc0812be515057424c1bd8709a1823e0258ac501e2e4533db8f8",
+  "sources": [
+    {
+      "run_name": "open-evalloop-train552-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_142402",
+      "csv_sha256": "6841df379be3f79be0691cd26e94cdb1d1454a1dfd02d94a769089452991b573",
+      "trajectories_sha256": "a5763eac00f8567bea39b6bb7e0b594144367afebb153830d3b56d3b2b76e3e8"
+    },
+    {
+      "run_name": "open-evalloop-train600-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261025_215639",
+      "csv_sha256": "bd5ff26d41021e1771aa3e31912fa1d16d09522a111691257e3b1f4e25cac73b",
+      "trajectories_sha256": "0fb40b24d61011cf4547781ebd48e0400047b35d957713025203a2a285c2480f"
+    }
+  ],
+  "n_rows": 916,
+  "n_prefix_rows": 278,
+  "n_prefix_turns": 729,
+  "n_turns": 3486,
+  "n_type2": 308,
+  "n_detours_collapsed": 288,
+  "n_dropped": 514,
+  "drops_by_rule": {
+    "F1": 455,
+    "F4": 33,
+    "F5": 3,
+    "F6": 1,
+    "F7": 18,
+    "N1": 4
+  },
+  "tokens": {
+    "total": 7369883,
+    "median": 7991,
+    "max": 12573,
+    "min": 5463
+  },
+  "limits": {
+    "max_row_tokens": 24576,
+    "max_reasoning_tokens": 2048
+  }
+}
