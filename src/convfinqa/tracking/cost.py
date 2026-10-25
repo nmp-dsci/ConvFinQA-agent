@@ -53,7 +53,14 @@ def deepseek_cost_usd(
     output_tokens: int,
     at: datetime,
 ) -> float:
-    """What one open-runtime call cost, on the card in force at `at`."""
+    """What one open-runtime call cost, on the card in force at `at`.
+
+    A student (s28) is served by vLLM on a Modal GPU, which bills by the second,
+    not by the token: its calls cost nothing here, and the GPU time is costed
+    from the server's own wall clock instead of being priced as DeepSeek.
+    """
+    if model.startswith("student-"):
+        return 0.0
     hit, miss, out = DEEPSEEK_CARD.get(model, DEEPSEEK_CARD["deepseek-flash"])
     scale = 1.0 if deepseek_peak(at) else 0.5
     return (

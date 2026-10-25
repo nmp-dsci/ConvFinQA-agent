@@ -530,6 +530,35 @@ def check_resume(
         )
 
 
+def listed_ids(
+    path: str | Path, manifest: dict[str, Any]
+) -> tuple[list[str], dict[str, Any]]:
+    """The train-side ids listed in `path`, in file order; refuses any sealed id.
+
+    A conversation in the manifest's test or holdout split is refused outright:
+    a listed run is never allowed to answer the gate split or the sealed set.
+    """
+    import hashlib
+
+    raw = Path(path).read_bytes()
+    listed = [line.strip() for line in raw.decode().splitlines() if line.strip()]
+    if not listed:
+        raise ValueError(f"--report-ids-file {path} lists no report ids")
+    splits = manifest.get("splits") or {}
+    sealed = {str(r) for s in ("test", "holdout") for r in splits.get(s) or []}
+    bad = sorted(set(listed) & sealed)
+    if bad:
+        raise ValueError(
+            f"--report-ids-file {Path(path).name} lists {len(bad)} test or holdout "
+            f"ids ({', '.join(bad[:3])}): a listed run never answers a sealed split"
+        )
+    return listed, {
+        "n_reports": len(listed),
+        "report_ids_file": Path(path).name,
+        "report_ids_file_sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
 def narrow_draw(
     report_ids: list[str], draw: dict[str, Any], path: str | Path
 ) -> tuple[list[str], dict[str, Any]]:
@@ -686,10 +715,14 @@ async def run_split(
         )
     draw: dict[str, Any] | None = None
     if report_ids_file is not None and train_seed is None:
-        raise ValueError(
-            "--report-ids-file narrows a train draw; pass it with --train-seed"
-        )
-    if train_seed is not None:
+        if split != "train":
+            raise ValueError(
+                f"--report-ids-file lists train-side conversations; refusing on {split!r}"
+            )
+        # s28: an explicit list from the train side (sft_v1's val set, cut by
+        # page from the pool, is no seeded draw). Never a gate-split id.
+        report_ids, draw = listed_ids(report_ids_file, manifest)
+    elif train_seed is not None:
         report_ids, draw = draw_train(
             seed=train_seed, n_reports=n_reports or len(manifest["splits"]["train"])
         )
@@ -742,12 +775,16 @@ async def run_split(
             OPEN_EFFORTS,
             OPEN_HARNESSES,
             OPEN_MODELS,
+            STUDENT_MODELS,
+            check_open_agent,
             open_model_slug,
         )
 
         open_harness = open_harness or OPEN_HARNESSES[0]
         open_model = open_model or OPEN_MODELS[0]
-        open_effort = open_effort or "high"
+        open_effort = open_effort or (
+            "none" if open_model in STUDENT_MODELS else "high"
+        )
         for value, allowed, flag in (
             (open_harness, OPEN_HARNESSES, "--open-harness"),
             (open_model, OPEN_MODELS, "--open-model"),
@@ -755,6 +792,7 @@ async def run_split(
         ):
             if value not in allowed:
                 raise ValueError(f"{flag} {value!r}; expected one of {allowed}")
+        check_open_agent(open_model, open_effort)
         model_slug = open_model_slug(open_harness, open_model)
     # The effort the run name carries, whichever session runtime ran.
     name_effort = sdk_effort if runtime == "agent_sdk" else open_effort
@@ -813,9 +851,21 @@ async def run_split(
         from importlib.metadata import version as package_version
 
         from convfinqa.config import settings
-        from convfinqa.llm import OPEN_BILLING
+        from convfinqa.llm import OPEN_BILLING, STUDENT_BILLING, STUDENT_MODELS
 
-        system_prompt = prompts_pkg.load_sdk(version)
+        student = open_model in STUDENT_MODELS
+        if student:
+            # s28's D5: the sdk prompt verbatim plus the reasoning paragraph,
+            # for the base model and the tuned one alike.
+            from convfinqa.sft.prompt import student_prompt
+            from convfinqa.tracking.prompt_ledger import prompt_hash
+
+            system_prompt = student_prompt(version)
+            runtime_params["student_prompt"] = (
+                f"student_v1@{prompt_hash(system_prompt)}"
+            )
+        else:
+            system_prompt = prompts_pkg.load_sdk(version)
         composition = prompt_ledger.sdk_composition_string(
             prompt_ledger.ensure_sdk(version)
         )
@@ -828,7 +878,7 @@ async def run_split(
                 "open_harness_version": package_version("pydantic-ai-slim"),
                 "open_model": open_model,
                 "open_effort": open_effort,
-                "billing": OPEN_BILLING,
+                "billing": STUDENT_BILLING if student else OPEN_BILLING,
                 "max_turns": settings.sdk_max_turns,
                 "sdk_total_tokens_limit": settings.sdk_total_tokens_limit,
             }

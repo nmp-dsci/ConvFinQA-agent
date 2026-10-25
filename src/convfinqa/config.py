@@ -88,6 +88,14 @@ class Settings(BaseSettings):
     teacher_oauth_token: SecretStr | None = None
     logfire_token: SecretStr | None = None
 
+    # ---- The SFT student (s28) --------------------------------------------
+    # vLLM's OpenAI-compatible server on Modal (`sft/cloud/modal_app.py`),
+    # behind Modal's proxy auth: STUDENT_URL is the deployed server's URL, and
+    # the two tokens are the ones tau-telecom-sft already keeps in ~/.env.
+    student_url: str | None = None
+    modal_proxy_token_id: SecretStr | None = None
+    modal_proxy_token_secret: SecretStr | None = None
+
     # ---- Agent SDK runtime (the qa_agent experiment) ----------------------
     # The single-session challenger: one Claude session does triage, planning,
     # retrieval and calculation for a whole conversation, with the calculator
