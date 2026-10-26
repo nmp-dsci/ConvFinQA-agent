@@ -43,7 +43,7 @@ jobs:
         with:
           enable-cache: true
       - run: uv python install 3.12
-      - run: uv sync --python 3.12
+      - run: uv sync --python 3.12 --extra sft
       - name: pytest
         run: uv run pytest tests -q
 
