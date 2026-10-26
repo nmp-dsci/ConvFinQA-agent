@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sft2 student results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:600px; }
+  table.fx.narrow{ min-width:440px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .up{ color:var(--accent); font-weight:600; }
+  .down{ color:var(--red); font-weight:600; }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; min-width:560px; }
+  .fig .ax{ stroke:var(--line-3); stroke-width:1; }
+  .fig .grid{ stroke:var(--line); stroke-width:1; stroke-dasharray:3 4; }
+  .fig .pick{ stroke:var(--accent); stroke-width:1.5; stroke-dasharray:4 4; }
+  .fig .l-num{ fill:none; stroke:var(--ink); stroke-width:2; }
+  .fig .l-all{ fill:none; stroke:var(--muted); stroke-width:2; stroke-dasharray:6 4; }
+  .fig .l-prog{ fill:none; stroke:var(--accent); stroke-width:2.5; }
+  .fig .d-num{ fill:var(--ink); }
+  .fig .d-all{ fill:var(--muted); }
+  .fig .d-prog{ fill:var(--accent); }
+  .fig .t{ fill:var(--muted); font-family:var(--mono); font-size:12px; }
+  .fig .tl{ fill:var(--ink); font-family:var(--sans); font-size:13px; font-weight:600; }
+  .fig .ta{ fill:var(--accent); font-family:var(--sans); font-size:13px; font-weight:600; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .three .card p, .two .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .meter{ display:flex; height:10px; border-radius:var(--r-sm); overflow:hidden; background:var(--line); margin-top:var(--s2); }
+  .meter > span{ display:block; height:100%; }
+  .meter .m1{ background:var(--accent); }
+  .meter .m2{ background:var(--amber); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s30 · ConvFinQA-agent · 2026-10-26 · results · second fine-tune of the SFT student · branch <code>sft-data</code></div>
+  <h1>The second fine-tune beat epoch 2 by 5.7 points on val, <em>and by 1.1 on the unseen test 100.</em></h1>
+  <p class="lede">sft2 continued training sft1's epoch 2 adapter on data v2 (916 rows: the 334 v1 conversations with the dropped tool reply restored, 278 prefix rows, and the aimed 600). Each half-epoch was scored on val as soon as it was saved. The best, checkpoint 1.0, was then scored once on test 100, against epoch 2 re-scored under the same harness.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">70.7% → 76.4%</div><div class="l">val, 365 questions: epoch 2 → sft2 checkpoint 1.0. 38 fixed, 17 broken; one-sided cluster p = 0.045; 95% CI −0.5 to +12.5 points</div></div>
+    <div class="stat"><div class="n">80.2% → 81.4%</div><div class="l">test 100, 349 questions, same harness: 16 fixed, 12 broken; p = 0.26; CI −2.4 to +4.6. Not shown to be better</div></div>
+    <div class="stat"><div class="n">80%</div><div class="l">of the gap from the base model (56.2%) to the teacher, Flash (87.7%), now closed on test. Epoch 2 closes 76% under the same harness</div></div>
+    <div class="stat"><div class="n">≈ $12</div><div class="l">for the round: $1.77 of DeepSeek to collect the aimed 600, $6.26 of Modal L4 to train, and ≈ $4 of L4 for eight scoring passes (an estimate, with cold starts)</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5)">
+    <p><b>Recommendation.</b> Adopt sft2 checkpoint 1.0 (<code>student-qwen3-4b-sft2-e1</code>) as the student's best and start the next round from it.
+      It was the val pick under the rule set in advance (highest val accuracy). It has the student's best test score, and it is at least as good as epoch 2 on every slice of test.
+      Its test gain over epoch 2 is not significant, so it is "at least as good, probably a little better", not a proven step.
+      What still separates it from the teacher is program turns, and on test that gap is mostly fetching the wrong value for an operand (§08). The next step, in §09, targets that.</p>
+  </div>
+</header>
+
+<section id="ran">
+  <h2>01 · What ran, <em>in order</em></h2>
+  <p class="sub">Every decision from the s29 review (D1–D5), then the test pass on the owner's word. Code and data are committed on <code>sft-data</code> (a4d9aa1 → 8a616df).</p>
+  <div class="steps">
+    <div class="step"><b>Data v2 (D2: N0, N1, aimed N2)</b>The tool reply that closes each turn is restored in every row (N0: 0 of 3,486 answers now run straight into the next question, against 519 of 1,187 in v1). F1 drops keep their turns before the first wrong one as prefix rows (N1: 278 rows). Flash collected the aimed 600 (N2: 3,152 questions, 80.9% right, $1.77). 916 rows, 3,486 questions, 7.37M tokens. A second builder bug was fixed on the way: Pydantic AI 2.x records a refused call as a retried tool return, which the F5 gate now catches.<span class="tag">evaluation/sft/v2 · train sha256 fc63c1d8…</span></div>
+    <div class="step"><b>Sampling check (D4)</b>Epoch 2 on val at temperature 0.2: 70.1% against 71.8% at 0.7 (20 fixed, 26 broken, p 0.74). No gain, so sampling stays at 0.7.</div>
+    <div class="step"><b>Checked harness (D5)</b>H1 returns a tool error for an extra calculator argument, H2 sends back a program answer that is none of the calculator's results, H3 sends back an answer its own program does not reach. Epoch 2 re-scored on val under it: 70.7%, the new baseline (H2 fired 17 times, H3 12).<span class="tag">--open-harness pydantic_ai_checked · slug pydchk</span></div>
+    <div class="step"><b>Train sft2 (D1: warm start)</b>Epoch 2's adapter loaded and trained further: lr 5e-5, cosine, 2 epochs over v2, a checkpoint every half-epoch (steps 29, 58, 87, 116). Mask 916 of 916 rows ok. 5.5 h on one L4, $6.19.<span class="tag">runs/sft/20261025T113733Z_train_sft2</span></div>
+    <div class="step"><b>Score each checkpoint on val as it landed</b>The server serves every complete checkpoint, so each half-epoch was scored while training went on. All under the checked harness at temperature 0.7.</div>
+    <div class="step"><b>Open test 100 once (owner: "do the test 100 on best performing half-epoch")</b>Checkpoint 1.0, plus epoch 2 re-scored under the checked harness so the comparison is like for like. Epoch 2's committed test pass ran on the plain harness.</div>
+  </div>
+</section>
+
+<section id="val">
+  <h2>02 · Val, <em>one pass per half-epoch</em></h2>
+  <p class="sub">100 conversations, 365 questions (131 number turns, 234 program turns), on report pages no training row, test conversation or holdout conversation shares. Every checkpoint beats epoch 2; the four are within noise of each other.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 860 275" role="img" aria-label="Val accuracy by checkpoint. Number turns 84.0, 84.7, 87.8, 90.1, 87.0. Overall 70.7, 74.2, 76.4, 74.8, 75.6. Program turns 63.2, 68.4, 70.1, 66.2, 69.2.">
+      <line class="grid" x1="70" y1="230" x2="700" y2="230"/><text class="t" x="60" y="234" text-anchor="end">60%</text>
+      <line class="grid" x1="70" y1="172.9" x2="700" y2="172.9"/><text class="t" x="60" y="177" text-anchor="end">70%</text>
+      <line class="grid" x1="70" y1="115.7" x2="700" y2="115.7"/><text class="t" x="60" y="120" text-anchor="end">80%</text>
+      <line class="grid" x1="70" y1="58.6" x2="700" y2="58.6"/><text class="t" x="60" y="63" text-anchor="end">90%</text>
+      <line class="ax" x1="70" y1="230" x2="700" y2="230"/>
+      <line class="pick" x1="385" y1="30" x2="385" y2="230"/><text class="ta" x="391" y="40">picked</text>
+      <polyline class="l-num" points="70,92.9 227.5,88.9 385,71.1 542.5,58.0 700,75.7"/>
+      <polyline class="l-all" points="70,168.9 227.5,148.9 385,136.3 542.5,145.4 700,140.9"/>
+      <polyline class="l-prog" points="70,211.7 227.5,182.0 385,172.3 542.5,194.6 700,177.4"/>
+      <circle class="d-num" cx="70" cy="92.9" r="3.5"/><circle class="d-num" cx="227.5" cy="88.9" r="3.5"/><circle class="d-num" cx="385" cy="71.1" r="3.5"/><circle class="d-num" cx="542.5" cy="58.0" r="3.5"/><circle class="d-num" cx="700" cy="75.7" r="3.5"/>
+      <circle class="d-all" cx="70" cy="168.9" r="3.5"/><circle class="d-all" cx="227.5" cy="148.9" r="3.5"/><circle class="d-all" cx="385" cy="136.3" r="3.5"/><circle class="d-all" cx="542.5" cy="145.4" r="3.5"/><circle class="d-all" cx="700" cy="140.9" r="3.5"/>
+      <circle class="d-prog" cx="70" cy="211.7" r="4"/><circle class="d-prog" cx="227.5" cy="182.0" r="4"/><circle class="d-prog" cx="385" cy="172.3" r="4"/><circle class="d-prog" cx="542.5" cy="194.6" r="4"/><circle class="d-prog" cx="700" cy="177.4" r="4"/>
+      <text class="tl" x="712" y="80">number 87.0%</text>
+      <text class="t" x="712" y="145">overall 75.6%</text>
+      <text class="ta" x="712" y="182">program 69.2%</text>
+      <text class="t" x="70" y="252" text-anchor="middle">epoch 2</text>
+      <text class="t" x="227.5" y="252" text-anchor="middle">0.5</text>
+      <text class="t" x="385" y="252" text-anchor="middle">1.0</text>
+      <text class="t" x="542.5" y="252" text-anchor="middle">1.5</text>
+      <text class="t" x="700" y="252" text-anchor="middle">2.0</text>
+      <text class="t" x="385" y="270" text-anchor="middle">sft2 checkpoint, in epochs over data v2 (epoch 2 of sft1 is the start)</text>
+    </svg>
+  </figure>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:28%"><col style="width:14.4%"><col style="width:14.4%"><col style="width:14.4%"><col style="width:14.4%"><col style="width:14.4%"></colgroup>
+      <thead><tr><th>val · 365 questions</th><th class="sc">epoch 2 (start)</th><th class="sc">0.5</th><th class="sc rec">1.0 ✓</th><th class="sc">1.5</th><th class="sc">2.0</th></tr></thead>
+      <tbody>
+        <tr><td>accuracy</td><td class="sc">70.7%</td><td class="sc">74.2%</td><td class="sc rec"><b>76.4%</b></td><td class="sc">74.8%</td><td class="sc">75.6%</td></tr>
+        <tr><td>number turns (131)</td><td class="sc">84.0%</td><td class="sc">84.7%</td><td class="sc rec">87.8%</td><td class="sc">90.1%</td><td class="sc">87.0%</td></tr>
+        <tr><td>program turns (234)</td><td class="sc">63.2%</td><td class="sc">68.4%</td><td class="sc rec">70.1%</td><td class="sc">66.2%</td><td class="sc">69.2%</td></tr>
+        <tr><td>conversations right to the end</td><td class="sc">49</td><td class="sc">58</td><td class="sc rec">59</td><td class="sc">54</td><td class="sc">56</td></tr>
+        <tr><td>fixed · broken against epoch 2</td><td class="sc">—</td><td class="sc">27 · 14</td><td class="sc rec">38 · 17</td><td class="sc">29 · 14</td><td class="sc">35 · 17</td></tr>
+        <tr><td>one-sided cluster p</td><td class="sc">—</td><td class="sc">0.08</td><td class="sc rec">0.045</td><td class="sc">0.04</td><td class="sc">0.03</td></tr>
+        <tr><td>95% CI on the gain, points</td><td class="sc">—</td><td class="sc">−1.3 to +8.6</td><td class="sc rec">−0.5 to +12.5</td><td class="sc">−0.3 to +8.8</td><td class="sc">+0.0 to +10.4</td></tr>
+        <tr><td>turns with no valid reply</td><td class="sc">0</td><td class="sc">3</td><td class="sc rec">3</td><td class="sc">0</td><td class="sc">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge ok">picked</span><h3>1.0, by the rule set beforehand</h3><p>Highest val accuracy picks the checkpoint. 1.0 has it. 2.0 has the smaller p-value, because its fixes are spread over more conversations. Between checkpoints the differences are noise (§04), so either would have been a fair pick.</p></div>
+    <div class="card"><span class="badge warn">plateau</span><h3>Nothing gained after one epoch</h3><p>Accuracy rose over the first epoch and then held between 74.8% and 76.4%. A second pass over v2 did not help on val.</p></div>
+    <div class="card"><span class="badge bad">harness bug</span><h3>3 lost turns, from one budget</h3><p>The checked harness asks for 2 retries on the answer tool, but Pydantic AI caps the whole run at 1 (<code>Agent(retries=…)</code>, default 1). A check retry followed by a malformed reply ends the attempt. It cost the same conversation (MRK 2013, 3 turns) at 0.5 and at 1.0. Every checked pass ran with the same cap, so the comparisons hold; it is left unfixed until the next round.</p></div>
+  </div>
+</section>
+
+<section id="test">
+  <h2>03 · Test 100, <em>opened once for the pick</em></h2>
+  <p class="sub">The 100 conversations of <code>eval_loop_v2</code> test (349 questions, 111 number, 238 program). No row, page or choice touched them. Columns are paired question by question.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:25%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
+      <thead><tr><th>test 100 · 349 questions</th><th class="sc">base</th><th class="sc">epoch 2<span class="note">plain harness</span></th><th class="sc">epoch 2<span class="note">checked</span></th><th class="sc rec">sft2 1.0<span class="note">checked</span></th><th class="sc">teacher<span class="note">Flash · plain</span></th></tr></thead>
+      <tbody>
+        <tr><td>accuracy</td><td class="sc">56.2%</td><td class="sc">77.4%</td><td class="sc">80.2%</td><td class="sc rec"><b>81.4%</b></td><td class="sc">87.7%</td></tr>
+        <tr><td>number turns</td><td class="sc">83.8%</td><td class="sc">91.9%</td><td class="sc">92.8%</td><td class="sc rec">94.6%</td><td class="sc">96.4%</td></tr>
+        <tr><td>program turns</td><td class="sc">43.3%</td><td class="sc">70.6%</td><td class="sc">74.4%</td><td class="sc rec">75.2%</td><td class="sc">83.6%</td></tr>
+        <tr><td>conversations right to the end</td><td class="sc">25</td><td class="sc">55</td><td class="sc">57</td><td class="sc rec">63</td><td class="sc">75</td></tr>
+        <tr><td>first mistakes (one per conversation)</td><td class="sc">75</td><td class="sc">45</td><td class="sc">43</td><td class="sc rec">37</td><td class="sc">25</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge">same harness</span><h3>sft2 1.0 vs epoch 2: +1.1</h3><p>16 fixed, 12 broken; one-sided p = 0.26; CI −2.4 to +4.6. The +5.7 on val shrank because picking the best of four noisy val passes overstates the winner, and because val also aimed the new data (§08).</p></div>
+    <div class="card"><span class="badge info">harness</span><h3>The checked harness alone: +2.8</h3><p>Epoch 2, same weights, plain → checked: 77.4% → 80.2% (22 fixed, 12 broken, p = 0.10). On val the same switch measured −1.1. Read both as noise around zero; the plain-harness 77.4% is no longer the figure to compare against.</p></div>
+    <div class="card"><span class="badge warn">below the teacher</span><h3>sft2 1.0 vs Flash: −6.3</h3><p>13 fixed, 35 broken; CI −12.5 to −0.6. Number turns are close (94.6% vs 96.4%); program turns are 8.4 points behind (75.2% vs 83.6%).</p></div>
+  </div>
+</section>
+
+<section id="swings">
+  <h2>04 · "More numbers right, more programs wrong", <em>checked</em></h2>
+  <p class="sub">The pattern holds for one step only. From 1.0 to 1.5, number turns rose and program turns fell; from 1.5 to 2.0 both moves reversed. Each step is about the size of the difference between two passes of the same weights.</p>
+  <div class="two">
+    <div class="tablewrap" style="margin-top:0">
+      <table class="fx narrow">
+        <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+        <thead><tr><th>between checkpoints</th><th class="sc">program (234)<span class="note">fixed · broken · net</span></th><th class="sc">number (131)<span class="note">fixed · broken · net</span></th></tr></thead>
+        <tbody>
+          <tr><td>epoch 2 → 0.5</td><td class="sc">21 · 9 · <span class="up">+12</span></td><td class="sc">6 · 5 · +1</td></tr>
+          <tr><td>0.5 → 1.0</td><td class="sc">17 · 13 · +4</td><td class="sc">6 · 2 · +4</td></tr>
+          <tr><td>1.0 → 1.5</td><td class="sc">12 · 21 · <span class="down">−9</span></td><td class="sc">7 · 4 · +3</td></tr>
+          <tr><td>1.5 → 2.0</td><td class="sc">19 · 12 · +7</td><td class="sc">3 · 7 · −4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap" style="margin-top:0">
+      <table class="fx narrow">
+        <colgroup><col style="width:34%"><col style="width:33%"><col style="width:33%"></colgroup>
+        <thead><tr><th>same weights (epoch 2), two passes</th><th class="sc">program (234)<span class="note">fixed · broken · net</span></th><th class="sc">number (131)<span class="note">fixed · broken · net</span></th></tr></thead>
+        <tbody>
+          <tr><td>plain → checked harness</td><td class="sc">13 · 18 · −5</td><td class="sc">4 · 3 · +1</td></tr>
+          <tr><td>temperature 0.7 → 0.2</td><td class="sc">15 · 18 · −3</td><td class="sc">5 · 8 · −3</td></tr>
+          <tr><td>checked → temperature 0.2</td><td class="sc">17 · 15 · +2</td><td class="sc">3 · 7 · −4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge">sampling</span><h3>About 31–33 program questions flip every pass</h3><p>At temperature 0.7 the student does not answer the same way twice. Two passes of the same weights, under settings that made no measurable difference, disagree on 31–33 program questions. Two neighbouring checkpoints disagree on 30–33. The weight changes are hidden inside that.</p></div>
+    <div class="card"><span class="badge warn">not separable</span><h3>The 1.0 → 1.5 dip: net −9, p = 0.26</h3><p>With about 33 questions flipping, a net of 9 is roughly 1.5 standard deviations. It could be a small real dip, but one pass per checkpoint cannot tell it from sampling. Its first mistakes on program turns went 30 → 37 → 31 across 1.0, 1.5 and 2.0. The same weights scored three times gave 34, 38 and 40.</p></div>
+    <div class="card"><span class="badge">size</span><h3>Number turns move in steps of 0.8 points</h3><p>One number question is 0.76 points of 131. The rise from 84.7% to 90.1% is 7 questions; the fall back to 87.0% is 4.</p></div>
+  </div>
+</section>
+
+<section id="overfit">
+  <h2>05 · Overfitting? <em>No, a plateau</em></h2>
+  <p class="sub">Overfitting shows as training loss still falling while held-out accuracy falls steadily. Here held-out accuracy stopped rising and stayed flat.</p>
+  <div class="two">
+    <div class="card">
+      <div class="label">What each signal shows</div>
+      <dl class="kv" style="margin-top:var(--s2)">
+        <dt>train loss</dt><dd>sft1 epoch means 0.79 · 0.55 · 0.51; sft2 0.49 · 0.44. Still falling, slowly</dd>
+        <dt>val accuracy</dt><dd>74.2% · 76.4% · 74.8% · 75.6%: flat after the first epoch</dd>
+        <dt>program, clean history</dt><dd>program turns whose earlier answers were all right: 82.0% · 83.7% · 79.4% · 82.9%. No downward trend</dd>
+        <dt>closest sign</dt><dd>sft1's epoch 3, the 334 v1 conversations on their third pass: program net −9 (p 0.14), val 71.8% → 69.0%. Suggestive, not shown</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <div class="label">What could make a model genuinely worse</div>
+      <p><b>Memorising</b> the training conversations rather than the method: train loss falls, held-out accuracy falls.</p>
+      <p><b>A shift in the data mix</b> that pulls the model toward the more common case (§06).</p>
+      <p><b>Forgetting</b> what the base model already did well.</p>
+      <p>None shows clearly here. The practical reading: about one epoch over v2 is enough, and more passes over the same rows stopped paying.</p>
+    </div>
+  </div>
+</section>
+
+<section id="mix">
+  <h2>06 · The training data, <em>more lookups than val</em></h2>
+  <p class="sub">v2 is the one real change in the data. Its share of number turns rose from v1's 36% to 45%, while val and test hold 36% and 32%.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:40%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
+      <thead><tr><th>rows</th><th class="sc">number turns</th><th class="sc">program turns</th><th class="sc">number share</th></tr></thead>
+      <tbody>
+        <tr><td>v1 whole conversations (334)</td><td class="sc">425</td><td class="sc">762</td><td class="sc">35.8%</td></tr>
+        <tr><td>new whole conversations, all from the aimed 600 (304)</td><td class="sc">724</td><td class="sc">846</td><td class="sc">46.1%</td></tr>
+        <tr><td>prefix rows (278)</td><td class="sc">407</td><td class="sc">322</td><td class="sc">55.8%</td></tr>
+        <tr><td><b>v2 in all (916)</b></td><td class="sc"><b>1,556</b></td><td class="sc"><b>1,930</b></td><td class="sc"><b>44.6%</b></td></tr>
+        <tr><td>val, for reference</td><td class="sc">131</td><td class="sc">234</td><td class="sc">35.9%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge">why</span><h3>Openings are lookups</h3><p>A prefix row is a conversation's turns before the teacher's first mistake, and conversations open with lookups. The aimed 600 are long conversations, and long conversations open with several lookups.</p></div>
+    <div class="card"><span class="badge">effect</span><h3>Programs were not starved</h3><p>Program examples went from 762 to 1,930 counted once per row, and every checkpoint gained on programs. The mix may explain why number turns gained relative to programs, not a loss on programs.</p></div>
+    <div class="card"><span class="badge">fix</span><h3>Rebalance in the next round</h3><p>If the next round targets programs, give program turns more weight, or down-weight lookup-only prefix rows, so the mix matches val's 64% program turns.</p></div>
+  </div>
+</section>
+
+<section id="temperature">
+  <h2>07 · Temperature, <em>what it does and why 0.7</em></h2>
+  <p class="sub">Fine-tuning moves the model's probabilities toward the teacher's choices. Temperature only decides how a token is picked from those probabilities afterwards: at 0 always the top one, at 0.7 usually the top one. It does not change whether training "sticks".</p>
+  <div class="three">
+    <div class="card"><span class="badge ok">where low helps</span><h3>Comparing checkpoints</h3><p>Sampling is the noise in §04. A greedy pass removes most of it (vLLM is still not bit-for-bit repeatable), so checkpoints separate more clearly. It does not remove the other noise: only 100 val conversations.</p></div>
+    <div class="card"><span class="badge warn">measured</span><h3>Lower was not more accurate</h3><p>Epoch 2 at 0.2 scored 70.1% on val against 71.8% at 0.7 (20 fixed, 26 broken, p 0.74). That is why sampling stayed at 0.7 (D4).</p></div>
+    <div class="card"><span class="badge">why 0.7</span><h3>Five reasons to keep it</h3><p>Qwen recommends 0.7 · top-p 0.8 · top-k 20 for this model, and small models run greedily tend to loop on long outputs (ours are ≈ 8k-token tool conversations). Retries need a different reply: at 0 a re-attempt with the same context repeats itself. Greedy picks the best next token, not the best whole answer. Scores should describe the served setting. Data generation and voting need diversity.</p></div>
+  </div>
+</section>
+
+<section id="programs">
+  <h2>08 · Why program turns still fail</h2>
+  <p class="sub">Each wrong program turn is either the conversation's <b>first mistake</b>, or a <b>knock-on</b>: a later turn wrong because an earlier answer was wrong. First mistakes are classified with the project's own gold-derived walk (<code>stage_scores.first_fault</code> order: turn type, then operands, then plan, then the final answer).</p>
+  <div class="two">
+    <div class="card">
+      <div class="label">sft2 1.0 · program turns</div>
+      <h3>Half the wrong program answers are knock-ons</h3>
+      <p><b>Val:</b> 70 wrong = 30 first mistakes + 40 knock-ons. <b>Test:</b> 59 wrong = 35 first mistakes + 24 knock-ons.</p>
+      <div class="meter" aria-hidden="true"><span class="m1" style="width:59%"></span><span class="m2" style="width:41%"></span></div>
+      <span class="note">test: first mistakes · knock-ons</span>
+      <p>With a clean history, program turns are right 83.7% of the time on val and 82.8% on test, against 90.7% and 98.0% for number turns. On test, 35 of the 37 first mistakes are program turns.</p>
+    </div>
+    <div class="tablewrap" style="margin-top:0">
+      <table class="fx narrow">
+        <colgroup><col style="width:46%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+        <thead><tr><th>program first mistakes, by kind</th><th class="sc">val<span class="note">sft2 1.0</span></th><th class="sc rec">test<span class="note">sft2 1.0</span></th><th class="sc">test<span class="note">Flash</span></th></tr></thead>
+        <tbody>
+          <tr><td><b>a needed value missing or wrong</b></td><td class="sc">7</td><td class="sc rec"><b>18</b></td><td class="sc">7</td></tr>
+          <tr><td>right values, wrong formula</td><td class="sc">10</td><td class="sc rec">10</td><td class="sc">10</td></tr>
+          <tr><td>answered as a lookup</td><td class="sc">9</td><td class="sc rec">3</td><td class="sc">3</td></tr>
+          <tr><td>right plan, final answer off (sign, scale, rounding)</td><td class="sc">4</td><td class="sc rec">4</td><td class="sc">4</td></tr>
+          <tr><td><b>total</b></td><td class="sc"><b>30</b></td><td class="sc rec"><b>35</b></td><td class="sc"><b>24</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge warn">the gap</span><h3>On test it is fetching values</h3><p>Against Flash, the extra program first mistakes are almost all operand values: 18 against 7. Formulas, final answers and turn types are already at the teacher's level. 18 of the 35 are questions Flash answers right, so the teacher's data can in principle teach them.</p></div>
+    <div class="card"><span class="badge">val disagrees</span><h3>Val's mix is different</h3><p>On val the same model's program first mistakes are spread across formula (10), answered as a lookup (9) and values (7). With 30–35 cases per split, the kinds are noisy; across both, values (25) and formulas (20) lead.</p></div>
+    <div class="card"><span class="badge warn">aimed by val</span><h3>The aimed weaknesses moved on val only</h3><p>v2's 600 were picked by epoch 2's val error rates. On val: question 5 onward 55.9% → 70.6%, multiply 7/15 → 10/15. On test: question 5 onward 76.0% → 76.0%, multiply 6/13 → 2/13. Small samples, but aiming by val's weak buckets did not show up on test.</p></div>
+  </div>
+</section>
+
+<section id="next">
+  <h2>09 · Recommendation and <em>next step</em></h2>
+  <p class="sub">Goal for the next round: raise program turns on test toward the teacher's 83.6% by making the student fetch the right operand values reliably. Nothing below has run.</p>
+  <div class="steps">
+    <div class="step"><b>Adopt sft2 1.0 as the student's best</b>Served as <code>student-qwen3-4b-sft2-e1</code>. The next round starts from its adapter. The student stays a record-only line: serving has no open runtime, so nothing is promoted.</div>
+    <div class="step"><b>Fix the harness budget, then set the baseline</b>Give the checked harness its intended 2 retries (<code>Agent(retries=…)</code>, not only the output tool's <code>max_retries</code>) and re-score sft2 1.0 on val under the fixed harness. Score it twice and average, because one pass carries about 31–33 flipped program questions. ≈ 45 min and ≈ $0.60 of L4.</div>
+    <div class="step"><b>sft3: train on the student's own right answers (recommended)</b>Run sft2 1.0 four times at temperature 0.7 on train-side conversations whose later turns it has never trained on: the 455 the teacher got wrong (dropped by the gate; at most their opening turns became prefix rows) and a fresh slice of the pool. Keep a conversation when one of its samples is right on every turn and passes the same gates (F1–F8); otherwise keep its prefix. Prefer conversations whose program turns were right in only some samples, and keep the mix at val's share of program turns.
+      <span class="tag">≈ 15 L4-hours, ≈ $12–15, spread over several containers; no DeepSeek; gold only, never val or test</span></div>
+    <div class="step"><b>Why this one</b>About 31–33 program questions flip between passes of the same weights, so the student often holds the right answer without producing it reliably. Training on its own right attempts makes that answer the likely one, in its own words, so there is no teacher-to-student style gap. The 455 dropped conversations are the hard ones the teacher data never covered. The gold check and F4 (the answer is the last calculator result) keep out answers that are right by luck; read a sample by hand before training.</div>
+    <div class="step"><b>Train and judge</b>One epoch from sft2 1.0 (val plateaued after one), lr 5e-5, a checkpoint every quarter-epoch. Score each checkpoint twice on val and average, against the fixed-harness baseline. Test 100 opens once, for the pick, on the owner's word.<span class="tag">≈ 3 h and ≈ $3 to train; ≈ $3 to score</span></div>
+  </div>
+  <div class="three">
+    <div class="card"><span class="badge">cheaper</span><h3>Rebalance v2 only</h3><p>Retrain from sft2 1.0 on v2 with program turns weighted up or lookup-only prefix rows down. Free data, small expected effect.</p></div>
+    <div class="card"><span class="badge">teacher</span><h3>N3: gold-hinted repair</h3><p>Re-ask Flash on the turns it got wrong with the gold answer as a hint, keep the ones that pass. ≈ $0.30, but hinted reasoning can read as reverse-engineered.</p></div>
+    <div class="card"><span class="badge">teacher</span><h3>T1: fix the teacher's rules</h3><p>Sign, printed-minus and header rules in the collection prompt. A new teacher prompt, so every row would need re-collecting to agree.</p></div>
+  </div>
+</section>
+
+<footer>
+  <h2>Sources</h2>
+  <ul>
+    <li>Earlier write-ups: <code>.lavish/s29_sft-student-results.html</code> (sft1 results, decisions D1–D5), <code>.lavish/s28_sft-data-plan.html</code>.</li>
+    <li>Data: <code>evaluation/sft/v2/{train.jsonl, stats.json, card.md, drops.jsonl}</code>; manifest <code>evaluation/splits/sft_v2.json</code>.</li>
+    <li>Training: <code>runs/sft/20261025T113733Z_train_sft2/{run.json, metrics.jsonl, mask.json}</code>; config <code>src/convfinqa/sft/configs/sft_v2.yaml</code>.</li>
+    <li>Val passes (<code>evaluation/predictions/evalloop/</code>): <code>open-evalloop-train100-…-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011</code> (baseline), <code>…-sft2-e0p5-none-20261026_003751</code>, <code>…-sft2-e1-none-20261026_020116</code>, <code>…-sft2-e1p5-none-20261026_032317</code>, <code>…-sft2-e2-none-20261026_044628</code>; <code>…-pyd-student-qwen3-4b-sft1-e2-t0p2-none-20261025_220002</code> (D4).</li>
+    <li>Test passes: <code>open-evalloop-test100-…-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617</code>, <code>…-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227</code>, <code>…-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346</code>, <code>…-pyd-student-qwen3-4b-none-20261025_153651</code> (base), <code>…-pyd-deepseek-flash-high-20261025_120625</code> (teacher).</li>
+    <li>Statistics: <code>tracking/comparator.py</code> (<code>durkalski_z</code>, <code>cluster_bootstrap_ci</code>); first-mistake kinds follow <code>evalloop/stage_scores.first_fault</code>'s order on <code>with_prior_gold</code> rows.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>
