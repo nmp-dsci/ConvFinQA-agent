@@ -284,7 +284,7 @@ The invariants, all pinned by tests:
   `falls_short` of the champion. Keys come only from `~/.env`/`.env`. `evalloop/smoke.py`
   picks the 20-conversation smoke from the champion's own committed seed-2027/2028 draws;
   champion numbers come only from its committed runs, nothing new runs on Claude.
-- **The SFT student (s28–s29) learns from llm_react_v1's own conversations and is scored as
+- **The SFT student (s28–s30) learns from llm_react_v1's own conversations and is scored as
   an open agent.** `convfinqa-sft` fetches a pass's `trajectories.jsonl.gz`, gates whole
   conversations (F1–F8, N1; `--prefix-rows` also keeps an F1 drop's turns before its first
   wrong one) into `evaluation/sft/<version>/`, and trains a LoRA on Modal; the student is
