@@ -1,0 +1,514 @@
+{"report_id": "Double_GIS/2019/page_104.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_JPM/2003/page_44.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CNC/2006/page_37.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_AMT/2010/page_82.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2008/page_79.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_HII/2018/page_113.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Double_STT/2011/page_94.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_PM/2015/page_127.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2006/page_36.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 2588 tokens"}
+{"report_id": "Double_UNP/2009/page_89.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_AMT/2004/page_81.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AON/2007/page_184.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_ETR/2008/page_401.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 3449 tokens"}
+{"report_id": "Single_AON/2007/page_185.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2016/page_324.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AON/2014/page_47.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_PNC/2009/page_68.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_LMT/2018/page_86.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q3: a program turn answered without a calculator call"}
+{"report_id": "Double_IPG/2014/page_23.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AMT/2006/page_31.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_HWM/2015/page_95.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_FITB/2008/page_69.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_CE/2010/page_150.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_HII/2013/page_127.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_CDW/2014/page_55.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_rule": "F7"}
+{"report_id": "Single_GRMN/2008/page_98.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_JPM/2008/page_112.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_JPM/2018/page_73.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_MRO/2013/page_49.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GPN/2008/page_95.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_BLL/2007/page_87.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2011/page_228.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_LKQ/2009/page_66.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_IPG/2015/page_37.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_HFC/2011/page_88.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2016/page_175.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_C/2008/page_217.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AWK/2017/page_136.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_ANSS/2008/page_89.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MAA/2017/page_89.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MA/2008/page_113.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_GS/2013/page_54.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_APD/2014/page_50.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2008/page_267.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_PPG/2011/page_28.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_VLO/2018/page_25.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2016/page_403.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AWK/2015/page_106.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_CDNS/2007/page_30.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_ETR/2016/page_444.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 5310 tokens"}
+{"report_id": "Single_UPS/2015/page_108.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_HIG/2011/page_195.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AES/2003/page_112.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_GS/2014/page_80.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_SWKS/2011/page_112.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_MSI/2009/page_69.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_STT/2011/page_94.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_CE/2016/page_88.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_TROW/2009/page_23.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_rule": "F7"}
+{"report_id": "Double_HOLX/2008/page_84.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_IP/2013/page_61.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_IP/2009/page_36.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_UNP/2006/page_45.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CME/2017/page_97.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_UNP/2009/page_34.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_rule": "F4"}
+{"report_id": "Single_C/2009/page_255.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AAP/2006/page_85.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_BLK/2014/page_33.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_RE/2010/page_42.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_C/2018/page_288.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_RSG/2014/page_73.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_ETR/2017/page_379.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AWK/2018/page_141.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ADBE/2018/page_86.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_D/2002/page_39.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_SLB/2006/page_82.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_VRTX/2003/page_71.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the answer '374' is not the last result 22203.0"}
+{"report_id": "Double_MA/2009/page_120.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_LMT/2010/page_36.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AWK/2015/page_109.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_IP/2006/page_32.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AWK/2014/page_132.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "N1", "detail": "the re-sent answer decides differently from the refused text"}
+{"report_id": "Single_UNP/2014/page_24.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_GIS/2012/page_64.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 2528 tokens"}
+{"report_id": "Single_SLG/2017/page_114.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AAL/2014/page_59.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_JPM/2007/page_152.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_RCL/2011/page_16.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_PPG/2012/page_47.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_LLY/2018/page_75.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_RCL/2013/page_18.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_JPM/2012/page_109.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MO/2017/page_65.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ZBH/2008/page_72.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2016/page_144.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_DVN/2013/page_101.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_GPN/2016/page_83.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "N1", "detail": "the re-sent answer decides differently from the refused text"}
+{"report_id": "Single_ADBE/2012/page_87.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_FBHS/2017/page_23.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AMT/2015/page_50.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AWK/2015/page_106.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_IP/2014/page_65.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_UNP/2014/page_56.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_GS/2013/page_145.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the answer '-1365' is not the last result 2991.0"}
+{"report_id": "Double_AAL/2015/page_15.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_ETR/2016/page_403.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AAPL/2012/page_64.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_CDW/2017/page_56.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_BKR/2018/page_105.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_IP/2009/page_72.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_SNPS/2006/page_46.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_ETR/2008/page_356.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_MMM/2015/page_19.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_CDNS/2016/page_76.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_JPM/2007/page_33.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AWK/2018/page_162.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_CE/2006/page_124.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F5", "detail": "q0: mcp__cfq__divide repeated with the same arguments"}
+{"report_id": "Single_BLK/2016/page_120.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_FIS/2006/page_48.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_JPM/2008/page_177.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_MAA/2018/page_19.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AES/2017/page_168.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_RSG/2013/page_137.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ANSS/2016/page_82.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_SNPS/2012/page_61.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_ALXN/2016/page_89.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_IPG/2015/page_48.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2011/page_341.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_RE/2006/page_31.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_CE/2014/page_90.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_AWK/2017/page_140.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UAA/2016/page_80.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_NTAP/2014/page_33.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_CAT/2017/page_103.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_EMR/2017/page_66.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_HII/2011/page_72.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_UPS/2014/page_35.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_AWK/2014/page_122.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_ETR/2016/page_444.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_PPG/2005/page_24.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AON/2010/page_52.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_BLK/2012/page_32.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_IPG/2013/page_46.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AMT/2007/page_32.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AMT/2005/page_31.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_RSG/2009/page_100.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_JPM/2009/page_183.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ZBH/2008/page_84.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_KIM/2014/page_131.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_CNC/2005/page_39.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_GPN/2008/page_99.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_TFX/2014/page_74.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_ETR/2004/page_186.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_ETR/2009/page_24.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "N1", "detail": "the refused text is not a JSON answer"}
+{"report_id": "Single_ADBE/2018/page_88.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_RE/2010/page_120.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GS/2014/page_172.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_SLB/2009/page_57.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_PNC/2009/page_133.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_MO/2012/page_44.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_MRO/2007/page_134.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AES/2000/page_111.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_SLB/2009/page_65.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_rule": "F4"}
+{"report_id": "Double_ETR/2016/page_424.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CME/2010/page_71.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_AES/2015/page_117.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_rule": "F7"}
+{"report_id": "Single_UNP/2006/page_55.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_IPG/2018/page_52.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CDW/2017/page_80.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_C/2010/page_223.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_AMT/2008/page_32.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AES/2017/page_157.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_PKG/2004/page_23.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2017/page_25.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_ZBH/2008/page_72.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MAS/2012/page_70.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_JPM/2008/page_112.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_RSG/2017/page_98.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IQV/2016/page_65.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_FRT/2007/page_137.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_LMT/2018/page_104.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_ZBH/2008/page_70.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_GPN/2008/page_95.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ADI/2009/page_49.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IPG/2014/page_36.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Single_AAL/2015/page_51.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_JPM/2012/page_109.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_LMT/2010/page_42.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_MO/2016/page_76.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_C/2009/page_141.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_EOG/2018/page_89.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 2756 tokens"}
+{"report_id": "Double_AWK/2015/page_112.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_EW/2016/page_79.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_HII/2013/page_127.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2002/page_266.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CDNS/2016/page_32.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ZBH/2009/page_88.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_AAPL/2007/page_117.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AAPL/2012/page_36.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_LKQ/2018/page_102.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_LMT/2005/page_76.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F7", "detail": "a reasoning block of 2430 tokens"}
+{"report_id": "Single_STT/2013/page_54.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_PM/2017/page_25.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_AWK/2013/page_123.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2012/page_79.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_ETR/2002/page_86.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IP/2014/page_66.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_DRE/2016/page_64.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GS/2018/page_76.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AES/2003/page_93.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_CDW/2015/page_53.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2008/page_71.pdf-4", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_ETR/2015/page_131.pdf-3", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AMT/2010/page_82.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q6", "prefix_turns": 6}
+{"report_id": "Double_SNPS/2009/page_59.pdf", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q2", "prefix_rule": "F4"}
+{"report_id": "Single_AON/2007/page_184.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IP/2012/page_64.pdf-2", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AMT/2012/page_111.pdf-1", "run_name": "open-evalloop-train552-sdk_v1·s1-pyd-deepseek-flash-high-20261025_142402", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_WRK/2019/page_135.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AMT/2012/page_121.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ANSS/2008/page_89.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 3899 tokens"}
+{"report_id": "Double_PM/2018/page_24.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_PPG/2013/page_54.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2016/page_403.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_IPG/2014/page_95.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_TSCO/2017/page_68.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q6", "prefix_turns": 6}
+{"report_id": "Double_CDNS/2012/page_31.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AMAT/2015/page_33.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q6", "prefix_rule": "F4"}
+{"report_id": "Double_UPS/2009/page_33.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_ILMN/2008/page_77.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_UAA/2016/page_82.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_FRT/2006/page_133.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_rule": "F7"}
+{"report_id": "Double_ETR/2008/page_313.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Double_IPG/2014/page_36.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_AAPL/2013/page_27.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q6", "prefix_turns": 6}
+{"report_id": "Double_LMT/2010/page_39.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_HUM/2004/page_78.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_STT/2001/page_41.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_IPG/2012/page_21.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_ETR/2016/page_24.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_MRO/2008/page_119.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_STT/2008/page_83.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AAL/2015/page_51.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_C/2018/page_53.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CE/2014/page_16.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_LMT/2014/page_93.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_PM/2017/page_99.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_WRK/2019/page_135.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F6", "detail": "q0 was re-asked with a correction"}
+{"report_id": "Double_C/2010/page_272.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_PM/2017/page_38.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_ADI/2015/page_72.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AWK/2014/page_122.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_rule": "F7"}
+{"report_id": "Double_UNP/2006/page_45.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q6", "prefix_turns": 6}
+{"report_id": "Double_APD/2018/page_113.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_UPS/2016/page_34.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_FRT/2009/page_124.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2017/page_19.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q6", "prefix_turns": 6}
+{"report_id": "Double_K/2012/page_80.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_DVN/2014/page_85.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F5", "detail": "q0: mcp__cfq__add repeated with the same arguments"}
+{"report_id": "Double_LMT/2006/page_90.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_HOLX/2008/page_93.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_BLK/2010/page_46.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_JPM/2003/page_44.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_ALLE/2015/page_81.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_rule": "F7"}
+{"report_id": "Single_IPG/2008/page_62.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IPG/2014/page_23.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_IPG/2018/page_26.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_RCL/2010/page_81.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 2904 tokens"}
+{"report_id": "Single_RCL/2014/page_16.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_AWK/2013/page_123.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AAPL/2013/page_27.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_AOS/2007/page_17.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_APTV/2018/page_36.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_BKNG/2018/page_34.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CDNS/2012/page_30.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_ETFC/2007/page_22.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_EW/2016/page_36.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_PM/2018/page_24.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_UPS/2015/page_35.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_CAT/2017/page_103.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_JPM/2009/page_183.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_DVN/2004/page_50.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_PPG/2011/page_28.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_FRT/2006/page_133.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_KMI/2018/page_14.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_LMT/2015/page_56.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MSI/2008/page_71.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AES/2016/page_191.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AES/2016/page_45.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_EOG/2017/page_85.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Double_JPM/2013/page_104.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_LKQ/2018/page_102.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_LMT/2018/page_104.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_MMM/2007/page_39.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_STT/2008/page_116.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_VLO/2012/page_27.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q4: the answer '68.55' is not the last result True"}
+{"report_id": "Single_AOS/2016/page_19.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q1: a program turn answered without a calculator call"}
+{"report_id": "Double_IP/2005/page_27.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_UNP/2009/page_68.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AON/2010/page_61.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CB/2008/page_83.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GIS/2017/page_46.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_KMI/2010/page_164.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_DVN/2014/page_88.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AMAT/2014/page_18.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_ABMD/2006/page_75.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_WRK/2018/page_53.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_MRO/2009/page_137.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_FRT/2009/page_124.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_PPG/2011/page_28.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_AMT/2007/page_111.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AAPL/2010/page_42.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_PNC/2007/page_93.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_RCL/2014/page_80.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_AMT/2010/page_115.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_KIM/2010/page_94.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_GIS/2006/page_43.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_UA/2011/page_43.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Double_AON/2015/page_45.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_ABMD/2008/page_87.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_HUM/2004/page_78.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_CDW/2015/page_35.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_LMT/2012/page_29.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AON/2015/page_77.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_rule": "F4"}
+{"report_id": "Double_UNP/2012/page_40.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AMT/2005/page_84.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_VNO/2011/page_187.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q5", "prefix_turns": 5}
+{"report_id": "Single_APD/2013/page_81.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_AAP/2013/page_32.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_DRE/2002/page_40.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GS/2013/page_54.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_HWM/2015/page_92.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_IPG/2008/page_93.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_IPG/2017/page_26.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_RCL/2011/page_16.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2012/page_29.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_DVN/2015/page_92.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ETR/2004/page_216.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_JPM/2009/page_170.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_MRO/2008/page_42.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_C/2010/page_306.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_C/2015/page_314.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q4: the answer '-54.3%' is not the last result -54.25"}
+{"report_id": "Single_ETFC/2014/page_26.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 3064 tokens"}
+{"report_id": "Single_EXPD/2017/page_30.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "N1", "detail": "the re-sent answer decides differently from the refused text"}
+{"report_id": "Single_TSCO/2017/page_31.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_UPS/2016/page_34.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_GS/2012/page_56.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_JPM/2018/page_73.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_ADI/2019/page_85.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_STT/2014/page_99.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_PKG/2006/page_65.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_ETR/2017/page_325.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_BDX/2018/page_82.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 4051 tokens"}
+{"report_id": "Single_IPG/2008/page_62.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_LMT/2015/page_53.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_AMT/2012/page_125.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_APD/2013/page_44.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AMT/2010/page_111.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_ANET/2017/page_156.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 4251 tokens"}
+{"report_id": "Double_C/2015/page_46.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_PPG/2008/page_19.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 7231 tokens"}
+{"report_id": "Single_KMI/2010/page_2.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_MO/2017/page_79.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F5", "detail": "q0: mcp__cfq__add repeated with the same arguments"}
+{"report_id": "Single_JPM/2018/page_149.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UAA/2016/page_81.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_ADBE/2018/page_86.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_rule": "N1"}
+{"report_id": "Double_C/2008/page_212.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_CDW/2015/page_54.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_GPN/2010/page_41.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 4240 tokens"}
+{"report_id": "Double_IP/2018/page_50.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_KMI/2014/page_114.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_LLY/2008/page_39.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_rule": "F4"}
+{"report_id": "Double_UNP/2008/page_77.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_UNP/2015/page_24.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_ZBH/2008/page_70.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_UNP/2012/page_55.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_HIG/2004/page_81.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_BLK/2012/page_160.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_APD/2015/page_100.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_DISCA/2017/page_41.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_IPG/2018/page_100.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CB/2008/page_218.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_JPM/2010/page_128.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_RSG/2016/page_50.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_JPM/2007/page_119.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_RCL/2014/page_80.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_LMT/2010/page_36.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_MRO/2009/page_58.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_STT/2011/page_83.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_ETR/2011/page_341.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ABMD/2003/page_27.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_AWK/2015/page_127.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_C/2010/page_223.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_HST/2018/page_115.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2014/page_80.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_UNP/2017/page_74.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_ADBE/2011/page_112.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Double_DISCA/2008/page_141.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_BKR/2018/page_59.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CB/2008/page_218.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_DRE/2016/page_59.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2017/page_325.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IP/2009/page_85.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_PM/2014/page_67.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_SLB/2003/page_57.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_APD/2019/page_53.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CE/2010/page_150.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q4: the turn type is not gold's"}
+{"report_id": "Double_ETR/2004/page_159.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q4: the turn type is not gold's"}
+{"report_id": "Double_ETR/2004/page_19.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q4: the turn type is not gold's"}
+{"report_id": "Double_MA/2010/page_107.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q3: the answer '-6.3%' is not the last result -6.25"}
+{"report_id": "Double_MSI/2006/page_61.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_DVN/2015/page_117.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_UNP/2009/page_68.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_FITB/2013/page_84.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_HWM/2015/page_92.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AAP/2012/page_12.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AAPL/2006/page_79.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_AAPL/2012/page_38.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_ABMD/2006/page_62.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_ABMD/2006/page_75.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_ADI/2009/page_90.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AMT/2004/page_28.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AMT/2004/page_28.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AMT/2008/page_32.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ANSS/2016/page_85.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_APD/2015/page_54.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_C/2008/page_212.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_C/2008/page_212.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_C/2009/page_194.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_CB/2010/page_88.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_CDNS/2016/page_32.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_CE/2007/page_125.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CNC/2005/page_39.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_DISH/2014/page_64.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_DVN/2011/page_26.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_ETR/2004/page_159.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_ETR/2004/page_258.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_ETR/2013/page_28.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_EW/2016/page_94.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 3477 tokens"}
+{"report_id": "Single_FIS/2007/page_102.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_GS/2014/page_172.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_GS/2018/page_165.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_HII/2011/page_114.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_HII/2011/page_69.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_INTC/2013/page_71.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_IPG/2008/page_68.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_IPG/2013/page_46.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_JPM/2009/page_132.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_KMI/2014/page_114.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_LMT/2005/page_76.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_LMT/2007/page_37.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_LMT/2007/page_55.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_LMT/2012/page_72.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_LMT/2014/page_93.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_LMT/2016/page_83.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_MA/2009/page_120.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_MAS/2010/page_89.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_MRO/2011/page_39.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_MRO/2014/page_22.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_rule": "F4"}
+{"report_id": "Single_PM/2015/page_127.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_PM/2017/page_99.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_PNC/2018/page_81.pdf-5", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 2807 tokens"}
+{"report_id": "Single_PPG/2013/page_54.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_PPG/2013/page_54.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_RSG/2017/page_98.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_SLB/2009/page_46.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_SLB/2009/page_46.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_STT/2001/page_41.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_STT/2011/page_83.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_STT/2017/page_101.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_STT/2017/page_101.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_SWKS/2010/page_139.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_UA/2011/page_42.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_UAA/2017/page_86.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2006/page_37.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q2: a program turn answered without a calculator call"}
+{"report_id": "Single_UNP/2006/page_55.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_UNP/2006/page_74.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_UNP/2008/page_77.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_UPS/2014/page_35.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_ZBH/2009/page_88.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_CDW/2013/page_36.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_GPN/2014/page_71.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_AES/2002/page_46.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_CDW/2015/page_34.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_CDW/2013/page_106.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 4365 tokens"}
+{"report_id": "Double_MA/2008/page_125.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_MAS/2018/page_60.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_AAP/2006/page_85.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Single_BLL/2007/page_87.pdf-4", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q4", "prefix_turns": 4}
+{"report_id": "Single_HIG/2004/page_81.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_AMT/2005/page_54.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_rule": "F4"}
+{"report_id": "Double_IP/2012/page_57.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F4", "detail": "q0: the turn type is not gold's"}
+{"report_id": "Double_UNP/2012/page_23.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Double_GS/2013/page_195.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_AMAT/2013/page_18.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_turns": 2}
+{"report_id": "Double_EOG/2018/page_89.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_DVN/2013/page_101.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_UNP/2009/page_43.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_MRO/2008/page_41.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Single_UNP/2012/page_79.pdf-1", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_IPG/2008/page_62.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q2", "prefix_rule": "F4"}
+{"report_id": "Double_HST/2018/page_160.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 6617 tokens"}
+{"report_id": "Double_HUM/2017/page_45.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AWK/2012/page_12.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_AWK/2017/page_143.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q3", "prefix_turns": 3}
+{"report_id": "Single_GRMN/2008/page_98.pdf-2", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_AWK/2018/page_152.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_CME/2010/page_113.pdf-6", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_DRE/2002/page_13.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F7", "detail": "a reasoning block of 2829 tokens"}
+{"report_id": "Single_IPG/2009/page_89.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Single_IPG/2018/page_100.pdf-3", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AMT/2004/page_81.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q1", "prefix_turns": 1}
+{"report_id": "Double_AMT/2005/page_31.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}
+{"report_id": "Double_AMT/2010/page_113.pdf", "run_name": "open-evalloop-train600-sdk_v1·s1-pyd-deepseek-flash-high-20261025_215639", "rule": "F1", "detail": "wrong at q0"}

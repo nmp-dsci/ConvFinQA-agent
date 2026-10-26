@@ -232,9 +232,10 @@ def get_model(model_name: str | None = None) -> OpenAIChatModel:
 
 def reset_provider() -> None:
     """Drop the cached providers. For tests that flip settings between cases."""
-    global _provider, _open_provider
+    global _provider, _open_provider, _student_provider
     _provider = None
     _open_provider = None
+    _student_provider = None
 
 
 # --- The open runtime (s25): sdk_v1's contract on an open model ---------------
@@ -245,10 +246,35 @@ def reset_provider() -> None:
 # an effort that is part of what the agent is. DeepSeek's thinking protocol —
 # send `reasoning_content` back on every tool-call turn, never force a tool
 # while thinking — is Pydantic AI's DeepSeek profile, which is why it is used.
-OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai",)
-OPEN_MODELS: tuple[str, ...] = ("deepseek-flash", "deepseek-v4-pro")
-OPEN_EFFORTS: tuple[str, ...] = ("low", "high", "max")
+# `pydantic_ai_checked` (s29) is the same harness with three turn checks for
+# the SFT student (`backends.open_checks`); the plain one is unchanged.
+OPEN_HARNESSES: tuple[str, ...] = ("pydantic_ai", "pydantic_ai_checked")
+DEEPSEEK_OPEN_MODELS: tuple[str, ...] = ("deepseek-flash", "deepseek-v4-pro")
+# The SFT student (s28): Qwen3-4B-Instruct-2507 on vLLM on Modal, untrained,
+# the sft1 adapter at each epoch's checkpoint and sft2's at each half-epoch
+# (s29; val picks one). A non-thinking model, so its effort is "none": its
+# reasoning is the visible `<reasoning>` text it was trained to write.
+STUDENT_MODELS: tuple[str, ...] = (
+    "student-qwen3-4b",
+    "student-qwen3-4b-sft1-e1",
+    "student-qwen3-4b-sft1-e2",
+    "student-qwen3-4b-sft1-e3",
+    "student-qwen3-4b-sft2-e0p5",
+    "student-qwen3-4b-sft2-e1",
+    "student-qwen3-4b-sft2-e1p5",
+    "student-qwen3-4b-sft2-e2",
+)
+OPEN_MODELS: tuple[str, ...] = (*DEEPSEEK_OPEN_MODELS, *STUDENT_MODELS)
+OPEN_EFFORTS: tuple[str, ...] = ("low", "high", "max", "none")
 OPEN_BILLING = "deepseek-api"
+STUDENT_BILLING = "modal"
+# Qwen's recommended sampling for Instruct-2507, as tau-telecom-sft served it.
+STUDENT_SAMPLING: dict[str, Any] = {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "max_tokens": 4096,
+    "extra_body": {"top_k": 20},
+}
 
 # `deepseek-flash` is DeepSeek V4.1 Flash, but Pydantic AI recognises a V4 model
 # only by the `deepseek-v4-` prefix (pydantic-ai #8353). Profiled under its own
@@ -271,8 +297,13 @@ def _open_http_client() -> httpx.AsyncClient:
     )
 
 
-def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
+def open_agent_model(
+    model: str, effort: str, *, temperature: float | None = None
+) -> OpenAIChatModel:
     """A DeepSeek chat model for the open runtime, thinking at `effort`.
+
+    `temperature` overrides a student's sampling temperature (s29's D4); it is
+    refused for a DeepSeek model, whose sampling the provider sets.
 
     Refuses a model or effort outside the declared sets rather than passing it
     through: DeepSeek maps unknown efforts silently (`xhigh` becomes `high`),
@@ -280,12 +311,11 @@ def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
     evidence.
     """
     guard_llm_call()
-    if model not in OPEN_MODELS:
-        raise ValueError(f"unknown open model {model!r}; expected one of {OPEN_MODELS}")
-    if effort not in OPEN_EFFORTS:
-        raise ValueError(
-            f"unknown open effort {effort!r}; expected one of {OPEN_EFFORTS}"
-        )
+    check_open_agent(model, effort)
+    if model in STUDENT_MODELS:
+        return _student_model(model, temperature)
+    if temperature is not None:
+        raise ValueError(f"a sampling temperature applies to a student, not {model!r}")
     from pydantic_ai.providers.deepseek import DeepSeekProvider
 
     global _open_provider
@@ -302,10 +332,117 @@ def open_agent_model(model: str, effort: str) -> OpenAIChatModel:
     )
 
 
-def open_model_slug(harness: str, model: str) -> str:
-    """The run-name slug of an open agent: `pyd-deepseek-flash`."""
-    short = {"pydantic_ai": "pyd"}.get(harness, harness.replace("_", "-"))
-    return f"{short}-{model}"
+def check_open_agent(model: str, effort: str) -> None:
+    """Refuse a model, effort or pairing outside the declared sets.
+
+    DeepSeek thinks at low/high/max; a student does not think at all, so it
+    takes "none" and DeepSeek never does.
+    """
+    if model not in OPEN_MODELS:
+        raise ValueError(f"unknown open model {model!r}; expected one of {OPEN_MODELS}")
+    if effort not in OPEN_EFFORTS:
+        raise ValueError(
+            f"unknown open effort {effort!r}; expected one of {OPEN_EFFORTS}"
+        )
+    if (model in STUDENT_MODELS) != (effort == "none"):
+        raise ValueError(
+            f"open effort {effort!r} does not fit {model!r}: a student takes 'none', "
+            "a DeepSeek model one of low/high/max"
+        )
+
+
+_student_provider: Any = None
+
+
+def _student_model(model: str, temperature: float | None = None) -> OpenAIChatModel:
+    """The student on vLLM, with tool choice left to the model.
+
+    Pydantic AI forces a tool call when the only output is a tool, and vLLM
+    honours a forced call with guided decoding, which would leave no room for
+    the `<reasoning>` text the student was trained to write before each call.
+    So the profile declares no forced tool choice (`tool_choice="auto"`),
+    exactly as DeepSeek's thinking profile does.
+    """
+    global _student_provider
+    if _student_provider is None:
+        if not settings.student_url:
+            raise RuntimeError(
+                "STUDENT_URL is not set: deploy the student server "
+                "(`convfinqa-sft serve`) and put its URL in ~/.env"
+            )
+        headers = {}
+        if settings.modal_proxy_token_id and settings.modal_proxy_token_secret:
+            headers = {
+                "Modal-Key": settings.modal_proxy_token_id.get_secret_value(),
+                "Modal-Secret": settings.modal_proxy_token_secret.get_secret_value(),
+            }
+        _student_provider = OpenAIProvider(
+            base_url=f"{settings.student_url.rstrip('/')}/v1",
+            api_key="modal-proxy",  # Modal's proxy authenticates; vLLM takes no key
+            http_client=httpx.AsyncClient(
+                headers=headers,
+                timeout=httpx.Timeout(settings.llm_timeout_seconds, connect=10.0),
+                transport=_RetryTransport(
+                    max_attempts=settings.llm_max_attempts,
+                    timeout=settings.llm_timeout_seconds,
+                ),
+            ),
+        )
+    sampling = dict(STUDENT_SAMPLING)
+    if temperature is not None:
+        sampling["temperature"] = temperature
+    return OpenAIChatModel(
+        model,
+        provider=_student_provider,
+        profile=_student_profile(),
+        settings=ModelSettings(**sampling),  # type: ignore[typeddict-item]
+    )
+
+
+def _student_profile() -> Any:
+    from pydantic_ai.profiles.openai import OpenAIModelProfile
+
+    return OpenAIModelProfile(
+        supports_forced_tool_choice=False,
+        openai_supports_strict_tool_definition=False,
+    )
+
+
+def student_wire_model(
+    transport: httpx.AsyncBaseTransport, model: str = STUDENT_MODELS[0]
+) -> OpenAIChatModel:
+    """The student's model over `transport` in place of the server.
+
+    The SFT builder sends one request through a capturing transport to read
+    the exact system message and tool JSON the student is served, so training
+    rows carry those bytes rather than a reconstruction. No network, no key.
+    """
+    provider = OpenAIProvider(
+        base_url="http://student.invalid/v1",
+        api_key="capture",
+        http_client=httpx.AsyncClient(transport=transport),
+    )
+    return OpenAIChatModel(
+        model,
+        provider=provider,
+        profile=_student_profile(),
+        settings=ModelSettings(**STUDENT_SAMPLING),  # type: ignore[typeddict-item]
+    )
+
+
+def open_model_slug(harness: str, model: str, temperature: float | None = None) -> str:
+    """The run-name slug of an open agent: `pyd-deepseek-flash`.
+
+    The checked harness is `pydchk`, and a student sampled away from its
+    default temperature carries it: `pydchk-student-qwen3-4b-sft1-e2-t0p2`.
+    """
+    short = {"pydantic_ai": "pyd", "pydantic_ai_checked": "pydchk"}.get(
+        harness, harness.replace("_", "-")
+    )
+    slug = f"{short}-{model}"
+    if temperature is not None and temperature != STUDENT_SAMPLING["temperature"]:
+        slug += "-t" + f"{temperature:g}".replace(".", "p")
+    return slug
 
 
 #: What the app calls an open agent: a harness running a prompt. The prompt is

@@ -1,4 +1,5 @@
-"""`run --report-ids-file` narrows a seeded train draw; it never adds to one."""
+"""`run --report-ids-file`: narrows a seeded train draw (never adds to one), or, without a
+seed, names train-side conversations outright (s28) — never a test or holdout one."""
 
 from __future__ import annotations
 
@@ -43,10 +44,34 @@ def test_refuses_an_empty_file(tmp_path: Path) -> None:
         narrow_draw(IDS, DRAW, f)
 
 
-async def test_run_split_refuses_the_file_without_a_seed(tmp_path: Path) -> None:
+async def test_run_split_refuses_a_listed_file_off_the_train_side(
+    tmp_path: Path,
+) -> None:
     from convfinqa.evalloop.runner import run_split
 
     f = tmp_path / "ids.txt"
     f.write_text(IDS[0])
-    with pytest.raises(ValueError, match="pass it with --train-seed"):
-        await run_split("train", "sdk_v1", runtime="agent_sdk", report_ids_file=f)
+    with pytest.raises(ValueError, match="refusing on 'test'"):
+        await run_split("test", "sdk_v1", runtime="agent_sdk", report_ids_file=f)
+
+
+def test_a_listed_file_without_a_seed_runs_its_ids_in_file_order(
+    tmp_path: Path,
+) -> None:
+    """s28: sft_v1's val set is cut by page from the pool, so no seed draws it."""
+    from convfinqa.evalloop.runner import listed_ids
+
+    f = tmp_path / "val_ids.txt"
+    f.write_text(f"{IDS[2]}\n{IDS[0]}\n")
+    ids, draw = listed_ids(f, {"splits": {"test": [IDS[3]], "holdout": []}})
+    assert ids == [IDS[2], IDS[0]]
+    assert draw["n_reports"] == 2 and draw["report_ids_file"] == "val_ids.txt"
+
+
+def test_a_listed_file_never_reaches_a_sealed_split(tmp_path: Path) -> None:
+    from convfinqa.evalloop.runner import listed_ids
+
+    f = tmp_path / "ids.txt"
+    f.write_text(f"{IDS[0]}\n{IDS[3]}\n")
+    with pytest.raises(ValueError, match="never answers a sealed split"):
+        listed_ids(f, {"splits": {"test": [IDS[3]], "holdout": []}})

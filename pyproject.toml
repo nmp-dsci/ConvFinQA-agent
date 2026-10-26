@@ -42,6 +42,12 @@ convfinqa-diagnose = "convfinqa.diagnosis.cli:main"
 convfinqa-mlflow = "convfinqa.tracking.cli:main"
 convfinqa-evalloop = "convfinqa.evalloop.cli:main"
 convfinqa-demo-pack = "convfinqa.serving.demo_pack.cli:main"
+convfinqa-sft = "convfinqa.sft.cli:main"
+
+[project.optional-dependencies]
+sft = [
+    "modal==1.6.2",
+]
 
 
 [tool.ruff]
@@ -96,6 +102,9 @@ extend-select = [
 "scripts/**" = ["T201"]
 "src/convfinqa/**/cli.py" = ["T201"]
 "src/convfinqa/tracking/gate.py" = ["T201"]
+# The Modal app and trainer print into Modal's job log, which is their output.
+"src/convfinqa/sft/cloud/modal_app.py" = ["T201"]
+"src/convfinqa/sft/train/sft.py" = ["T201"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

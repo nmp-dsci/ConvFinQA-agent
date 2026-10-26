@@ -1,0 +1,28 @@
+# s28: the first end-to-end run (owner, 2026-10-25). tau-telecom-sft's recipe (configs/sft_a.yaml)
+# on llm_react_v1's gated whole conversations: Qwen3-4B-Instruct-2507 at tau's pin, LoRA on every
+# linear layer, loss on assistant messages only, 3 epochs, the epoch picked on sft_v1 val.
+label: sft1
+base_model: Qwen/Qwen3-4B-Instruct-2507
+revision: cdbee75f17c01a7cc42f958dc650907174af0554
+dataset: v1
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: all-linear
+sft:
+  max_length: 24576
+  assistant_only_loss: true
+  packing: false
+  learning_rate: 1.0e-4
+  lr_scheduler_type: cosine
+  warmup_steps: 0.05
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  gradient_checkpointing: true
+  bf16: true
+  logging_steps: 1
+  # one checkpoint per epoch: each is served as its own adapter for the val pass that picks one
+  save_strategy: epoch
+  seed: 300

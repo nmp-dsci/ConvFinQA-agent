@@ -339,3 +339,136 @@ def test_open_flags_are_refused_on_another_runtime() -> None:
                 "test", "sdk_v1", runtime="agent_sdk", open_model="deepseek-flash"
             )
         )
+
+
+# --- s29: the checked harness (H1–H3) and the student's sampling -----------------
+
+
+def checked_run(questions: list[str]) -> tuple[list[str], list[dict[str, Any]]]:
+    preds, _progs, caps, _traj = run(questions, harness="pydantic_ai_checked")
+    return preds, caps
+
+
+def sent_text(body: dict[str, Any]) -> str:
+    return json.dumps(body["messages"])
+
+
+def test_h1_an_extra_calculator_argument_is_a_tool_error_not_a_crash(
+    deepseek: FakeDeepSeek,
+) -> None:
+    deepseek.replies = [
+        reply(calls=[("mcp__cfq__add", {"a": 1, "b": 2, "c": 3})]),
+        reply(calls=[("mcp__cfq__add", {"a": 1, "b": 2})]),
+        reply(calls=[("mcp__cfq__add", {"a": 3, "b": 3})]),
+        reply(
+            calls=[
+                (
+                    "StructuredOutput",
+                    {**program_turn("6.0"), "program": "add(add(A, B), C)"},
+                )
+            ]
+        ),
+    ]
+    preds, caps = checked_run(["the total?"])
+    assert preds == ["6.0"] and "error" not in caps[0]
+    assert "error: add takes exactly two numbers" in sent_text(deepseek.bodies[1])
+
+
+def test_the_plain_harness_still_fails_a_turn_on_an_extra_argument(
+    deepseek: FakeDeepSeek,
+) -> None:
+    """The plain harness is llm_react_v1's and the teacher's: unchanged."""
+    deepseek.replies = [reply(calls=[("mcp__cfq__add", {"a": 1, "b": 2, "c": 3})])]
+    preds, _progs, caps, _traj = run(["the total?"])
+    assert preds == [""] and "TypeError" in caps[0]["error"]
+
+
+def test_h2_an_answer_that_is_no_calculator_result_is_sent_back_once(
+    deepseek: FakeDeepSeek,
+) -> None:
+    deepseek.replies = [
+        reply(calls=[("mcp__cfq__subtract", {"a": 200, "b": 50})]),
+        reply(calls=[("StructuredOutput", program_turn("15.0"))]),
+        reply(calls=[("StructuredOutput", program_turn("150.0"))]),
+    ]
+    preds, caps = checked_run(["the change?"])
+    assert preds == ["150.0"]
+    assert "is not any calculator result" in sent_text(deepseek.bodies[2])
+    assert caps[0]["sdk"]["harness_retry"] == "H2"
+
+
+def test_a_check_sends_a_question_back_once_then_accepts_the_reply(
+    deepseek: FakeDeepSeek,
+) -> None:
+    deepseek.replies = [
+        reply(calls=[("mcp__cfq__subtract", {"a": 200, "b": 50})]),
+        reply(calls=[("StructuredOutput", program_turn("15.0"))]),
+        reply(calls=[("StructuredOutput", program_turn("15.0"))]),
+        reply(calls=[("StructuredOutput", number_turn("7"))]),
+    ]
+    preds, caps = checked_run(["the change?", "and the count?"])
+    # never an answer lost to a check; and the next question starts afresh
+    assert preds == ["15.0", "7"]
+    assert caps[0]["sdk"]["harness_retry"] == "H2"
+    assert caps[1]["sdk"]["harness_retry"] == ""
+
+
+def test_h3_operands_out_of_the_programs_order_are_sent_back(
+    deepseek: FakeDeepSeek,
+) -> None:
+    deepseek.replies = [
+        reply(calls=[("mcp__cfq__subtract", {"a": 50, "b": 200})]),
+        reply(calls=[("StructuredOutput", program_turn("-150.0"))]),
+        reply(calls=[("mcp__cfq__subtract", {"a": 200, "b": 50})]),
+        reply(calls=[("StructuredOutput", program_turn("150.0"))]),
+    ]
+    preds, caps = checked_run(["the change?"])
+    assert preds == ["150.0"]
+    assert "in the program's order" in sent_text(deepseek.bodies[2])
+    assert caps[0]["sdk"]["harness_retry"] == "H3"
+
+
+def test_the_plain_harness_sends_nothing_back(deepseek: FakeDeepSeek) -> None:
+    deepseek.replies = [
+        reply(calls=[("mcp__cfq__subtract", {"a": 200, "b": 50})]),
+        reply(calls=[("StructuredOutput", program_turn("15.0"))]),
+    ]
+    preds, _progs, caps, _traj = run(["the change?"])
+    assert preds == ["15.0"] and len(deepseek.bodies) == 2
+    assert "harness_retry" not in caps[0]["sdk"]
+
+
+def test_a_checked_or_resampled_student_pass_is_named_for_it() -> None:
+    from convfinqa.evalloop.runner import prior_sdk_effort, prior_sdk_model
+    from convfinqa.llm import open_model_slug
+
+    model = "student-qwen3-4b-sft1-e2"
+    assert open_model_slug("pydantic_ai", model, 0.7) == f"pyd-{model}"
+    slug = open_model_slug("pydantic_ai_checked", model, 0.2)
+    assert slug == f"pydchk-{model}-t0p2"
+    # a student's effort is "none", which --resume-from used to read as model
+    name = f"open-evalloop-train100-sdk_v1·s1-{slug}-none-20261026_010000.csv"
+    assert prior_sdk_model(name) == slug and prior_sdk_effort(name) == "none"
+
+
+def test_a_temperature_is_a_students_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    import convfinqa.llm as llm
+    from convfinqa.config import settings
+
+    with pytest.raises(ValueError, match="applies to a student"):
+        llm.open_agent_model("deepseek-flash", "high", temperature=0.2)
+    monkeypatch.setattr(settings, "student_url", "http://student.invalid")
+    llm.reset_provider()
+    model = llm.open_agent_model("student-qwen3-4b-sft1-e2", "none", temperature=0.2)
+    assert model.settings is not None and model.settings["temperature"] == 0.2
+    llm.reset_provider()
+
+
+def test_the_server_serves_every_student_the_runner_names() -> None:
+    from convfinqa.llm import STUDENT_MODELS
+    from convfinqa.sft.cloud import modal_app
+
+    served = {modal_app.BASE_NAME, *modal_app.ADAPTERS}
+    assert served == set(STUDENT_MODELS)
+    command = modal_app.vllm_command(modal_app.ADAPTERS)
+    assert command[command.index("--max-loras") + 1] == str(len(modal_app.ADAPTERS))

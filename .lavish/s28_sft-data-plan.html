@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFT data plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:820px; }
+  table.fx.narrow{ min-width:600px; }
+  table.fx th{ white-space:normal; }
+  td.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .ok{ color:var(--accent); font-weight:600; }
+  .bad{ color:var(--red); font-weight:600; }
+  .warnc{ color:var(--amber); font-weight:600; }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:760px; } }
+  .fig figcaption{ font-size:var(--t-1); color:var(--muted); margin-top:var(--s2); }
+  .fig .ctx{ fill:var(--line-2); }
+  .fig .ctx2{ fill:var(--line); }
+  .fig .trn{ fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.5; }
+  .fig .rsn{ fill:var(--accent); opacity:.55; }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.2; }
+  .fig .box.acc{ stroke:var(--accent); stroke-width:2; }
+  .fig .box.stop{ stroke:var(--amber); stroke-width:2; stroke-dasharray:6 4; }
+  .fig .arrow{ stroke:var(--ink-2); stroke-width:1.5; fill:none; marker-end:url(#ah); }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:14px; font-weight:600; }
+  .fig .lbs{ fill:var(--muted); font-family:var(--sans); font-size:12px; }
+  .fig .seg{ fill:var(--ink); font-family:var(--mono); font-size:11.5px; }
+  .fig .tagA{ fill:var(--accent); font-family:var(--sans); font-size:12.5px; font-weight:600; }
+  .fig .tagW{ fill:var(--amber); font-family:var(--sans); font-size:12.5px; font-weight:600; }
+  .split2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .split2 > *{ min-width:0; }
+  .cards3{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .cards3 > *{ min-width:0; }
+  .cards3 .card p, .split2 .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  pre.tr{ white-space:pre-wrap; overflow-wrap:anywhere; font-family:var(--mono); font-size:var(--t-2); line-height:1.5;
+          background:var(--panel); border:1px solid var(--line-2); border-radius:var(--r); padding:var(--s3); margin:var(--s2) 0 0; }
+  pre.tr .k{ color:var(--accent); font-weight:600; }
+  pre.tr .x{ color:var(--red); text-decoration:line-through; }
+  pre.tr .m{ color:var(--muted); }
+  pre.tr .r{ color:var(--amber); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s28 · ConvFinQA-agent · 2026-10-25 · plan · SFT data from llm_react_v1 · branch <code>sft-data</code></div>
+  <h1>llm_react_v1 records everything a fine-tune needs, after one cleaning step. <em>Keep whole conversations and DeepSeek's reasoning, and teach tau's 4B student from about 500 clean ones.</em></h1>
+  <p class="lede">I reviewed what <code>llm_react_v1</code> (DeepSeek V4.1 Flash in Pydantic AI, prompt sdk_v1) records, using all four of its train-side runs: 220 conversations and 690 turns.
+    I read the raw message histories, not the MLflow traces, and joined every turn to its gold-scored CSV row. I also read how tau-telecom-sft built, trained and served its student.
+    This page reviews your approach, answers the conversation versus conversation × question question, and plans the dataset. Nothing has been built or spent.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">690 / 690</div><div class="l">turns stored losslessly: DeepSeek's reasoning, every tool call and result, and the final answer. Each lines up with its scored CSV row</div></div>
+    <div class="stat amber"><div class="n">15%</div><div class="l">of turns contain a format detour: DeepSeek writes the answer as text, it's refused, and it re-sends it as a tool call. The builder collapses it</div></div>
+    <div class="stat"><div class="n">68 → ≈ 325</div><div class="l">clean conversations today, inside the sft_v1 train split. ≈ 325 from collecting its 552 for the first end-to-end run (≈ $1.27 off-peak); the draw grows later</div></div>
+    <div class="stat"><div class="n">1 row = 1 conversation</div><div class="l">for tau's non-thinking 4B student, with the reasoning written as visible text. A conversation × question row is only needed for a thinking student</div></div>
+  </div>
+
+  <div class="callout warn" style="margin-top:var(--s5)">
+    <p><b>Two points in the brief to settle first.</b></p>
+    <ul>
+      <li><b>tau-telecom-sft has no 6B model.</b> Its student is <code>Qwen/Qwen3-4B-Instruct-2507</code> (4.0B, non-thinking, pinned at <code>cdbee75</code>), and its Mac smoke run used <code>Qwen3-0.6B</code>.
+        I planned on the 4B, because it is the model, recipe and Modal weights volume you've already used (D1).</li>
+      <li><b>"Keep as is, no other runs" was about the challenger.</b> Building enough training data needs one DeepSeek collection run on the train split. It is a data run, not a new challenger, and it waits for D4.</li>
+    </ul>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s4)">
+    <p><b>Test 100 is the holdout</b> (your note). The 100 conversations of <code>eval_loop_v2</code> test are used for one thing: scoring the base student and the fine-tuned student, paired question by question.
+      Flash never collects on them, no row is built from them, nothing is selected or balanced by looking at them, and every one of their report pages is kept out of training (150 pages, with the sealed holdout).
+      The separate <code>sft_v1</code> val set (100 conversations on other pages) only picks the epoch.
+      <b>For more data, the training draw grows</b> (your note). The same seed's larger draw contains the smaller one, so nothing already collected is wasted, and failures aren't resampled.</p>
+  </div>
+</header>
+
+<section id="review">
+  <h2>01 · Your approach, <em>reviewed</em></h2>
+  <p class="sub">In short: the teacher, the harness and the recipe are the right choices, and better than s23's Sonnet route. There are three adjustments.</p>
+  <div class="cards3">
+    <div class="card"><span class="badge ok">right</span><h3>An open-weights teacher</h3>
+      <p>DeepSeek's platform terms allow training other models on its outputs (checked in s23), and V4.1 Flash has open weights. That satisfies tau's Rule 2 ("agent turns come from open-weights models only"), which s23 had to set aside to use Sonnet. Its reasoning is recorded too; Sonnet's never was.</p></div>
+    <div class="card"><span class="badge ok">right</span><h3>The same harness at train and test</h3>
+      <p>The student would run in llm_react_v1's own Pydantic AI loop, with the same prompt, the six <code>mcp__cfq__*</code> tools and the <code>StructuredOutput</code> answer. So the rows are in exactly the format the student meets at test time, and the existing gate scores it.</p></div>
+    <div class="card"><span class="badge ok">right</span><h3>tau's recipe on Modal</h3>
+      <p>TRL + PEFT LoRA on one L4, vLLM serving with the hermes tool parser, a mask check on every row, data-hash checks, and the run-folder contract. It took tau's 4B from 6/40 to 17/40 on 518 rows. All of it can be copied.</p></div>
+    <div class="card"><span class="badge warn">adjust</span><h3>The ceiling is Flash, not Sonnet</h3>
+      <p>Flash scored 87.7% on test, 2.87pp under the champion. A student trained on Flash's clean conversations aims at Flash. Gold-checked and resampled rows can lift it slightly, but the honest target is "how much of the gap from base to Flash does it close".</p></div>
+    <div class="card"><span class="badge warn">adjust</span><h3>Keep the reasoning, don't drop it</h3>
+      <p>tau dropped its teachers' reasoning. Here that would discard the most useful signal: DeepSeek reasons <i>before</i> each calculator call, so the trace is the plan that drove the action. §03 shows how to keep it without breaking the chat template.</p></div>
+    <div class="card"><span class="badge warn">adjust</span><h3>Pick the student, then the row shape</h3>
+      <p>The row shape follows from whether the student thinks in hidden <code>&lt;think&gt;</code> blocks. Qwen's templates drop earlier turns' hidden reasoning when serving, so the shape is not a free choice (§04).</p></div>
+  </div>
+</section>
+
+<section id="readiness">
+  <h2>02 · What llm_react_v1 records, <em>and how ready it is</em></h2>
+  <p class="sub">The source is the per-run <code>trajectories.jsonl.gz</code> artifact: one line per conversation holding Pydantic AI's full message history. As in tau, the MLflow traces are for browsing only, because prompts are stored there by reference and payloads are trimmed.
+    The measurements are over the two train100 passes and the two smoke passes: 220 conversations, 690 turns, 1,375 model responses.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:5%"><col style="width:20%"><col style="width:12%"><col style="width:63%"></colgroup>
+      <thead><tr><th>#</th><th>What</th><th>Status</th><th>Evidence and what to do</th></tr></thead>
+      <tbody>
+        <tr><td>R1</td><td>Lossless history</td><td><span class="badge ok">ready</span></td><td>System prompt (sdk_v1, in full), the user message (report id, document, question), every model response and every tool result, in order. Turns split cleanly at each question: <b>690 of 690</b> match their CSV row, so each turn's gold verdict and stage checks join on.</td></tr>
+        <tr><td>R2</td><td>Reasoning</td><td><span class="badge ok">ready</span></td><td>DeepSeek's <code>reasoning_content</code> is stored as a thinking part on <b>897 of 1,375</b> responses. 682 of 690 turns have some, mostly on the step before the first call. The median is 329 characters (≈ 80 tokens) per turn; the mean is 959.</td></tr>
+        <tr><td>R3</td><td>Runaway reasoning</td><td><span class="badge warn">gate</span></td><td>8 thinking parts exceed 8,000 characters (the largest is 44,630, ≈ 10.8k tokens), and <b>all 8 are in conversations that got something wrong</b>, so none survive the correctness gate. A length cap (F7) makes that explicit.</td></tr>
+        <tr><td>R4</td><td>Tool calls and results</td><td><span class="badge ok">ready</span></td><td>Name, JSON arguments, call id and result for each call. There are 612 calculator calls (divide 199, subtract 177, multiply 151, add 78, greater 7) and one <code>StructuredOutput</code> per turn (690).</td></tr>
+        <tr><td>R5</td><td>Format detours</td><td><span class="badge warn">normalise</span></td><td><b>105 turns in 91 of 220 conversations</b>, and 48 of the 116 clean ones: DeepSeek writes the final JSON as text and stops; Pydantic AI answers "Please include your response in a tool call."; DeepSeek re-sends it as <code>StructuredOutput</code>, often after a line of reasoning about the retry. The builder keeps the call and drops the refused text, the retry prompt and that meta-reasoning (N1, §03).</td></tr>
+        <tr><td>R6</td><td>Re-asks and failed turns</td><td><span class="badge ok">ready</span></td><td>Rejected attempts never enter the history (by design). A correction re-ask shows in the user message, and there were 0. A turn that never answered is marked by a fixed reply (<code>NO_VALID_ANSWER</code>, fixed this week) and is dropped by F3. Small gap: the attempt count isn't written to the CSV, so add it to the capture.</td></tr>
+        <tr><td>R7</td><td>Tool schemas</td><td><span class="badge warn">pin</span></td><td>They're not in the artifact. They are rebuilt from <code>agent_sdk._TOOL_SCHEMA</code> and the tool descriptions, plus the one recorded change (<code>additionalProperties:false</code>), and pinned by sha256 in the data card. tau did the same for its system prompt.</td></tr>
+        <tr><td>R8</td><td>Provenance</td><td><span class="badge ok">ready</span></td><td><code>model_name = deepseek-flash</code> on every response, with the provider response id, timestamps, finish reason, per-response usage and cost.</td></tr>
+        <tr><td>R9</td><td>Storage</td><td><span class="badge warn">fix</span></td><td>The artifact exists only in MLflow's MinIO store. MLflow's own client fails here: its chunked download kept retrying. A plain GET to <code>/api/2.0/mlflow-artifacts/…</code> works. At ≈ 0.6 MB gzipped per 100 conversations, they should be committed beside the CSVs, as this repo does with every evaluation artifact.</td></tr>
+        <tr><td>R10</td><td>Volume and leaks</td><td><span class="badge warn">collect</span></td><td>116 conversations are page-clean and right on every turn (415 turns, 32 Type II), but only <b>68</b> are in <code>sft_v1</code>'s train split. <b>7 of the seed-2028 draw sit on val pages</b>, so the builder must take ids from <code>sft_v1</code>, never from whatever runs exist. The test100 pass also has trajectories, and the builder refuses any test-split source.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="example">
+  <h2>03 · One real conversation, <em>as recorded and as a training row</em></h2>
+  <p class="sub"><code>Single_ALLE/2016/page_83.pdf-1</code> from the seed-2027 draw, in <code>sft_v1</code> train, right on both turns (gold 91 and 45.5). Long fields are cut with … ; everything else is verbatim.</p>
+  <div class="split2">
+    <div>
+      <div class="label">As recorded · trajectories.jsonl.gz</div>
+<pre class="tr"><span class="k">system</span>  sdk_v1 (17 KB) + 6 tools + StructuredOutput
+<span class="k">user</span>    [[ ## document ## ]] {pre_text … table … } (5,957 chars)
+        [[ ## question ## ]] what was the total cash paid for income
+        taxes in the years of 2015 and 2016, combined?
+<span class="k">think</span>   The question asks total cash paid for income taxes in 2015 and
+        2016 combined. From post_text: 2016 = $10.4 million, 2015 =
+        $80.6 million. Program turn: add(10.4, 80.6) = 91.0. …
+<span class="k">call</span>    mcp__cfq__add {"a": 10.4, "b": 80.6}
+<span class="k">tool</span>    91.0
+<span class="x">text    { "turn_type": "program", "conv_type": "Type I", … }</span>
+<span class="x">retry   Please include your response in a tool call.</span>
+<span class="x">think   The user asks to include response in a tool call — I should
+        call StructuredOutput with the same content.</span>
+<span class="k">call</span>    StructuredOutput {"turn_type":"program", …, "program":"add(A, B)",
+        "retrieved":[{…"answer":"10.4","source":"post_text narrative …"}, …],
+        "answer":"91.0", "reasoning":"…"}
+<span class="m">tool    Final result processed.</span>
+<span class="k">user</span>    [[ ## question ## ]] and what was the average cash paid for
+        income taxes between those years?
+<span class="k">think</span>   Program turn, Type I (continuation). Average = (10.4 + 80.6)/2
+        … Program: divide(add(A, B), const_2). Compute with tools.
+<span class="k">call</span>    mcp__cfq__add {"a": 10.4, "b": 80.6}  →  91.0
+<span class="k">call</span>    mcp__cfq__divide {"a": 91.0, "b": 2}  →  45.5
+<span class="k">call</span>    StructuredOutput {"answer":"45.5", "program":"divide(add(A, B), const_2)", …}</pre>
+    </div>
+    <div>
+      <div class="label">As a row · one conversation, Qwen3-4B-Instruct template</div>
+<pre class="tr"><span class="m">system  student_v1 prompt + &lt;tools&gt; block            context
+user    document + question 1                          context</span>
+<span class="k">asst</span>    &lt;reasoning&gt;The question asks total cash paid …
+        add(10.4, 80.6) = 91.0. …&lt;/reasoning&gt;
+        &lt;tool_call&gt;{"name":"mcp__cfq__add",
+          "arguments":{"a":10.4,"b":80.6}}&lt;/tool_call&gt;   <span class="r">trained</span>
+<span class="m">tool    &lt;tool_response&gt;91.0&lt;/tool_response&gt;            context</span>
+<span class="k">asst</span>    &lt;tool_call&gt;{"name":"StructuredOutput",
+          "arguments":{… "answer":"91.0" …}}&lt;/tool_call&gt;   <span class="r">trained</span>
+<span class="m">tool    Final result processed.                         context
+user    question 2                                      context</span>
+<span class="k">asst</span>    &lt;reasoning&gt;Program turn, Type I (continuation). …
+        Compute with tools.&lt;/reasoning&gt;
+        &lt;tool_call&gt;mcp__cfq__add …&lt;/tool_call&gt;           <span class="r">trained</span>
+<span class="m">tool    91.0                                            context</span>
+<span class="k">asst</span>    &lt;tool_call&gt;mcp__cfq__divide …&lt;/tool_call&gt;        <span class="r">trained</span>
+<span class="m">tool    45.5                                            context</span>
+<span class="k">asst</span>    &lt;tool_call&gt;StructuredOutput {… "45.5" …}&lt;/tool_call&gt; <span class="r">trained</span></pre>
+    </div>
+  </div>
+  <div class="cards3">
+    <div class="card"><p><b>N1 · the detour collapses.</b> The struck lines go. If the refused response carried the reasoning, it moves onto the call. The student learns to answer straight through <code>StructuredOutput</code> and never sees a refusal it would only learn to copy.</p></div>
+    <div class="card"><p><b>Reasoning becomes visible text.</b> DeepSeek's thinking goes in a <code>&lt;reasoning&gt;</code> block in the same assistant message, before its tool call. A non-thinking template keeps it, so the student writes it at test time and later turns see it, exactly as in training.</p></div>
+    <div class="card"><p><b>Loss on the assistant's tokens only</b> (<code>assistant_only_loss</code>, tau's mask check on every row): the reasoning, the calls and the final JSON. The prompt, document, questions and tool results are context.</p></div>
+  </div>
+</section>
+
+<section id="shape">
+  <h2>04 · Conversation or conversation × question?</h2>
+  <p class="sub">Either way, <b>selection is by conversation</b>, as you set in s23: a conversation is kept whole or dropped whole, every question of a kept one is used, and the split is by report page (<code>sft_v1</code>). The question is only how a kept conversation becomes training rows, and that depends on whether the student thinks.</p>
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 920 300" role="img" aria-labelledby="shape-t">
+      <title id="shape-t">One whole-conversation row against three per-question rows for a three-turn conversation</title>
+      <text class="lb" x="0" y="22">A · one row per conversation</text>
+      <text class="lbs" x="0" y="40">reasoning stays in history at test time too</text>
+      <g id="rowA">
+        <title>Row A: one sequence, loss on all three answers</title>
+        <rect class="ctx" x="250" y="12" width="150" height="30" rx="4"/><text class="seg" x="325" y="31" text-anchor="middle">system + tools + doc</text>
+        <rect class="ctx2" x="402" y="12" width="40" height="30" rx="4"/><text class="seg" x="422" y="31" text-anchor="middle">Q1</text>
+        <rect class="trn" x="444" y="12" width="110" height="30" rx="4"/><rect class="rsn" x="444" y="12" width="45" height="30" rx="4"/><text class="seg" x="499" y="31" text-anchor="middle">A1</text>
+        <rect class="ctx2" x="556" y="12" width="40" height="30" rx="4"/><text class="seg" x="576" y="31" text-anchor="middle">Q2</text>
+        <rect class="trn" x="598" y="12" width="110" height="30" rx="4"/><rect class="rsn" x="598" y="12" width="45" height="30" rx="4"/><text class="seg" x="653" y="31" text-anchor="middle">A2</text>
+        <rect class="ctx2" x="710" y="12" width="40" height="30" rx="4"/><text class="seg" x="730" y="31" text-anchor="middle">Q3</text>
+        <rect class="trn" x="752" y="12" width="110" height="30" rx="4"/><rect class="rsn" x="752" y="12" width="45" height="30" rx="4"/><text class="seg" x="807" y="31" text-anchor="middle">A3</text>
+      </g>
+      <text class="tagA" x="250" y="62">≈ 8k tokens per conversation (median), 1 row</text>
+
+      <text class="lb" x="0" y="112">B · one row per question</text>
+      <text class="lbs" x="0" y="130">earlier hidden reasoning is dropped,</text>
+      <text class="lbs" x="0" y="146">as the template does at test time</text>
+      <g id="rowB1"><title>Row B1: Q1's answer is the only trained span</title>
+        <rect class="ctx" x="250" y="100" width="150" height="26" rx="4"/><rect class="ctx2" x="402" y="100" width="40" height="26" rx="4"/><text class="seg" x="422" y="117" text-anchor="middle">Q1</text>
+        <rect class="trn" x="444" y="100" width="110" height="26" rx="4"/><rect class="rsn" x="444" y="100" width="45" height="26" rx="4"/><text class="seg" x="499" y="117" text-anchor="middle">A1</text></g>
+      <g id="rowB2"><title>Row B2: A1 is context without its reasoning; A2 is trained</title>
+        <rect class="ctx" x="250" y="134" width="150" height="26" rx="4"/><rect class="ctx2" x="402" y="134" width="40" height="26" rx="4"/><text class="seg" x="422" y="151" text-anchor="middle">Q1</text>
+        <rect class="ctx2" x="444" y="134" width="65" height="26" rx="4"/><text class="seg" x="476" y="151" text-anchor="middle">A1</text>
+        <rect class="ctx2" x="511" y="134" width="40" height="26" rx="4"/><text class="seg" x="531" y="151" text-anchor="middle">Q2</text>
+        <rect class="trn" x="553" y="134" width="110" height="26" rx="4"/><rect class="rsn" x="553" y="134" width="45" height="26" rx="4"/><text class="seg" x="608" y="151" text-anchor="middle">A2</text></g>
+      <g id="rowB3"><title>Row B3: A1 and A2 are context; A3 is trained</title>
+        <rect class="ctx" x="250" y="168" width="150" height="26" rx="4"/><rect class="ctx2" x="402" y="168" width="40" height="26" rx="4"/><text class="seg" x="422" y="185" text-anchor="middle">Q1</text>
+        <rect class="ctx2" x="444" y="168" width="65" height="26" rx="4"/><text class="seg" x="476" y="185" text-anchor="middle">A1</text>
+        <rect class="ctx2" x="511" y="168" width="40" height="26" rx="4"/><text class="seg" x="531" y="185" text-anchor="middle">Q2</text>
+        <rect class="ctx2" x="553" y="168" width="65" height="26" rx="4"/><text class="seg" x="585" y="185" text-anchor="middle">A2</text>
+        <rect class="ctx2" x="620" y="168" width="40" height="26" rx="4"/><text class="seg" x="640" y="185" text-anchor="middle">Q3</text>
+        <rect class="trn" x="662" y="168" width="110" height="26" rx="4"/><rect class="rsn" x="662" y="168" width="45" height="26" rx="4"/><text class="seg" x="717" y="185" text-anchor="middle">A3</text></g>
+      <text class="tagW" x="250" y="216">≈ 3.6 rows per conversation, ≈ 2.8× the tokens: the long prefix repeats</text>
+
+      <g id="legend"><title>Legend</title>
+        <rect class="ctx" x="250" y="250" width="22" height="16" rx="3"/><text class="lbs" x="278" y="263">context, no loss</text>
+        <rect class="trn" x="400" y="250" width="22" height="16" rx="3"/><text class="lbs" x="428" y="263">trained: calls and final JSON</text>
+        <rect class="rsn" x="610" y="250" width="22" height="16" rx="3"/><text class="lbs" x="638" y="263">trained: reasoning</text>
+      </g>
+    </svg>
+    <figcaption>The prefix (system prompt, tools and document) is ≈ 5.6k tokens of context on every row, measured from DeepSeek's first request (median 5,625). Under B it is paid once per question; under A, once per conversation.</figcaption>
+  </figure>
+
+  <div class="split2">
+    <div class="card rec"><span class="badge rec">recommended with tau's 4B</span><h3>A · whole conversation</h3>
+      <ul>
+        <li><b>When it's right:</b> a non-thinking student (<code>Qwen3-4B-Instruct-2507</code>) with the reasoning written as visible <code>&lt;reasoning&gt;</code> text, which the chat template never strips.</li>
+        <li><b>Scored on test 100</b>, the holdout, base and tuned alike.</li>
+        <li><b>Train equals serve:</b> at test time the student's earlier answers, reasoning included, are in its context, exactly as in the row.</li>
+        <li><b>Size:</b> median 7,979 tokens, p90 9,364, max 18,299 (DeepSeek's count; Qwen's goes in the data card). It fits tau's <code>max_length 24,576</code> with no truncation.</li>
+        <li><b>Matches</b> tau's row shape and the rule you set in s23 rev 6.</li>
+        <li><b>Cost:</b> ≈ 530 rows × 8k ≈ 4.2M tokens per epoch, ≈ 5 h and ≈ $5.50 for three epochs on an L4 at tau's measured 715 tokens/s.</li>
+      </ul></div>
+    <div class="card"><span class="badge info">only for a thinking student</span><h3>B · conversation × question</h3>
+      <ul>
+        <li><b>When it's right:</b> a thinking student (<code>Qwen3-4B-Thinking-2507</code>) that puts DeepSeek's reasoning in hidden <code>&lt;think&gt;</code> blocks.</li>
+        <li><b>Why it's needed then:</b> Qwen's template keeps <code>&lt;think&gt;</code> only after the latest question, so at test time earlier turns arrive without their reasoning. A whole-conversation row would train with reasoning the model never sees when served. tau's plan §6 reaches the same conclusion.</li>
+        <li><b>Cost:</b> ≈ 2.8× the tokens, ≈ 14 h and ≈ $15 on an L4 (or a faster GPU). It also needs vLLM's <code>--reasoning-parser</code>, which tau never ran.</li>
+        <li><b>Gain:</b> reasoning stays out of the visible answer. That doesn't matter here, because the harness reads only the tool calls.</li>
+      </ul></div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <h2>05 · Building the data</h2>
+  <figure class="fig">
+    <svg class="wide" viewBox="0 0 920 220" role="img" aria-labelledby="pipe-t">
+      <title id="pipe-t">From the sft_v1 train split to training rows, with a review stop before any Modal spend</title>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g id="p-split"><title>Training draw: seed 2027, 552 page-clean conversations at n 600, growing to 899 at n 1,000; test and val pages always out</title>
+        <rect class="box" x="0" y="40" width="150" height="70" rx="8"/><text class="lb" x="75" y="64" text-anchor="middle">training draw</text><text class="lbs" x="75" y="82" text-anchor="middle">552 → 899</text><text class="lbs" x="75" y="98" text-anchor="middle">test pages out</text></g>
+      <path class="arrow" d="M152,75 L186,75" style="color:var(--ink-2)"/>
+      <g id="p-collect"><title>Collect: llm_react_v1 on DeepSeek Flash, every question; the same seed's draw grows from 600 to 1,000 or 1,500 if the clean count is short</title>
+        <rect class="box acc" x="188" y="40" width="160" height="70" rx="8"/><text class="lb" x="268" y="64" text-anchor="middle">collect · Flash</text><text class="lbs" x="268" y="82" text-anchor="middle">every question</text><text class="lbs" x="268" y="98" text-anchor="middle">grow draw if short</text></g>
+      <path class="arrow" d="M350,75 L384,75" style="color:var(--ink-2)"/>
+      <g id="p-record"><title>Record: CSV with gold checks plus the trajectories artifact, both committed</title>
+        <rect class="box" x="386" y="40" width="150" height="70" rx="8"/><text class="lb" x="461" y="64" text-anchor="middle">CSV + trajectories</text><text class="lbs" x="461" y="82" text-anchor="middle">joined per turn</text><text class="lbs" x="461" y="98" text-anchor="middle">committed</text></g>
+      <path class="arrow" d="M538,75 L572,75" style="color:var(--ink-2)"/>
+      <g id="p-build"><title>Build: gates F1 to F8, normalise N1, render rows, card, leak and mask checks</title>
+        <rect class="box acc" x="574" y="40" width="150" height="70" rx="8"/><text class="lb" x="649" y="64" text-anchor="middle">gate + normalise</text><text class="lbs" x="649" y="82" text-anchor="middle">F1–F8 · N1</text><text class="lbs" x="649" y="98" text-anchor="middle">train.jsonl + card</text></g>
+      <path class="arrow" d="M726,75 L760,75" style="color:var(--ink-2)"/>
+      <g id="p-stop"><title>Review stop: a data page with counts, coverage by cut and lengths, before any Modal spend</title>
+        <rect class="box stop" x="762" y="40" width="156" height="70" rx="8"/><text class="lb" x="840" y="64" text-anchor="middle">review stop</text><text class="lbs" x="840" y="82" text-anchor="middle">data page · s29</text><text class="lbs" x="840" y="98" text-anchor="middle">then Modal</text></g>
+      <text class="lbs" x="0" y="150">Then, on approval:</text>
+      <text class="seg" x="0" y="172">base scored on val + test → LoRA on Modal (tau's recipe) → tuned scored on val, the epoch picked,</text>
+      <text class="seg" x="0" y="192">then test once — all through llm_react_v1's own runner and gate, served by vLLM on Modal.</text>
+    </svg>
+  </figure>
+
+  <h3 style="margin-top:var(--s5)">The gates</h3>
+  <p class="sub">They work like tau's F1–F10: a conversation is dropped whole and charged to the first rule it fails, and every drop goes to <code>drops.jsonl</code> with its rule. The gold-stage gates are s23's G1–G5 and T1–T5, with the two redefinitions it measured. The rest are specific to DeepSeek.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:7%"><col style="width:30%"><col style="width:63%"></colgroup>
+      <thead><tr><th>Rule</th><th>Keeps a conversation only if…</th><th>Source and why</th></tr></thead>
+      <tbody>
+        <tr><td>F1</td><td>every question's answer is right</td><td>The CSV's <code>correct</code>. Flash was right to the end on 63 and 62 of the two train100 draws.</td></tr>
+        <tr><td>F2</td><td>it is in the training draw, on no test, holdout or val page</td><td>The committed manifest (<code>sft_v1</code>, or <code>sft_v2</code> if the draw grows), never a run's own draw. This keeps out all 100 test conversations and their page siblings, the sealed holdout, and the 7 seed-2028 conversations on val pages.</td></tr>
+        <tr><td>F3</td><td>it is complete, with no turn error, rate limit or <code>NO_VALID_ANSWER</code> reply</td><td>The CSV's <code>error</code> and <code>unscored</code> and the trajectory. Collection runs every question, not stopping at the first wrong one, so a kept conversation has all its questions.</td></tr>
+        <tr><td>F4</td><td>each turn's type, plan, operands and calculator check against gold</td><td>s23's G2–G5. Operands read a value carried from an earlier turn as present, and the plan is compared with gold's own program value, not the rounded answer.</td></tr>
+        <tr><td>F5</td><td>tool use is clean: no failed or repeated call, calls follow the plan, arguments come from the document, an earlier return or a DSL constant, and the answer is the last return</td><td>s23's T1–T5, read from the trajectory's calls and returns.</td></tr>
+        <tr><td>F6</td><td>every turn was answered on its first attempt</td><td>No correction re-ask in any user message (0 so far). Record the attempt count in the capture too.</td></tr>
+        <tr><td>F7</td><td>no reasoning block is runaway (≤ 2,048 tokens)</td><td>The 8 blocks over 8,000 characters all sit in failed conversations; this keeps the rule explicit.</td></tr>
+        <tr><td>F8</td><td>the rendered row fits <code>max_length</code> 24,576</td><td>The longest so far is 18,299 DeepSeek tokens. Over-long rows are dropped, never truncated (tau's rule).</td></tr>
+        <tr><td>N1</td><td><i>Normalise, don't drop:</i> collapse each text-answer detour</td><td>Keep the <code>StructuredOutput</code> call; drop the refused text, the retry prompt and the reasoning about the retry. The counts go in the card (48 of the 116 clean conversations so far). A test checks the call's arguments equal the refused text's JSON.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)"><b>Expected yield</b>, an estimate from the train100 draws: about 63% right to the end, and about 94% of those past the stage gates (s23's probe on Sonnet), so ≈ 59%. For scale, tau trained on 518 rows. <b>More data comes from more conversations</b>, never from re-running failures: Flash's full train passes reproduced the smoke conversation for conversation, so a re-run mostly repeats itself.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:22%"><col style="width:20%"><col style="width:16%"><col style="width:20%"><col style="width:22%"></colgroup>
+      <thead><tr><th>Seed-2027 draw</th><th>Page-clean conversations</th><th>Questions</th><th>Expected clean (≈ 59%)</th><th>Collection, off-peak</th></tr></thead>
+      <tbody>
+        <tr><td>n 600 (sft_v1 train)</td><td class="sc">552</td><td class="sc">1,993</td><td class="sc">≈ 325</td><td class="sc">$1.27</td></tr>
+        <tr><td><b>n 1,000</b></td><td class="sc"><b>899</b> (+347)</td><td class="sc">3,232</td><td class="sc"><b>≈ 530</b></td><td class="sc">+$0.79 · $2.06 total</td></tr>
+        <tr><td>n 1,500</td><td class="sc">1,314 (+415)</td><td class="sc">4,729</td><td class="sc">≈ 775</td><td class="sc">+$0.95 · $3.01 total</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">Counts are after removing test, holdout and val pages. Each larger draw contains the smaller one, so collection runs in stages: the 552, then the next 347 if the clean count is under the target of ≈ 500.
+    The data page will show coverage by s23's key cuts (Type, questions per conversation, program depth, operation). Flash fails more often on long and Type II conversations, so those are the cuts most likely to be thin, and a bigger draw thickens them too.</p>
+</section>
+
+<section id="modal">
+  <h2>06 · Training and serving, <em>from tau</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:20%"><col style="width:42%"><col style="width:38%"></colgroup>
+      <thead><tr><th>Piece</th><th>tau-telecom-sft (copied)</th><th>Here</th></tr></thead>
+      <tbody>
+        <tr><td>Student</td><td><code>Qwen/Qwen3-4B-Instruct-2507</code> @ <code>cdbee75f…</code>, bf16, non-thinking, hermes tool format</td><td>Same pin, read from tau's <code>tau-telecom-sft-hf</code> volume read-only, as s23 planned (D1)</td></tr>
+        <tr><td>Rows</td><td>Whole conversation; <code>{"messages","tools"}</code>; reasoning dropped</td><td>Whole conversation; reasoning kept as <code>&lt;reasoning&gt;</code> text (D2, D3)</td></tr>
+        <tr><td>Loss</td><td><code>assistant_only_loss</code> via TRL's <code>qwen3_instruct_2507_training.jinja</code>; mask read back on every row before step 1</td><td>Same, and the check matters more: the reasoning block must be inside the trained span</td></tr>
+        <tr><td>LoRA and schedule</td><td>r 16 · α 32 · dropout 0.05 · all-linear; lr 1e-4 cosine, 5% warmup, 3 epochs, batch 1 × 16, gradient checkpointing</td><td>Same. Epoch picked on <code>sft_v1</code> val (100 conversations), which tau didn't have</td></tr>
+        <tr><td>Hardware</td><td>One L4, TRL 1.16 / PEFT 0.21.2 / transformers 5.20.1; 715 tokens/s; $6.84 for 15.69M tokens</td><td>≈ 12.7M tokens over 3 epochs (≈ 530 rows): ≈ 5 h, ≈ $5.50</td></tr>
+        <tr><td>Serving</td><td>vLLM 0.21.0 on Modal L4, <code>--tool-call-parser hermes</code>, <code>--enable-lora</code>, prefix caching, no reasoning parser; a proxy added the Modal-Key headers</td><td>Same server. Pydantic AI's OpenAI provider sends the Modal headers itself, so no proxy is needed</td></tr>
+        <tr><td>Harness</td><td>tau2-loop via litellm, temperature 0.7 · top_p 0.8 · top_k 20</td><td>llm_react_v1's runner with a new open model (<code>student-qwen3-4b</code> base, then <code>-sft</code>). The runs show as <i>llm_react_v1 · student-qwen3-4b</i> on Runs and the Leaderboard</td></tr>
+        <tr><td>Verdicts</td><td>Sign test against its own base</td><td>Tuned vs base: the house gate on test. Tuned vs champion: <code>gate-challenger</code>, record only. Share of the base-to-Flash gap closed</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="cost">
+  <h2>07 · Cost and time</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <colgroup><col style="width:42%"><col style="width:30%"><col style="width:28%"></colgroup>
+      <thead><tr><th>Step</th><th>Cost</th><th>Time</th></tr></thead>
+      <tbody>
+        <tr><td>Collect stage 1: the 552 (1,993 questions), every question</td><td class="sc">≈ $1.27 off-peak, $2.54 peak</td><td class="sc">≈ 25 min</td></tr>
+        <tr><td>Collect stage 2, if under ≈ 500 clean: the next 347 (n 1,000)</td><td class="sc">≈ $0.79 off-peak</td><td class="sc">≈ 15 min</td></tr>
+        <tr><td>Train, row shape A, ≈ 530 rows (B: ≈ 2.8×)</td><td class="sc">≈ $5.50 Modal</td><td class="sc">≈ 5 h</td></tr>
+        <tr><td>Score base and tuned: val to pick the epoch, test 100 once each</td><td class="sc">≈ $2–3 Modal</td><td class="sc">≈ 2 h</td></tr>
+        <tr><td><b>Total</b></td><td class="sc"><b>≈ $2.06 DeepSeek + ≈ $8.50 Modal</b></td><td class="sc">≈ 8 h</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">The DeepSeek rate is o01-e01's test pass: $0.222 for 349 questions at off-peak (all of it ran on a Sunday). <b>The DeepSeek balance is $1.74</b>, so collection needs a top-up first; I suggest a $5 cap. Off-peak is all weekend and outside 01:00–04:00 and 06:00–10:00 UTC on weekdays.</p>
+</section>
+
+<section id="build">
+  <h2>08 · What gets built</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+      <thead><tr><th>File</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>src/convfinqa/sft/trajectories.py</code></td><td>Fetch a run's <code>trajectories.jsonl.gz</code> with a plain GET; split a conversation into turns; join each turn to its CSV row.</td></tr>
+        <tr><td><code>evaluation/sft/trajectories/&lt;run&gt;.jsonl.gz</code></td><td>Committed copies of each collection run's trajectories, like the CSVs.</td></tr>
+        <tr><td><code>src/convfinqa/sft/build.py</code></td><td>F1–F8 and N1. Renders rows for shape A (B behind a flag), and writes <code>train.jsonl</code>, <code>card.md</code>, <code>stats.json</code> and <code>drops.jsonl</code> under <code>evaluation/sft/v1/</code>, with the sha256 of the prompt, the tool schemas and the data.</td></tr>
+        <tr><td><code>src/convfinqa/sft/checks.py</code> + <code>tests/test_sft_no_leak.py</code></td><td>No row's id, page or question belongs to val, test or the sealed holdout. Runs before upload and in CI.</td></tr>
+        <tr><td><code>convfinqa-sft</code> CLI</td><td><code>fetch</code> · <code>collect</code> (wraps the evalloop runner on the training ids, every question, in stages) · <code>build</code> · <code>check</code>.</td></tr>
+        <tr><td><code>src/convfinqa/sft/splits.py</code></td><td>If stage 2 runs: an <code>sft_v2</code> manifest, the seed-2027 draw at n 1,000 minus test, holdout <b>and val</b> pages. Val and test are copied unchanged, and a test proves the 552 are a subset.</td></tr>
+        <tr><td><code>backends/open_agent.py</code></td><td>Write the attempt count into the capture (R6). No change to the contract.</td></tr>
+        <tr><td>Later, after the review stop</td><td>tau's <code>modal_app.py</code>, <code>train/sft.py</code>, <code>train/mask.py</code> and <code>cloud/sync.py</code> copied under <code>src/convfinqa/sft/</code>; a student provider in <code>llm.py</code>.</td></tr>
+        <tr><td>Tests</td><td>Turn split and CSV join, N1 on a recorded detour, each gate's drop reason, mask alignment on a rendered row, and refusal of a test-split source.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="risks">
+  <h2>09 · Risks</h2>
+  <div class="cards3">
+    <div class="card"><p><b>A lower yield than 59%.</b> The draw then grows again (n 1,500 gives 1,314 conversations, ≈ $3.01 in total). Resampling isn't the fallback: DeepSeek in thinking mode looked close to deterministic here, and the smoke reproduced conversation for conversation.</p></div>
+    <div class="card"><p><b>Thin hard cuts.</b> Flash's failures are concentrated in long and Type II conversations, so the clean set under-represents them. The data page shows coverage by cut before any training.</p></div>
+    <div class="card"><p><b>Format failures at test time.</b> A student might still write text answers. Rows teach the tool call, and scoring counts format failures separately, as s23 planned.</p></div>
+    <div class="card"><p><b>A long, repeated context.</b> The 17 KB prompt plus the document is ≈ 5.6k tokens on every row. A shorter student prompt would cut cost but confound base vs tuned, so it's D5.</p></div>
+    <div class="card"><p><b>Modal can't reach MLflow</b> (tau's lesson). Training runs are synced back afterwards, and Modal jobs refuse uncommitted <code>src/</code>.</p></div>
+    <div class="card"><p><b>tau's L4 throughput</b> (715 tokens/s against an estimate of 1,100–1,500) is the basis of the time estimate. A measured two-step run comes before the full job, as in tau.</p></div>
+  </div>
+</section>
+
+<section id="decide">
+  <h2>10 · Decided <em>(your answers, 2026-10-25)</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:8%"><col style="width:26%"><col style="width:66%"></colgroup>
+      <thead><tr><th>#</th><th>Question</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td>D1</td><td>Student</td><td><code>Qwen/Qwen3-4B-Instruct-2507</code> @ <code>cdbee75</code>, tau's model and pin, weights read from tau's Modal volume.</td></tr>
+        <tr><td>D2</td><td>Row shape</td><td><b>A</b>: one row per whole conversation, loss on every assistant turn; selection by whole conversation.</td></tr>
+        <tr><td>D3</td><td>Reasoning</td><td>DeepSeek's own reasoning, verbatim, as a visible <code>&lt;reasoning&gt;</code> block before each action, with N1 normalisation and the F7 cap.</td></tr>
+        <tr><td>D4</td><td>Collection</td><td>Flash on the <b>552</b> <code>sft_v1</code> train conversations, every question, off-peak. <b>Keep whatever passes and go on to training: an end-to-end run first.</b> Growing the draw (899, then 1,314) is for later. Test 100 is untouched.</td></tr>
+        <tr><td>D5</td><td>Prompt</td><td><code>student_v1</code> = sdk_v1 verbatim plus one paragraph describing the <code>&lt;reasoning&gt;</code> block. Base and tuned get the same.</td></tr>
+        <tr><td>D6</td><td>Stop point</td><td>Through base scoring (val and test 100) and LoRA training on Modal, with the epoch picked on val. <b>Stop before the tuned student's test pass.</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:var(--s3)">With ≈ 325 clean conversations from the 552, the first run trains on ≈ 60% of tau's 518 rows. Training is ≈ 3 h and ≈ $3.50 on an L4. Scoring base and tuned is ≈ $2–3 on Modal, and collection ≈ $1.27 on DeepSeek at Sunday's off-peak rate.</p>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <p>Everything here was measured on 2026-10-25 from committed CSVs and the four runs' <code>trajectories.jsonl.gz</code> artifacts. The tau-telecom-sft facts come from its code, configs, run records and Lavish pages. The page uses the portfolio's house UI (<code>house.css</code> plus this project's blue), like s25–s27.</p>
+  <ul>
+    <li><b>Runs read:</b> <code>open-evalloop-train100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_121052</code> (seed 2027, <code>68125f69</code>) and <code>…_121450</code> (seed 2028, <code>48a09fcd</code>); smoke <code>open-evalloop-train9-…-114744</code> (<code>6c8d8462</code>) and <code>open-evalloop-train11-…-114855</code> (<code>84a2c861</code>). The test pass was not read.</li>
+    <li><b>Split:</b> <code>evaluation/splits/sft_v1.json</code> (552 train · 100 val · 100 test, cut by report page; 150 pages excluded), from s23's <code>convfinqa.sft.splits</code>.</li>
+    <li><b>tau-telecom-sft:</b> <code>configs/sft_a.yaml</code>, <code>src/tau_telecom_sft/build/{filters,convert}.py</code>, <code>train/{sft,mask}.py</code>, <code>cloud/modal_app.py</code>, run <code>runs/20261020T204721Z_train_sft-a-4b/run.json</code>, and the plan's §6 on per-turn rows.</li>
+    <li><b>Earlier plan:</b> <code>.lavish/s23_sft-student-plan.html</code> (Sonnet as teacher; gates G1–G5 and T1–T5; whole-conversation rule). This plan replaces its teacher with llm_react_v1 and keeps its split, gates and selection rule.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

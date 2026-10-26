@@ -92,10 +92,17 @@ def _prompt_index() -> dict[str, str]:
             str(e.get("hash", "")): str(e.get("seq", "?"))
             for e in (doc.sdk_prompts or [])
         }
+        from convfinqa.sft.prompt import student_prompt
+
         for version in prompts_pkg.sdk_versions():
             text = prompts_pkg.load_sdk(version)
             h = prompt_hash(text)
             out[prompt_hash(text.strip())] = f"sdk {sdk_seq.get(h) or '?'}@{h}"
+            # The SFT student's prompt (s28): the same text plus one paragraph.
+            student = student_prompt(version)
+            out[prompt_hash(student.strip())] = (
+                f"student {sdk_seq.get(h) or '?'}+format@{prompt_hash(student)}"
+            )
     except Exception:  # noqa: BLE001 — no index just means no substitution
         log.debug("prompt index unavailable; prompts stay inline", exc_info=True)
     return out

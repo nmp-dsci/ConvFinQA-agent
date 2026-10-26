@@ -216,6 +216,15 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     rn.add_argument(
+        "--student-temperature",
+        type=float,
+        default=None,
+        help=(
+            "open_agent student models only: sample at this temperature instead "
+            "of Qwen's 0.7. Goes into the run name as -t<value>."
+        ),
+    )
+    rn.add_argument(
         "--sdk-model",
         default=None,
         metavar="MODEL",
@@ -710,10 +719,14 @@ def main() -> None:
         if args.sdk_effort and args.runtime != "agent_sdk":
             ap.error("--sdk-effort applies to --runtime agent_sdk only")
         if args.runtime != "open_agent" and (
-            args.open_harness or args.open_model or args.open_effort
+            args.open_harness
+            or args.open_model
+            or args.open_effort
+            or args.student_temperature is not None
         ):
             ap.error(
-                "--open-harness/--open-model/--open-effort need --runtime open_agent"
+                "--open-harness/--open-model/--open-effort/--student-temperature "
+                "need --runtime open_agent"
             )
         summary = asyncio.run(
             run_split(
@@ -734,6 +747,7 @@ def main() -> None:
                 open_harness=args.open_harness,
                 open_model=args.open_model,
                 open_effort=args.open_effort,
+                student_temperature=args.student_temperature,
             )
         )
         print(json.dumps(summary, indent=2))  # noqa: T201

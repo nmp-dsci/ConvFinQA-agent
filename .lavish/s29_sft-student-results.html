@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFT student results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only — every colour is a house token */
+  .tablewrap td, .tablewrap th{ overflow-wrap:anywhere; vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:820px; }
+  table.fx.narrow{ min-width:600px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .ok{ color:var(--accent); font-weight:600; }
+  .bad{ color:var(--red); font-weight:600; }
+  .warnc{ color:var(--amber); font-weight:600; }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; }
+  @media (max-width:760px){ .fig svg.wide{ min-width:700px; } }
+  .fig .ax{ stroke:var(--line-3); stroke-width:1; }
+  .fig .grid{ stroke:var(--line); stroke-width:1; stroke-dasharray:3 4; }
+  .fig .ln{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .fig .ep{ stroke:var(--amber); stroke-width:1.5; stroke-dasharray:5 4; }
+  .fig .pick{ stroke:var(--accent); stroke-width:2.5; }
+  .fig .t{ fill:var(--muted); font-family:var(--mono); font-size:11px; }
+  .fig .tl{ fill:var(--ink); font-family:var(--sans); font-size:12px; font-weight:600; }
+  .fig .ta{ fill:var(--amber); font-family:var(--sans); font-size:12px; font-weight:600; }
+  .fig .bar0{ fill:var(--line-3); }
+  .fig .bar1{ fill:var(--accent); }
+  .split2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .split2 > *{ min-width:0; }
+  .cards3{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s3); }
+  .cards3 > *{ min-width:0; }
+  .cards3 .card p, .split2 .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .meter{ display:flex; height:10px; border-radius:var(--r-sm); overflow:hidden; background:var(--line); margin-top:6px; }
+  .meter > span{ display:block; height:100%; }
+  .meter .m1{ background:var(--accent); }
+  .meter .m2{ background:var(--amber); }
+  .meter .m3{ background:var(--red); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s29 · ConvFinQA-agent · 2026-10-25 · results · SFT student from llm_react_v1 · branch <code>sft-data</code></div>
+  <h1>Fine-tuning Qwen3-4B on llm_react_v1's own conversations took it from 54% to 72% on val, <em>and from 56% to 77.4% on the unseen test 100.</em></h1>
+  <p class="lede">This is the first end-to-end run of the s28 plan. DeepSeek V4.1 Flash answered the 552 <code>sft_v1</code> train conversations in its own harness (<code>llm_react_v1</code>), and the 334 it got right on every turn became training rows.
+    tau's Qwen3-4B student was LoRA-tuned on them for three epochs on Modal. Each epoch was scored on 100 val conversations, epoch 2 was picked, and only then was it scored once on the test 100.
+    The second half of the page reads every val failure, checks the SFT input for what is missing, and sets out the next fine-tune, which starts from epoch 2 with more data.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">54.2% → 71.8%</div><div class="l">val, 365 questions: base → epoch 2. +17.5pp (95% CI +9.9 to +25.9), 88 fixed and 24 broken; one-sided cluster p = 2×10⁻⁵</div></div>
+    <div class="stat accent"><div class="n">56.2% → 77.4%</div><div class="l">test 100, 349 questions, opened once for the picked epoch: +21.2pp (95% CI +13.9 to +28.9), 91 fixed and 17 broken; p = 3×10⁻⁷</div></div>
+    <div class="stat"><div class="n">67%</div><div class="l">of the base-to-teacher gap closed on test. The teacher, Flash in the same harness, scores 87.7%; the champion (sdk_v1 · Sonnet 5) scores 90.5%</div></div>
+    <div class="stat"><div class="n">≈ $8</div><div class="l">for everything: $1.21 of DeepSeek for collection, ≈ $3.4 of Modal L4 for training (3.0 h), and ≈ $3 of L4 time for the scoring passes, with cold starts and idle windows</div></div>
+  </div>
+
+  <div class="callout" style="margin-top:var(--s5)">
+    <p><b>How to read the gain.</b> Most of it is the student learning the harness: answering through a tool call, calling the calculator, and keeping the conversation's state.
+      The base student lost 96 of its 365 val turns to errors, 94 of them "no valid reply after 2 attempts", mostly from writing its answer as text; epoch 2 lost one.
+      Almost all of the rest is program turns (39.7% → 65.4% on val); number turns barely moved (80.2% → 83.2%).
+      On test the student closes two thirds of the gap to its teacher. The rest is mostly finding the right value, unit and sign in the report, and errors that carry into later turns (§05); about 14 of its 45 first-wrong test turns are gold or convention cases no student fix moves.</p>
+  </div>
+</header>
+
+<section id="built">
+  <h2>01 · What was built, <em>end to end</em></h2>
+  <p class="sub">Every step is a command in <code>convfinqa-sft</code> or <code>convfinqa-evalloop</code>, and every artifact is committed on <code>sft-data</code> (d279a6f → c1c63ec, not pushed). Test 100 was never collected on, trained on or used to choose anything.</p>
+  <div class="steps">
+    <div class="step"><b>Collect: the teacher answers the train split</b>llm_react_v1 (Flash, thinking high, prompt sdk_v1, Pydantic AI 2.61) on the 552 page-clean conversations of <code>sft_v1</code> train (seed 2027, n = 600, minus test and holdout pages). 1,993 questions, 81.0% right, 22 minutes, $1.21. Its full message histories (<code>trajectories.jsonl.gz</code>) were fetched from MLflow.<span class="tag">open-evalloop-train552-…-20261025_142402</span></div>
+    <div class="step"><b>Gate: keep only conversations the teacher got entirely right</b>F1 every answer right, F2 page split, F3 complete, F4 grounded (turn type right; a program answer is the last calculator result at the answer's own precision), F5 no refused calls, F6 no correction re-ask, F7 no reasoning block over 2,048 tokens, F8 row ≤ 24,576 tokens. N1 collapses the text-answer detour to the call, checking that the re-sent call decides the same thing. <b>334 kept</b>, 218 dropped (F1 199, F4 9, F7 6, N1 3, F5 1).</div>
+    <div class="step"><b>Rows: one row per whole conversation</b>The student's own system message (<code>student_v1</code> = sdk_v1 + one paragraph on the reasoning block) and tool list, read off a captured request. Flash's thinking is kept verbatim as a visible <code>&lt;reasoning&gt;</code> block before the call it led to. Loss is on every assistant message. 1,187 questions, 94 Type II conversations, 2.66M tokens (median 7.8k per row), 170 detours collapsed.<span class="tag">evaluation/sft/v1 · train sha256 79739f33…</span></div>
+    <div class="step"><b>Train: tau-telecom-sft's recipe on one Modal L4</b>Qwen/Qwen3-4B-Instruct-2507 @ cdbee75 from tau's weights volume (read-only), TRL 1.16 + PEFT 0.21.2, LoRA r 16 · α 32 · dropout 0.05 · all-linear, lr 1e-4 cosine, batch 1 × 16, 3 epochs, assistant-only loss, a checkpoint per epoch. The trainer checks the data sha and reads back <b>every</b> row's loss mask before step 1 (334 of 334 ok).<span class="tag">runs/sft/20261025T040743Z_train_sft1</span></div>
+    <div class="step"><b>Serve: vLLM on Modal with the three epochs as adapters</b>vLLM 0.21.0, hermes tool parser, prefix caching with cache hits reported (so the 60k token ceiling excludes cache reads, as it does for DeepSeek and Claude), <code>tool_choice</code> auto (a forced call leaves no room for the reasoning text), behind Modal's proxy auth. One server holds <code>student-qwen3-4b</code> and <code>-sft1-e1/e2/e3</code>.</div>
+    <div class="step"><b>Score: the same runner, prompt, tools and sampling for every pass</b>Every question of every conversation (no early stop), temperature 0.7 · top-p 0.8 · top-k 20, concurrency 16. Base on val and test; each epoch on val; the picked epoch once on test.</div>
+  </div>
+</section>
+
+<section id="training">
+  <h2>02 · Training, <em>three epochs in three hours</em></h2>
+  <div class="split2">
+    <div class="card">
+      <div class="label">Run 20261025T040743Z_train_sft1</div>
+      <dl class="kv" style="margin-top:var(--s2)">
+        <dt>rows</dt><dd>334 conversations · 1,187 questions · 7.97M tokens seen over 3 epochs</dd>
+        <dt>steps</dt><dd>63 (21 per epoch) · batch 1 × 16 · ≈ 173 s a step · ≈ 730 tokens/s</dd>
+        <dt>loss</dt><dd>1.31 at step 1 → epoch means 0.79 · 0.55 · 0.51; overall train loss 0.616</dd>
+        <dt>memory</dt><dd>peak 13.3 GB of the L4's 24 GB</dd>
+        <dt>time, cost</dt><dd>3.04 h · ≈ $3.4</dd>
+        <dt>mask check</dt><dd>334 of 334 rows: one trained span per agent message, holding its reasoning, calls and end token</dd>
+        <dt>checkpoints</dt><dd>checkpoint-21 / -42 / -63 → served as <code>student-qwen3-4b-sft1-e1/e2/e3</code></dd>
+        <dt>adapter</dt><dd>143.6 MB, sha256 b5acfcc8…; on the <code>convfinqa-sft-runs</code> volume (gitignored here)</dd>
+      </dl>
+    </div>
+    <figure class="fig" style="margin-top:0">
+      <svg class="wide" viewBox="0 0 760 240" role="img" aria-label="Training loss by step, falling from 1.31 to about 0.5, with epoch boundaries at steps 21, 42 and 63">
+        <line class="grid" x1="56" y1="200" x2="740" y2="200"/><text class="t" x="50" y="204" text-anchor="end">0.4</text>
+        <line class="grid" x1="56" y1="163.2" x2="740" y2="163.2"/><text class="t" x="50" y="167" text-anchor="end">0.6</text>
+        <line class="grid" x1="56" y1="126.4" x2="740" y2="126.4"/><text class="t" x="50" y="130" text-anchor="end">0.8</text>
+        <line class="grid" x1="56" y1="89.6" x2="740" y2="89.6"/><text class="t" x="50" y="93" text-anchor="end">1.0</text>
+        <line class="grid" x1="56" y1="52.8" x2="740" y2="52.8"/><text class="t" x="50" y="57" text-anchor="end">1.2</text>
+        <line class="ax" x1="56" y1="200" x2="740" y2="200"/>
+        <line class="ep" x1="276.6" y1="16" x2="276.6" y2="200"/><text class="ta" x="272" y="30" text-anchor="end">epoch 1 · val 67.1%</text>
+        <line class="pick" x1="508.3" y1="16" x2="508.3" y2="200"/><text class="tl" x="504" y="30" text-anchor="end">epoch 2 · val 71.8% ✓</text>
+        <line class="ep" x1="740" y1="16" x2="740" y2="200"/><text class="ta" x="736" y="46" text-anchor="end">epoch 3 · 69.0%</text>
+        <polyline class="ln" points="56.0,33.4 67.0,43.7 78.1,50.9 89.1,79.4 100.1,96.5 111.2,120.4 122.2,136.1 133.2,137.5 144.3,149.8 155.3,136.6 166.3,162.1 177.4,138.4 188.4,149.5 199.4,138.7 210.5,152.2 221.5,159.3 232.5,163.7 243.5,162.6 254.6,164.9 265.6,148.1 276.6,175.3 287.7,150.9 298.7,154.3 309.7,166.5 320.8,167.1 331.8,180.8 342.8,175.2 353.9,171.4 364.9,145.3 375.9,164.4 387.0,174.9 398.0,178.2 409.0,173.1 420.1,172.1 431.1,179.6 442.1,168.1 453.2,182.6 464.2,188.9 475.2,179.2 486.3,183.3 497.3,185.8 508.3,179.5 519.4,174.6 530.4,175.4 541.4,168.9 552.5,178.4 563.5,177.3 574.5,170.1 585.5,172.0 596.6,184.2 607.6,187.7 618.6,172.4 629.7,174.3 640.7,189.1 651.7,186.7 662.8,188.4 673.8,183.6 684.8,182.7 695.9,181.6 706.9,191.9 717.9,191.2 729.0,177.2 740.0,163.3"/>
+        <text class="t" x="56" y="222">step 1</text><text class="t" x="740" y="222" text-anchor="end">step 63</text>
+        <text class="t" x="398" y="236" text-anchor="middle">training loss per logged step (assistant tokens only)</text>
+      </svg>
+      <figcaption>Loss keeps falling through epoch 3 while val accuracy peaks at epoch 2: the third pass over 334 conversations starts to memorise them. That is the main argument for more data rather than more epochs.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="val">
+  <h2>03 · Epoch 2, <em>picked on val</em></h2>
+  <p class="sub">The 100 val conversations (seed 2031, 365 questions, 34 Type II) sit on report pages that appear in no training row, in test 100 or in the sealed holdout. Val's only job was to pick the epoch.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:25%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
+      <thead><tr><th>val · 100 conversations · 365 questions</th><th class="sc">base</th><th class="sc">epoch 1</th><th class="sc rec">epoch 2 ✓</th><th class="sc">epoch 3</th><th>reading</th></tr></thead>
+      <tbody>
+        <tr><td>accuracy</td><td class="sc">54.2%</td><td class="sc">67.1%</td><td class="sc rec"><b>71.8%</b></td><td class="sc">69.0%</td><td>peak at 2</td></tr>
+        <tr><td>conversations right to the end</td><td class="sc">24</td><td class="sc">45</td><td class="sc rec"><b>54</b></td><td class="sc">47</td><td></td></tr>
+        <tr><td>number turns (131)</td><td class="sc">80.2%</td><td class="sc">79.4%</td><td class="sc rec">83.2%</td><td class="sc">82.4%</td><td>flat</td></tr>
+        <tr><td>program turns (234)</td><td class="sc">39.7%</td><td class="sc">60.3%</td><td class="sc rec">65.4%</td><td class="sc">61.5%</td><td>the gain</td></tr>
+        <tr><td>turns with no valid answer</td><td class="sc">96</td><td class="sc">6</td><td class="sc rec">1</td><td class="sc">3</td><td>format learned</td></tr>
+        <tr><td>first-wrong turns · later wrong turns</td><td class="sc">76 · 91</td><td class="sc">55 · 65</td><td class="sc rec">46 · 57</td><td class="sc">53 · 60</td><td>§05</td></tr>
+        <tr><td>wall time (one L4, concurrency 16)</td><td class="sc">38 min</td><td class="sc">20 min</td><td class="sc rec">19 min</td><td class="sc">19 min</td><td>fewer retries</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cards3">
+    <div class="card"><span class="badge ok">significant</span><h3>base → epoch 2</h3><p>88 fixed, 24 broken. Cluster-corrected McNemar z = 4.10, one-sided p = 2.1×10⁻⁵; bootstrap over conversations +17.5pp, 95% CI +9.9 to +25.9.</p></div>
+    <div class="card"><span class="badge warn">not separated</span><h3>epoch 2 vs epoch 3</h3><p>+2.7pp (22 fixed, 12 broken), p = 0.09, CI −1.1 to +6.8. Epoch 2 is the val best; it is not shown to be better than epoch 3. Same for epoch 2 vs 1 (p = 0.06).</p></div>
+    <div class="card"><span class="badge">selection cost</span><h3>val is now slightly used</h3><p>Picking one of three on val inflates the picked score a little. That is why the claim rests on test 100, opened once for epoch 2 only.</p></div>
+  </div>
+</section>
+
+<section id="test">
+  <h2>04 · Test 100, <em>opened once</em></h2>
+  <p class="sub">The 100 conversations of <code>eval_loop_v2</code> test (349 questions, 31 Type II): no row, page or choice touched them. Epoch 2 is the only tuned checkpoint run on them, once, after the pick. The teacher and champion columns are their committed passes, paired question by question.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:28%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:16%"></colgroup>
+      <thead><tr><th>test 100 · 349 questions</th><th class="sc">base student</th><th class="sc rec">epoch 2</th><th class="sc">teacher<span class="note">Flash · llm_react_v1</span></th><th class="sc">champion<span class="note">sdk_v1 · Sonnet 5</span></th><th>reading</th></tr></thead>
+      <tbody>
+        <tr><td>accuracy</td><td class="sc">56.2%</td><td class="sc rec"><b>77.4%</b></td><td class="sc">87.7%</td><td class="sc">90.5%</td><td>67% of the gap to the teacher</td></tr>
+        <tr><td>conversations right to the end</td><td class="sc">25</td><td class="sc rec"><b>55</b></td><td class="sc">75</td><td class="sc">78</td><td></td></tr>
+        <tr><td>number turns (111)</td><td class="sc">83.8%</td><td class="sc rec">91.9%</td><td class="sc">96.4%</td><td class="sc">95.5%</td><td>near the teacher</td></tr>
+        <tr><td>program turns (238)</td><td class="sc">43.3%</td><td class="sc rec">70.6%</td><td class="sc">83.6%</td><td class="sc">88.2%</td><td>the remaining gap</td></tr>
+        <tr><td>Type I · Type II turns</td><td class="sc">58.4 · 51.4%</td><td class="sc rec">78.2 · 75.7%</td><td class="sc">88.2 · 86.5%</td><td class="sc">90.3 · 91.0%</td><td></td></tr>
+        <tr><td>by question position q0 · q1 · q2 · q3 · q4+</td><td class="sc">47 · 58 · 53 · 69 · 72</td><td class="sc rec">82 · 83 · 75 · 67 · 64</td><td class="sc">93 · 93 · 84 · 81 · 68</td><td class="sc">94 · 94 · 87 · 88 · 80</td><td>the student fades with depth</td></tr>
+        <tr><td>turns with no valid answer</td><td class="sc">91</td><td class="sc rec">4</td><td class="sc">0</td><td class="sc">0</td><td>4 = one harness TypeError</td></tr>
+        <tr><td>first-wrong turns · later wrong turns</td><td class="sc">75 · 78</td><td class="sc rec">45 · 34</td><td class="sc">25 · 18</td><td class="sc">22 · 11</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cards3">
+    <div class="card"><span class="badge ok">significant</span><h3>base → epoch 2</h3><p>91 fixed, 17 broken. Cluster-corrected McNemar z = 5.01, one-sided p = 2.7×10⁻⁷; bootstrap over conversations <b>+21.2pp</b>, 95% CI +13.9 to +28.9. The val gain (+17.5pp) held on unseen pages.</p></div>
+    <div class="card"><span class="badge warn">below the teacher</span><h3>teacher → epoch 2</h3><p>−10.3pp (CI −16.6 to −4.6): 47 questions the teacher gets and the student doesn't, 11 the other way round. The student is not a Flash replacement yet; it is a 4B model that runs on one L4.</p></div>
+    <div class="card"><span class="badge">record only</span><h3>champion → epoch 2</h3><p>−13.2pp (52 broken, 6 fixed). Nothing is promoted: the student is a separate open-weights line, and serving has no open runtime.</p></div>
+  </div>
+</section>
+
+<section id="failures">
+  <h2>05 · What epoch 2 still gets wrong, <em>and why</em></h2>
+  <p class="sub">Every first-wrong turn of epoch 2 on val (46, the first wrong answer in each conversation) was read against its reasoning, retrieved values, conversation and report, and given one root cause. Separately, 22 of the 57 later wrong turns were sampled to see how errors carry forward. Nothing was re-run.</p>
+
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:17%"><col style="width:7%"><col style="width:12%"><col style="width:40%"><col style="width:24%"></colgroup>
+      <thead><tr><th>Root cause (46 first-wrong turns)</th><th class="sc">n</th><th>learnable from the teacher? yes / unsure / no</th><th>What it looks like (real cases)</th><th>Data fix</th></tr></thead>
+      <tbody>
+        <tr><td><b>wrong_value</b><span class="note">the wrong cell, row, year or text figure</span></td><td class="sc">11</td><td class="sc">10 / 1 / 0</td><td>MA t0: the 2006 balance 476,915 sits in a garbled table header (<code>"$ 476915"</code>); the student used 3,400. EMR t0: the text gives total debt as $6.6 billion; it returned the long-term-debt row, 4,051. AES t1: it rejected the total row (15,121) for the 2015 cell (1,138).</td><td>Header-value and text-over-table examples; these conversations are exactly the ones the gate drops (below)</td></tr>
+        <tr><td><b>plan_formula</b><span class="note">the wrong operation or definition</span></td><td class="sc">9</td><td class="sc">6 / 3 / 0</td><td>DISCA "if the impairment were not included": subtracted 62 (1,156); gold adds it back (1,280). UNP "net change over the 2009 value": answered the change, 243; gold is 243 / 2,470. "As a portion of one": 20 − 1 = 19; gold 0.2.</td><td>Question shapes with 0–7 training examples ("portion of one" 0, "percentage difference" 0, "excluding" 5, "over the &lt;year&gt; value" 7)</td></tr>
+        <tr><td><b>sign_direction</b><span class="note">right size, reversed direction</span></td><td class="sc">6</td><td class="sc">3 / 3 / 0</td><td>C t5 "did it increase": 13.2; gold −13.2. IPG t2: retrieved −224.5, then called <code>add(592.9, 224.5)</code>. CDW "loss from translation": −96.1; gold 96.1, and sdk_v1's own sign rule says to keep the minus.</td><td>A check that calculator arguments equal retrieved values; a clearer sign rule (a teacher change)</td></tr>
+        <tr><td><b>scale_units</b><span class="note">right digits, wrong scale</span></td><td class="sc">6</td><td class="sc">5 / 0 / 1</td><td>PKG: the text says "$35.8 million"; answered 35,800 "(in thousands)". EMR: "15.1 million shares" became 15,100. HOLX: "$250.0 million" became 2,500,000,000.</td><td>Paired examples: a table in thousands, the asked figure in the text in millions, the reasoning naming the unit. 88 such lookups exist, all correct, and it still rescales</td></tr>
+        <tr><td><b>reference_resolution</b><span class="note">misread "that", "this", "the total"</span></td><td class="sc">5</td><td class="sc">3 / 2 / 0</td><td>Used the wrong earlier answer or the wrong span of the conversation for "the change" or "this total".</td><td>More long and Type II conversations (both under-kept by the gate)</td></tr>
+        <tr><td><b>precision</b><span class="note">rounding or decimal vs percent</span></td><td class="sc">5</td><td class="sc">1 / 3 / 1</td><td>0.0707 vs gold "7%" and similar: the scorer compares a % against a decimal at 3 dp.</td><td><b>Not a training target.</b> Forcing percent output gains 17 and loses 16 turns on the teacher's own run</td></tr>
+        <tr><td><b>gold_suspect</b><span class="note">gold contradicts itself or the report</span></td><td class="sc">4</td><td class="sc">0 / 0 / 4</td><td>PPG: gold says 591, but gold's own program <code>add(324, 297)</code> is 621. Two more (IP 2009, RSG) have a gold sign that contradicts their own program.</td><td>None: ≈ 9 of 46 (gold, sign-vs-program and scorer cases) are a floor no student fix moves</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="split2">
+    <div class="card">
+      <div class="label">A cross-cutting habit</div>
+      <h3>Arithmetic answered as a lookup</h3>
+      <p>Every arithmetic turn in training calls the calculator. On val, 27 arithmetic turns were answered with no calculator call: 12 right, 15 wrong. 9 of the 46 first-wrong turns carry this as a secondary tag. The student learned the calculator well but sometimes classifies a "change", "sum" or "portion" question as a number turn.</p>
+    </div>
+    <div class="card">
+      <div class="label">Errors carry forward</div>
+      <h3>57 later wrong turns from 46 first mistakes</h3>
+      <p>Only 20 of the 77 turns after a first error are right. Of 22 sampled: <b>10 pure cascades</b> (correct reasoning on its own wrong earlier answer), <b>9 fresh mistakes</b> (BLK: given its own 29.6 and 28.4, it subtracted backwards), <b>3 lost state</b> (EL: "what is the sum?" ignored its own 1.00 and 7.00 and added table cells). Accuracy by question position: 76% · 78% · 68% · 69% · 59% · 43% (q0 to q5).</p>
+      <div class="meter" aria-hidden="true"><span class="m1" style="width:45%"></span><span class="m2" style="width:41%"></span><span class="m3" style="width:14%"></span></div>
+      <span class="note">cascade · fresh mistake · lost state (22 sampled)</span>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s6)">On test 100, <em>which failures the teacher also makes</em></h3>
+  <p class="sub">The same reading for epoch 2's 45 first-wrong test turns, with the teacher's and the champion's answer to the same question beside each. Where the teacher was right, the student failed to learn something the teacher does; where it was wrong, more of the same data cannot help.</p>
+  <div class="split2" style="margin-top:var(--s3)">
+    <div class="card">
+      <div class="label">45 first-wrong test turns</div>
+      <h3>27 the teacher gets right · 18 it gets wrong</h3>
+      <div class="meter" aria-hidden="true"><span class="m1" style="width:60%"></span><span class="m3" style="width:40%"></span></div>
+      <span class="note">teacher right (learnable) · teacher wrong</span>
+      <p>Of the 18 the teacher also misses, 7 are gold errors (ETR: 4.5 / 20.8 is 21.6%, gold says 35%; GS: gold read the wrong row), 2 are rounding (gold "103%" for 103.57%) and 3 follow a gold sign convention the champion misses too. <b>About 14 of 45 are out of reach for any student</b>; the pool more data can fix is ≈ 27 on test and ≈ 37 of 46 on val.</p>
+    </div>
+    <div class="tablewrap" style="margin-top:0">
+      <table class="fx narrow">
+        <colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup>
+        <thead><tr><th>root cause</th><th class="sc">teacher right</th><th class="sc">teacher wrong</th></tr></thead>
+        <tbody>
+          <tr><td><b>sign_direction</b></td><td class="sc">6</td><td class="sc">5</td></tr>
+          <tr><td><b>wrong_value</b></td><td class="sc">9</td><td class="sc">0</td></tr>
+          <tr><td>gold_suspect</td><td class="sc">0</td><td class="sc">7</td></tr>
+          <tr><td>reference_resolution</td><td class="sc">3</td><td class="sc">2</td></tr>
+          <tr><td>plan_formula</td><td class="sc">4</td><td class="sc">0</td></tr>
+          <tr><td>scale_units</td><td class="sc">2</td><td class="sc">2</td></tr>
+          <tr><td>protocol_error</td><td class="sc">2</td><td class="sc">0</td></tr>
+          <tr><td>precision</td><td class="sc">0</td><td class="sc">2</td></tr>
+          <tr><td>skipped_tool</td><td class="sc">1</td><td class="sc">0</td></tr>
+          <tr><td><b>total</b></td><td class="sc"><b>27</b></td><td class="sc"><b>18</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="cards3">
+    <div class="card"><span class="badge warn">new on test</span><h3>Printed minus signs</h3><p>12 answers are exact sign flips (6 of 46 on val). Six come from copying a minus the table prints on a ratio, liability, tax benefit or loss into the arithmetic. SNA: (−639.2) − (−682.0) = +42.8, gold −42.8; the teacher got 5 of those 6 right. Turns where gold treats a table-negative cell as positive: 38% right on val (21 turns), 22% on test (18), against 72–77% overall. Training strips a printed minus in only 28 retrievals.</p></div>
+    <div class="card"><span class="badge warn">new on test</span><h3>Three-number sums crash the harness</h3><p>4 test turns errored: the student passed a third argument to <code>add</code> for a three-number sum or average, and the harness raised a TypeError instead of returning a tool error. No training row has a 3-argument call or program, yet epoch 2 writes <code>add(A, B, C)</code> in 10 test and 9 val programs: it generalised a shape the data never showed.</p></div>
+    <div class="card"><span class="badge">repeats val</span><h3>The same lookups fail</h3><p>Text over table (BDX: 2,223,245 square feet in the text, answered 195 sites), garbled <code>"$ N"</code> headers answered "unavailable" (CAT, ECL), "the change" applied to the wrong pair of years (FTV), "net change over the 2016 value" answered as the change (CAT, as UNP on val), $4.2 billion rescaled to 4,200.</p></div>
+  </div>
+</section>
+
+<section id="input">
+  <h2>06 · The SFT input, <em>reviewed for what is missing</em></h2>
+  <p class="sub">One bug, four gaps in what the rows hold, and two places where the teacher, not the data, is the limit. Each row is checked against <code>evaluation/sft/v1/train.jsonl</code>, the raw trajectories, or a captured student request.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:5%"><col style="width:20%"><col style="width:11%"><col style="width:42%"><col style="width:22%"></colgroup>
+      <thead><tr><th>#</th><th>Finding</th><th>Kind</th><th>Evidence</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>I1</td><td><b>44% of turn boundaries don't match serving</b></td><td><span class="badge bad">bug</span></td><td>At serve time every final <code>StructuredOutput</code> call is followed by the tool reply <code>"Final result processed."</code>, then the next question (checked on a captured three-turn request). Pydantic AI stores that reply in the <i>same</i> request as the next question on 889 of 1,441 later turns. <code>trajectories.turns()</code> starts a turn at any request with a user prompt and keeps only the prompt, so the reply is dropped: in train.jsonl, 519 of 1,187 final calls go straight to the next user message.</td><td>Move a request's tool-return parts to the end of the previous turn; a test on that request shape; rebuild. Zero cost</td></tr>
+        <tr><td>I2</td><td><b>The all-right gate drops the hard conversations</b></td><td><span class="badge warn">gap</span></td><td>Kept: Type I 65% vs <b>Type II 52%</b>; conversations with garbled <code>"$ N"</code> headers 46% vs 62%; 5+ turns 55%. Type II is 33% of the collected pool but 28% of rows. Epoch 2 on val: Type I 73.9%, Type II 68.3%; 9 of 12 header turns wrong.</td><td>Prefix rows (I3), gold-checked repair (N3), oversampling</td></tr>
+        <tr><td>I3</td><td><b>242 correct teacher turns are discarded</b></td><td><span class="badge warn">gap</span></td><td>113 of the 199 F1 drops have right turns before the first wrong one. Those turns depend only on earlier turns, so the prefix is a valid conversation on its own. +242 turns (+20%), skewed to the harder conversations.</td><td>Build prefix rows: the conversation up to the turn before its first error</td></tr>
+        <tr><td>I4</td><td><b>Rare question shapes and the unit habit</b></td><td><span class="badge warn">gap</span></td><td>"portion of one" 0, "percentage difference" 0, "next N months" 1, "excluding / not included" 5 training turns. Text-stated "$X million" answered from text: 88 examples, 0 rescaled, yet 11 val turns are off by ×1,000 or more.</td><td>Grow the draw (N2) and oversample these shapes; more of the same 88 may not be enough</td></tr>
+        <tr><td>I5</td><td><b>Reasoning is uneven across messages</b></td><td><span class="badge">by design</span></td><td>1,408 of 2,208 assistant messages carry a <code>&lt;reasoning&gt;</code> block (median 275 characters, p90 1,006). 552 of 1,187 final calls have none, because Flash thinks before its first action and rarely before the answer. The student copies this. That is faithful, but the final check ("is this the last calculator result, in the asked unit?") is where scale and sign slips happen.</td><td>Keep as is for now; a teacher prompt asking for one short check before the answer is a teacher change (T2)</td></tr>
+        <tr><td>I6</td><td><b>The teacher's own rules cause some slips</b></td><td><span class="badge">teacher</span></td><td>sdk_v1's sign rule keeps the minus on "loss from X" (CDW), and its header rule covers forward schedules only, not roll-forward opening balances (MA, 4 cases). The student learns the rules as written.</td><td>T1: edit the rules in the collection prompt (a new teacher prompt, so a new data version)</td></tr>
+        <tr><td>I7</td><td><b>Printed minus signs and three-number sums are almost absent</b></td><td><span class="badge warn">gap</span></td><td>The teacher strips a minus the table prints on a ratio, liability or loss in only 28 retrievals (19 on arithmetic turns); those turns are the student's worst (22% on test). No row calls a tool with three arguments, so the student's own <code>add(A, B, C)</code> meets a harness that crashes on it.</td><td>Oversample printed-minus rows (N4); the harness returns a tool error (H1)</td></tr>
+        <tr><td>I8</td><td><b>What is fine</b></td><td><span class="badge ok">ok</span></td><td>Loss mask 334/334; system message and tools read off the student's real request; detours collapsed to a decision-checked call; no test or holdout page in any row; F4 grounding passes every program turn; 36 messages with parallel calls render under hermes.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="next">
+  <h2>07 · Next fine-tune, <em>from epoch 2 with more data</em></h2>
+  <p class="sub">Goal: beat epoch 2 on val, then on test 100 opened once. Ranked by expected gain per dollar. Items N1–N4 need no teacher change; T1–T2 change the teacher and are a separate decision.</p>
+  <div class="steps">
+    <div class="step"><b>N0 · Fix I1 and rebuild v1 as v1.1 (free)</b>Same 334 conversations, the tool reply restored at every boundary. Re-run the mask check. Everything later builds on the fixed builder.<span class="tag">code: trajectories.turns · test · convfinqa-sft build --version v1_1</span></div>
+    <div class="step"><b>N1 · Add prefix rows from the dropped conversations (free)</b>+113 rows, +242 turns, from conversations the teacher got partly right. They are mostly opening turns, so they teach lookups in hard reports (headers, Type II) more than late-turn reasoning.<span class="tag">builder: F1 becomes "cut at the first wrong turn" when ≥ 1 turn precedes it</span></div>
+    <div class="step"><b>N2 · Grow the draw, aimed at what epoch 2 misses (≈ $1.90 DeepSeek, off-peak)</b>Each of the 2,089 page-clean conversations left in the pool is scored from gold alone, before the teacher runs: the number of its turns epoch 2 is expected to miss. Each turn's chance of a miss is epoch 2's val error rate for its operation, raised by 1.43× from question 5 onward. The 600 highest-scoring conversations are collected: every one with 5+ questions (535), plus 65 more. Against the random grow to n = 1,000 (+347), that is 6× the turns at question 5 or later, twice the Type II conversations and 4× the three-number sums, for 2.5× the cost. It is cut as an <code>sft_v2</code> manifest; val and test are unchanged. <a href="#n2-detail">Detail below.</a><span class="tag">≈ 655 whole rows + ≈ 270 prefix rows in v2</span></div>
+    <div class="step"><b>N3 · Repair the teacher's failed turns with gold, checked by the scorer (≈ $0.30)</b>For each dropped conversation, re-run only the failing turn with the gold answer given to Flash as a hint, keep it only if the answer and the calculator path pass F1/F4, then strip the hint from the row. This is the one source of rows for the header, Type II and long-conversation cases the student fails. Risk: hinted reasoning can read as reverse-engineered; check a sample by hand before training on it.</div>
+    <div class="step"><b>N4 · Oversample what val and test show is weak</b>Weight ×2 the rows that hold the failing shapes, found by a scan of the rows themselves, not of val or test: Type II, 5+ turns, garbled <code>"$ N"</code> headers, a table-printed minus the teacher stripped, a figure stated in the text in millions or billions. Cheap, but it shifts the mix, so keep it behind val. With the aimed N2, take Type II and 5+ turns off this list, because the draw already over-represents them. Weight only what a draw can't aim at: headers, printed minus signs and text units.</div>
+    <div class="step"><b>Train from epoch 2</b>Load the epoch 2 adapter and continue with a fresh optimizer: lr 5e-5 (half), cosine, 2 epochs over v2 with a checkpoint every half-epoch. The old 334 rows get their 3rd and 4th passes, which is where val dipped (epoch 3), so the new rows should be at least half of each epoch. Run a from-base v2 control too (3 epochs at 1e-4) if the warm start doesn't clear epoch 2 on val. With the aimed 600, v2 holds ≈ 3× v1's tokens, so an epoch takes ≈ 3 h on the L4: ≈ 6–7 h and ≈ $7 per run.</div>
+    <div class="step"><b>Judge it the same way</b>Score each checkpoint on the same val 100 against epoch 2's committed pass (paired, cluster-corrected). Open test 100 once for the val pick and compare it with epoch 2's committed test pass. Report the share of the base-to-Flash gap closed.</div>
+  </div>
+
+  <h3 id="n2-detail" style="margin-top:var(--s6)">N2 in detail: <em>which conversations to add</em></h3>
+  <p class="sub">The review asked whether the grow step can pick the kinds of conversation the student gets wrong, such as program turns, instead of a random draw. It can. The selection reads only the gold labels of train-side conversations, which are known before anything runs. The weights come from val, not test, so the next test pass stays an honest check.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:34%"><col style="width:16%"><col style="width:14%"><col style="width:14%"><col style="width:22%"></colgroup>
+      <thead><tr><th>turn kind, from gold</th><th class="sc rec">epoch 2 · val (n)</th><th class="sc">epoch 2 · test</th><th class="sc">teacher · the 552</th><th>reading</th></tr></thead>
+      <tbody>
+        <tr><td>number turn (a lookup)</td><td class="sc rec">81.5% (135)</td><td class="sc">92.0%</td><td class="sc">87.9%</td><td>strong</td></tr>
+        <tr><td>program, last operation subtract</td><td class="sc rec">74.0% (73)</td><td class="sc">70.7%</td><td class="sc">80.7%</td><td>near the mean</td></tr>
+        <tr><td>program, last operation add</td><td class="sc rec">64.5% (31)</td><td class="sc">75.6%</td><td class="sc">81.7%</td><td>weak</td></tr>
+        <tr><td>program, last operation divide</td><td class="sc rec">64.9% (111)</td><td class="sc">74.5%</td><td class="sc">75.5%</td><td>weak; the teacher too</td></tr>
+        <tr><td><b>program, last operation multiply</b></td><td class="sc rec"><b>40.0% (15)</b></td><td class="sc"><b>15.4%</b> (13)</td><td class="sc">65.9%</td><td>weakest, both splits</td></tr>
+        <tr><td><b>question 5 or later</b> · questions 1–4</td><td class="sc rec"><b>55.9% (34)</b> · 73.4%</td><td class="sc">64.0 · 78.4%</td><td class="sc">73.5 · 81.7%</td><td>late turns, ×1.43 the miss rate</td></tr>
+        <tr><td>Type II · Type I turns</td><td class="sc rec">67.6 · 74.2%</td><td class="sc">75.7 · 78.2%</td><td class="sc">78.7 · 82.2%</td><td>weak, mostly via length</td></tr>
+        <tr><td>three-number sum (two chained adds)</td><td class="sc rec">58.8% (17)</td><td class="sc">69.6%</td><td class="sc">85.6%</td><td>weak; the teacher is fine</td></tr>
+        <tr><td>negative gold answer</td><td class="sc rec">71.9% (32)</td><td class="sc">69.8%</td><td class="sc">73.5%</td><td>not weak on val, so not weighted</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Filtering on <code>turn_type = program</code> alone would select everything: every one of the 2,089 conversations left has at least one program turn, and 66% of their turns are program turns. The weakness sits in the operation and in how late the turn comes. Garbled <code>"$ N"</code> headers carry no dataset flag (<code>has_duplicate_columns</code> is false on all six header failures), so a draw can't aim at them without scanning each table. That scan is N4's, and it could also run at draw time.</p>
+
+  <div class="tablewrap">
+    <table class="fx">
+      <colgroup><col style="width:32%"><col style="width:17%"><col style="width:17%"><col style="width:17%"><col style="width:17%"></colgroup>
+      <thead><tr><th>added to the 552, from the 2,089 left</th><th class="sc">random · n = 1,000</th><th class="sc">aimed · same 347</th><th class="sc rec">aimed · 600 ✓</th><th class="sc">wide rule · 886</th></tr></thead>
+      <tbody>
+        <tr><td>conversations · questions</td><td class="sc">347 · 1,239</td><td class="sc">347 · 1,943</td><td class="sc rec"><b>600 · 3,152</b></td><td class="sc">886 · 4,011</td></tr>
+        <tr><td>program turns</td><td class="sc">829</td><td class="sc">1,202</td><td class="sc rec">1,803</td><td class="sc">2,433</td></tr>
+        <tr><td>multiply turns</td><td class="sc">63</td><td class="sc">104</td><td class="sc rec">143</td><td class="sc">345</td></tr>
+        <tr><td>turns at question 5 or later</td><td class="sc">117</td><td class="sc">555</td><td class="sc rec"><b>752</b> (all of them)</td><td class="sc">752</td></tr>
+        <tr><td>Type II conversations</td><td class="sc">111</td><td class="sc">182</td><td class="sc rec">230</td><td class="sc">259</td></tr>
+        <tr><td>three-number-sum conversations</td><td class="sc">32</td><td class="sc">111</td><td class="sc rec">126</td><td class="sc">233</td></tr>
+        <tr><td>turns epoch 2 is expected to miss</td><td class="sc">362</td><td class="sc">610</td><td class="sc rec">946</td><td class="sc">1,215</td></tr>
+        <tr><td>whole rows after the gate (expected)</td><td class="sc">≈ 210</td><td class="sc">≈ 175</td><td class="sc rec">≈ 320</td><td class="sc">≈ 505</td></tr>
+        <tr><td>DeepSeek, at v1's $ per question</td><td class="sc">≈ $0.75</td><td class="sc">≈ $1.18</td><td class="sc rec">≈ $1.91</td><td class="sc">≈ $2.44</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Aimed</b> means ranked by the expected-miss score above. The 600 are every remaining conversation with 5+ questions, plus the 65 next by score. <b>Wide rule</b> takes every remaining conversation with 5+ questions, a three-number sum or a multiply turn. Expected rows apply the 552's keep rate by Type II and length (69% for short Type I down to 43% for long Type II), times v1's 334 of 353 after the other gates.</p>
+
+  <div class="cards3">
+    <div class="card"><span class="badge warn">yield</span><h3>The hard ones fail the gate more</h3><p>An aimed draw keeps ≈ 54% of its conversations against ≈ 61% for a random one. The turns it drops are the late ones it was chosen for. N1's prefix rows only recover opening turns, so pair the aimed draw with N3: a gold-hinted repair is the only way a dropped conversation's late turns become rows.</p></div>
+    <div class="card"><span class="badge">mix</span><h3>Keep a random base</h3><p>Val and test are random draws. The 334 v1 rows stay in as the random base, and after the aimed 600 about half of v2's rows are long or hard conversations. Watch number turns on val (epoch 2: 83.2%). If they fall, add the random +347 as well: 91 of them are already in the aimed 600, so it adds 256 conversations for ≈ $0.46.</p></div>
+    <div class="card"><span class="badge">holdout</span><h3>Aimed by val, not test</h3><p>Test agrees on every weakness used here (program 70.6%, multiply 15%, question 5+ 64%). Negative gold answers look weak on test only (69.8% test, 71.9% val), so they get no weight; printed minus signs are left to T1 and N4. Val now steers the data as well as picking the checkpoint, so the next val gain will read a little high. Test settles it.</p></div>
+  </div>
+
+  <div class="split2">
+    <div class="card"><span class="badge">teacher</span><h3>T1 · Fix the teacher's rules before collecting more</h3><p>Three edits to the collection prompt's rules: a minus the table prints on a ratio, liability or loss is dropped before the arithmetic, while a computed difference always keeps its sign; "loss from X" returns the magnitude; the header value is the opening balance in a roll-forward table and the latest year in a history table. They touch ≈ 7 of 46 val and ≈ 6 of 45 test cases, but make a new teacher prompt, so N2's new rows and the old ones would disagree unless the 552 are re-collected (≈ $1.30). Do it before N2 if at all.</p></div>
+    <div class="card"><span class="badge">teacher</span><h3>T2 · A stronger teacher only where Flash fails</h3><p>Flash is the ceiling: 87.7% on test against the champion's 90.5%. Using V4-Pro or Sonnet only on conversations Flash got wrong would add hard rows without paying for the easy ones. This goes against "no more runs" for the challenger and Sonnet needs the subscription, so it is an option, not a recommendation, until N0–N3 have been measured.</p></div>
+    <div class="card"><span class="badge">free check</span><h3>T3 · Try lower temperature on val first</h3><p>All passes sampled at Qwen's recommended 0.7. A tuned student on an exact-answer task often does better near-greedy. One val pass of epoch 2 at temperature 0.2 costs ≈ 20 min of L4 and no training, and it could be part of the gain the next fine-tune is chasing. Change sampling for both arms or neither.</p></div>
+    <div class="card"><span class="badge">harness</span><h3>H1–H3 · Harness checks, then re-score epoch 2 under them</h3><p><b>H1</b> an extra calculator argument returns a retryable tool error, not a crash (4 test turns). <b>H2</b> a program turn's answer must equal a calculator result (catches 4 wrong test turns, e.g. C/2009 answered 0.178 where the tool said 1.784). <b>H3</b> calculator arguments follow the program's order (UNP/2013). They change the harness, so epoch 2 is re-scored on val under them and that becomes the baseline. Separately, <code>run --resume-from</code> refuses an open-runtime pass at effort "none" (the name carries <code>-none</code>, the check doesn't).</p></div>
+  </div>
+</section>
+
+<section id="decide">
+  <h2>08 · Decisions <em>for the next run</em></h2>
+  <p class="sub">Choose and queue; nothing below has run.</p>
+  <div class="qgrid">
+    <form class="q" data-lavish-question="init" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('init'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D1 starting weights: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'init',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+      <h3>D1 · Starting weights</h3>
+      <fieldset>
+        <label><input type="radio" name="init" value="warm start from epoch 2, from-base control only if it fails"> <span>Warm start from epoch 2 (recommended) <span class="d">lr 5e-5, 2 epochs over v2, checkpoint every half-epoch; a from-base control only if it doesn't beat epoch 2 on val</span></span></label>
+        <label><input type="radio" name="init" value="warm start and from-base control in parallel"> <span>Both in parallel <span class="d">≈ $12; answers whether warm starting helped at all</span></span></label>
+        <label><input type="radio" name="init" value="from base only"> <span>From base only <span class="d">cleanest comparison with sft1; ignores what epoch 2 learned</span></span></label>
+      </fieldset>
+      <textarea placeholder="note (optional)"></textarea>
+      <div class="row"><button type="submit">Queue this answer</button><span class="queued"></span></div>
+    </form>
+
+    <form class="q" data-lavish-question="data" onsubmit="event.preventDefault(); const f=event.currentTarget; const items=[...f.querySelectorAll('input[name=items]:checked')].map(i=>({id:i.value,label:i.dataset.label})); const n=f.querySelector('textarea').value.trim(); if(items.length&&window.lavish){window.lavish.queuePrompt('D2 data for v2: build every selected item and account for each ID before reporting: '+items.map(i=>i.id).join(', ')+(n?' — note: '+n:''),{tag:'tracked-batch',text:'D2: '+items.length+' data items',element:f,data:{question:'data',items:items,note:n}}); f.querySelector('.queued').textContent='queued';}">
+      <h3>D2 · What goes into data v2</h3>
+      <fieldset>
+        <label><input type="checkbox" name="items" value="N0" data-label="fix dropped tool reply, rebuild" checked> <span>N0 · Fix I1 and rebuild <span class="d">free; a builder bug</span></span></label>
+        <label><input type="checkbox" name="items" value="N1" data-label="prefix rows" checked> <span>N1 · Prefix rows <span class="d">free; +242 turns</span></span></label>
+        <label><input type="checkbox" name="items" value="N2" data-label="aimed grow: the 600 remaining conversations epoch 2 is expected to miss most on (val rates)" checked> <span>N2 · Aimed grow, 600 conversations <span class="d">≈ $1.91 DeepSeek; every 5+ question conversation left, plus 65</span></span></label>
+        <label><input type="checkbox" name="items" value="N2r" data-label="random grow to n=1000 (+347)"> <span>N2r · Random grow to n = 1,000 as well <span class="d">+256 beyond the aimed 600 (91 overlap), ≈ $0.46; a random base for the mix</span></span></label>
+        <label><input type="checkbox" name="items" value="N3" data-label="gold-checked repair of failed turns"> <span>N3 · Gold-hinted repair <span class="d">≈ $0.30; check a sample by hand first</span></span></label>
+        <label><input type="checkbox" name="items" value="N4" data-label="oversample header, printed-minus, text-unit rows (Type II and long come from the aimed N2)"> <span>N4 · Oversample weak shapes <span class="d">free; headers, printed minus, text units (N2 covers Type II and long)</span></span></label>
+      </fieldset>
+      <textarea placeholder="note (optional)"></textarea>
+      <div class="row"><button type="submit">Queue selected items</button><span class="queued"></span></div>
+    </form>
+
+    <form class="q" data-lavish-question="teacher" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('teacher'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D3 teacher: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D3: '+v,element:f,data:{question:'teacher',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+      <h3>D3 · The teacher</h3>
+      <fieldset>
+        <label><input type="radio" name="teacher" value="keep llm_react_v1 unchanged for v2"> <span>Keep llm_react_v1 unchanged (recommended for v2) <span class="d">one change at a time: measure what more data does first</span></span></label>
+        <label><input type="radio" name="teacher" value="T1: fix sign, printed-minus and header rules, re-collect the 552 and the +347"> <span>T1 now: fix the three rules and re-collect <span class="d">≈ $2.10; a new teacher prompt for every row</span></span></label>
+        <label><input type="radio" name="teacher" value="T2: stronger teacher on Flash-failed conversations"> <span>T2: a stronger teacher on Flash's failures <span class="d">V4-Pro or Sonnet; reopens "no more runs"</span></span></label>
+      </fieldset>
+      <textarea placeholder="note (optional)"></textarea>
+      <div class="row"><button type="submit">Queue this answer</button><span class="queued"></span></div>
+    </form>
+
+    <form class="q" data-lavish-question="temperature" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('temp'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D4 sampling: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D4: '+v,element:f,data:{question:'temperature',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+      <h3>D4 · Sampling check before retraining</h3>
+      <fieldset>
+        <label><input type="radio" name="temp" value="run epoch 2 on val at temperature 0.2 first"> <span>Run epoch 2 on val at temperature 0.2 first (recommended) <span class="d">≈ 20 min of L4; no training</span></span></label>
+        <label><input type="radio" name="temp" value="keep 0.7 for every pass"> <span>Keep 0.7 everywhere <span class="d">comparable with every pass so far</span></span></label>
+      </fieldset>
+      <textarea placeholder="note (optional)"></textarea>
+      <div class="row"><button type="submit">Queue this answer</button><span class="queued"></span></div>
+    </form>
+    <form class="q" data-lavish-question="harness" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('harness'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D5 harness: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D5: '+v,element:f,data:{question:'harness',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+      <h3>D5 · Harness checks H1–H3</h3>
+      <fieldset>
+        <label><input type="radio" name="harness" value="apply H1-H3 and re-score epoch 2 on val under them as the new baseline"> <span>Apply H1–H3, re-score epoch 2 on val as the baseline (recommended) <span class="d">≈ 20 min of L4; also fixes the resume bug</span></span></label>
+        <label><input type="radio" name="harness" value="H1 only (tool error for extra arguments)"> <span>H1 only <span class="d">the crash fix; H2 and H3 change what counts as an answer</span></span></label>
+        <label><input type="radio" name="harness" value="keep the harness unchanged"> <span>Keep the harness unchanged <span class="d">every pass so far stays directly comparable</span></span></label>
+      </fieldset>
+      <textarea placeholder="note (optional)"></textarea>
+      <div class="row"><button type="submit">Queue this answer</button><span class="queued"></span></div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <h2>Sources</h2>
+  <ul>
+    <li>Plan and decisions: <code>.lavish/s28_sft-data-plan.html</code> (D1–D6, the D4 note).</li>
+    <li>Data: <code>evaluation/sft/v1/{train.jsonl, stats.json, card.md, drops.jsonl, val_ids.txt}</code>; manifest <code>evaluation/splits/sft_v1.json</code>.</li>
+    <li>Training: <code>runs/sft/20261025T040743Z_train_sft1/{run.json, metrics.jsonl, mask.json}</code>; config <code>src/convfinqa/sft/configs/sft_v1.yaml</code>.</li>
+    <li>Passes (<code>evaluation/predictions/evalloop/</code>): <code>open-evalloop-train100-…-student-qwen3-4b-none-20261025_145901</code> (base val), <code>…-sft1-e1/e2/e3-none-20261025_181906 / 183905 / 185746</code> (epochs, val), <code>open-evalloop-test100-…-student-qwen3-4b-none-20261025_153651</code> (base test), <code>open-evalloop-test100-…-sft1-e2-none-20261025_194346</code> (epoch 2 test; <code>…_193924</code> is the refused cold-start attempt, every turn unscored) (epoch 2 test), <code>open-evalloop-test100-…-deepseek-flash-high-20261025_120625</code> (teacher), <code>sdk-evalloop-test100-sdk_v1·s1-20260905_174627</code> (champion).</li>
+    <li>Statistics: <code>tracking/comparator.py</code> (<code>durkalski_z</code>, <code>cluster_bootstrap_ci</code>); attribution <code>evalloop/stage_scores.first_fault</code>; root-cause labels were assigned by a Claude subagent reading each case's evidence (labels in the scratchpad's <code>val_e2_labels.json</code>), not checked by a second reader.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>
