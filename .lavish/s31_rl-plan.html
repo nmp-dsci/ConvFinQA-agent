@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL student plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx.narrow{ min-width:460px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .up{ color:var(--accent); font-weight:600; }
+  .down{ color:var(--red); font-weight:600; }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; min-width:640px; }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.2; }
+  .fig .box.acc{ stroke:var(--accent); stroke-width:2; }
+  .fig .region{ fill:var(--band); stroke:var(--line-2); stroke-width:1; }
+  .fig .arrow{ stroke:var(--ink-2); stroke-width:1.5; fill:none; marker-end:url(#ah); }
+  .fig .arrow2{ stroke:var(--ink-2); stroke-width:1.5; fill:none; marker-end:url(#ah); marker-start:url(#ahs); }
+  .fig .arrow.acc{ stroke:var(--accent); }
+  .fig .head{ fill:var(--ink-2); }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .lbs{ fill:var(--muted); font-family:var(--sans); font-size:13px; }
+  .fig .rg{ fill:var(--muted); font-family:var(--mono); font-size:12.5px; letter-spacing:.04em; }
+  .fig .ta{ fill:var(--accent); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .tw{ fill:var(--red); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .tm{ fill:var(--muted); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .dr{ fill:var(--accent); }
+  .fig .dw{ fill:none; stroke:var(--red); stroke-width:2; }
+  .fig .pick{ fill:none; stroke:var(--ink); stroke-width:2.5; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .three .card p, .two .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .meter{ display:flex; height:14px; border-radius:var(--r-sm); overflow:hidden; background:var(--line); margin-top:var(--s2); }
+  .meter > span{ display:block; height:100%; }
+  .meter .mr{ background:var(--line-3); }
+  .meter .mm{ background:var(--accent); }
+  .meter .mw{ background:var(--red); }
+  .legend{ display:flex; flex-wrap:wrap; gap:var(--s1) var(--s4); font-size:var(--t-2); color:var(--muted); margin-top:var(--s1); }
+  .legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  .legend .mr{ background:var(--line-3); } .legend .mm{ background:var(--accent); } .legend .mw{ background:var(--red); }
+  .math{ font-family:var(--mono); font-size:var(--t-1); }
+  pre.tree{ white-space:pre; overflow-x:auto; }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  .copyall{ margin-top:var(--s5); display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+  .copyall textarea{ width:100%; }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s31 · ConvFinQA-agent · 2026-10-26 · plan · reinforcement learning for the SFT student · branch <code>spike-rl</code></div>
+  <h1>This is a good project for RL. <em>The student already gets most of its misses right on some tries, and gold grades every try for free.</em></h1>
+  <p class="lede">You fine-tuned Qwen3-4B twice on DeepSeek Flash's conversations, and val stopped improving after about one epoch (s30). This page explains how RL differs from that, shows from the repo's own scoring passes that there is room for it, and plans an RL run on Modal: the data, the algorithm, the hardware, the cost, the build, and how we'll know it worked. Nothing has been built or spent. Seven decisions are at the end.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">82% → 90%</div><div class="l">clean-history program turns on val: right on one try, against right on at least one of four tries (the four sft2 checkpoints). RL works by turning the second number into the first</div></div>
+    <div class="stat"><div class="n">17%</div><div class="l">of those turns flip between tries. RL learns from these: a question the model always gets right, or always gets wrong, teaches it nothing</div></div>
+    <div class="stat"><div class="n">4,394</div><div class="l">questions in 1,489 page-clean pool conversations nobody has collected on. RL needs only their gold answers, not demonstrations</div></div>
+    <div class="stat amber"><div class="n">≈ $55</div><div class="l">one Modal H100 for about 10 h (150 steps), plus scoring passes. A $7 pilot comes first. The whole SFT round cost about $12</div></div>
+  </div>
+
+  <div class="callout">
+    <p><b>Recommendation.</b> Run GRPO (group relative policy optimisation) on the student's own tries, one question at a time, through the eval harness itself, warm-started from sft2-e1. Spend $3 first to confirm the headroom (D1).
+    Expect +2 to +5 points on val. Test 100 can only confirm a gain of about 4 points or more, and I'm saying that before we look.</p>
+  </div>
+</header>
+
+<section id="fit">
+  <span class="eyebrow">01</span>
+  <h2>Is this a good project for RL?</h2>
+  <p class="sub">RL works when three things hold: a cheap, trustworthy reward; a model that sometimes succeeds; and failures that come from the model's habits rather than from missing knowledge. All three hold here, with the caveats below.</p>
+  <div class="three">
+    <div class="card rec">
+      <span class="badge ok">why it fits</span>
+      <ul>
+        <li><b>A free, exact reward.</b> Every question has a gold answer, and <code>numeric_match</code> already scores it. No reward model, no judge.</li>
+        <li><b>Measured headroom.</b> On clean program turns, 82% right on one try and 90% on any of four (§04).</li>
+        <li><b>SFT has plateaued.</b> Val went flat after about one epoch, and sft2 against epoch 2 is +1.1 on test, not significant.</li>
+        <li><b>The errors are the student's own.</b> Most are wrong operand values (18 first mistakes on test, against Flash's 7) or operands in the wrong order. Flash rarely makes these mistakes, so SFT on Flash's turns never shows the student its own. RL does.</li>
+        <li><b>A small, cheap model.</b> A 4B student can sample about 280 tries per step on one GPU.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge warn">where it can't help</span>
+      <ul>
+        <li><b>Questions it never gets right.</b> 10% of clean program turns on val were wrong on all four tries. With no right try there is no signal. Those need better data or a stronger teacher.</li>
+        <li><b>Bad gold.</b> An always-wrong question may be a label error. It produces no gradient, so it does little harm, but it caps the ceiling.</li>
+        <li><b>Knock-on errors.</b> 24 of the 59 wrong program turns on test are knock-ons from an earlier wrong answer. RL trains on clean history, so it fixes these only by fixing the first mistake.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge info">what to expect</span>
+      <ul>
+        <li>RL mostly turns sometimes-right into usually-right. Single-try accuracy (pass@1) rises toward best-of-k (pass@k), while best-of-k at large k doesn't grow (Yue et al., 2025).</li>
+        <li>Clean program turns: 82% toward about 88%. Overall val: +2 to +5 points. Test 100: +1 to +4.</li>
+        <li>It probably won't pass Flash (87.7% on test). It should close part of the 6.3-point gap.</li>
+        <li>The honest risk: a real +3 has about even odds of reading as not significant on test 100, whose 95% CI is about ±3.5 points.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <span class="eyebrow">02</span>
+  <h2>How RL works, from zero</h2>
+  <p class="sub">SFT says "do what the teacher did". RL says "do more of what worked for you, and less of what didn't". The model is graded on its own attempts, not on someone else's.</p>
+  <div class="steps">
+    <div class="step"><b>The policy and the episode</b>The policy is the student. An episode is one question: the student calls the calculator tools one or more times, then sends <code>StructuredOutput</code>. That is about 450 tokens over 2 model calls.</div>
+    <div class="step"><b>Sample a group</b>For one question, with the same conversation so far, the student answers 8 times at temperature 0.7. The tries differ because sampling is random.</div>
+    <div class="step"><b>Grade</b>Each try gets reward 1 if its answer matches gold, else 0. No human and no judge are involved.</div>
+    <div class="step"><b>Compare within the group</b>Each try's advantage is (reward − group mean) ÷ group standard deviation. Tries better than average get a positive weight; worse ones get a negative weight.</div>
+    <div class="step"><b>Update, then repeat</b>Raise the probability of every token in a positive try and lower it in a negative one, in proportion to the advantage. Then sample again with the updated student. That is GRPO, from DeepSeekMath (2024).</div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>A worked example from val</h3>
+      <p><code>Single_ETR/2008/page_153.pdf-2</code>, q2: <i>"what was, then, the change in amount over the year, in millions?"</i> Gold is −17.4, which is <code>subtract(19.2, 36.6)</code>. Two of the four sft2 checkpoints answered −17.4. The other two answered 17.4, with the operands reversed.</p>
+      <p>Say 8 tries give 5 right and 3 wrong (an illustration). The mean is 0.625 and the standard deviation 0.48, so:</p>
+      <p class="math">right: (1 − 0.625) ÷ 0.48 = <span class="up">+0.77</span><br>wrong: (0 − 0.625) ÷ 0.48 = <span class="down">−1.29</span></p>
+      <p>Tokens all 8 tries share, such as reading the table and finding 19.2 and 36.6, get 5 × 0.77 − 3 × 1.29 ≈ 0 net push: they cancel. The gradient lands only where the tries differ, which here is the order of the operands. That is how RL assigns credit without being told which token was wrong.</p>
+      <p>If all 8 tries are right, or all 8 wrong, every advantage is 0 and the question teaches nothing. That's why the share of questions that flip matters more than the dataset's size.</p>
+    </div>
+    <div class="card">
+      <h3>One formula, three methods</h3>
+      <p>All three take a step along <span class="math">Σ weight × ∇ log π(token)</span>. They differ in who wrote the tokens and how each is weighted.</p>
+      <div class="tablewrap"><table class="narrow">
+        <thead><tr><th>Method</th><th>Tokens written by</th><th>Weight on a try</th></tr></thead>
+        <tbody>
+          <tr><td>SFT <span class="note">sft1, sft2</span></td><td>Flash, the teacher</td><td>1 on every token</td></tr>
+          <tr><td>Rejection sampling (RFT) <span class="note">s30's sft3 idea</span></td><td>the student</td><td>1 if right, 0 if wrong</td></tr>
+          <tr class="rec"><td><b>GRPO</b> <span class="note">this plan</span></td><td>the student</td><td>the advantage: + if better than its group, − if worse</td></tr>
+        </tbody>
+      </table></div>
+      <p>RFT is RL without negative weights. GRPO adds them, so a wrong try actively pushes its tokens down instead of being ignored.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p><b>Your temperature question, answered by RL.</b> In SFT the sampling temperature never enters training. In RL it is the exploration knob. At temperature 0 all 8 tries are identical, every advantage is 0, and nothing is learned. So we train at the serving temperature, 0.7, and RL improves the exact policy we serve.</p>
+  </div>
+</section>
+
+<section id="vs">
+  <span class="eyebrow">03</span>
+  <h2>SFT against RL: how the optimisation changes</h2>
+  <p class="sub">The same student, adapter and GPUs, but a different learning problem. Read the rows you care about. The loss curve, learning rate and overfitting rows are the ones that surprise most people.</p>
+  <div class="tablewrap"><table class="fx">
+    <colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+    <thead><tr><th></th><th>SFT (sft1, sft2)</th><th class="rec">RL (GRPO, planned)</th></tr></thead>
+    <tbody>
+      <tr><td><b>Objective</b></td><td>Maximise the likelihood of the teacher's tokens</td><td class="rec">Maximise the expected reward of the student's own tries</td></tr>
+      <tr><td><b>Data</b></td><td>916 fixed rows of Flash conversations (data v2)</td><td class="rec">Questions plus gold answers. The current student generates new tries every step</td></tr>
+      <tr><td><b>Signal</b></td><td>Every trained token has a target: dense</td><td class="rec">One 0 or 1 per try, spread over about 450 tokens: sparse, roughly 1 bit per try</td></tr>
+      <tr><td><b>Its own mistakes</b></td><td>Never seen: it trains only on Flash's right turns</td><td class="rec">Seen and pushed down: a wrong try gets a negative weight</td></tr>
+      <tr><td><b>Ceiling</b></td><td>The teacher: Flash, 87.7% on test</td><td class="rec">The student's own best-of-k (pass@k)</td></tr>
+      <tr><td><b>One step</b></td><td>A forward and backward pass over a batch</td><td class="rec">Generate about 280 tries, grade them, then a forward and backward pass over the tries that differ</td></tr>
+      <tr><td><b>Learning rate</b></td><td>1e-4 (sft1), 5e-5 (sft2), cosine decay</td><td class="rec">About 1e-5, constant. With LoRA, about 10× full fine-tuning's RL rate (LoRA Without Regret)</td></tr>
+      <tr><td><b>LoRA capacity</b></td><td>Rank 16 holds Flash's style and format</td><td class="rec">RL takes in about 1 bit per try, and even rank 1 matches full fine-tuning (LoRA Without Regret). Keep the existing rank-16 adapter</td></tr>
+      <tr><td><b>The loss curve</b></td><td>Should fall, and did: 0.79 → 0.44</td><td class="rec">Meaningless: its scale moves with the advantages. Watch reward, flip share, entropy and KL to sft2-e1 instead</td></tr>
+      <tr><td><b>Passes over the data</b></td><td>2 to 3 epochs over the rows</td><td class="rec">About one pass over the questions. Repeats matter less, because every pass makes new tries</td></tr>
+      <tr><td><b>What going wrong looks like</b></td><td>Val flattens, then falls (s30 found a plateau)</td><td class="rec">Reward hacking (exploiting the scorer), entropy collapse (all 8 tries the same), drift in tool use</td></tr>
+      <tr><td><b>Temperature</b></td><td>Irrelevant to training</td><td class="rec">The exploration knob. At 0, nothing is learned</td></tr>
+      <tr><td><b>Regulariser</b></td><td>Few epochs, and picking a checkpoint on val</td><td class="rec">Low learning rate, the LoRA, a KL check against sft2-e1, and picking a checkpoint on val</td></tr>
+      <tr><td><b>Where the compute goes</b></td><td>Training only: one L4, 5.4 h, $6.19</td><td class="rec">Generation plus training. Training dominates, because each try sits in about 7k tokens of context (§06)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="data">
+  <span class="eyebrow">04</span>
+  <h2>The RL dataset, and how much you need</h2>
+  <p class="sub">An RL dataset is a set of questions plus a way to grade the answers. It contains no demonstrations. Here each item is a conversation, its report, and each question's gold answer and turn type. The student writes every token it trains on.</p>
+  <div class="tablewrap"><table class="fx">
+    <colgroup><col style="width:38%"><col style="width:14%"><col style="width:12%"><col style="width:36%"></colgroup>
+    <thead><tr><th>Source</th><th class="sc">Conversations</th><th class="sc">Questions</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>Fresh pool</b><span class="note">eval_loop_v2's pool, page-clean, never collected on</span></td><td class="sc">1,489</td><td class="sc">4,394</td><td>The RL pool. About 3,150 of its questions are program turns</td></tr>
+      <tr><td>sft_v2 train<span class="note">collected by Flash; the student trained on the conversations Flash got right</span></td><td class="sc">1,152</td><td class="sc">5,145</td><td>Second tier, used only if the fresh pool runs short of flips. The student will be right more often here</td></tr>
+      <tr><td>sft_v1 val</td><td class="sc">100</td><td class="sc">365</td><td>Picks checkpoints. Never trained on</td></tr>
+      <tr><td>test 100 <span class="note">eval_loop_v2 test</span></td><td class="sc">100</td><td class="sc">349</td><td>The holdout: scored once, on your word</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="margin-top:var(--s2)">Page-clean means it shares no report page with test, the v1 holdout or val, using the sft_v2 rules. Of the pool's 3,198 conversations, 2,641 are page-clean, and 1,152 of those are already in sft_v2 train.</p>
+
+  <div class="two">
+    <div class="card">
+      <h3>How much of the data can teach</h3>
+      <p>For each val question with a clean history: how many of the four sft2 checkpoint passes got it right.</p>
+      <p style="margin-top:var(--s3)"><b>Program turns</b> (163)</p>
+      <div class="meter" role="img" aria-label="Program turns: 72% always right, 17% flip, 10% always wrong"><span class="mr" style="width:72%"></span><span class="mm" style="width:17%"></span><span class="mw" style="width:11%"></span></div>
+      <p class="note">72% always right · <b>17% flip</b> · 10% always wrong</p>
+      <p style="margin-top:var(--s3)"><b>Number turns</b> (104)</p>
+      <div class="meter" role="img" aria-label="Number turns: 86% always right, 9% flip, 6% always wrong"><span class="mr" style="width:86%"></span><span class="mm" style="width:8%"></span><span class="mw" style="width:6%"></span></div>
+      <p class="note">86% always right · <b>9% flip</b> · 6% always wrong</p>
+      <div class="legend"><span><i class="mr"></i>no signal</span><span><i class="mm"></i>trains</span><span><i class="mw"></i>no signal; maybe bad gold</span></div>
+      <p class="note" style="margin-top:var(--s2)">These are measured, not assumed: pydchk passes at T 0.7, on turns whose earlier turns were all right. Four checkpoints stand in for four tries of one model, and D1 measures the real thing. With 8 tries a question, about a third of groups should carry signal.</p>
+    </div>
+    <div class="card">
+      <h3>How many observations?</h3>
+      <dl class="kv" style="margin-top:var(--s2)">
+        <dt>demonstrations</dt><dd>None.</dd>
+        <dt>questions with gold</dt><dd>About 4,400 fresh. A 150-step run uses each about 1.2 times.</dd>
+        <dt>tries drawn</dt><dd>About 150 steps × 280 ≈ <b>42,000</b>. SFT trained on 3,486 demonstrated turns.</dd>
+        <dt>tries that train</dt><dd>About a third of groups flip, so about 12 groups (≈ 100 tries) per step, or about 1,800 group updates per run.</dd>
+        <dt>rule of thumb</dt><dd>What matters is how many questions the student <i>sometimes</i> gets right. RL can move a model with very few such questions (one training example improved math reasoning in Wang et al., 2025). But each try carries only about 1 bit, so you need many tries per question, not many questions.</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section id="design">
+  <span class="eyebrow">05</span>
+  <h2>The design</h2>
+  <p class="sub">An episode is one question, continued on the student's own history. The reward is the eval scorer plus a sign check. The update is plain on-policy GRPO, with no extra tricks until we need them.</p>
+
+  <h3>An episode: branch and continue</h3>
+  <figure class="fig">
+    <svg viewBox="0 0 880 250" role="img" aria-labelledby="bc-t bc-d">
+      <title id="bc-t">Branch-and-continue rollouts</title>
+      <desc id="bc-d">Each question is tried 8 times on the same history. One right try is kept as the history for the next question. Groups that are all right or all wrong are not trained; the conversation stops at a question with no right try.</desc>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+      <g id="bc-q0"><title>q0: 6 of 8 right, trains</title>
+        <text x="40" y="26" class="lb">q0</text><text x="72" y="26" class="lbs">8 tries</text>
+        <circle cx="52" cy="62" r="12" class="dr"/><circle cx="88" cy="62" r="12" class="dr"/><circle cx="124" cy="62" r="12" class="dw"/><circle cx="160" cy="62" r="12" class="dr"/>
+        <circle cx="52" cy="100" r="12" class="dr"/><circle cx="88" cy="100" r="12" class="dr"/><circle cx="124" cy="100" r="12" class="dw"/><circle cx="160" cy="100" r="12" class="dr"/>
+        <circle cx="160" cy="100" r="17" class="pick"/>
+        <text x="40" y="150" class="ta">6 / 8: trains</text>
+        <text x="40" y="172" class="lbs">one right try is kept</text>
+      </g>
+      <path d="M180,100 C205,100 215,82 238,82" class="arrow"/>
+      <g id="bc-q1"><title>q1: 3 of 8 right, trains</title>
+        <text x="250" y="26" class="lb">q1</text><text x="282" y="26" class="lbs">8 tries</text>
+        <circle cx="262" cy="62" r="12" class="dr"/><circle cx="298" cy="62" r="12" class="dw"/><circle cx="334" cy="62" r="12" class="dw"/><circle cx="370" cy="62" r="12" class="dr"/>
+        <circle cx="262" cy="100" r="12" class="dw"/><circle cx="298" cy="100" r="12" class="dr"/><circle cx="334" cy="100" r="12" class="dw"/><circle cx="370" cy="100" r="12" class="dw"/>
+        <circle cx="370" cy="62" r="17" class="pick"/>
+        <text x="250" y="150" class="ta">3 / 8: trains</text>
+        <text x="250" y="172" class="lbs">the history is its own</text>
+      </g>
+      <path d="M390,62 C415,62 425,82 448,82" class="arrow"/>
+      <g id="bc-q2"><title>q2: all 8 right, no signal</title>
+        <text x="460" y="26" class="lb">q2</text><text x="492" y="26" class="lbs">8 tries</text>
+        <circle cx="472" cy="62" r="12" class="dr"/><circle cx="508" cy="62" r="12" class="dr"/><circle cx="544" cy="62" r="12" class="dr"/><circle cx="580" cy="62" r="12" class="dr"/>
+        <circle cx="472" cy="100" r="12" class="dr"/><circle cx="508" cy="100" r="12" class="dr"/><circle cx="544" cy="100" r="12" class="dr"/><circle cx="580" cy="100" r="12" class="dr"/>
+        <circle cx="508" cy="100" r="17" class="pick"/>
+        <text x="460" y="150" class="tm">8 / 8: no signal</text>
+        <text x="460" y="172" class="lbs">skipped by the trainer</text>
+      </g>
+      <path d="M600,100 C625,100 635,82 658,82" class="arrow"/>
+      <g id="bc-q3"><title>q3: none right, no signal, stop</title>
+        <text x="670" y="26" class="lb">q3</text><text x="702" y="26" class="lbs">8 tries</text>
+        <circle cx="682" cy="62" r="12" class="dw"/><circle cx="718" cy="62" r="12" class="dw"/><circle cx="754" cy="62" r="12" class="dw"/><circle cx="790" cy="62" r="12" class="dw"/>
+        <circle cx="682" cy="100" r="12" class="dw"/><circle cx="718" cy="100" r="12" class="dw"/><circle cx="754" cy="100" r="12" class="dw"/><circle cx="790" cy="100" r="12" class="dw"/>
+        <text x="670" y="150" class="tw">0 / 8: stop here</text>
+        <text x="670" y="172" class="lbs">nothing right to continue from</text>
+      </g>
+      <g id="bc-key"><title>key</title>
+        <circle cx="52" cy="222" r="9" class="dr"/><text x="68" y="227" class="lbs">right (filled)</text>
+        <circle cx="190" cy="222" r="9" class="dw"/><text x="206" y="227" class="lbs">wrong (hollow)</text>
+        <circle cx="330" cy="222" r="12" class="pick"/><text x="350" y="227" class="lbs">kept as the next question's history</text>
+      </g>
+    </svg>
+  </figure>
+  <div class="two">
+    <div>
+      <p><b>How it works.</b> For each conversation, try q0 8 times, keep one right try at random as the history, try q1 8 times on top of it, and so on. Stop at a question with no right try. It's the repo's own stop-at-first-wrong rule, applied per try.</p>
+      <p><b>Why.</b> GRPO's tries must share their context, so an episode is one question. The history is the student's own, as at serving, so there is no teacher-written context to drift from. And it trains where errors start, on first mistakes, not knock-ons.</p>
+    </div>
+    <div>
+      <p><b>Not adopted.</b> <i>One reward for the whole conversation:</i> one number for 3 to 6 answers muddies the credit, and after q0 the tries no longer share a context. <i>Flash's recorded history:</i> it exists only for the 1,152 collected conversations, and it is in the teacher's voice, not the student's.</p>
+      <p><b>The code already does this.</b> <code>open_agent._ask(agent, prompt, history)</code> answers one question on a given history with the checked harness. Calling it 8 times on one history is a group.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s6)">The reward</h3>
+  <p>A try gets 1 if the eval scorer accepts its answer <b>and</b> the answer's sign agrees with gold, and 0 otherwise. A question with no valid reply after the harness's attempts gets 0.</p>
+  <div class="callout warn">
+    <p><b>The scorer has a blind spot RL would find.</b> <code>numeric_match</code> rule 1 accepts any two numbers that round to the same integer, so 0.5 matches −0.5, and 0.18 matches −0.18.
+    Across 14 recorded passes, 19 of 6,984 answers scored right had the opposite sign to gold, including one in each of sft2-e1's val and test passes (gold 0.5 against −0.5, and 0.1797 against −0.1797). In an eval that's noise.
+    But RL optimises the reward directly, so it would never learn to fix a sign error on a small value. The reward therefore adds a sign check. The eval metric stays as it is, so every recorded number stays comparable.</p>
+  </div>
+  <p class="sub">Not adopted: partial credit for right operand values. It targets the biggest failure, but partial rewards are where a policy learns to game its grader. Start binary.</p>
+
+  <h3 style="margin-top:var(--s6)">The settings</h3>
+  <div class="tablewrap"><table class="fx">
+    <colgroup><col style="width:28%"><col style="width:30%"><col style="width:42%"></colgroup>
+    <thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Starting point</td><td>sft2-e1's adapter, <code>checkpoint-58</code>; LoRA r 16, α 32, all-linear</td><td>The best student on val and on test. RL sharpens a model that can already do the task; it can't build one from scratch</td></tr>
+      <tr><td>Tries per question, G</td><td class="sc">8</td><td>TRL's default and the common choice. Fewer tries means fewer groups with both a right and a wrong try</td></tr>
+      <tr><td>Conversations per step</td><td class="sc">12 <span class="note">≈ 35 questions, ≈ 280 tries</span></td><td>About 12 groups that flip per step, so about 100 tries in each update</td></tr>
+      <tr><td>Rollout sampler</td><td>T 0.7, top_p 0.8, top_k 20</td><td>The serving sampler, so RL improves what we serve</td></tr>
+      <tr><td>Advantage</td><td>(r − mean) ÷ std within a group</td><td>Groups that are all right or all wrong are dropped before the trainer sees them: they have zero gradient and would only cost GPU time</td></tr>
+      <tr><td>Loss normalisation</td><td>mean over this question's assistant tokens, across the batch</td><td>DAPO's token-level normalisation, also TRL's default. It doesn't favour short replies</td></tr>
+      <tr><td>Trained tokens</td><td>this question's replies only</td><td>History, tool returns and retry prompts are context. A call the harness refused (H1–H3) gets weight 0, so a refused call is never rewarded just because the final answer was right</td></tr>
+      <tr><td>Updates per batch, μ</td><td class="sc">1</td><td>Exactly on-policy, so PPO's ratio clipping never engages. Add clipping only if we reuse batches</td></tr>
+      <tr><td>KL penalty, β</td><td class="sc">0 <span class="note">KL to sft2-e1 is logged</span></td><td>TRL's default, and current practice. The LoRA and a low learning rate keep the student close</td></tr>
+      <tr><td>Optimiser</td><td>AdamW, lr 1e-5 constant, no warmup, gradient clip 1.0</td><td>LoRA Without Regret's RL setting. The pilot tries 5e-6 and 2e-5 too, if 1e-5 is flat or unstable</td></tr>
+      <tr><td>Steps</td><td>pilot 25; full run up to 150; a checkpoint every 25</td><td>About 1.2 passes over the fresh pool</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="infra">
+  <span class="eyebrow">06</span>
+  <h2>What it runs on, and how that differs from SFT</h2>
+  <p class="sub">Mostly the SFT setup: the same base model and LoRA, the same Modal volumes, vLLM 0.21.0, and the same serving app for scoring. Three things change: generation runs inside the training loop, the GPU is bigger, and the run is longer.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 900 520" role="img" aria-labelledby="tp-t tp-d">
+      <title id="tp-t">RL run topology</title>
+      <desc id="tp-d">The driver on the Mac samples conversations, runs the checked harness against vLLM in a Modal H100 container, grades the tries, computes advantages and sends a batch to the trainer in the same container. The trainer loads each new adapter into vLLM and saves a checkpoint every 25 steps to the runs volume, where the L4 Student app serves it for val passes.</desc>
+      <defs>
+        <marker id="ahs" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M10,0 L0,5 L10,10 z" class="head"/></marker>
+      </defs>
+      <rect x="10" y="10" width="400" height="400" rx="10" class="region"/>
+      <text x="28" y="38" class="rg">YOUR MAC · THE DRIVER</text>
+      <rect x="490" y="10" width="400" height="400" rx="10" class="region"/>
+      <text x="508" y="38" class="rg">MODAL · ONE H100 CONTAINER</text>
+
+      <g id="tp-pool"><title>the RL pool</title><rect x="30" y="60" width="360" height="56" rx="8" class="box"/><text x="48" y="84" class="lb">rl_v1 pool</text><text x="48" y="104" class="lbs">1,489 conversations · gold answers</text></g>
+      <g id="tp-harness"><title>the eval harness as the environment</title><rect x="30" y="150" width="360" height="56" rx="8" class="box acc"/><text x="48" y="174" class="lb">checked harness (Pydantic AI)</text><text x="48" y="194" class="lbs">8 tries a question · ≈ 280 a step</text></g>
+      <g id="tp-score"><title>reward</title><rect x="30" y="240" width="360" height="56" rx="8" class="box"/><text x="48" y="264" class="lb">scorer + sign check</text><text x="48" y="284" class="lbs">reward 0 or 1 per try</text></g>
+      <g id="tp-adv"><title>advantages</title><rect x="30" y="330" width="360" height="56" rx="8" class="box"/><text x="48" y="354" class="lb">advantages</text><text x="48" y="374" class="lbs">drop all-right and all-wrong groups</text></g>
+
+      <g id="tp-vllm"><title>vLLM with runtime LoRA loading</title><rect x="510" y="150" width="360" height="56" rx="8" class="box acc"/><text x="528" y="174" class="lb">vLLM 0.21.0</text><text x="528" y="194" class="lbs">serves the current adapter</text></g>
+      <g id="tp-trainer"><title>the GRPO step</title><rect x="510" y="330" width="360" height="56" rx="8" class="box acc"/><text x="528" y="354" class="lb">trainer (PEFT)</text><text x="528" y="374" class="lbs">one GRPO step on the batch</text></g>
+
+      <g id="tp-volume"><title>checkpoints and val</title><rect x="490" y="440" width="400" height="66" rx="8" class="box"/><text x="508" y="466" class="lb">runs volume → Student app (L4)</text><text x="508" y="488" class="lbs">checkpoint every 25 steps → val passes</text></g>
+      <g id="tp-log"><title>records</title><rect x="10" y="440" width="400" height="66" rx="8" class="box"/><text x="28" y="466" class="lb">runs/rl/&lt;run&gt; + MLflow</text><text x="28" y="488" class="lbs">per-step metrics, groups, cost</text></g>
+
+      <path d="M210,116 L210,146" class="arrow"/><text x="222" y="136" class="lbs">12 conversations</text>
+      <path d="M394,178 L506,178" class="arrow2"/><text x="400" y="168" class="lbs">chat completions</text>
+      <path d="M210,206 L210,236" class="arrow"/>
+      <path d="M210,296 L210,326" class="arrow"/>
+      <path d="M394,358 L506,358" class="arrow acc"/><text x="406" y="348" class="ta">graded batch</text>
+      <path d="M690,326 L690,210" class="arrow acc"/><text x="700" y="272" class="ta">load adapter n+1</text>
+      <path d="M800,386 L800,436" class="arrow"/><text x="810" y="430" class="lbs">every 25</text>
+      <path d="M210,386 L210,436" class="arrow"/>
+    </svg>
+  </figure>
+
+  <div class="two">
+    <div>
+      <p><b>The loop.</b> The driver runs on your Mac, like every eval pass, because the real <code>pydantic_ai_checked</code> harness, the scorer, the data and MLflow are all here. It sends chat completions to a vLLM server inside the H100 container that serves the current adapter, and sends each graded batch to the trainer in the same container. The trainer takes one step, saves the adapter and loads it into vLLM (<code>VLLM_ALLOW_RUNTIME_LORA_UPDATING</code>, <code>/v1/load_lora_adapter</code>). Every 25 steps the adapter goes to the runs volume, where the existing Student app scores it on val.</p>
+    </div>
+    <div>
+      <p><b>Why the eval harness is the environment.</b> The student is scored through Pydantic AI, vLLM's hermes tool parser and Qwen's chat template. If RL generated through a different loop, the student would be trained in one format and served in another. TRL's own tool loop, for example, swaps in a patched training template. That's the kind of silent mismatch s28's data bug was. Here the rollouts <i>are</i> the eval harness. The trainer re-renders each try with the same template and the SFT mask code, and a parity check proves the tokens match before step 1.</p>
+    </div>
+  </div>
+
+  <div class="tablewrap" style="margin-top:var(--s4)"><table class="fx">
+    <colgroup><col style="width:22%"><col style="width:36%"><col style="width:42%"></colgroup>
+    <thead><tr><th></th><th>sft2 run (done)</th><th class="rec">RL run (planned)</th></tr></thead>
+    <tbody>
+      <tr><td><b>GPU</b></td><td>1 × L4, 24 GB, $0.80/h</td><td class="rec">1 × H100, 80 GB, ≈ $3.95/h</td></tr>
+      <tr><td><b>In the container</b></td><td>the trainer</td><td class="rec">vLLM, at about 45% of GPU memory, plus the trainer</td></tr>
+      <tr><td><b>Data</b></td><td>data v2 on the data volume, fixed</td><td class="rec">generated by the driver every step</td></tr>
+      <tr><td><b>Tokens through the trainer</b></td><td class="sc">14.7M <span class="note">7.37M × 2 epochs</span></td><td class="rec sc">≈ 100M <span class="note">≈ 0.7M a step × 150</span></td></tr>
+      <tr><td><b>Wall clock</b></td><td class="sc">5.4 h</td><td class="rec sc">≈ 10 h <span class="note">pilot ≈ 1.7 h</span></td></tr>
+      <tr><td><b>GPU cost</b></td><td class="sc">$6.19</td><td class="rec sc">≈ $40 <span class="note">plus ≈ $4 of val passes on the L4 app</span></td></tr>
+      <tr><td><b>Checkpoints</b></td><td>every half-epoch</td><td class="rec">every 25 steps</td></tr>
+      <tr><td><b>Resume</b></td><td>Modal re-runs the input; the trainer resumes from its last checkpoint</td><td class="rec">the driver resumes from the last step's state on the volume: adapter, optimiser and data cursor</td></tr>
+      <tr><td><b>Image</b></td><td>debian plus TRL pins, torch 2.14.1</td><td class="rec">vLLM 0.21.0's image plus PEFT on vLLM's own torch. Two torch pins in one image won't resolve</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="two">
+    <div class="card">
+      <h3>Where the GPU time goes</h3>
+      <p>Each try sits in about 7k tokens of context: the system prompt and tool schemas (4,587 tokens, counted with the student's tokenizer), the report and first question (+1,116), about 630 tokens per earlier question, and its own reply of about 450 tokens.</p>
+      <p>Generation is cheap here, because the shared context is prefix-cached and replies are short. The bill is the trainer's forward and backward pass over that context. Dropping all-right and all-wrong groups before training cuts it by about two-thirds.</p>
+    </div>
+    <div class="card">
+      <h3>Why an H100 when SFT used an L4?</h3>
+      <p>Per trained token they cost about the same: about $0.24 per million on the H100 against $0.29 on the L4, assuming the H100 is 6× faster. The L4 measured 760 tokens/s on sft2. The H100 has room for vLLM and the trainer together, and it finishes in hours instead of days.</p>
+      <p>The first measured step replaces the 6× assumption, as sft2's step-1 run did. Modal prices here come from third-party listings; check modal.com/pricing before the run.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s6)">Options for the training stack</h3>
+  <div class="three">
+    <div class="card rec">
+      <span class="badge rec">recommended</span>
+      <h3>B · The eval harness as the environment, with our own GRPO step</h3>
+      <p>Train equals serve by construction. It reuses <code>open_agent</code>, <code>sft/rows</code>, the SFT mask code and the scorer. The GRPO step is about 150 lines you can read end to end.</p>
+      <p class="cost">Cost: we own the trainer's correctness. The parity check and a one-step sanity test cover it.</p>
+    </div>
+    <div class="card">
+      <h3>A · TRL's GRPOTrainer, all inside Modal</h3>
+      <p>TRL now runs multi-turn tool loops (<code>tools=</code>, and an experimental <code>environment_factory</code>), with maintained loss variants and correction for mismatch between vLLM and the trainer. Modal has a GRPO-with-TRL example.</p>
+      <p class="cost">Cost: its loop ends a rollout on a reply with no tool call, but our turns end on a StructuredOutput call. It swaps in its own Qwen3 training template, and H1–H3 and the re-ask would have to be rebuilt. A good fallback if B's trainer fights us.</p>
+    </div>
+    <div class="card">
+      <h3>C · A managed RL service</h3>
+      <p>Thinking Machines' Tinker and similar services run the GPUs, and you write the loop.</p>
+      <p class="cost">Cost: it isn't Modal, and I haven't checked that it supports this model. Listed for completeness only.</p>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <span class="eyebrow">07</span>
+  <h2>The build, step by step</h2>
+  <p class="sub">Each phase ends at a gate. A phase that spends money comes after one that proves the spend is worth it. Total ≈ $55, with a hard cap of $75 (D5).</p>
+  <div class="steps">
+    <div class="step"><b>P0 · Baseline and go/no-go · ≈ $3 · ≈ 1 h</b>Fix the harness retry budget. <code>Agent(retries=…)</code> defaults to 1 and shadows <code>ToolOutput(max_retries=2)</code>, so a rollout would die on "Exceeded maximum output retries". Then score sft2-e1 4 times on val, in parallel containers. Measure single-try and best-of-4 accuracy per question and the flip share, and read every always-wrong question for bad gold.
+      <span class="tag">gate: on clean program turns, best-of-4 minus single-try is at least 4 points. These four passes are also the final baseline.</span></div>
+    <div class="step"><b>P1 · The RL dataset, <code>rl_v1</code> · $0</b>A manifest of the 1,489 fresh conversations, with sft_v2's page rules and leak checks asserted, plus a data card. No model calls.</div>
+    <div class="step"><b>P2 · Environment and reward · $0</b><code>rl/rollout.py</code> branches and continues through <code>open_agent._ask</code> on the checked harness. <code>rl/reward.py</code> is the scorer plus the sign check. Each try becomes this question's training row through <code>sft/rows.turn_messages</code>. All of it is tested on Pydantic AI's <code>FunctionModel</code>, with no GPU.</div>
+    <div class="step"><b>P3 · Trainer and Modal worker · ≈ $2</b><code>rl/train/grpo.py</code> is self-contained and shipped like <code>sft/train</code>. <code>rl/cloud/modal_app.py</code> runs one H100 container with vLLM (runtime LoRA, behind an API key) and the PEFT trainer.
+      <span class="tag">checks: parity (re-rendered tokens equal vLLM's tokens on 50 tries) · the log-prob gap between vLLM and the trainer · one step on a fixed batch must raise the right tries and lower the wrong ones</span></div>
+    <div class="step"><b>P4 · Pilot, 25 steps · ≈ $7</b>The first real training. Logs every metric in §08.
+      <span class="tag">gates: train reward rising · flip share ≥ 20% · entropy not collapsing · val (2 passes) not below sft2-e1</span></div>
+    <div class="step"><b>P5 · Full run, up to 150 steps · ≈ $44</b>Val twice at every checkpoint.
+      <span class="tag">stop early if val falls at two checkpoints in a row, or at the cap</span></div>
+    <div class="step"><b>P6 · Readout</b>Take the best checkpoint by val and give it 4 passes against sft2-e1's 4, paired by question. Score test 100 once, on your word. Then an s32 results page, a PR and no-mistakes.</div>
+  </div>
+
+  <h3 style="margin-top:var(--s6)">Where the code goes</h3>
+<pre class="tree"><code>src/convfinqa/rl/
+  splits.py            rl_v1 manifest: fresh pool, page rules, leak checks
+  rollout.py           branch-and-continue tries through the checked harness
+  reward.py            the scorer plus the sign check
+  batch.py             advantages, dropping all-same groups, this question's rows and weights
+  driver.py            the loop: sample, grade, send, wait, log; resumable
+  cli.py               convfinqa-rl  build | parity | pilot | run | resume | status
+  train/grpo.py        self-contained: render, mask, advantage-weighted token loss
+  cloud/modal_app.py   the H100 worker: vLLM (runtime LoRA) and the trainer
+  configs/rl_v1.yaml
+runs/rl/&lt;run&gt;/          run.json, metrics.jsonl, groups.jsonl (committed, like runs/sft/)
+tests/test_rl_*.py     reward sign · advantages · this-question mask on a real v2 row ·
+                       branching on FunctionModel · parity on a recorded try</code></pre>
+</section>
+
+<section id="measure">
+  <span class="eyebrow">08</span>
+  <h2>How we'll know it worked</h2>
+  <div class="two">
+    <div class="card">
+      <h3>What replaces the loss curve</h3>
+      <p>Logged at every step:</p>
+      <ul>
+        <li>train reward, and the share of groups that flip</li>
+        <li>accuracy by turn type (program, number)</li>
+        <li>token entropy, and KL to sft2-e1</li>
+        <li>reply tokens and calculator calls per question</li>
+        <li>H1–H3 retry rate, and the no-valid-reply rate</li>
+        <li>the log-prob gap between vLLM and the trainer</li>
+        <li>seconds and dollars per step</li>
+      </ul>
+      <p>Reward up with entropy steady is learning. Reward up with entropy collapsing is memorising one way to answer. Reward up with val flat is a train/serve gap or hacking.</p>
+    </div>
+    <div class="card">
+      <h3>Choosing and comparing</h3>
+      <ul>
+        <li><b>Selection:</b> each checkpoint gets 2 val passes, and the pick is the best mean.</li>
+        <li><b>Comparison:</b> the pick gets 4 passes against sft2-e1's 4 from P0, compared question by question on the mean of the passes, with a cluster bootstrap by conversation. Averaging cuts the sampling noise that made two passes of the same weights disagree on 31 to 33 program questions.</li>
+        <li><b>Test 100:</b> once, for the val pick, on your word. Its 95% CI is about ±3.5 points, so a true +3 has roughly even odds of reading as significant.</li>
+        <li><b>Hacking audit:</b> at every checkpoint, read 20 questions that went from wrong to right, and check that the reasoning, program and calculator calls support the answer.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="risks">
+  <span class="eyebrow">09</span>
+  <h2>Risks and failure modes</h2>
+  <div class="tablewrap"><table class="fx">
+    <colgroup><col style="width:24%"><col style="width:36%"><col style="width:40%"></colgroup>
+    <thead><tr><th>Risk</th><th>What it looks like</th><th>Guard</th></tr></thead>
+    <tbody>
+      <tr><td><b>Train/serve skew</b></td><td>Train reward rises while val stays flat</td><td>The rollouts are the eval harness. The parity check runs before step 1</td></tr>
+      <tr><td><b>Reward hacking</b></td><td>"Right" answers with the wrong sign, or numbers the trajectory doesn't support</td><td>The sign check in the reward, and the 20-question audit at each checkpoint</td></tr>
+      <tr><td><b>Entropy collapse</b></td><td>The flip share falls toward 0, and all 8 tries look the same</td><td>Watch entropy and the flip share. Stop, or raise the temperature</td></tr>
+      <tr><td><b>Tool-use drift</b></td><td>Fewer calculator calls, more H2/H3 retries</td><td>Both logged per step. H2 already requires the calculator on program turns</td></tr>
+      <tr><td><b>Forgetting lookups</b></td><td>Number-turn accuracy falls</td><td>Number turns stay in the pool at their natural share. Accuracy by type at each checkpoint</td></tr>
+      <tr><td><b>Mismatch between vLLM and the trainer</b></td><td>The log-prob gap grows, and steps are unstable</td><td>Measured in P3. Add truncated importance weights (TIS) if needed</td></tr>
+      <tr><td><b>Noise picks the checkpoint</b></td><td>The pick falls back on test</td><td>2 passes per checkpoint, and 4 for the final pair</td></tr>
+      <tr><td><b>A 10-hour run from a laptop</b></td><td>A dropped connection, or the Mac sleeps</td><td>The driver resumes from the last step, and runs under <code>caffeinate</code>. Move it into Modal if it bites</td></tr>
+      <tr><td><b>Cost overrun</b></td><td>—</td><td>Cost logged per step, and the hard cap (D5)</td></tr>
+      <tr><td><b>Bad gold</b></td><td>Questions that are always wrong</td><td>They give no gradient by construction, and P0 reads them</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="decide">
+  <span class="eyebrow">10</span>
+  <h2>Decisions</h2>
+  <p class="sub">The recommended option is preselected in each. Queue your answers, or change any of them. Once they're back I'll build in phase order and stop at P0's gate, and at any gate that fails.</p>
+
+  <div class="qgrid">
+  <form class="q" data-lavish-question="D1-go-no-go" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D1 go/no-go: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · Measure the headroom first?</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="measure first: fix the retry budget, score sft2-e1 4x on val, build only if the clean program gap is at least 4 points" checked><span><b>Measure first</b> <span class="badge rec">recommended</span><span class="d">Fix the retry budget, then 4 val passes of sft2-e1 (≈ $3). Build only if the clean program gap is at least 4 points.</span></span></label>
+      <label><input type="radio" name="d1" value="build straight away; the pilot measures the flip share"><span><b>Build straight away</b><span class="d">The pilot shows the flip share anyway, but $10 later.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D2-episode" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D2 episode: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D2: '+v,element:f,data:{question:'D2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · What is an episode?</h3>
+    <fieldset>
+      <label><input type="radio" name="d2" value="one question, continued on the student's own right try (branch and continue)" checked><span><b>One question, on its own history</b> <span class="badge rec">recommended</span><span class="d">Branch and continue: 8 tries, keep one right one, move on.</span></span></label>
+      <label><input type="radio" name="d2" value="whole conversation, one reward"><span><b>Whole conversation, one reward</b><span class="d">Simpler loop, muddier credit. Tries share no context after q0.</span></span></label>
+      <label><input type="radio" name="d2" value="one question, on Flash's recorded history"><span><b>One question, on Flash's history</b><span class="d">Only the 1,152 collected conversations, in the teacher's voice.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D3-stack" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d3'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D3 stack: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D3: '+v,element:f,data:{question:'D3',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D3 · Training stack</h3>
+    <fieldset>
+      <label><input type="radio" name="d3" value="B: eval harness as environment, own GRPO step, one H100 on Modal" checked><span><b>B · eval harness, own GRPO step</b> <span class="badge rec">recommended</span><span class="d">Train equals serve. About 150 lines of trainer we own.</span></span></label>
+      <label><input type="radio" name="d3" value="A: TRL GRPOTrainer with its tool loop, all inside Modal"><span><b>A · TRL's GRPOTrainer</b><span class="d">Maintained losses, but a different template and turn ending. Harness checks rebuilt.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D4-reward" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d4'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D4 reward: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D4: '+v,element:f,data:{question:'D4',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D4 · Reward</h3>
+    <fieldset>
+      <label><input type="radio" name="d4" value="scorer plus sign check, 0/1" checked><span><b>Scorer + sign check, 0 or 1</b> <span class="badge rec">recommended</span><span class="d">Closes the rounding blind spot. The eval metric is unchanged.</span></span></label>
+      <label><input type="radio" name="d4" value="scorer as is, 0/1"><span><b>Scorer as is</b><span class="d">Reward exactly equals the eval metric, blind spot included.</span></span></label>
+      <label><input type="radio" name="d4" value="scorer plus sign plus partial credit for right operand values"><span><b>+ partial credit for operands</b><span class="d">Aims at wrong values, but is easier to game.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D5-budget" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d5'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D5 budget: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D5: '+v,element:f,data:{question:'D5',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D5 · Budget</h3>
+    <fieldset>
+      <label><input type="radio" name="d5" value="pilot 25 steps, then a full run up to 150 steps if the pilot passes; hard cap $75 including scoring" checked><span><b>Pilot, then up to 150 steps, cap $75</b> <span class="badge rec">recommended</span><span class="d">Continues past the pilot only if its gates pass.</span></span></label>
+      <label><input type="radio" name="d5" value="pilot only, then stop for review"><span><b>Pilot only, then review</b><span class="d">≈ $12 including P0 and P3.</span></span></label>
+      <label><input type="radio" name="d5" value="larger: up to 300 steps, cap $130"><span><b>Larger: up to 300 steps, cap $130</b><span class="d">About 2.4 passes over the fresh pool, then the second tier.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D6-rft-control" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d6'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D6 RFT control: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D6: '+v,element:f,data:{question:'D6',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D6 · An RFT control arm?</h3>
+    <fieldset>
+      <label><input type="radio" name="d6" value="later, only if GRPO wins on val" checked><span><b>Later, only if GRPO wins</b> <span class="badge rec">recommended</span><span class="d">Then it tells us what the negative weights added.</span></span></label>
+      <label><input type="radio" name="d6" value="now, alongside, at the same budget"><span><b>Now, alongside</b><span class="d">Same tries, trained on right ones only. Roughly +$10.</span></span></label>
+      <label><input type="radio" name="d6" value="never"><span><b>Never</b></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D7-test-100" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d7'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D7 test 100: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D7: '+v,element:f,data:{question:'D7',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D7 · Test 100</h3>
+    <fieldset>
+      <label><input type="radio" name="d7" value="ask me at the end, as before" checked><span><b>Ask me at the end</b> <span class="badge rec">recommended</span><span class="d">As with sft1 and sft2.</span></span></label>
+      <label><input type="radio" name="d7" value="pre-authorised: one test 100 pass for the val-picked RL checkpoint"><span><b>Pre-authorise one pass</b><span class="d">Only for the checkpoint val picks. Nothing else opens it.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" onclick="(async (btn) => {
+      const copyRun = btn._lavishCopyRun = (btn._lavishCopyRun || 0) + 1;
+      const qs = [...document.querySelectorAll('[data-lavish-question]')];
+      const status = btn.parentElement.querySelector('[data-lavish-copy-all-status]');
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const out = [];
+      for (const q of qs) {
+        const key = q.getAttribute('data-lavish-question')?.trim() || 'Question';
+        const lines = [];
+        for (const el of q.querySelectorAll('input, select, textarea')) {
+          if (el.matches(':disabled')) continue;
+          if (el.closest('[data-lavish-question]') !== q) continue;
+          const isChoice = el.matches('input[type=checkbox], input[type=radio]');
+          if (isChoice && !el.checked) continue;
+          if (el.matches('input[type=button], input[type=submit], input[type=reset], input[type=image], input[type=hidden], input[type=file], input[type=range], input[type=color]')) continue;
+          let vals;
+          if (el instanceof HTMLSelectElement) {
+            vals = [...el.selectedOptions].filter((o) => !o.disabled && !o.closest('optgroup[disabled]')).map((o) => o.value.trim()).filter(Boolean);
+          } else {
+            const v = isChoice && (!el.hasAttribute('value') || !el.value.trim())
+              ? el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.name || ''
+              : el.value.trim();
+            vals = v ? [v] : [];
+          }
+          const label = el.name || el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.getAttribute('placeholder')?.trim() || el.tagName.toLowerCase();
+          for (const v of vals) lines.push('  ' + label + ': ' + v.split('\n').join('\n    '));
+        }
+        if (lines.length) out.push(key + ':\n' + lines.join('\n'));
+      }
+      const text = out.join('\n\n');
+      if (!text) {
+        status.textContent = qs.length ? 'No answers to copy yet.' : 'No questions or answers to copy.';
+        return;
+      }
+      status.textContent = '';
+      try {
+        if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('Clipboard API unavailable');
+        await navigator.clipboard.writeText(text);
+        if (copyRun !== btn._lavishCopyRun) return;
+        status.textContent = 'Answers copied.';
+        return;
+      } catch {}
+      if (copyRun !== btn._lavishCopyRun) return;
+      const tmp = document.createElement('textarea');
+      tmp.value = text;
+      tmp.readOnly = true;
+      tmp.setAttribute('aria-hidden', 'true');
+      tmp.style.position = 'fixed';
+      tmp.style.left = '-10000px';
+      document.body.append(tmp);
+      tmp.focus();
+      tmp.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {}
+      tmp.remove();
+      if (ok) {
+        status.textContent = 'Answers copied.';
+        return;
+      }
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const man = document.createElement('textarea');
+      man.value = text;
+      man.readOnly = true;
+      man.rows = Math.min(12, Math.max(3, text.split('\n').length));
+      man.setAttribute('aria-label', 'Answers to copy manually');
+      man.dataset.lavishCopyAllManual = '';
+      btn.insertAdjacentElement('afterend', man);
+      man.focus();
+      man.select();
+      status.textContent = 'Clipboard unavailable. Copy the answers below manually.';
+    })(this)">Copy all answers</button>
+    <span data-lavish-copy-all-status role="status" aria-live="polite"></span>
+  </div>
+  <p class="note">Reading this away from Lavish? Pick your options, tap Copy all answers, and paste the result into the chat.</p>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <h3>Sources</h3>
+  <ul>
+    <li><b>Repo.</b> <code>backends/open_agent.py</code> (<code>_ask</code>, <code>run_conversation</code>, <code>max_retries=1 if checks is None else 2</code>) · <code>backends/open_checks.py</code> (H1–H3) · <code>evaluation/metrics.py</code> (<code>numeric_match</code>) · <code>sft/rows.py</code> · <code>sft/train/mask.py</code> · <code>sft/splits.py</code> · <code>sft/tokens.py</code> · <code>sft/cloud/modal_app.py</code> · <code>sft/configs/sft_v1.yaml</code>, <code>sft_v2.yaml</code> · <code>evaluation/sft/v2/stats.json</code> · <code>evaluation/splits/sft_v2.json</code> · <code>runs/sft/20261025T113733Z_train_sft2/run.json</code>.</li>
+    <li><b>Measured for this page.</b> Flip shares: the four <code>open-evalloop-train100-…pydchk…sft2-e{0p5,1,1p5,2}…</code> val CSVs. Sign flips: all 14 pydchk and Flash pass CSVs. Pool counts: <code>_pool_frame()</code> less test, holdout and val pages, and less sft_v2 train. Token counts: the student's tokenizer on data v2 rows.</li>
+    <li><b>Methods.</b> Shao et al. 2024, <a href="https://arxiv.org/abs/2402.03300">DeepSeekMath</a> (GRPO) · Yu et al. 2025, <a href="https://arxiv.org/abs/2503.14476">DAPO</a> · Liu et al. 2025, <a href="https://arxiv.org/abs/2503.20783">Understanding R1-Zero-like training</a> (Dr. GRPO) · Yue et al. 2025, <a href="https://arxiv.org/abs/2504.13837">Does RL really incentivize reasoning beyond the base model?</a> · Wang et al. 2025, <a href="https://arxiv.org/abs/2504.20571">RL for reasoning with one training example</a> · Thinking Machines 2025, <a href="https://thinkingmachines.ai/blog/lora/">LoRA Without Regret</a>.</li>
+    <li><b>Tools.</b> <a href="https://huggingface.co/docs/trl/main/en/grpo_trainer">TRL GRPOTrainer</a> (tools, environment_factory, loss types, vLLM modes) · Modal examples: <a href="https://modal.com/docs/examples/grpo_trl">GRPO with TRL</a>, <a href="https://modal.com/docs/examples/grpo_verl">GRPO with verl</a> · <a href="https://docs.vllm.ai/en/stable/features/lora.html">vLLM LoRA</a> (runtime loading) · Modal GPU prices from <a href="https://www.spheron.network/blog/modal-gpu-pricing-2026-per-second-billing/">Spheron</a> and <a href="https://computeprices.com/compare/gpu-vs-modal">ComputePrices</a>; check modal.com/pricing.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>
