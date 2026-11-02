@@ -19,6 +19,8 @@ WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# FineTuning.test.tsx imports the committed record; `tsc -b` type-checks it, so it must resolve here.
+COPY evaluation/fine_tuning.json /evaluation/fine_tuning.json
 RUN npm run build
 
 # ── Stage 2: runtime ────────────────────────────────────────────────────
