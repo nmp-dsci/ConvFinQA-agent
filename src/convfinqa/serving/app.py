@@ -218,6 +218,12 @@ def _mount_frontend(app: FastAPI) -> None:
 
     index = FRONTEND_DIST / "index.html"
     root = FRONTEND_DIST.resolve()
+    # The shell answers any path no route claims, and it carries a Last-Modified,
+    # so without this a browser caches it heuristically: a fetch of an API route
+    # made while the backend predated it (`/eval/fine-tuning`, s32) got the shell
+    # and kept getting it from cache once the route existed. After a deploy a
+    # cached shell would also name asset hashes that are gone.
+    shell_headers = {"Cache-Control": "no-cache"}
 
     @app.middleware("http")
     async def spa_page_requests(request: Request, call_next: Any) -> Any:
@@ -243,7 +249,7 @@ def _mount_frontend(app: FastAPI) -> None:
                 request.headers.get("sec-fetch-dest"), request.headers.get("accept")
             )
         ):
-            return FileResponse(index)
+            return FileResponse(index, headers=shell_headers)
         return await call_next(request)
 
     @app.get("/{full_path:path}", include_in_schema=False)
@@ -257,7 +263,7 @@ def _mount_frontend(app: FastAPI) -> None:
         candidate = (FRONTEND_DIST / full_path).resolve()
         if full_path and candidate.is_file() and candidate.is_relative_to(root):
             return FileResponse(candidate)
-        return FileResponse(index)
+        return FileResponse(index, headers=shell_headers)
 
 
 async def _housekeeping_loop(

@@ -1,0 +1,2218 @@
+{
+ "schema": 1,
+ "student": "Qwen/Qwen3-4B-Instruct-2507",
+ "splits": {
+  "val": {
+   "manifest": "sft_v1",
+   "n_conversations": 100,
+   "role": "picks each round's checkpoint; never trained on"
+  },
+  "test": {
+   "manifest": "eval_loop_v2",
+   "n_conversations": 100,
+   "role": "the student's holdout (test 100): opened only for a picked checkpoint, on the owner's word"
+  }
+ },
+ "harnesses": {
+  "pydantic_ai": {
+   "label": "plain",
+   "about": "llm_react_v1's harness and the teacher's: Pydantic AI with the champion's tools and output schema."
+  },
+  "pydantic_ai_checked": {
+   "label": "checked",
+   "about": "The student's harness from s29 (H1–H3): a reply goes back for another try when its answer is not one of its own calculator results or does not follow from its own program."
+  }
+ },
+ "default_temperature": 0.7,
+ "rounds": [
+  {
+   "key": "sft1",
+   "label": "Round 1",
+   "run_id": "20261025T040743Z_train_sft1",
+   "record": "runs/sft/20261025T040743Z_train_sft1/run.json",
+   "started": "2026-10-25T04:08:04Z",
+   "finished": "2026-10-25T07:10:38Z",
+   "instance": "Modal NVIDIA L4 (us-east)",
+   "code_sha": "3fd1d12",
+   "start": {
+    "label": "Base",
+    "round": null,
+    "model": "student-qwen3-4b",
+    "val_pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901"
+   },
+   "dataset": {
+    "version": "v1",
+    "card": "evaluation/sft/v1/card.md",
+    "manifest": "sft_v1",
+    "n_rows": 334,
+    "n_prefix_rows": 0,
+    "n_turns": 1187,
+    "n_type2": 94,
+    "n_dropped": 218,
+    "tokens_trained": 7971000
+   },
+   "settings": {
+    "learning_rate": 0.0001,
+    "schedule": "cosine",
+    "epochs": 3,
+    "effective_batch": 16,
+    "max_length": 24576,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "target_modules": "all-linear",
+    "save": "epoch"
+   },
+   "steps": 63,
+   "train_loss": 0.6164,
+   "final_loss": 0.5993,
+   "duration_s": 10931,
+   "cost_usd": 3.4,
+   "cost_basis": "Modal list price × this attempt's wall time (L4, 4 cores)",
+   "loss": [
+    {
+     "step": 1,
+     "epoch": 0.0479,
+     "loss": 1.3056,
+     "learning_rate": 0.0
+    },
+    {
+     "step": 2,
+     "epoch": 0.0958,
+     "loss": 1.2493,
+     "learning_rate": 2.5e-05
+    },
+    {
+     "step": 3,
+     "epoch": 0.1437,
+     "loss": 1.2106,
+     "learning_rate": 5e-05
+    },
+    {
+     "step": 4,
+     "epoch": 0.1916,
+     "loss": 1.0552,
+     "learning_rate": 7.5e-05
+    },
+    {
+     "step": 5,
+     "epoch": 0.2395,
+     "loss": 0.9626,
+     "learning_rate": 0.0001
+    },
+    {
+     "step": 6,
+     "epoch": 0.2874,
+     "loss": 0.8328,
+     "learning_rate": 9.99e-05
+    },
+    {
+     "step": 7,
+     "epoch": 0.3353,
+     "loss": 0.7472,
+     "learning_rate": 9.97e-05
+    },
+    {
+     "step": 8,
+     "epoch": 0.3832,
+     "loss": 0.7399,
+     "learning_rate": 9.94e-05
+    },
+    {
+     "step": 9,
+     "epoch": 0.4311,
+     "loss": 0.6729,
+     "learning_rate": 9.89e-05
+    },
+    {
+     "step": 10,
+     "epoch": 0.479,
+     "loss": 0.7446,
+     "learning_rate": 9.82e-05
+    },
+    {
+     "step": 11,
+     "epoch": 0.5269,
+     "loss": 0.6061,
+     "learning_rate": 9.75e-05
+    },
+    {
+     "step": 12,
+     "epoch": 0.5749,
+     "loss": 0.7349,
+     "learning_rate": 9.66e-05
+    },
+    {
+     "step": 13,
+     "epoch": 0.6228,
+     "loss": 0.6745,
+     "learning_rate": 9.55e-05
+    },
+    {
+     "step": 14,
+     "epoch": 0.6707,
+     "loss": 0.7331,
+     "learning_rate": 9.44e-05
+    },
+    {
+     "step": 15,
+     "epoch": 0.7186,
+     "loss": 0.66,
+     "learning_rate": 9.31e-05
+    },
+    {
+     "step": 16,
+     "epoch": 0.7665,
+     "loss": 0.6214,
+     "learning_rate": 9.17e-05
+    },
+    {
+     "step": 17,
+     "epoch": 0.8144,
+     "loss": 0.5971,
+     "learning_rate": 9.01e-05
+    },
+    {
+     "step": 18,
+     "epoch": 0.8623,
+     "loss": 0.603,
+     "learning_rate": 8.85e-05
+    },
+    {
+     "step": 19,
+     "epoch": 0.9102,
+     "loss": 0.5909,
+     "learning_rate": 8.67e-05
+    },
+    {
+     "step": 20,
+     "epoch": 0.9581,
+     "loss": 0.6823,
+     "learning_rate": 8.49e-05
+    },
+    {
+     "step": 21,
+     "epoch": 1.0,
+     "loss": 0.534,
+     "learning_rate": 8.29e-05
+    },
+    {
+     "step": 22,
+     "epoch": 1.0479,
+     "loss": 0.6667,
+     "learning_rate": 8.09e-05
+    },
+    {
+     "step": 23,
+     "epoch": 1.0958,
+     "loss": 0.6484,
+     "learning_rate": 7.87e-05
+    },
+    {
+     "step": 24,
+     "epoch": 1.1437,
+     "loss": 0.5822,
+     "learning_rate": 7.65e-05
+    },
+    {
+     "step": 25,
+     "epoch": 1.1916,
+     "loss": 0.579,
+     "learning_rate": 7.42e-05
+    },
+    {
+     "step": 26,
+     "epoch": 1.2395,
+     "loss": 0.5046,
+     "learning_rate": 7.19e-05
+    },
+    {
+     "step": 27,
+     "epoch": 1.2874,
+     "loss": 0.535,
+     "learning_rate": 6.94e-05
+    },
+    {
+     "step": 28,
+     "epoch": 1.3353,
+     "loss": 0.5555,
+     "learning_rate": 6.7e-05
+    },
+    {
+     "step": 29,
+     "epoch": 1.3832,
+     "loss": 0.6973,
+     "learning_rate": 6.44e-05
+    },
+    {
+     "step": 30,
+     "epoch": 1.4311,
+     "loss": 0.5934,
+     "learning_rate": 6.19e-05
+    },
+    {
+     "step": 31,
+     "epoch": 1.479,
+     "loss": 0.5366,
+     "learning_rate": 5.93e-05
+    },
+    {
+     "step": 32,
+     "epoch": 1.5269,
+     "loss": 0.5182,
+     "learning_rate": 5.66e-05
+    },
+    {
+     "step": 33,
+     "epoch": 1.5749,
+     "loss": 0.5463,
+     "learning_rate": 5.4e-05
+    },
+    {
+     "step": 34,
+     "epoch": 1.6228,
+     "loss": 0.5516,
+     "learning_rate": 5.13e-05
+    },
+    {
+     "step": 35,
+     "epoch": 1.6707,
+     "loss": 0.511,
+     "learning_rate": 4.87e-05
+    },
+    {
+     "step": 36,
+     "epoch": 1.7186,
+     "loss": 0.5733,
+     "learning_rate": 4.6e-05
+    },
+    {
+     "step": 37,
+     "epoch": 1.7665,
+     "loss": 0.4943,
+     "learning_rate": 4.34e-05
+    },
+    {
+     "step": 38,
+     "epoch": 1.8144,
+     "loss": 0.4606,
+     "learning_rate": 4.07e-05
+    },
+    {
+     "step": 39,
+     "epoch": 1.8623,
+     "loss": 0.5128,
+     "learning_rate": 3.81e-05
+    },
+    {
+     "step": 40,
+     "epoch": 1.9102,
+     "loss": 0.4909,
+     "learning_rate": 3.56e-05
+    },
+    {
+     "step": 41,
+     "epoch": 1.9581,
+     "loss": 0.4771,
+     "learning_rate": 3.3e-05
+    },
+    {
+     "step": 42,
+     "epoch": 2.0,
+     "loss": 0.5116,
+     "learning_rate": 3.06e-05
+    },
+    {
+     "step": 43,
+     "epoch": 2.0479,
+     "loss": 0.5379,
+     "learning_rate": 2.81e-05
+    },
+    {
+     "step": 44,
+     "epoch": 2.0958,
+     "loss": 0.5334,
+     "learning_rate": 2.58e-05
+    },
+    {
+     "step": 45,
+     "epoch": 2.1437,
+     "loss": 0.569,
+     "learning_rate": 2.35e-05
+    },
+    {
+     "step": 46,
+     "epoch": 2.1916,
+     "loss": 0.5174,
+     "learning_rate": 2.13e-05
+    },
+    {
+     "step": 47,
+     "epoch": 2.2395,
+     "loss": 0.5235,
+     "learning_rate": 1.91e-05
+    },
+    {
+     "step": 48,
+     "epoch": 2.2874,
+     "loss": 0.5622,
+     "learning_rate": 1.71e-05
+    },
+    {
+     "step": 49,
+     "epoch": 2.3353,
+     "loss": 0.5523,
+     "learning_rate": 1.51e-05
+    },
+    {
+     "step": 50,
+     "epoch": 2.3832,
+     "loss": 0.4861,
+     "learning_rate": 1.33e-05
+    },
+    {
+     "step": 51,
+     "epoch": 2.4311,
+     "loss": 0.4667,
+     "learning_rate": 1.15e-05
+    },
+    {
+     "step": 52,
+     "epoch": 2.479,
+     "loss": 0.5498,
+     "learning_rate": 9.86e-06
+    },
+    {
+     "step": 53,
+     "epoch": 2.5269,
+     "loss": 0.5394,
+     "learning_rate": 8.33e-06
+    },
+    {
+     "step": 54,
+     "epoch": 2.5749,
+     "loss": 0.4592,
+     "learning_rate": 6.92e-06
+    },
+    {
+     "step": 55,
+     "epoch": 2.6228,
+     "loss": 0.4721,
+     "learning_rate": 5.63e-06
+    },
+    {
+     "step": 56,
+     "epoch": 2.6707,
+     "loss": 0.4631,
+     "learning_rate": 4.47e-06
+    },
+    {
+     "step": 57,
+     "epoch": 2.7186,
+     "loss": 0.489,
+     "learning_rate": 3.43e-06
+    },
+    {
+     "step": 58,
+     "epoch": 2.7665,
+     "loss": 0.4939,
+     "learning_rate": 2.53e-06
+    },
+    {
+     "step": 59,
+     "epoch": 2.8144,
+     "loss": 0.5,
+     "learning_rate": 1.76e-06
+    },
+    {
+     "step": 60,
+     "epoch": 2.8623,
+     "loss": 0.4438,
+     "learning_rate": 1.13e-06
+    },
+    {
+     "step": 61,
+     "epoch": 2.9102,
+     "loss": 0.4476,
+     "learning_rate": 6.37e-07
+    },
+    {
+     "step": 62,
+     "epoch": 2.9581,
+     "loss": 0.5241,
+     "learning_rate": 2.83e-07
+    },
+    {
+     "step": 63,
+     "epoch": 3.0,
+     "loss": 0.5993,
+     "learning_rate": 7.09e-08
+    }
+   ],
+   "sweep_harness": "pydantic_ai",
+   "checkpoints": [
+    {
+     "key": "e1",
+     "epoch": 1.0,
+     "step": 21,
+     "model": "student-qwen3-4b-sft1-e1",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e1-none-20261025_181906",
+     "test_pass": null,
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+      "to": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e1-none-20261025_181906",
+      "n": 365,
+      "delta_pp": 12.88,
+      "fixed": 80,
+      "broken": 33,
+      "p_one_sided": 0.001,
+      "ci_pp": [
+       4.92,
+       21.39
+      ],
+      "same_harness": true
+     }
+    },
+    {
+     "key": "e2",
+     "epoch": 2.0,
+     "step": 42,
+     "model": "student-qwen3-4b-sft1-e2",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+     "test_pass": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346",
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+      "to": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+      "n": 365,
+      "delta_pp": 17.53,
+      "fixed": 88,
+      "broken": 24,
+      "p_one_sided": 0.0,
+      "ci_pp": [
+       9.86,
+       25.95
+      ],
+      "same_harness": true
+     }
+    },
+    {
+     "key": "e3",
+     "epoch": 3.0,
+     "step": 63,
+     "model": "student-qwen3-4b-sft1-e3",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e3-none-20261025_185746",
+     "test_pass": null,
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+      "to": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e3-none-20261025_185746",
+      "n": 365,
+      "delta_pp": 14.79,
+      "fixed": 84,
+      "broken": 30,
+      "p_one_sided": 0.0002,
+      "ci_pp": [
+       7.07,
+       23.28
+      ],
+      "same_harness": true
+     }
+    }
+   ],
+   "best": "e2",
+   "rescores": [
+    "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
+    "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-t0p2-none-20261025_220002",
+    "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011"
+   ]
+  },
+  {
+   "key": "sft2",
+   "label": "Round 2",
+   "run_id": "20261025T113733Z_train_sft2",
+   "record": "runs/sft/20261025T113733Z_train_sft2/run.json",
+   "started": "2026-10-25T12:06:31Z",
+   "finished": "2026-10-25T17:39:08Z",
+   "instance": "Modal NVIDIA L4 (uk)",
+   "code_sha": "8b466a9",
+   "start": {
+    "label": "sft1 e2",
+    "round": "sft1",
+    "model": "student-qwen3-4b-sft1-e2",
+    "val_pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011"
+   },
+   "dataset": {
+    "version": "v2",
+    "card": "evaluation/sft/v2/card.md",
+    "manifest": "sft_v2",
+    "n_rows": 916,
+    "n_prefix_rows": 278,
+    "n_turns": 3486,
+    "n_type2": 308,
+    "n_dropped": 514,
+    "tokens_trained": 14739766
+   },
+   "settings": {
+    "learning_rate": 5e-05,
+    "schedule": "cosine",
+    "epochs": 2,
+    "effective_batch": 16,
+    "max_length": 24576,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "target_modules": "all-linear",
+    "save": "steps every 0.25 of the run"
+   },
+   "steps": 116,
+   "train_loss": 0.4668,
+   "final_loss": 0.6128,
+   "duration_s": 19906,
+   "cost_usd": 6.19,
+   "cost_basis": "Modal list price × this attempt's wall time (L4, 4 cores)",
+   "loss": [
+    {
+     "step": 1,
+     "epoch": 0.0175,
+     "loss": 0.6937,
+     "learning_rate": 0.0
+    },
+    {
+     "step": 2,
+     "epoch": 0.0349,
+     "loss": 0.552,
+     "learning_rate": 8.33e-06
+    },
+    {
+     "step": 3,
+     "epoch": 0.0524,
+     "loss": 0.4794,
+     "learning_rate": 1.67e-05
+    },
+    {
+     "step": 4,
+     "epoch": 0.0699,
+     "loss": 0.5076,
+     "learning_rate": 2.5e-05
+    },
+    {
+     "step": 5,
+     "epoch": 0.0873,
+     "loss": 0.5016,
+     "learning_rate": 3.33e-05
+    },
+    {
+     "step": 6,
+     "epoch": 0.1048,
+     "loss": 0.4451,
+     "learning_rate": 4.17e-05
+    },
+    {
+     "step": 7,
+     "epoch": 0.1223,
+     "loss": 0.4798,
+     "learning_rate": 5e-05
+    },
+    {
+     "step": 8,
+     "epoch": 0.1397,
+     "loss": 0.5614,
+     "learning_rate": 5e-05
+    },
+    {
+     "step": 9,
+     "epoch": 0.1572,
+     "loss": 0.5482,
+     "learning_rate": 5e-05
+    },
+    {
+     "step": 10,
+     "epoch": 0.1747,
+     "loss": 0.4247,
+     "learning_rate": 4.99e-05
+    },
+    {
+     "step": 11,
+     "epoch": 0.1921,
+     "loss": 0.5185,
+     "learning_rate": 4.98e-05
+    },
+    {
+     "step": 12,
+     "epoch": 0.2096,
+     "loss": 0.4397,
+     "learning_rate": 4.97e-05
+    },
+    {
+     "step": 13,
+     "epoch": 0.2271,
+     "loss": 0.4634,
+     "learning_rate": 4.96e-05
+    },
+    {
+     "step": 14,
+     "epoch": 0.2445,
+     "loss": 0.5214,
+     "learning_rate": 4.95e-05
+    },
+    {
+     "step": 15,
+     "epoch": 0.262,
+     "loss": 0.4064,
+     "learning_rate": 4.94e-05
+    },
+    {
+     "step": 16,
+     "epoch": 0.2795,
+     "loss": 0.51,
+     "learning_rate": 4.92e-05
+    },
+    {
+     "step": 17,
+     "epoch": 0.2969,
+     "loss": 0.4684,
+     "learning_rate": 4.9e-05
+    },
+    {
+     "step": 18,
+     "epoch": 0.3144,
+     "loss": 0.5202,
+     "learning_rate": 4.88e-05
+    },
+    {
+     "step": 19,
+     "epoch": 0.3319,
+     "loss": 0.5188,
+     "learning_rate": 4.85e-05
+    },
+    {
+     "step": 20,
+     "epoch": 0.3493,
+     "loss": 0.492,
+     "learning_rate": 4.83e-05
+    },
+    {
+     "step": 21,
+     "epoch": 0.3668,
+     "loss": 0.5629,
+     "learning_rate": 4.8e-05
+    },
+    {
+     "step": 22,
+     "epoch": 0.3843,
+     "loss": 0.5318,
+     "learning_rate": 4.77e-05
+    },
+    {
+     "step": 23,
+     "epoch": 0.4017,
+     "loss": 0.5029,
+     "learning_rate": 4.74e-05
+    },
+    {
+     "step": 24,
+     "epoch": 0.4192,
+     "loss": 0.4389,
+     "learning_rate": 4.71e-05
+    },
+    {
+     "step": 25,
+     "epoch": 0.4367,
+     "loss": 0.5393,
+     "learning_rate": 4.68e-05
+    },
+    {
+     "step": 26,
+     "epoch": 0.4541,
+     "loss": 0.5503,
+     "learning_rate": 4.64e-05
+    },
+    {
+     "step": 27,
+     "epoch": 0.4716,
+     "loss": 0.4746,
+     "learning_rate": 4.6e-05
+    },
+    {
+     "step": 28,
+     "epoch": 0.4891,
+     "loss": 0.607,
+     "learning_rate": 4.56e-05
+    },
+    {
+     "step": 29,
+     "epoch": 0.5066,
+     "loss": 0.509,
+     "learning_rate": 4.52e-05
+    },
+    {
+     "step": 30,
+     "epoch": 0.524,
+     "loss": 0.4353,
+     "learning_rate": 4.48e-05
+    },
+    {
+     "step": 31,
+     "epoch": 0.5415,
+     "loss": 0.5405,
+     "learning_rate": 4.44e-05
+    },
+    {
+     "step": 32,
+     "epoch": 0.559,
+     "loss": 0.614,
+     "learning_rate": 4.39e-05
+    },
+    {
+     "step": 33,
+     "epoch": 0.5764,
+     "loss": 0.4335,
+     "learning_rate": 4.34e-05
+    },
+    {
+     "step": 34,
+     "epoch": 0.5939,
+     "loss": 0.5409,
+     "learning_rate": 4.29e-05
+    },
+    {
+     "step": 35,
+     "epoch": 0.6114,
+     "loss": 0.4161,
+     "learning_rate": 4.24e-05
+    },
+    {
+     "step": 36,
+     "epoch": 0.6288,
+     "loss": 0.4783,
+     "learning_rate": 4.19e-05
+    },
+    {
+     "step": 37,
+     "epoch": 0.6463,
+     "loss": 0.4425,
+     "learning_rate": 4.14e-05
+    },
+    {
+     "step": 38,
+     "epoch": 0.6638,
+     "loss": 0.4729,
+     "learning_rate": 4.08e-05
+    },
+    {
+     "step": 39,
+     "epoch": 0.6812,
+     "loss": 0.4333,
+     "learning_rate": 4.03e-05
+    },
+    {
+     "step": 40,
+     "epoch": 0.6987,
+     "loss": 0.5157,
+     "learning_rate": 3.97e-05
+    },
+    {
+     "step": 41,
+     "epoch": 0.7162,
+     "loss": 0.5155,
+     "learning_rate": 3.91e-05
+    },
+    {
+     "step": 42,
+     "epoch": 0.7336,
+     "loss": 0.5454,
+     "learning_rate": 3.85e-05
+    },
+    {
+     "step": 43,
+     "epoch": 0.7511,
+     "loss": 0.5012,
+     "learning_rate": 3.79e-05
+    },
+    {
+     "step": 44,
+     "epoch": 0.7686,
+     "loss": 0.4287,
+     "learning_rate": 3.73e-05
+    },
+    {
+     "step": 45,
+     "epoch": 0.786,
+     "loss": 0.4389,
+     "learning_rate": 3.67e-05
+    },
+    {
+     "step": 46,
+     "epoch": 0.8035,
+     "loss": 0.4172,
+     "learning_rate": 3.6e-05
+    },
+    {
+     "step": 47,
+     "epoch": 0.821,
+     "loss": 0.4818,
+     "learning_rate": 3.54e-05
+    },
+    {
+     "step": 48,
+     "epoch": 0.8384,
+     "loss": 0.3903,
+     "learning_rate": 3.47e-05
+    },
+    {
+     "step": 49,
+     "epoch": 0.8559,
+     "loss": 0.448,
+     "learning_rate": 3.41e-05
+    },
+    {
+     "step": 50,
+     "epoch": 0.8734,
+     "loss": 0.4707,
+     "learning_rate": 3.34e-05
+    },
+    {
+     "step": 51,
+     "epoch": 0.8908,
+     "loss": 0.4166,
+     "learning_rate": 3.27e-05
+    },
+    {
+     "step": 52,
+     "epoch": 0.9083,
+     "loss": 0.4657,
+     "learning_rate": 3.2e-05
+    },
+    {
+     "step": 53,
+     "epoch": 0.9258,
+     "loss": 0.4272,
+     "learning_rate": 3.14e-05
+    },
+    {
+     "step": 54,
+     "epoch": 0.9432,
+     "loss": 0.469,
+     "learning_rate": 3.07e-05
+    },
+    {
+     "step": 55,
+     "epoch": 0.9607,
+     "loss": 0.4893,
+     "learning_rate": 3e-05
+    },
+    {
+     "step": 56,
+     "epoch": 0.9782,
+     "loss": 0.5202,
+     "learning_rate": 2.93e-05
+    },
+    {
+     "step": 57,
+     "epoch": 0.9956,
+     "loss": 0.4129,
+     "learning_rate": 2.86e-05
+    },
+    {
+     "step": 58,
+     "epoch": 1.0,
+     "loss": 0.4527,
+     "learning_rate": 2.78e-05
+    },
+    {
+     "step": 59,
+     "epoch": 1.0175,
+     "loss": 0.4788,
+     "learning_rate": 2.71e-05
+    },
+    {
+     "step": 60,
+     "epoch": 1.0349,
+     "loss": 0.4221,
+     "learning_rate": 2.64e-05
+    },
+    {
+     "step": 61,
+     "epoch": 1.0524,
+     "loss": 0.4085,
+     "learning_rate": 2.57e-05
+    },
+    {
+     "step": 62,
+     "epoch": 1.0699,
+     "loss": 0.3911,
+     "learning_rate": 2.5e-05
+    },
+    {
+     "step": 63,
+     "epoch": 1.0873,
+     "loss": 0.4637,
+     "learning_rate": 2.43e-05
+    },
+    {
+     "step": 64,
+     "epoch": 1.1048,
+     "loss": 0.4373,
+     "learning_rate": 2.36e-05
+    },
+    {
+     "step": 65,
+     "epoch": 1.1223,
+     "loss": 0.4713,
+     "learning_rate": 2.29e-05
+    },
+    {
+     "step": 66,
+     "epoch": 1.1397,
+     "loss": 0.4189,
+     "learning_rate": 2.22e-05
+    },
+    {
+     "step": 67,
+     "epoch": 1.1572,
+     "loss": 0.4759,
+     "learning_rate": 2.14e-05
+    },
+    {
+     "step": 68,
+     "epoch": 1.1747,
+     "loss": 0.4403,
+     "learning_rate": 2.07e-05
+    },
+    {
+     "step": 69,
+     "epoch": 1.1921,
+     "loss": 0.435,
+     "learning_rate": 2e-05
+    },
+    {
+     "step": 70,
+     "epoch": 1.2096,
+     "loss": 0.4202,
+     "learning_rate": 1.93e-05
+    },
+    {
+     "step": 71,
+     "epoch": 1.2271,
+     "loss": 0.4035,
+     "learning_rate": 1.86e-05
+    },
+    {
+     "step": 72,
+     "epoch": 1.2445,
+     "loss": 0.5188,
+     "learning_rate": 1.8e-05
+    },
+    {
+     "step": 73,
+     "epoch": 1.262,
+     "loss": 0.4523,
+     "learning_rate": 1.73e-05
+    },
+    {
+     "step": 74,
+     "epoch": 1.2795,
+     "loss": 0.4239,
+     "learning_rate": 1.66e-05
+    },
+    {
+     "step": 75,
+     "epoch": 1.2969,
+     "loss": 0.443,
+     "learning_rate": 1.59e-05
+    },
+    {
+     "step": 76,
+     "epoch": 1.3144,
+     "loss": 0.4532,
+     "learning_rate": 1.53e-05
+    },
+    {
+     "step": 77,
+     "epoch": 1.3319,
+     "loss": 0.4188,
+     "learning_rate": 1.46e-05
+    },
+    {
+     "step": 78,
+     "epoch": 1.3493,
+     "loss": 0.4603,
+     "learning_rate": 1.4e-05
+    },
+    {
+     "step": 79,
+     "epoch": 1.3668,
+     "loss": 0.4572,
+     "learning_rate": 1.33e-05
+    },
+    {
+     "step": 80,
+     "epoch": 1.3843,
+     "loss": 0.4304,
+     "learning_rate": 1.27e-05
+    },
+    {
+     "step": 81,
+     "epoch": 1.4017,
+     "loss": 0.5118,
+     "learning_rate": 1.21e-05
+    },
+    {
+     "step": 82,
+     "epoch": 1.4192,
+     "loss": 0.3818,
+     "learning_rate": 1.15e-05
+    },
+    {
+     "step": 83,
+     "epoch": 1.4367,
+     "loss": 0.3041,
+     "learning_rate": 1.09e-05
+    },
+    {
+     "step": 84,
+     "epoch": 1.4541,
+     "loss": 0.4626,
+     "learning_rate": 1.03e-05
+    },
+    {
+     "step": 85,
+     "epoch": 1.4716,
+     "loss": 0.4015,
+     "learning_rate": 9.73e-06
+    },
+    {
+     "step": 86,
+     "epoch": 1.4891,
+     "loss": 0.368,
+     "learning_rate": 9.17e-06
+    },
+    {
+     "step": 87,
+     "epoch": 1.5066,
+     "loss": 0.5008,
+     "learning_rate": 8.63e-06
+    },
+    {
+     "step": 88,
+     "epoch": 1.524,
+     "loss": 0.461,
+     "learning_rate": 8.1e-06
+    },
+    {
+     "step": 89,
+     "epoch": 1.5415,
+     "loss": 0.4024,
+     "learning_rate": 7.58e-06
+    },
+    {
+     "step": 90,
+     "epoch": 1.559,
+     "loss": 0.4649,
+     "learning_rate": 7.07e-06
+    },
+    {
+     "step": 91,
+     "epoch": 1.5764,
+     "loss": 0.4694,
+     "learning_rate": 6.58e-06
+    },
+    {
+     "step": 92,
+     "epoch": 1.5939,
+     "loss": 0.481,
+     "learning_rate": 6.11e-06
+    },
+    {
+     "step": 93,
+     "epoch": 1.6114,
+     "loss": 0.4099,
+     "learning_rate": 5.65e-06
+    },
+    {
+     "step": 94,
+     "epoch": 1.6288,
+     "loss": 0.4115,
+     "learning_rate": 5.2e-06
+    },
+    {
+     "step": 95,
+     "epoch": 1.6463,
+     "loss": 0.4823,
+     "learning_rate": 4.77e-06
+    },
+    {
+     "step": 96,
+     "epoch": 1.6638,
+     "loss": 0.3832,
+     "learning_rate": 4.36e-06
+    },
+    {
+     "step": 97,
+     "epoch": 1.6812,
+     "loss": 0.4171,
+     "learning_rate": 3.97e-06
+    },
+    {
+     "step": 98,
+     "epoch": 1.6987,
+     "loss": 0.4914,
+     "learning_rate": 3.59e-06
+    },
+    {
+     "step": 99,
+     "epoch": 1.7162,
+     "loss": 0.4197,
+     "learning_rate": 3.23e-06
+    },
+    {
+     "step": 100,
+     "epoch": 1.7336,
+     "loss": 0.461,
+     "learning_rate": 2.89e-06
+    },
+    {
+     "step": 101,
+     "epoch": 1.7511,
+     "loss": 0.4714,
+     "learning_rate": 2.57e-06
+    },
+    {
+     "step": 102,
+     "epoch": 1.7686,
+     "loss": 0.472,
+     "learning_rate": 2.26e-06
+    },
+    {
+     "step": 103,
+     "epoch": 1.786,
+     "loss": 0.4225,
+     "learning_rate": 1.97e-06
+    },
+    {
+     "step": 104,
+     "epoch": 1.8035,
+     "loss": 0.4468,
+     "learning_rate": 1.7e-06
+    },
+    {
+     "step": 105,
+     "epoch": 1.821,
+     "loss": 0.3829,
+     "learning_rate": 1.45e-06
+    },
+    {
+     "step": 106,
+     "epoch": 1.8384,
+     "loss": 0.4242,
+     "learning_rate": 1.22e-06
+    },
+    {
+     "step": 107,
+     "epoch": 1.8559,
+     "loss": 0.394,
+     "learning_rate": 1.01e-06
+    },
+    {
+     "step": 108,
+     "epoch": 1.8734,
+     "loss": 0.5103,
+     "learning_rate": 8.21e-07
+    },
+    {
+     "step": 109,
+     "epoch": 1.8908,
+     "loss": 0.5372,
+     "learning_rate": 6.5e-07
+    },
+    {
+     "step": 110,
+     "epoch": 1.9083,
+     "loss": 0.418,
+     "learning_rate": 4.98e-07
+    },
+    {
+     "step": 111,
+     "epoch": 1.9258,
+     "loss": 0.4725,
+     "learning_rate": 3.66e-07
+    },
+    {
+     "step": 112,
+     "epoch": 1.9432,
+     "loss": 0.4664,
+     "learning_rate": 2.54e-07
+    },
+    {
+     "step": 113,
+     "epoch": 1.9607,
+     "loss": 0.4737,
+     "learning_rate": 1.63e-07
+    },
+    {
+     "step": 114,
+     "epoch": 1.9782,
+     "loss": 0.4077,
+     "learning_rate": 9.17e-08
+    },
+    {
+     "step": 115,
+     "epoch": 1.9956,
+     "loss": 0.4419,
+     "learning_rate": 4.08e-08
+    },
+    {
+     "step": 116,
+     "epoch": 2.0,
+     "loss": 0.6128,
+     "learning_rate": 1.02e-08
+    }
+   ],
+   "sweep_harness": "pydantic_ai_checked",
+   "checkpoints": [
+    {
+     "key": "e0p5",
+     "epoch": 0.51,
+     "step": 29,
+     "model": "student-qwen3-4b-sft2-e0p5",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e0p5-none-20261026_003751",
+     "test_pass": null,
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+      "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e0p5-none-20261026_003751",
+      "n": 365,
+      "delta_pp": 3.56,
+      "fixed": 27,
+      "broken": 14,
+      "p_one_sided": 0.0817,
+      "ci_pp": [
+       -1.32,
+       8.6
+      ],
+      "same_harness": true
+     }
+    },
+    {
+     "key": "e1",
+     "epoch": 1.0,
+     "step": 58,
+     "model": "student-qwen3-4b-sft2-e1",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116",
+     "test_pass": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617",
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+      "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116",
+      "n": 365,
+      "delta_pp": 5.75,
+      "fixed": 38,
+      "broken": 17,
+      "p_one_sided": 0.0448,
+      "ci_pp": [
+       -0.53,
+       12.53
+      ],
+      "same_harness": true
+     }
+    },
+    {
+     "key": "e1p5",
+     "epoch": 1.51,
+     "step": 87,
+     "model": "student-qwen3-4b-sft2-e1p5",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1p5-none-20261026_032317",
+     "test_pass": null,
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+      "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1p5-none-20261026_032317",
+      "n": 365,
+      "delta_pp": 4.11,
+      "fixed": 29,
+      "broken": 14,
+      "p_one_sided": 0.0416,
+      "ci_pp": [
+       -0.28,
+       8.83
+      ],
+      "same_harness": true
+     }
+    },
+    {
+     "key": "e2",
+     "epoch": 2.0,
+     "step": 116,
+     "model": "student-qwen3-4b-sft2-e2",
+     "val_pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e2-none-20261026_044628",
+     "test_pass": null,
+     "vs_start": {
+      "from": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+      "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e2-none-20261026_044628",
+      "n": 365,
+      "delta_pp": 4.93,
+      "fixed": 35,
+      "broken": 17,
+      "p_one_sided": 0.0317,
+      "ci_pp": [
+       0.0,
+       10.44
+      ],
+      "same_harness": true
+     }
+    }
+   ],
+   "best": "e1",
+   "rescores": []
+  }
+ ],
+ "progression": {
+  "val": [
+   {
+    "key": "base",
+    "label": "Base",
+    "kind": "base",
+    "model": "student-qwen3-4b",
+    "harness": "pydantic_ai",
+    "pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+    "vs_prev": null
+   },
+   {
+    "key": "sft1",
+    "label": "Round 1 best, e2",
+    "kind": "round",
+    "round": "sft1",
+    "model": "student-qwen3-4b-sft1-e2",
+    "harness": "pydantic_ai",
+    "pass": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+    "vs_prev": {
+     "from": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+     "to": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+     "n": 365,
+     "delta_pp": 17.53,
+     "fixed": 88,
+     "broken": 24,
+     "p_one_sided": 0.0,
+     "ci_pp": [
+      9.86,
+      25.95
+     ],
+     "same_harness": true
+    }
+   },
+   {
+    "key": "sft1-checked",
+    "label": "Round 1 best, e2, re-scored on the checked harness",
+    "kind": "harness",
+    "model": "student-qwen3-4b-sft1-e2",
+    "harness": "pydantic_ai_checked",
+    "pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+    "vs_prev": {
+     "from": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+     "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+     "n": 365,
+     "delta_pp": -1.1,
+     "fixed": 17,
+     "broken": 21,
+     "p_one_sided": 0.6888,
+     "ci_pp": [
+      -5.06,
+      3.22
+     ],
+     "same_harness": false
+    }
+   },
+   {
+    "key": "sft2",
+    "label": "Round 2 best, e1",
+    "kind": "round",
+    "round": "sft2",
+    "model": "student-qwen3-4b-sft2-e1",
+    "harness": "pydantic_ai_checked",
+    "pass": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116",
+    "vs_prev": {
+     "from": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+     "to": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116",
+     "n": 365,
+     "delta_pp": 5.75,
+     "fixed": 38,
+     "broken": 17,
+     "p_one_sided": 0.0448,
+     "ci_pp": [
+      -0.53,
+      12.53
+     ],
+     "same_harness": true
+    }
+   }
+  ],
+  "test": [
+   {
+    "key": "base",
+    "label": "Base",
+    "kind": "base",
+    "model": "student-qwen3-4b",
+    "harness": "pydantic_ai",
+    "pass": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_153651",
+    "vs_prev": null
+   },
+   {
+    "key": "sft1",
+    "label": "Round 1 best, e2",
+    "kind": "round",
+    "round": "sft1",
+    "model": "student-qwen3-4b-sft1-e2",
+    "harness": "pydantic_ai",
+    "pass": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346",
+    "vs_prev": {
+     "from": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_153651",
+     "to": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346",
+     "n": 349,
+     "delta_pp": 21.2,
+     "fixed": 91,
+     "broken": 17,
+     "p_one_sided": 0.0,
+     "ci_pp": [
+      13.85,
+      28.87
+     ],
+     "same_harness": true
+    }
+   },
+   {
+    "key": "sft1-checked",
+    "label": "Round 1 best, e2, re-scored on the checked harness",
+    "kind": "harness",
+    "model": "student-qwen3-4b-sft1-e2",
+    "harness": "pydantic_ai_checked",
+    "pass": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
+    "vs_prev": {
+     "from": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346",
+     "to": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
+     "n": 349,
+     "delta_pp": 2.87,
+     "fixed": 22,
+     "broken": 12,
+     "p_one_sided": 0.102,
+     "ci_pp": [
+      -1.22,
+      7.41
+     ],
+     "same_harness": false
+    }
+   },
+   {
+    "key": "sft2",
+    "label": "Round 2 best, e1",
+    "kind": "round",
+    "round": "sft2",
+    "model": "student-qwen3-4b-sft2-e1",
+    "harness": "pydantic_ai_checked",
+    "pass": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617",
+    "vs_prev": {
+     "from": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
+     "to": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617",
+     "n": 349,
+     "delta_pp": 1.15,
+     "fixed": 16,
+     "broken": 12,
+     "p_one_sided": 0.2582,
+     "ci_pp": [
+      -2.36,
+      4.59
+     ],
+     "same_harness": true
+    }
+   }
+  ]
+ },
+ "teacher": {
+  "name": "llm_react_v1",
+  "model": "deepseek-flash",
+  "effort": "high",
+  "pass": "open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625",
+  "vs_final": {
+   "from": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617",
+   "to": "open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625",
+   "n": 349,
+   "delta_pp": 6.3,
+   "fixed": 35,
+   "broken": 13,
+   "p_one_sided": 0.0197,
+   "ci_pp": [
+    0.57,
+    12.61
+   ],
+   "same_harness": false
+  },
+  "gap_closed": 0.8
+ },
+ "passes": [
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625.csv",
+   "run_id": "f7d1b1b9e70141d9930e359e73002588",
+   "date": "2026-10-25",
+   "split": "test",
+   "role": "teacher",
+   "model": "deepseek-flash",
+   "effort": "high",
+   "harness": "pydantic_ai",
+   "temperature": null,
+   "round": null,
+   "epoch": null,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 349,
+   "correct": 306,
+   "accuracy": 0.876791,
+   "program": {
+    "n": 238,
+    "correct": 199,
+    "accuracy": 0.836134
+   },
+   "number": {
+    "n": 111,
+    "correct": 107,
+    "accuracy": 0.963964
+   }
+  },
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_153651",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_153651.csv",
+   "run_id": "29b63986b539477489a8b1a475b0e5fb",
+   "date": "2026-10-25",
+   "split": "test",
+   "role": "base",
+   "model": "student-qwen3-4b",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": null,
+   "epoch": null,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 349,
+   "correct": 196,
+   "accuracy": 0.561605,
+   "program": {
+    "n": 238,
+    "correct": 103,
+    "accuracy": 0.432773
+   },
+   "number": {
+    "n": 111,
+    "correct": 93,
+    "accuracy": 0.837838
+   }
+  },
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_193924",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_193924.csv",
+   "run_id": "ec93b5b41e4f45d8aca655dfe5983d10",
+   "date": "2026-10-25",
+   "split": "test",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 349,
+   "complete": false,
+   "n": 0,
+   "correct": 0,
+   "accuracy": null,
+   "program": {
+    "n": 0,
+    "correct": 0,
+    "accuracy": null
+   },
+   "number": {
+    "n": 0,
+    "correct": 0,
+    "accuracy": null
+   }
+  },
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346.csv",
+   "run_id": "eb5ae99cbc2e4db59fd33931f6a1c9d6",
+   "date": "2026-10-25",
+   "split": "test",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 349,
+   "correct": 270,
+   "accuracy": 0.773639,
+   "program": {
+    "n": 238,
+    "correct": 168,
+    "accuracy": 0.705882
+   },
+   "number": {
+    "n": 111,
+    "correct": 102,
+    "accuracy": 0.918919
+   }
+  },
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227.csv",
+   "run_id": "07eb3b8701214651bd815ec2e5209eaa",
+   "date": "2026-10-25",
+   "split": "test",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 349,
+   "correct": 280,
+   "accuracy": 0.802292,
+   "program": {
+    "n": 238,
+    "correct": 177,
+    "accuracy": 0.743697
+   },
+   "number": {
+    "n": 111,
+    "correct": 103,
+    "accuracy": 0.927928
+   }
+  },
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617.csv",
+   "run_id": "269511269e414ac39dc750a207f6342f",
+   "date": "2026-10-26",
+   "split": "test",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft2-e1",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft2",
+   "epoch": 1.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 349,
+   "correct": 284,
+   "accuracy": 0.813754,
+   "program": {
+    "n": 238,
+    "correct": 179,
+    "accuracy": 0.752101
+   },
+   "number": {
+    "n": 111,
+    "correct": 105,
+    "accuracy": 0.945946
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901.csv",
+   "run_id": "29ebe5600669496185cc5a54f2c18b36",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "base",
+   "model": "student-qwen3-4b",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": null,
+   "epoch": null,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 198,
+   "accuracy": 0.542466,
+   "program": {
+    "n": 234,
+    "correct": 93,
+    "accuracy": 0.397436
+   },
+   "number": {
+    "n": 131,
+    "correct": 105,
+    "accuracy": 0.801527
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e1-none-20261025_181906",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e1-none-20261025_181906.csv",
+   "run_id": "829690167f9d43e19c713e64f567261f",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e1",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 1.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 245,
+   "accuracy": 0.671233,
+   "program": {
+    "n": 234,
+    "correct": 141,
+    "accuracy": 0.602564
+   },
+   "number": {
+    "n": 131,
+    "correct": 104,
+    "accuracy": 0.793893
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905.csv",
+   "run_id": "75dfb9ebbe3c4a51a4b8a1cbcd80f061",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 262,
+   "accuracy": 0.717808,
+   "program": {
+    "n": 234,
+    "correct": 153,
+    "accuracy": 0.653846
+   },
+   "number": {
+    "n": 131,
+    "correct": 109,
+    "accuracy": 0.832061
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-t0p2-none-20261025_220002",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-t0p2-none-20261025_220002.csv",
+   "run_id": "365e791554084cf4831e76cd746f4464",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.2,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 256,
+   "accuracy": 0.70137,
+   "program": {
+    "n": 234,
+    "correct": 150,
+    "accuracy": 0.641026
+   },
+   "number": {
+    "n": 131,
+    "correct": 106,
+    "accuracy": 0.80916
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e3-none-20261025_185746",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e3-none-20261025_185746.csv",
+   "run_id": "6fd447acadc1474c8e5ba117fd6a24b4",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e3",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 3.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 252,
+   "accuracy": 0.690411,
+   "program": {
+    "n": 234,
+    "correct": 144,
+    "accuracy": 0.615385
+   },
+   "number": {
+    "n": 131,
+    "correct": 108,
+    "accuracy": 0.824427
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011.csv",
+   "run_id": "f951b16bd54e4ad6852e50c5483f7a1e",
+   "date": "2026-10-25",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft1-e2",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft1",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 258,
+   "accuracy": 0.706849,
+   "program": {
+    "n": 234,
+    "correct": 148,
+    "accuracy": 0.632479
+   },
+   "number": {
+    "n": 131,
+    "correct": 110,
+    "accuracy": 0.839695
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e0p5-none-20261026_003751",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e0p5-none-20261026_003751.csv",
+   "run_id": "5446819ec5f147aeaca47a71eab85d6b",
+   "date": "2026-10-26",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft2-e0p5",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft2",
+   "epoch": 0.5,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 271,
+   "accuracy": 0.742466,
+   "program": {
+    "n": 234,
+    "correct": 160,
+    "accuracy": 0.683761
+   },
+   "number": {
+    "n": 131,
+    "correct": 111,
+    "accuracy": 0.847328
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116.csv",
+   "run_id": "07b7279f647542f581e9bd9b0e5830d4",
+   "date": "2026-10-26",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft2-e1",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft2",
+   "epoch": 1.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 279,
+   "accuracy": 0.764384,
+   "program": {
+    "n": 234,
+    "correct": 164,
+    "accuracy": 0.700855
+   },
+   "number": {
+    "n": 131,
+    "correct": 115,
+    "accuracy": 0.877863
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1p5-none-20261026_032317",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1p5-none-20261026_032317.csv",
+   "run_id": "21d35cf904ba417a9188e14bfd7099d2",
+   "date": "2026-10-26",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft2-e1p5",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft2",
+   "epoch": 1.5,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 273,
+   "accuracy": 0.747945,
+   "program": {
+    "n": 234,
+    "correct": 155,
+    "accuracy": 0.662393
+   },
+   "number": {
+    "n": 131,
+    "correct": 118,
+    "accuracy": 0.900763
+   }
+  },
+  {
+   "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e2-none-20261026_044628",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e2-none-20261026_044628.csv",
+   "run_id": "8dda9d28a045406696a4255d6b07b3a0",
+   "date": "2026-10-26",
+   "split": "val",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-sft2-e2",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "sft2",
+   "epoch": 2.0,
+   "n_conversations": 100,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 365,
+   "correct": 276,
+   "accuracy": 0.756164,
+   "program": {
+    "n": 234,
+    "correct": 162,
+    "accuracy": 0.692308
+   },
+   "number": {
+    "n": 131,
+    "correct": 114,
+    "accuracy": 0.870229
+   }
+  },
+  {
+   "id": "open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_144309",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_144309.csv",
+   "run_id": "edf5eb47345744bea118a1639e953b8a",
+   "date": "2026-10-25",
+   "split": null,
+   "role": "base",
+   "model": "student-qwen3-4b",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": null,
+   "epoch": null,
+   "n_conversations": 3,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 12,
+   "correct": 4,
+   "accuracy": 0.333333,
+   "program": {
+    "n": 10,
+    "correct": 2,
+    "accuracy": 0.2
+   },
+   "number": {
+    "n": 2,
+    "correct": 2,
+    "accuracy": 1.0
+   }
+  },
+  {
+   "id": "open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145219",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145219.csv",
+   "run_id": "b41cfac1b64343fe96c1bc64ed2af2db",
+   "date": "2026-10-25",
+   "split": null,
+   "role": "base",
+   "model": "student-qwen3-4b",
+   "effort": "none",
+   "harness": "pydantic_ai",
+   "temperature": 0.7,
+   "round": null,
+   "epoch": null,
+   "n_conversations": 3,
+   "n_unscored": 0,
+   "complete": true,
+   "n": 12,
+   "correct": 3,
+   "accuracy": 0.25,
+   "program": {
+    "n": 10,
+    "correct": 2,
+    "accuracy": 0.2
+   },
+   "number": {
+    "n": 2,
+    "correct": 1,
+    "accuracy": 0.5
+   }
+  }
+ ],
+ "excluded": [
+  {
+   "id": "open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_193924",
+   "reason": "349 of its turns were never scored: an incomplete pass"
+  },
+  {
+   "id": "open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_144309",
+   "reason": "its conversations are neither val nor test (a smoke pass)"
+  },
+  {
+   "id": "open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145219",
+   "reason": "its conversations are neither val nor test (a smoke pass)"
+  }
+ ],
+ "skipped_runs": [
+  {
+   "run_id": "20261025T035855Z_train_sft1-step2",
+   "reason": "purpose 'measured step', status 'finished': not a training result"
+  }
+ ],
+ "inputs": [
+  {
+   "path": "evaluation/splits/sft_v1.json",
+   "sha256": "c251d756b02461da"
+  },
+  {
+   "path": "runs/sft/20261025T035855Z_train_sft1-step2/run.json",
+   "sha256": "d542f2ece64698d3"
+  },
+  {
+   "path": "runs/sft/20261025T040743Z_train_sft1/run.json",
+   "sha256": "0f0c00c7a6dbd161"
+  },
+  {
+   "path": "runs/sft/20261025T113733Z_train_sft2/run.json",
+   "sha256": "06b956ce7bb86476"
+  },
+  {
+   "path": "runs/sft/20261025T035855Z_train_sft1-step2/metrics.jsonl",
+   "sha256": "1dcf68fb432f4a6e"
+  },
+  {
+   "path": "runs/sft/20261025T040743Z_train_sft1/metrics.jsonl",
+   "sha256": "71acafc968ce8e3d"
+  },
+  {
+   "path": "runs/sft/20261025T113733Z_train_sft2/metrics.jsonl",
+   "sha256": "050d3d63f37b986b"
+  },
+  {
+   "path": "evaluation/sft/v1/stats.json",
+   "sha256": "7cc1245c2860fb95"
+  },
+  {
+   "path": "evaluation/sft/v2/stats.json",
+   "sha256": "c6e9de9961262b84"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-deepseek-flash-high-20261025_120625.csv",
+   "sha256": "65eb133c8f8ff6ee"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_153651.csv",
+   "sha256": "6850a71c20c96741"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_193924.csv",
+   "sha256": "ee2ed9f4f95e7535"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346.csv",
+   "sha256": "56005cd2668ed686"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227.csv",
+   "sha256": "0d487bf32a5a591d"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_050617.csv",
+   "sha256": "d72336b07c9a6459"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145901.csv",
+   "sha256": "68e16cb07ae85c28"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e1-none-20261025_181906.csv",
+   "sha256": "788174edafb6a95b"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_183905.csv",
+   "sha256": "ddf6a3cbd9f4184d"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-t0p2-none-20261025_220002.csv",
+   "sha256": "600b29e3a8c41623"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e3-none-20261025_185746.csv",
+   "sha256": "2434b37ecbf8a652"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_220011.csv",
+   "sha256": "e5a8dd3cd6a8dfe7"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e0p5-none-20261026_003751.csv",
+   "sha256": "b7e57fd07b09d0dc"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1-none-20261026_020116.csv",
+   "sha256": "6aadc354b9fbbbba"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e1p5-none-20261026_032317.csv",
+   "sha256": "7fc6a681ec532739"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-sft2-e2-none-20261026_044628.csv",
+   "sha256": "f1b42e7fb1de602f"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_144309.csv",
+   "sha256": "3ded20d4a34b7b4f"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-train3-sdk_v1·s1-pyd-student-qwen3-4b-none-20261025_145219.csv",
+   "sha256": "8fef3ed4dc104b2f"
+  }
+ ]
+}

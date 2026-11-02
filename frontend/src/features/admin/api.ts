@@ -522,7 +522,7 @@ export function getCampaigns(campaign = ''): Promise<CampaignsResponse> {
 }
 import type { AnswerRow, BundleSpec, StageMetrics, TraceSummary } from '../../types';
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${getApiBase()}${path}`);
   if (!res.ok) {
     let message = `${path} failed: ${res.status}`;

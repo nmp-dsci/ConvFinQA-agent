@@ -54,7 +54,7 @@ COPY evaluation/judge/ evaluation/judge/
 # 404'd, on a deployment whose entire job is to show them. `tests/test_demo_image.py`
 # pins this list against the paths the routes actually open.
 COPY evaluation/mlflow_snapshot.json evaluation/registry.json \
-     evaluation/story.json evaluation/readiness.json \
+     evaluation/story.json evaluation/readiness.json evaluation/fine_tuning.json \
      evaluation/traces_snapshot.jsonl.gz evaluation/
 COPY runs/ runs/
 

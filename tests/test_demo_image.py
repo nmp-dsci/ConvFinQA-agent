@@ -43,9 +43,10 @@ SHIPPED_ARTIFACTS: dict[str, str] = {
     "evaluation/registry.json": "GET /admin/registry, GET /healthz",
     "evaluation/story.json": "GET /eval/campaigns",
     "evaluation/readiness.json": "GET /eval/readiness",
+    "evaluation/fine_tuning.json": "GET /eval/fine-tuning",
     "evaluation/traces_snapshot.jsonl.gz": "GET /traces, GET /metrics/production",
     "evaluation/splits/": "GET /eval/dataset",
-    "evaluation/predictions/": "GET /eval/answers, GET /eval/loop-runs",
+    "evaluation/predictions/": "GET /eval/answers, GET /eval/loop-runs, GET /eval/fine-tuning/questions",
     "evaluation/diagnostics/": "GET /admin/rules",
     "evaluation/diagnostics/evalloop/diagnoses.jsonl": "GET /eval/gold-review",
     "evaluation/judge/": "the judge's own record",
@@ -144,3 +145,27 @@ def test_sse_stream_is_not_mistaken_for_a_page(container_client: TestClient) -> 
     assert not api_app._wants_document("empty", "text/event-stream")
     assert not api_app._wants_document(None, "text/event-stream")
     assert api_app._wants_document("document", "*/*")
+
+
+def test_the_spa_shell_is_never_reused_without_asking(
+    container_client: TestClient,
+) -> None:
+    """The shell answers any path no route claims, so a browser may not cache it.
+
+    It carries a Last-Modified and, before s32, nothing else, so Chrome cached it
+    heuristically: a fetch of `/eval/fine-tuning` made while a backend predated
+    that route got the shell, and kept getting it from cache after the route
+    existed. A cached shell after a deploy also names asset hashes that are gone.
+    """
+    for path, headers in (
+        ("/no-such-route", {"accept": "*/*"}),
+        (
+            "/optimise/fine-tuning",
+            {"accept": "text/html", "sec-fetch-dest": "document"},
+        ),
+        ("/admin/experiments", {"accept": "text/html", "sec-fetch-dest": "document"}),
+    ):
+        response = container_client.get(path, headers=headers)
+        assert response.status_code == 200, path
+        assert "ConvFinQA Agent" in response.text, path
+        assert response.headers.get("cache-control") == "no-cache", path

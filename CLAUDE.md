@@ -298,6 +298,19 @@ The invariants, all pinned by tests:
   AI 2.x records a refused call as a `tool-return` with `outcome: "retried"` (not
   `retry-feedback`) and can fold a turn's closing tool return into the next question's
   request; `sft/trajectories.turns` and `sft/rows` handle both (`tests/test_sft_rows.py`).
+- **Optimise › Fine-tuning reads one committed record, `evaluation/fine_tuning.json`** (s32).
+  `convfinqa-sft progress` (`sft/progress.py`) builds it from committed files only: the
+  student's and teacher's pass CSVs, `runs/sft/*/run.json` + `metrics.jsonl`, the dataset
+  cards and the `sft_v1` manifest; `tests/test_fine_tuning.py` fails when the committed copy
+  is not a byte-for-byte rebuild, so rebuild it after any new pass or training run. **A pass is
+  placed by its report ids, never its name**: the val passes ran as `--split train` and are
+  named `train100`. A round's pick is its sweep's highest val accuracy (one harness, default
+  temperature); a harness change is a stage of its own on the progression, so each paired step
+  is one change. `GET /eval/fine-tuning` serves the record verbatim; `GET
+  /eval/fine-tuning/questions?pass=…` opens only passes the record lists as complete, on one
+  split. Each pass links to `/optimise/campaigns?run=<run_id>`, which opens that run under its
+  own split — so the student's runs must be in `evaluation/mlflow_snapshot.json`
+  (`convfinqa-mlflow snapshot`) for the link to land in the demo.
 - **The write-up is `docs/optimization/agent-sdk.html`**, rendered by `story` from the same
   `story.json` (`runtime_comparison`, `sdk_campaigns`, `sdk_champion`) and covered by
   `story_check`. Every comparison field is `None` until an SDK run exists — the page says

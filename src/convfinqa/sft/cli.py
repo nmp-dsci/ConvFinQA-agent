@@ -8,6 +8,7 @@
     convfinqa-sft serve                           # deploy the vLLM student server on Modal
     convfinqa-sft train [--max-steps N --longest K]  # LoRA on Modal (spawned, detached)
     convfinqa-sft sync --run <run id>             # the run folder home, into runs/sft/
+    convfinqa-sft progress                        # evaluation/fine_tuning.json, for the UI
 
 Scoring the student is the ordinary eval loop: ``convfinqa-evalloop run
 --runtime open_agent --open-model student-qwen3-4b[-sft1] --open-effort none``.
@@ -73,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("sync", help="copy a training run's folder home")
     p.add_argument("--run", required=True)
+
+    sub.add_parser(
+        "progress",
+        help="rebuild evaluation/fine_tuning.json from the committed passes and runs",
+    )
 
     args = parser.parse_args(argv)
 
@@ -154,6 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         return _modal(
             "volume", "get", "--force", RUNS_VOLUME, f"/{args.run}", str(dest)
         )
+    if args.cmd == "progress":
+        from convfinqa.sft import progress
+
+        print(progress.write())
+        return 0
     return 2
 
 
