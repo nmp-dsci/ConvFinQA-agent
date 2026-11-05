@@ -1,0 +1,66 @@
+/* Optimise › Fine-tuning (/optimise/fine-tuning, s32): the progression, a round's sweep, its loss,
+   and the cases. Tokens only; everything else is kit vocabulary (.dia, .figscroll, .tw, .chip,
+   .status, .kv, .card). */
+
+/* ── figures ──────────────────────────────────────────────────────────────────────────────── */
+.ft-svg .ft-line{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.ft-svg .ft-line.test{stroke:var(--ink);stroke-width:2.4}
+.ft-svg .ft-line.val{stroke:var(--muted);stroke-width:1.4}
+.ft-svg .ft-line.loss{stroke:var(--ink-2);stroke-width:1.6}
+.ft-svg .ft-pt{stroke-width:1.8}
+.ft-svg .ft-pt.test{fill:var(--ink);stroke:var(--panel)}
+.ft-svg .ft-pt.val{fill:var(--panel);stroke:var(--muted)}
+.ft-svg .ft-pt.ck{fill:var(--panel);stroke:var(--ink-2)}
+.ft-svg .ft-pt.hi{fill:var(--accent);stroke:var(--panel)}
+.ft-svg .ft-start{fill:var(--ink-2);stroke:var(--panel);stroke-width:1.6}
+.ft-svg .ft-startline{stroke:var(--line-2);stroke-width:1.2}
+.ft-svg .ft-ref line{stroke:var(--faint);stroke-width:1.4}
+.ft-svg .ft-ckline{stroke:var(--line-2);stroke-width:1.2}
+.ft-svg .ft-ckline.hi{stroke:var(--accent);stroke-width:1.6}
+
+/* the key under a figure, in words */
+.ft-key{list-style:none;padding:0;margin:var(--s3) 0 0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s5);font-size:var(--t-1);color:var(--ink-2)}
+.ft-key li{display:inline-flex;align-items:center;gap:var(--s2);min-width:0}
+.ft-key .glyph{width:22px;height:14px;flex:none;overflow:visible}
+.ft-key .glyph .test{stroke:var(--ink);stroke-width:2.4}
+.ft-key .glyph .val{stroke:var(--muted);stroke-width:1.4}
+.ft-key .glyph .ref{stroke:var(--faint);stroke-width:1.4}
+.ft-key .glyph .dot-test{fill:var(--ink)}
+.ft-key .glyph .dot-val{fill:var(--panel);stroke:var(--muted);stroke-width:1.6}
+.ft-key .glyph .dot-hi{fill:var(--accent)}
+.ft-key .glyph .sq{fill:var(--ink-2)}
+
+/* ── the view picker and the round cards ──────────────────────────────────────────────────── */
+.ft-views{margin-top:0}
+.ft-rounds .card h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s2) var(--s3)}
+.ft-rounds .card .claim{margin:var(--s2) 0 0;color:var(--ink-2);max-width:var(--measure)}
+.ft-rounds .card .open{margin-top:var(--s4)}
+
+/* ── tables ───────────────────────────────────────────────────────────────────────────────── */
+.ft-table td.stagecell{min-width:14rem;white-space:normal}
+.ft-table td.step{min-width:15rem;white-space:normal}
+.ft-table td.step .ci{display:block;font:400 var(--t-2)/1.4 var(--mono);color:var(--faint);margin-top:var(--s1)}
+.ft-table td .ratecell{min-width:11rem}
+
+/* ── the cases ────────────────────────────────────────────────────────────────────────────── */
+.ft-filters{display:grid;gap:var(--s2);margin-top:var(--s3)}
+.ft-filters .chips{margin-top:0;align-items:center}
+.ft-filters .label{min-width:5.5rem}
+.ft-cases td.q{min-width:22ch;max-width:46ch;white-space:normal}
+.ft-cases td.gold{font-family:var(--mono);font-size:var(--t-2);white-space:normal;min-width:9ch;max-width:16ch;overflow-wrap:anywhere}
+.ft-cases td.gold .prog{display:block;color:var(--faint);margin-top:var(--s1)}
+.ft-cases th.pass{white-space:normal;min-width:9rem;max-width:12rem;vertical-align:bottom}
+.ft-cases th.pass a{text-transform:none;letter-spacing:0}
+.ft-cases th.pass.to{color:var(--accent)}
+.ft-cases td.ans{font-family:var(--mono);font-size:var(--t-2);white-space:normal;overflow-wrap:anywhere;min-width:9ch;max-width:16ch}
+.ft-cases td.ans .status{display:block;font-size:var(--t-2)}
+.ft-cases td.ans .err{display:block;color:var(--faint);margin-top:var(--s1)}
+.ft-cases td.ans.to{background:var(--accent-soft)}
+.ft-cases .rid{display:block;font:400 var(--t-2)/1.4 var(--mono);color:var(--faint);margin-top:var(--s1);overflow-wrap:anywhere}
+.ft-more{margin-top:var(--s3)}
+
+/* ── phone width: long labels wrap inside their own box rather than widening the page ─────── */
+[data-testid="optimise-fine-tuning"] .panel-head .right{min-width:0;max-width:100%}
+[data-testid="optimise-fine-tuning"] .endpoint{white-space:normal;overflow-wrap:anywhere}
+.ft-filters .chip,.ft-split .chip{white-space:normal;text-align:left;line-height:1.35}
+.ft-rounds .ratecell{flex-wrap:wrap;white-space:normal}

@@ -86,6 +86,19 @@ readiness_rows="$(curl -fsS --max-time 20 "$BASE/eval/readiness" \
   || fail "readiness scorecard unreachable — evaluation/readiness.json is not in the image"
 [[ "$readiness_rows" -eq 9 ]] || fail "readiness has $readiness_rows rows, expected 9"
 
+# 3d'. The fine-tuning record is served and its cases open, or Optimise › Fine-tuning renders
+#      "no record" and every drill-down fails (s32).
+ft_rounds="$(curl -fsS --max-time 20 "$BASE/eval/fine-tuning" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["rounds"]))')" \
+  || fail "fine-tuning record unreachable — evaluation/fine_tuning.json is not in the image"
+[[ "$ft_rounds" -gt 0 ]] || fail "fine-tuning record has no rounds"
+ft_pass="$(curl -fsS --max-time 20 "$BASE/eval/fine-tuning" \
+  | python3 -c 'import json,sys,urllib.parse; print(urllib.parse.quote(json.load(sys.stdin)["progression"]["test"][0]["pass"]))')"
+ft_cases="$(curl -fsS --max-time 20 "$BASE/eval/fine-tuning/questions?pass=$ft_pass" \
+  | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["rows"]))')" \
+  || fail "fine-tuning cases unreachable — the pass CSVs are not in the image"
+[[ "$ft_cases" -gt 0 ]] || fail "fine-tuning cases are empty"
+
 # 3e. The Gold review tab reads the committed diagnoses ledger. Missing from the image, the
 #     route answers an empty payload with a reason — legitimate in dev, a deploy bug here.
 gold_cases="$(curl -fsS --max-time 20 "$BASE/eval/gold-review" \

@@ -33,6 +33,7 @@ const Traces = lazy(() => import('./features/admin/Traces'));
 const TraceDetail = lazy(() => import('./features/admin/TraceDetail'));
 const Experiments = lazy(() => import('./features/admin/Experiments'));
 const Runtimes = lazy(() => import('./features/admin/Runtimes'));
+const FineTuning = lazy(() => import('./features/finetune/FineTuningPage'));
 const Research = lazy(() => import('./features/admin/Research'));
 const Agent = lazy(() => import('./pages/Agent'));
 const Readiness = lazy(() => import('./features/readiness/ReadinessRoute'));
@@ -106,6 +107,7 @@ export const routes: RouteObject[] = [
           { id: 'optimise-story', index: true, element: <StoryPage /> },
           { id: 'optimise-campaigns', path: 'campaigns', element: <Experiments /> },
           { id: 'optimise-runtimes', path: 'runtimes', element: <Runtimes /> },
+          { id: 'optimise-fine-tuning', path: 'fine-tuning', element: <FineTuning /> },
           { id: 'optimise-research', path: 'research', element: <Research /> },
         ],
       },

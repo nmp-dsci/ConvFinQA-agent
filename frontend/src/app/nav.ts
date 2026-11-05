@@ -50,7 +50,7 @@ export const SLOTS: Slot[] = [
     key: 'optimise',
     to: '/optimise',
     label: 'Optimise',
-    hint: 'The whole story on the gate split, the campaigns, the runtime comparison, and rule research',
+    hint: 'The whole story on the gate split, the campaigns, the runtime comparison, fine-tuning the student, and rule research',
   },
   {
     key: 'agent',
@@ -77,6 +77,7 @@ export const SUBPAGES: Partial<Record<SlotKey, { key: string; to: string; label:
     { key: 'story', to: '/optimise', label: 'Story' },
     { key: 'campaigns', to: '/optimise/campaigns', label: 'Campaigns' },
     { key: 'runtimes', to: '/optimise/runtimes', label: 'Runtimes' },
+    { key: 'fine-tuning', to: '/optimise/fine-tuning', label: 'Fine-tuning' },
     { key: 'research', to: '/optimise/research', label: 'Rule research' },
   ],
   agent: [

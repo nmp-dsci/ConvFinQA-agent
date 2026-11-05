@@ -472,6 +472,53 @@ async def get_readiness() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Fine-tuning — the SFT student's rounds, checkpoints and passes (s32)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/fine-tuning")
+async def get_fine_tuning() -> dict[str, Any]:
+    """The fine-tuning record, as committed.
+
+    Reads ``evaluation/fine_tuning.json`` verbatim. It is rebuilt from committed
+    passes and training records by ``convfinqa-sft progress`` and held to them
+    by a test, so the route touches no model and stays live in the demo.
+    """
+    from convfinqa.sft.progress import PROGRESS_PATH, load
+
+    if not PROGRESS_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"no fine-tuning record committed at {PROGRESS_PATH}",
+        )
+    return load()
+
+
+@lru_cache(maxsize=32)
+def _fine_tuning_questions(pass_ids: tuple[str, ...]) -> dict[str, Any]:
+    from convfinqa.sft.progress import questions
+
+    return questions(list(pass_ids))
+
+
+@router.get("/fine-tuning/questions")
+async def get_fine_tuning_questions(
+    pass_ids: list[str] = Query(alias="pass", default_factory=list),
+) -> dict[str, Any]:
+    """Every question of the named passes side by side, with gold.
+
+    Only passes the committed record lists as complete fine-tuning passes are
+    opened (the record is the allow-list), and they must share a split.
+    """
+    try:
+        return _fine_tuning_questions(tuple(pass_ids))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc.args[0])) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# ---------------------------------------------------------------------------
 # Gold review — the diagnoses a human should settle by hand
 # ---------------------------------------------------------------------------
 

@@ -1,10 +1,11 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router-dom';
 import './optimise.css';
 import { Figure, Status } from '@/kit/ui';
+import { useLens } from '@/kit/url';
 import type { StatusTone } from '@/kit/ui';
 import { fmtPp } from '@/kit/format';
 import { formatPercent } from '../landing/format';
@@ -405,7 +406,7 @@ export function ExperimentTable({
                     </span>
                   </td>
                   <td className="mono" data-runtime={exp.runtime}>
-                    {exp.runtime === 'agent_sdk' ? 'session' : 'pipeline'}
+                    {exp.runtime === 'agent_sdk' ? 'session' : exp.runtime === 'open_agent' ? 'open' : 'pipeline'}
                   </td>
                   <td className="mono">
                     {(exp.runtime === 'agent_sdk' ? exp.target_class || exp.target_agent : exp.target_agent) || '—'}
@@ -444,7 +445,7 @@ function RunDetail({ run }: { run: ExperimentRun }) {
   const metrics = Object.entries(run.metrics);
   const params = Object.entries(run.params);
   return (
-    <div className="card opt-run">
+    <div className="card opt-run" id="run-detail" data-testid="run-detail">
       <p className="label">
         {run.run_name} · run_id {run.run_id}
       </p>
@@ -512,6 +513,24 @@ export default function Experiments() {
   const [writeError, setWriteError] = useState<string | null>(null);
   const [writeOk, setWriteOk] = useState<string | null>(null);
   const [campaignOnly, setCampaignOnly] = useState('');
+
+  // A link from another page (Fine-tuning, s32) names one run: `?run=<run_id>`. Open it under its
+  // own split, so a val pass recorded as `train` is not hidden behind the test default, and bring
+  // its record into view.
+  const [lens] = useLens();
+  const linkedRun = lens.get('run');
+  useEffect(() => {
+    const run = linkedRun ? experiments.data?.runs.find((r) => r.run_id === linkedRun) : undefined;
+    if (!run) return;
+    const split = runAgent(run).split ?? '';
+    setSplitFilter((SPLIT_FILTERS as readonly string[]).includes(split) ? (split as SplitFilter) : '');
+    setKindFilter('');
+    setOpenRun(run.run_id);
+  }, [linkedRun, experiments.data]);
+  useEffect(() => {
+    // after the commit that mounted the record, so it is there to scroll to
+    if (linkedRun && openRun === linkedRun) document.getElementById('run-detail')?.scrollIntoView({ block: 'start' });
+  }, [linkedRun, openRun]);
 
   const campaignsQuery = useQuery({
     queryKey: ['eval-campaigns'],
@@ -635,7 +654,7 @@ export default function Experiments() {
               </span>
             );
           }
-          return rt === 'agent_sdk' ? 'session' : 'pipeline';
+          return rt === 'agent_sdk' ? 'session' : rt === 'open_agent' ? 'open' : 'pipeline';
         },
       },
       {
