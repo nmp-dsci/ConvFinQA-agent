@@ -41,6 +41,21 @@ REPO = EVAL_ROOT.parent
 PROGRESS_PATH = EVAL_ROOT / "fine_tuning.json"
 PASSES_DIR = EVAL_ROOT / "predictions" / "evalloop"
 RUNS_DIR = REPO / "runs" / "sft"
+# s33: a DPO round shares the runs folder but has its own data and record; it is
+# not on the SFT progression yet, so neither its rounds nor its inputs are read
+SFT_KINDS = ("train",)
+
+
+def _sft_runs(name: str) -> list[Path]:
+    """`runs/sft/*/<name>` for the SFT training runs only (no DPO rounds)."""
+    return [
+        p
+        for p in sorted(RUNS_DIR.glob(f"*/{name}"))
+        if json.loads((p.parent / "run.json").read_text()).get("kind", "train")
+        in SFT_KINDS
+    ]
+
+
 DATA_DIR = EVAL_ROOT / "sft"
 MANIFEST_PATH = EVAL_ROOT / "splits" / "sft_v1.json"
 
@@ -383,7 +398,7 @@ def _rounds(
     skipped: list[dict[str, Any]] = []
     parents: dict[str, Any] = {}
     metas = []
-    for run_json in sorted(RUNS_DIR.glob("*/run.json")):
+    for run_json in _sft_runs("run.json"):
         meta = json.loads(run_json.read_text())
         if meta.get("purpose") != "result" or meta.get("status") != "finished":
             skipped.append(
@@ -476,8 +491,8 @@ def _progression(
 
 
 def _inputs(passes: list[dict[str, Any]]) -> list[dict[str, str]]:
-    paths = [MANIFEST_PATH, *sorted(RUNS_DIR.glob("*/run.json"))]
-    paths += sorted(RUNS_DIR.glob("*/metrics.jsonl"))
+    paths = [MANIFEST_PATH, *_sft_runs("run.json")]
+    paths += _sft_runs("metrics.jsonl")
     paths += sorted(DATA_DIR.glob("v*/stats.json"))
     paths += [REPO / p["csv"] for p in passes]
     return [

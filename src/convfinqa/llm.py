@@ -263,6 +263,9 @@ STUDENT_MODELS: tuple[str, ...] = (
     "student-qwen3-4b-sft2-e1",
     "student-qwen3-4b-sft2-e1p5",
     "student-qwen3-4b-sft2-e2",
+    # s35: the DPO pilot from sft2-e1, epochs 1 and 2 (the two scored on val)
+    "student-qwen3-4b-dpo1-e1",
+    "student-qwen3-4b-dpo1-e2",
 )
 OPEN_MODELS: tuple[str, ...] = (*DEEPSEEK_OPEN_MODELS, *STUDENT_MODELS)
 OPEN_EFFORTS: tuple[str, ...] = ("low", "high", "max", "none")
