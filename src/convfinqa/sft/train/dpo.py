@@ -134,19 +134,48 @@ def check_mask(
     return mask_mod.check({"messages": row[side]}, segs)
 
 
+CHUNK = 256  # positions per LM-head chunk
+
+
+def _decoder_and_head(model: Any) -> tuple[Any, Any]:
+    """The decoder stack (LoRA layers inside it) and the LM head, under PEFT or not."""
+    inner = model.get_base_model() if hasattr(model, "get_base_model") else model
+    return inner.model, inner.lm_head
+
+
 def seq_logp(model: Any, tok: dict[str, Any], device: Any) -> tuple[Any, int]:
-    """Summed log-prob of the student's tokens on one side, and how many there are."""
+    """Summed log-prob of the student's tokens on one side, and how many there are.
+
+    The decoder runs once over the whole sequence; the LM head runs only at the
+    positions that predict a student token, in chunks under activation
+    checkpointing, so a long turn's vocabulary-wide logits (≈ 1 GB in fp32 at
+    2k positions) are never held at once.
+    """
     import torch
+    from torch.utils.checkpoint import checkpoint
 
     ids = torch.tensor([tok["input_ids"]], device=device)
-    start = tok["start"]
-    keep = len(tok["input_ids"]) - start + 1
-    out = model(input_ids=ids, use_cache=False, logits_to_keep=keep)
-    logits = out.logits[0, :-1].float()  # predicts tokens start .. end
-    targets = ids[0, start:]
-    m = torch.tensor(tok["mask"][start:], device=device, dtype=torch.float32)
-    logp = torch.log_softmax(logits, dim=-1).gather(1, targets[:, None])[:, 0]
-    return (logp * m).sum(), int(m.sum().item())
+    decoder, head = _decoder_and_head(model)
+    hidden = decoder(input_ids=ids, use_cache=False).last_hidden_state[0]
+    targets_at = [
+        t for t in range(tok["start"], len(tok["input_ids"])) if tok["mask"][t]
+    ]
+    pos = torch.tensor([t - 1 for t in targets_at], device=device)
+    tgt = torch.tensor([tok["input_ids"][t] for t in targets_at], device=device)
+
+    def chunk_logp(h: Any, y: Any) -> Any:
+        logits = head(h).float()
+        return torch.log_softmax(logits, dim=-1).gather(1, y[:, None])[:, 0].sum()
+
+    total = hidden.new_zeros((), dtype=torch.float32)
+    for i in range(0, len(targets_at), CHUNK):
+        h = hidden.index_select(0, pos[i : i + CHUNK])
+        y = tgt[i : i + CHUNK]
+        if torch.is_grad_enabled():
+            total = total + checkpoint(chunk_logp, h, y, use_reentrant=False)
+        else:
+            total = total + chunk_logp(h, y)
+    return total, len(targets_at)
 
 
 def _no_dropout(model: Any) -> None:
@@ -204,6 +233,16 @@ def train(
     run_dir = runs_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     if max_steps:
+        # a measured step runs the longest pairs, so it proves the worst case fits
+
+        def size(r: dict[str, Any]) -> int:
+            t = r["meta"]["tokens"]
+            return int(t["prompt"]) + max(
+                int(t["chosen_student"]) + int(t["chosen_tool"]),
+                int(t["rejected_student"]) + int(t["rejected_tool"]),
+            )
+
+        train_rows = sorted(train_rows, key=lambda r: -size(r))
         train_rows = train_rows[: max_steps * int(d["gradient_accumulation_steps"])]
         eval_rows = eval_rows[:8]
     meta: dict[str, Any] = {
@@ -382,13 +421,13 @@ def train(
                 nll = -c / max(1, nc)
                 loss = (dpo + alpha * nll) / len(batch)
                 loss.backward()
-                agg["loss"] += float(loss)
-                agg["dpo"] += float(dpo) / len(batch)
-                agg["nll"] += float(nll) / len(batch)
-                agg["acc"] += float(z > 0) / len(batch)
-                agg["margin"] += float(z) / len(batch)
-                agg["dc"] += float(dc) / len(batch)
-                agg["dr"] += float(dr) / len(batch)
+                agg["loss"] += float(loss.detach())
+                agg["dpo"] += float(dpo.detach()) / len(batch)
+                agg["nll"] += float(nll.detach()) / len(batch)
+                agg["acc"] += float((z > 0).detach()) / len(batch)
+                agg["margin"] += float(z.detach()) / len(batch)
+                agg["dc"] += float(dc.detach()) / len(batch)
+                agg["dr"] += float(dr.detach()) / len(batch)
             grad_norm = float(
                 torch.nn.utils.clip_grad_norm_(
                     params, float(d.get("max_grad_norm", 1.0))
