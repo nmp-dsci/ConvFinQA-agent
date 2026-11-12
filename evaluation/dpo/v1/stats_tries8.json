@@ -1,0 +1,210 @@
+{
+ "conversations": 1489,
+ "questions_in_conversations": 4394,
+ "questions_reached": 3895,
+ "reached_share": 0.8864,
+ "stops": {
+  "completed": 1051,
+  "no right try": 438
+ },
+ "overall": {
+  "questions": 3895,
+  "tries": 31160,
+  "graded": 31127,
+  "right": 25298,
+  "dropped": 33,
+  "unclean": 1776,
+  "pairs": 958,
+  "flip": 730,
+  "all_right": 2727,
+  "all_wrong": 438,
+  "paired_q": 628,
+  "pass1": 0.8127,
+  "flip_share": 0.1874,
+  "all_right_share": 0.7001,
+  "all_wrong_share": 0.1125,
+  "pairs_per_question": 0.246
+ },
+ "program": {
+  "questions": 2771,
+  "tries": 22168,
+  "graded": 22149,
+  "right": 17378,
+  "dropped": 19,
+  "unclean": 1718,
+  "pairs": 761,
+  "flip": 604,
+  "all_right": 1810,
+  "all_wrong": 357,
+  "paired_q": 508,
+  "pass1": 0.7846,
+  "flip_share": 0.218,
+  "all_right_share": 0.6532,
+  "all_wrong_share": 0.1288,
+  "pairs_per_question": 0.275
+ },
+ "number": {
+  "questions": 1124,
+  "tries": 8992,
+  "graded": 8978,
+  "right": 7920,
+  "dropped": 14,
+  "unclean": 58,
+  "pairs": 197,
+  "flip": 126,
+  "all_right": 917,
+  "all_wrong": 81,
+  "paired_q": 120,
+  "pass1": 0.8822,
+  "flip_share": 0.1121,
+  "all_right_share": 0.8158,
+  "all_wrong_share": 0.0721,
+  "pairs_per_question": 0.175
+ },
+ "by_position": {
+  "0": {
+   "questions": 1489,
+   "right": 9114,
+   "graded": 11892,
+   "flip": 339,
+   "pass1": 0.7664,
+   "flip_share": 0.2277
+  },
+  "1": {
+   "questions": 1273,
+   "right": 8735,
+   "graded": 10175,
+   "flip": 171,
+   "pass1": 0.8585,
+   "flip_share": 0.1343
+  },
+  "2": {
+   "questions": 756,
+   "right": 5019,
+   "graded": 6045,
+   "flip": 158,
+   "pass1": 0.8303,
+   "flip_share": 0.209
+  },
+  "3": {
+   "questions": 377,
+   "right": 2430,
+   "graded": 3015,
+   "flip": 62,
+   "pass1": 0.806,
+   "flip_share": 0.1645
+  }
+ },
+ "rights_histogram": {
+  "0/6": 2,
+  "0/7": 2,
+  "0/8": 434,
+  "1/6": 1,
+  "1/8": 87,
+  "2/2": 1,
+  "2/7": 1,
+  "2/8": 71,
+  "3/8": 61,
+  "4/4": 1,
+  "4/5": 1,
+  "4/8": 70,
+  "5/7": 1,
+  "5/8": 63,
+  "6/6": 1,
+  "6/7": 1,
+  "6/8": 135,
+  "7/7": 7,
+  "7/8": 238,
+  "8/8": 2717
+ },
+ "distinct_wrong_answers_per_flip": {
+  "1": 500,
+  "2": 156,
+  "3": 46,
+  "5": 11,
+  "4": 15,
+  "6": 1,
+  "7": 1
+ },
+ "sign_flips_caught": 72,
+ "retries_and_drops": {
+  "H3": 1068,
+  "H2": 625,
+  "schema_correction": 125,
+  "dropped:no valid reply after 2 attempts": 27,
+  "dropped:ModelTimeoutError": 6
+ },
+ "tokens": {
+  "num_turns": 63583,
+  "input_tokens": 19587467,
+  "cache_read_input_tokens": 395408336,
+  "output_tokens": 18864249,
+  "latency_ms": 2133161224
+ },
+ "splits": {
+  "train": 1415,
+  "eval": 74
+ },
+ "sampling_wall_s": 20505.3,
+ "l4_usd_at_one_container": 4.55,
+ "runs": [
+  {
+   "manifest": "dpo_v1",
+   "model": "student-qwen3-4b-sft2-e1",
+   "harness": "pydantic_ai_checked",
+   "tries": 8,
+   "sampler": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "max_tokens": 4096,
+    "extra_body": {
+     "top_k": 20
+    },
+    "seed": null
+   },
+   "system_prompt": "student_v1@819137b9",
+   "started_at": "2026-11-12T00:24:34+00:00",
+   "wall_s": 148.0,
+   "concurrency": 3,
+   "upto": 3,
+   "topup_from": "evaluation/dpo/v1/tries.jsonl",
+   "sampled": 3,
+   "aborted": 0,
+   "stopped_early": false,
+   "n_tries": 80,
+   "n_right": 69,
+   "n_pairs": 3,
+   "n_groups": 10,
+   "n_flip": 2
+  },
+  {
+   "manifest": "dpo_v1",
+   "model": "student-qwen3-4b-sft2-e1",
+   "harness": "pydantic_ai_checked",
+   "tries": 8,
+   "sampler": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "max_tokens": 4096,
+    "extra_body": {
+     "top_k": 20
+    },
+    "seed": null
+   },
+   "system_prompt": "student_v1@819137b9",
+   "started_at": "2026-11-12T00:27:17+00:00",
+   "wall_s": 20357.3,
+   "concurrency": 18,
+   "upto": 1489,
+   "topup_from": "evaluation/dpo/v1/tries.jsonl",
+   "sampled": 1486,
+   "aborted": 0,
+   "stopped_early": false,
+   "n_tries": 31080,
+   "n_right": 25229,
+   "n_pairs": 955,
+   "n_groups": 3885,
+   "n_flip": 728
+  }
+ ]
+}

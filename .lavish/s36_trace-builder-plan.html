@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace builder plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx.narrow{ min-width:460px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .three .card p, .two .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .flow{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:var(--s2); margin-top:var(--s4); }
+  .flow > *{ min-width:0; }
+  .flow .card{ padding:var(--s3); }
+  .flow .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+  code{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s36 · ConvFinQA-agent · 2026-11-12 · plan · the trace builder, proven before it is used · feeds DPO v2 · branch <code>dpo</code></div>
+  <h1>Build a trace writer that knows the answer, <em>and prove it is indistinguishable from a real right answer before it writes a single chosen.</em></h1>
+  <p class="lede">438 questions in <code>dpo_v1</code> have no right try in 8 (s35 §03b). They block 499 more, and they are exactly where the student most needs a chosen. The trace builder takes the question, the history, the page and the gold answer, and writes the turn the student should have written: sub-questions, retrieved values, calculator calls and a <code>StructuredOutput</code> answer. Before it touches the 438, it is run on questions where we already hold a known-right trace, with that trace hidden. It has to (1) pass deterministic validity gates, (2) recreate the real trace's decisions, and (3) fool an LLM judge that is shown both and asked which one the builder wrote. A control run proves the judge can tell when it should. Only a builder that clears all three on a sealed validation set is deployed.</p>
+
+  <div class="verdict">
+    <div class="stat accent"><div class="n">3 tests</div><div class="l">validity gates (deterministic) · recreation fidelity (against the hidden real trace) · judge discrimination (2AFC, with controls)</div></div>
+    <div class="stat"><div class="n">2 sets</div><div class="l"><b>dev</b> to tune the builder's prompt and arms; <b>sealed validation</b> scored once to decide. Both from <code>dpo_v1</code> train only</div></div>
+    <div class="stat amber"><div class="n">438 → ≈ 2,000</div><div class="l">pairs for DPO v2 if it passes: ≈ 1,740 direct (cap 4) plus ≈ 310 from walking into the 499 it unblocks</div></div>
+    <div class="stat red"><div class="n">never</div><div class="l">val (<code>sft_v1</code> val picks checkpoints) or test 100 (holdout). The builder sees neither, and neither is used to judge it</div></div>
+  </div>
+</header>
+
+<section id="flow">
+  <span class="eyebrow">01</span>
+  <h2>The shape of it</h2>
+  <div class="flow">
+    <div class="card"><span class="badge">B · build</span><h3>Trace builder</h3><p>Question + history + page + <b>gold</b> → one turn in the student's wire format. N candidates per question.</p></div>
+    <div class="card"><span class="badge">G · gate</span><h3>Validity gates</h3><p>Deterministic. Operands on the page, executes to gold, agrees with the gold program, no hint leak, schema valid.</p></div>
+    <div class="card"><span class="badge">V · validate</span><h3>Recreate known traces</h3><p>On questions with a hidden real right trace: same decisions? Judge can't tell which is which?</p></div>
+    <div class="card"><span class="badge">D · deploy</span><h3>Score the 438</h3><p>Only after V passes on the sealed set. Gated chosens vs the student's 8 wrong tries → DPO v2 pairs.</p></div>
+  </div>
+</section>
+
+<section id="builder">
+  <span class="eyebrow">02</span>
+  <h2>B · The builder: arms to try on dev</h2>
+  <p>The builder's output must be a turn the student could have written, so the default writer is <b>the student itself, given the answer</b> (STaR's rationalisation). A stronger model is the fallback. Which arm deploys is decided by §04, not chosen up front.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Arm</th><th>Writer</th><th>What it is told</th><th>Why</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td><b>B1</b> <span class="badge rec">lead</span></td><td>sft2-e1 (student), 8 samples, its own harness and tools</td><td>The normal turn prompt plus a hint: "The correct final answer is X. Work it out from the report; do not mention this hint."</td><td>Closest to on-policy: its own style, tokens and tool habits, so DPO's chosen is a turn it already finds likely</td><td>On its 0/8 questions it may not find a path even with the answer, or may force one (choosing operands to hit X)</td></tr>
+        <tr><td><b>B2</b></td><td>sft2-e1 with hint = answer <b>and</b> gold program</td><td>As B1, plus gold's program (<code>subtract(206588, 181001), divide(#0, 181001)</code>)</td><td>Pins the operations; the student still has to locate the operands and write the working</td><td>Program strings can leak into the reasoning; the student may copy gold's literal numbers without retrieving them</td></tr>
+        <tr><td><b>B3</b> <span class="badge warn">fallback</span></td><td>llm_react_v1 (DeepSeek Flash, the SFT teacher), same tools</td><td>As B1</td><td>The student was SFT'd on this writer, so it is the nearest off-policy style. Cheap</td><td>Off-policy. The judge should detect it more easily (it is the positive control, §04)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Every arm runs through <code>pydantic_ai_checked</code> with the calculator tools, so a built trace's numbers come from real tool calls, not from text. The stored training row is the turn <b>without</b> the hint: the plain prompt, then the built turn as the chosen. Abstaining is allowed: a builder that cannot reach gold from the page returns nothing, and that is counted, not forced.</p>
+</section>
+
+<section id="gates">
+  <span class="eyebrow">03</span>
+  <h2>G · Validity gates: deterministic, on every candidate, in validation and deployment alike</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Gate</th><th>Rule</th><th>Uses</th></tr></thead>
+      <tbody>
+        <tr><td><b>G1</b> answer</td><td>The <code>StructuredOutput</code> answer is right under the scorer <b>and</b> the strict check (s34's <code>pairs.close</code>, sign included)</td><td><code>pairs.grade</code>, <code>pairs.close</code></td></tr>
+        <tr><td><b>G2</b> executes</td><td>The calculator trajectory, replayed, produces that answer; the program field executes to it</td><td><code>program_exec.execute</code></td></tr>
+        <tr><td><b>G3</b> grounded</td><td>Every operand is a number on the page (table or text, after the usual scale and sign normalisation) or an earlier turn's answer. No number appears from nowhere</td><td>the page text from <code>data.loader</code>; the history's answers</td></tr>
+        <tr><td><b>G4</b> gold program</td><td>Binding the turn's retrieved values to gold's program executes to gold. A trace that reaches gold by a different route is flagged, not dropped, and counted separately</td><td><code>program_exec.bind_and_execute</code></td></tr>
+        <tr><td><b>G5</b> no leak</td><td>The hint's literal (answer string, and the program for B2) does not appear in the reasoning or sub-questions except where the trace computed it. No "as given", "the hint", "we are told"</td><td>string and pattern checks</td></tr>
+        <tr><td><b>G6</b> clean</td><td>No harness retry and no schema correction; it renders through <code>sft.rows.to_row</code> and passes the DPO row check (<code>dpo.render.check</code>)</td><td>the same renderer as the pairs</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="validate">
+  <span class="eyebrow">04</span>
+  <h2>V · Proving it: recreate known-right traces, and fool a judge that has been shown it can tell</h2>
+  <p><b>Reference set.</b> Questions in <code>dpo_v1</code> train where the student already has a clean right try. Hide every try, give the builder the gold answer, and compare what it writes against a held-back real right try. Stratified to look like deployment: deployment is all-hard (0/8), so the validation leans hard.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Stratum (right tries / 8)</th><th class="sc">Available</th><th class="sc">Dev</th><th class="sc">Sealed validation</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Hard: 1–3</td><td class="sc">219</td><td class="sc">60</td><td class="sc">150</td><td>Closest to the 0/8 deployment questions; still has a real right trace to compare with</td></tr>
+        <tr><td>Medium: 4–7</td><td class="sc">506</td><td class="sc">40</td><td class="sc">100</td><td>Breadth</td></tr>
+        <tr><td>Easy: 8</td><td class="sc">2,717</td><td class="sc">20</td><td class="sc">50</td><td>Sanity: the builder must not do worse where the student is sure</td></tr>
+        <tr><td><b>All</b>, program/number in the pool's ratio, q0–q3 in the pool's ratio</td><td></td><td class="sc">120</td><td class="sc">300</td><td>Cut by conversation and by page, so no page is in both</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Three measurements</h3>
+  <div class="three">
+    <div class="card"><span class="badge">V1</span><h3>Gate yield</h3><p>Share of questions with ≥ 1 candidate passing G1–G6, and of candidates. Abstentions and each gate's failures reported separately, by stratum.</p></div>
+    <div class="card"><span class="badge">V2</span><h3>Recreation fidelity</h3><p>Against the hidden real right try: same turn type; same program up to execution equivalence; same operand values; same retrieved sources (cell/row); sub-question count; reasoning length within the real distribution. Reported as agreement rates with Wilson CIs. A second real right try of the same question is the ceiling: two real traces disagree too, and the builder is judged against that, not against 100%.</p></div>
+    <div class="card"><span class="badge">V3</span><h3>Judge discrimination (2AFC)</h3><p>The judge sees question, history, page, and two traces in random order: one real right try, one built. "One of these was written by a model that was told the answer. Which one?" Plus a reason. Accuracy with a Wilson CI over questions; ties are not allowed.</p></div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">The judge has to be shown it can tell, or its "can't tell" proves nothing</h3>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Run</th><th>Pair shown</th><th>Expected judge accuracy</th><th>What it proves</th></tr></thead>
+      <tbody>
+        <tr><td><b>C0</b> null</td><td>real right try vs another real right try of the same question (one labelled "built" at random)</td><td>≈ 50%</td><td>The judge's chance level on this data, with its CI. Any position or length bias shows here</td></tr>
+        <tr><td><b>C1</b> positive</td><td>real right try vs B3 (Flash with the hint)</td><td>clearly above 50% (target ≥ 75%)</td><td>The judge has power: a different writer is detectable</td></tr>
+        <tr><td><b>C2</b> positive</td><td>real right try vs a B1 trace with the hint left in the reasoning (an injected leak)</td><td>≥ 90%</td><td>It catches the failure G5 exists for, so a leak G5 misses would not pass V3 either</td></tr>
+        <tr><td><b>T</b> test</td><td>real right try vs the candidate arm (B1 or B2)</td><td>indistinguishable from C0</td><td>The builder's traces read like the student's real right ones</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Judge: Claude through <code>evalloop/sdk.run_structured</code> on the subscription (the teacher's and confidence judge's chokepoint, so it is traced). It never sees gold or the hint, only the two traces. Positions are randomised per question and each question is judged twice with the order swapped; a judge that flips with the order is scored as a tie (0.5). A second, absolute check scores each trace alone for faithfulness (does the working support the answer?) on the confidence judge's six checks; built traces must not score below real ones.</p>
+</section>
+
+<section id="pass">
+  <span class="eyebrow">05</span>
+  <h2>The deployment gate: decided on the sealed 300, scored once</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Criterion</th><th>Pass</th></tr></thead>
+      <tbody>
+        <tr><td>V1 yield, hard stratum</td><td>≥ 70% of questions get a gated candidate</td></tr>
+        <tr><td>G5 leaks among gated candidates</td><td>0, by construction; a hand check of 30 confirms</td></tr>
+        <tr><td>V2 fidelity: program equivalent to the real trace</td><td>Wilson lower bound ≥ (ceiling − 10pp), ceiling = real-vs-real agreement</td></tr>
+        <tr><td>V2 fidelity: operand values</td><td>as above</td></tr>
+        <tr><td>Judge has power</td><td>C1 lower bound &gt; 60% and C2 ≥ 90%. If not, change the judge before reading T</td></tr>
+        <tr><td><b>V3: T indistinguishable</b></td><td>T's accuracy minus C0's: 95% CI upper bound ≤ +10pp (a one-sided non-inferiority test, cluster-resampled by conversation)</td></tr>
+        <tr><td>Faithfulness</td><td>built traces not worse than real ones (paired, one-sided p &gt; 0.05 for "worse")</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Dev is for iterating on the builder's prompt and picking B1 vs B2; the sealed set is read once for the arm that dev picked. A fail on the sealed set goes back to dev with a new arm, and a <b>new</b> sealed draw (from the 2,717 + 725 left), never a re-read of the old one.</p>
+</section>
+
+<section id="deploy">
+  <span class="eyebrow">06</span>
+  <h2>D · Deployment: the 438, then DPO v2</h2>
+  <ol class="steps">
+    <li><b>Build.</b> The passed arm on all 438 (416 train, 22 eval), N = 8 candidates each, every candidate through G1–G6. The 97 "right value, wrong form" questions also get a format chosen (the student's own try, answer restated), kept as a labelled subset so its effect can be read alone.</li>
+    <li><b>Spot check.</b> 30 gated traces read by hand against the page, stratified by s35's categories (sign, same-wrong, scattered, near). A flagged gold (gold_suspect) is dropped, not built to.</li>
+    <li><b>Pairs.</b> The built chosen vs the student's 8 clean wrong tries, cap 4, the same selector. Tagged <code>source=built</code> beside s35's <code>source=sampled</code>, so DPO v2 can be read with and without them.</li>
+    <li><b>Walk on.</b> The built turn becomes the history, and the student samples the 499 questions behind it at 8 tries: more on-policy pairs.</li>
+    <li><b>DPO v2.</b> s35's 2,448 sampled pairs plus the built ones. Its pilot is compared against DPO v1's on val. Test 100 stays closed.</li>
+  </ol>
+</section>
+
+<section id="cost">
+  <span class="eyebrow">07</span>
+  <h2>Effort and cost</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Phase</th><th>Work</th><th>Compute</th></tr></thead>
+      <tbody>
+        <tr><td>T1 builder + gates</td><td><code>src/convfinqa/dpo/builder.py</code>, <code>gates.py</code>, tests on recorded traces</td><td>none</td></tr>
+        <tr><td>T2 reference sets</td><td>dev/sealed draw, stratified, page-clean, committed manifest</td><td>none</td></tr>
+        <tr><td>T3 dev runs</td><td>B1, B2 (and B3 for C1) on 120 questions × 8</td><td>≈ $1 of L4 · ≈ $0.50 of Flash</td></tr>
+        <tr><td>T4 judge + controls</td><td><code>dpo/judge.py</code>: 2AFC, order-swapped, C0–C2 on dev</td><td>≈ 1,000 judge calls on the subscription</td></tr>
+        <tr><td>T5 sealed validation</td><td>one arm, 300 questions, scored once</td><td>≈ $2 L4 · ≈ 1,200 judge calls</td></tr>
+        <tr><td>T6 deploy</td><td>438 × 8, gates, spot check, pairs, walk on</td><td>≈ $3 L4 + ≈ 1 h for the walk</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Runs alongside the DPO v1 trainer (P4) and pilot (P5), which need the GPU for a different job and do not depend on this.</p>
+</section>
+
+<section id="decide">
+  <span class="eyebrow">08</span>
+  <h2>Decisions</h2>
+
+  <form class="q" data-lavish-question="T-D1-writer" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s36 D1 builder writer: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · Who writes the trace</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="student with hint (B1/B2) first, Flash (B3) only as the judge's positive control and as fallback" checked><span><b>The student, given the answer; Flash as control and fallback</b> <span class="badge rec">recommended</span><span class="d">The most on-policy chosen. Dev decides B1 vs B2.</span></span></label>
+      <label><input type="radio" name="d1" value="Flash with hint (B3) as the writer"><span><b>Flash, given the answer</b><span class="d">Finds more paths on hard questions. Off-policy, and the judge is expected to spot it.</span></span></label>
+      <label><input type="radio" name="d1" value="Claude (Sonnet 5) via the Agent SDK as the writer"><span><b>Claude, given the answer</b><span class="d">The strongest writer. Furthest from the student's style; subscription time.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="T-D2-judge" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s36 D2 judge model: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D2: '+v,element:f,data:{question:'D2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · The judge</h3>
+    <fieldset>
+      <label><input type="radio" name="d2" value="Claude Sonnet 5 on the subscription, through evalloop/sdk.run_structured" checked><span><b>Sonnet 5, on the subscription</b> <span class="badge rec">recommended</span><span class="d">The teacher's model; strong enough to have power on C1, traced through the existing chokepoint. No API spend.</span></span></label>
+      <label><input type="radio" name="d2" value="Claude Opus 5 on the subscription"><span><b>Opus 5</b><span class="d">A harder judge to fool; slower, more subscription time.</span></span></label>
+      <label><input type="radio" name="d2" value="DeepSeek Flash as the judge"><span><b>Flash</b><span class="d">Cheap and fast, but it wrote the SFT data, so it may be blind to its own style.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="T-D3-bar" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d3'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s36 D3 indistinguishability bar: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D3: '+v,element:f,data:{question:'D3',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D3 · How indistinguishable is indistinguishable</h3>
+    <fieldset>
+      <label><input type="radio" name="d3" value="T minus C0 upper bound within +10pp on the sealed 300" checked><span><b>Within +10pp of chance (upper bound)</b> <span class="badge rec">recommended</span><span class="d">At 300 questions judged twice, the CI half-width is about ±6pp, so this is reachable and still meaningful.</span></span></label>
+      <label><input type="radio" name="d3" value="T minus C0 upper bound within +5pp; enlarge the sealed set to 600"><span><b>Within +5pp, on 600 questions</b><span class="d">Stricter; doubles the sealed set and the judge calls.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <h3>Sources</h3>
+  <ul>
+    <li><b>Where the 438 come from.</b> <code>.lavish/s35_dpo-coverage.html</code> §03b · <code>evaluation/dpo/v1/all_wrong_tries8.json</code>.</li>
+    <li><b>Reference traces.</b> <code>evaluation/dpo/v1/tries8.jsonl</code> (right tries, with their histories rebuilt by <code>sample.restored_messages</code>).</li>
+    <li><b>Reused code.</b> <code>dpo/pairs.py</code> (grade, close, select_capped) · <code>dpo/render.py</code> (rows and the row check) · <code>evaluation/program_exec.py</code> (execute, bind_and_execute) · <code>evalloop/sdk.py</code> (judge calls) · <code>evalloop/judge.py</code> (the six checks).</li>
+    <li><b>Method.</b> STaR's rationalisation (Zelikman et al. 2022): the model is given the answer and asked for the working, and the hint is removed from the training example. Iterative RPO (Pang et al. 2024) used gold as the chosen where no sample was right.</li>
+    <li><b>Design.</b> House UI (<code>house.css</code> + <code>project.css</code>), with the s33–s35 layout classes.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

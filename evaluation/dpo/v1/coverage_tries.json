@@ -1,0 +1,220 @@
+{
+ "cap": 4,
+ "strict": true,
+ "conversations": {
+  "pool": 1489,
+  "sampled": 300,
+  "sampled:train": 289,
+  "with a pair": 62,
+  "sampled:eval": 11,
+  "not sampled": 1189
+ },
+ "stops": {
+  "q1": 31,
+  "completed": 184,
+  "q0": 51,
+  "q2": 18,
+  "q3": 16
+ },
+ "questions": {
+  "program": {
+   "questions": 639,
+   "reached": 544,
+   "no pair": 488,
+   "right": 1638,
+   "graded": 2170,
+   "not reached": 95,
+   "paired": 56,
+   "pairs": 160,
+   "not sampled": 2536
+  },
+  "number": {
+   "questions": 249,
+   "reached": 226,
+   "no pair": 210,
+   "right": 816,
+   "graded": 902,
+   "paired": 16,
+   "pairs": 51,
+   "not reached": 23,
+   "not sampled": 970
+  }
+ },
+ "no_pair_reasons": {
+  "program": {
+   "all right": 369,
+   "all wrong": 103,
+   "not reached (an earlier question had no right try)": 95,
+   "flip, but no clean right or no clean wrong": 16
+  },
+  "number": {
+   "all right": 197,
+   "not reached (an earlier question had no right try)": 23,
+   "all wrong": 13
+  }
+ },
+ "by_position": {
+  "0": {
+   "reached": 300,
+   "right": 922,
+   "graded": 1196,
+   "pairs": 94,
+   "paired": 32
+  },
+  "1": {
+   "reached": 248,
+   "right": 828,
+   "graded": 990,
+   "pairs": 53,
+   "paired": 18
+  },
+  "2": {
+   "reached": 147,
+   "right": 486,
+   "graded": 586,
+   "pairs": 45,
+   "paired": 16
+  },
+  "3": {
+   "reached": 75,
+   "right": 218,
+   "graded": 300,
+   "pairs": 19,
+   "paired": 6
+  }
+ },
+ "pairs_per_conversation": {
+  "0": 238,
+  "1": 1,
+  "2": 9,
+  "3": 33,
+  "4": 11,
+  "6": 7,
+  "7": 1
+ },
+ "rights_histogram": {
+  "0/2": 2,
+  "0/4": 114,
+  "1/2": 1,
+  "1/4": 26,
+  "2/2": 1,
+  "2/4": 18,
+  "3/4": 43,
+  "4/4": 565
+ },
+ "caps": {
+  "plain:1": {
+   "pairs:program": 57,
+   "pairs:train": 71,
+   "pairs": 73,
+   "questions": 73,
+   "pairs:number": 16,
+   "pairs:eval": 2
+  },
+  "plain:2": {
+   "pairs:program": 112,
+   "pairs:train": 140,
+   "pairs": 144,
+   "questions": 73,
+   "pairs:number": 32,
+   "pairs:eval": 4
+  },
+  "plain:3": {
+   "pairs:program": 155,
+   "pairs:train": 195,
+   "pairs": 201,
+   "questions": 73,
+   "pairs:number": 46,
+   "pairs:eval": 6
+  },
+  "plain:4": {
+   "pairs:program": 163,
+   "pairs:train": 206,
+   "pairs": 214,
+   "questions": 73,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "plain:6": {
+   "pairs:program": 163,
+   "pairs:train": 206,
+   "pairs": 214,
+   "questions": 73,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "plain:8": {
+   "pairs:program": 163,
+   "pairs:train": 206,
+   "pairs": 214,
+   "questions": 73,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "plain:64": {
+   "pairs:program": 163,
+   "pairs:train": 206,
+   "pairs": 214,
+   "questions": 73,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "strict:1": {
+   "pairs:program": 56,
+   "pairs:train": 70,
+   "pairs": 72,
+   "questions": 72,
+   "pairs:number": 16,
+   "pairs:eval": 2
+  },
+  "strict:2": {
+   "pairs:program": 110,
+   "pairs:train": 138,
+   "pairs": 142,
+   "questions": 72,
+   "pairs:number": 32,
+   "pairs:eval": 4
+  },
+  "strict:3": {
+   "pairs:program": 152,
+   "pairs:train": 192,
+   "pairs": 198,
+   "questions": 72,
+   "pairs:number": 46,
+   "pairs:eval": 6
+  },
+  "strict:4": {
+   "pairs:program": 160,
+   "pairs:train": 203,
+   "pairs": 211,
+   "questions": 72,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "strict:6": {
+   "pairs:program": 160,
+   "pairs:train": 203,
+   "pairs": 211,
+   "questions": 72,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "strict:8": {
+   "pairs:program": 160,
+   "pairs:train": 203,
+   "pairs": 211,
+   "questions": 72,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  },
+  "strict:64": {
+   "pairs:program": 160,
+   "pairs:train": 203,
+   "pairs": 211,
+   "questions": 72,
+   "pairs:number": 51,
+   "pairs:eval": 8
+  }
+ },
+ "top_decile_share": 0.133
+}
