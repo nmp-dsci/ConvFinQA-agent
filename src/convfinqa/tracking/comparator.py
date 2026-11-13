@@ -336,7 +336,7 @@ def evalloop_champion_csv_path(version: str, split: str = "test") -> Path:
 
     Filenames are ``evalloop-{split}{n}-{version}·{composition}-{stamp}.csv``.
     Promotion evidence for a champion always comes from the unseen test split
-    (see CLAUDE.md's promotion protocol), so `split` defaults to "test". If a
+    (see the promotion protocol in AGENTS.md), so `split` defaults to "test". If a
     version was run more than once, the most recent (by filename timestamp,
     which sorts lexicographically) is used.
     """
