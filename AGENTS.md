@@ -687,6 +687,14 @@ The invariants, all pinned by tests:
   AI 2.x records a refused call as a `tool-return` with `outcome: "retried"` (not
   `retry-feedback`) and can fold a turn's closing tool return into the next question's
   request; `sft/trajectories.turns` and `sft/rows` handle both (`tests/test_sft_rows.py`).
+- **DPO (s33+) builds preference pairs from train-split conversations only** (`convfinqa-dpo`,
+  `src/convfinqa/dpo/`, data in `evaluation/dpo/<version>/`; trainer `sft/train/dpo.py`, configs
+  `sft/configs/dpo1_*.yaml`). `sample` draws tries per question from the student on vLLM; wrong
+  tries pair against right ones (`pairs`, capped per question), and `teacher` backfills the
+  questions the student got all wrong with llm_react_v1's correct turns as the chosen side
+  (`dpo_v2`). Val and test are never sampled: val scores the tuned LoRA, **test 100 stays sealed**
+  unless the owner approves opening it. DPO rounds share `runs/sft/` but carry a `kind` in
+  `run.json` and are **not** on the Fine-tuning progression (`sft/progress.py::_sft_runs`).
 - **Optimise › Fine-tuning reads one committed record, `evaluation/fine_tuning.json`** (s32).
   `convfinqa-sft progress` (`sft/progress.py`) builds it from committed files only: the
   student's and teacher's pass CSVs, `runs/sft/*/run.json` + `metrics.jsonl`, the dataset

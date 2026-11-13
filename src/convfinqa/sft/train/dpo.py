@@ -399,8 +399,8 @@ def train(
     checkpoints: dict[str, str] = {}
     for epoch in range(epochs):
         rng.shuffle(order)
-        for s in range(steps_per_epoch):
-            batch = order[s * accum : (s + 1) * accum]
+        for si in range(steps_per_epoch):
+            batch = order[si * accum : (si + 1) * accum]
             agg = {
                 "loss": 0.0,
                 "dpo": 0.0,
@@ -439,7 +439,7 @@ def train(
             step += 1
             row = {
                 "step": step,
-                "epoch": round(epoch + (s + 1) / steps_per_epoch, 3),
+                "epoch": round(epoch + (si + 1) / steps_per_epoch, 3),
                 **{k: round(v, 5) for k, v in agg.items()},
                 "grad_norm": round(grad_norm, 4),
                 "learning_rate": sched.get_last_lr()[0],
