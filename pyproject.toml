@@ -107,6 +107,7 @@ extend-select = [
 "src/convfinqa/sft/cloud/modal_app.py" = ["T201"]
 "src/convfinqa/sft/train/sft.py" = ["T201"]
 "src/convfinqa/sft/train/dpo.py" = ["T201"]
+"src/convfinqa/dpo/judge.py" = ["T201"]  # progress lines of a long judging pass
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

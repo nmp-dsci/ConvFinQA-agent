@@ -132,6 +132,7 @@ async def run_structured(
     attempts: int = 2,
     refs: dict[str, Any] | None,
     model: str | None = None,
+    effort: str = "low",
 ) -> tuple[T, dict[str, Any]]:
     """Run one Agent SDK turn and validate its reply against `schema`.
 
@@ -206,6 +207,7 @@ async def run_structured(
                     allowed_tools=allowed_tools,
                     max_turns=max_turns,
                     model=model_name,
+                    effort=effort,
                 )
             except TeacherRateLimitError as exc:
                 # Not retried: the next identical call gets the same refusal, and
@@ -243,6 +245,7 @@ async def _run_structured_once(
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
     model: str | None = None,
+    effort: str = "low",
 ) -> tuple[T, dict[str, Any]]:
     """One attempt. See `run_structured` for the contract."""
     from claude_agent_sdk import (
@@ -261,6 +264,7 @@ async def _run_structured_once(
         allowed_tools=allowed_tools,
         max_turns=max_turns,
         model=model,
+        effort=effort,
     )
     if mcp_servers:
         options.mcp_servers = mcp_servers

@@ -97,6 +97,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument("--cap", type=int, default=4)
     p.add_argument("--out", type=Path, required=True)
+    p = sub.add_parser("builder-sets", help="cut the builder's dev/sealed sets (s39)")
+    p.add_argument("--force", action="store_true")
+    p = sub.add_parser(
+        "builder-build", help="gold-hinted teacher traces for a set (s39)"
+    )
+    p.add_argument("--set", required=True, choices=("dev", "sealed"))
+    p.add_argument("--tries", type=int, default=2)
+    p.add_argument("--hint", default="h1")
+    p.add_argument("--concurrency", type=int, default=16)
+    p = sub.add_parser("judge-run", help="2AFC judge over a built set (s39)")
+    p.add_argument("--set", required=True, choices=("dev", "sealed"))
+    p.add_argument("--hint", default="h1")
+    p.add_argument("--concurrency", type=int, default=8)
+    p = sub.add_parser("judge-report", help="score a judged set (s39)")
+    p.add_argument("--set", required=True, choices=("dev", "sealed"))
+    p.add_argument("--hint", default="h1")
     args = ap.parse_args(argv)
 
     if args.cmd == "manifest":
@@ -180,6 +196,46 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(card, indent=1) + "\n"
         )
         print(args.out, json.dumps(card, indent=1))
+    elif args.cmd == "builder-sets":
+        from convfinqa.dpo import builder
+
+        print(builder.write_sets(force=args.force))
+    elif args.cmd == "builder-build":
+        import asyncio
+
+        from convfinqa.dpo import builder
+
+        builder.prepare()
+        print(
+            asyncio.run(
+                builder.build_set(
+                    args.set,
+                    tries=args.tries,
+                    concurrency=args.concurrency,
+                    hint=args.hint,
+                )
+            )
+        )
+    elif args.cmd == "judge-run":
+        import asyncio
+
+        from convfinqa.dpo import builder, judge
+
+        builder.prepare()
+        print(
+            asyncio.run(
+                judge.judge_set(args.set, concurrency=args.concurrency, hint=args.hint)
+            )
+        )
+    elif args.cmd == "judge-report":
+        from convfinqa.dpo import builder, judge
+
+        builder.prepare()
+        rep = judge.report(args.set, args.hint)
+        (builder.ROOT / f"{args.set}_report{builder.tag(args.hint)}.json").write_text(
+            json.dumps(rep, indent=1) + "\n"
+        )
+        print(json.dumps(rep, indent=1))
     elif args.cmd == "pilot-data":
         from convfinqa.dpo import pilot
 

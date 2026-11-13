@@ -550,6 +550,7 @@ def teacher_options(
     allowed_tools: list[str] | None = None,
     max_turns: int = 12,
     model: str | None = None,
+    effort: str = "low",
 ) -> Any:
     """Options for one Agent SDK call. The demo gate applies here as everywhere.
 
@@ -563,9 +564,12 @@ def teacher_options(
 
     `effort="low"`: left unset, the SDK defaults every call here to `"high"`
     (2026-09-10 decision) — every Agent SDK call in this project, chosen
-    explicitly rather than inherited from the SDK's own default.
+    explicitly rather than inherited from the SDK's own default. A caller that
+    needs another (s39's trace judge runs Haiku 5.5 at `medium`) passes it.
     """
     guard_llm_call()
+    if effort not in SDK_EFFORTS:
+        raise ValueError(f"unknown effort {effort!r}; one of {SDK_EFFORTS}")
     from claude_agent_sdk import ClaudeAgentOptions
 
     kwargs: dict[str, Any] = {
@@ -576,7 +580,7 @@ def teacher_options(
         "permission_mode": "bypassPermissions",
         "setting_sources": [],
         "allowed_tools": allowed_tools or [],
-        "effort": "low",
+        "effort": effort,
     }
     if output_schema is not None:
         kwargs["output_format"] = {"type": "json_schema", "schema": output_schema}
