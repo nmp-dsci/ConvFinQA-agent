@@ -86,6 +86,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--seed", type=int, default=2034)
     p.add_argument("--name", default="dpo_v1_pilot")
     p.add_argument("--no-upload", action="store_true")
+    p = sub.add_parser(
+        "teacher-pairs",
+        help="render the teacher's right turns on the 0/8 questions as DPO rows (s37)",
+    )
+    p.add_argument("--teacher-run", action="append", required=True, metavar="RUN")
+    p.add_argument("--tries-file", type=Path, default=TRIES_PATH)
+    p.add_argument(
+        "--targets", type=Path, default=TRIES_PATH.parent / "all_wrong_tries8.json"
+    )
+    p.add_argument("--cap", type=int, default=4)
+    p.add_argument("--out", type=Path, required=True)
     args = ap.parse_args(argv)
 
     if args.cmd == "manifest":
@@ -151,6 +162,24 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(summary, indent=1) + "\n"
         )
         print(out, json.dumps(summary, indent=1))
+    elif args.cmd == "teacher-pairs":
+        from convfinqa.config import EVAL_ROOT
+        from convfinqa.dpo import manifest, teacher
+        from convfinqa.sft import trajectories as tj
+
+        m = manifest.load()
+        split_of = {r: s for s, ids in m["splits"].items() for r in ids}
+        passes = [
+            (EVAL_ROOT / "predictions" / "evalloop" / f"{run}.csv", tj.fetch(run))
+            for run in args.teacher_run
+        ]
+        card = teacher.build(
+            passes, args.targets, args.tries_file, split_of, args.out, cap=args.cap
+        )
+        args.out.with_name(args.out.name.split(".")[0] + "_card.json").write_text(
+            json.dumps(card, indent=1) + "\n"
+        )
+        print(args.out, json.dumps(card, indent=1))
     elif args.cmd == "pilot-data":
         from convfinqa.dpo import pilot
 

@@ -401,3 +401,38 @@ def test_dpo_row_check_accepts_a_sound_row_and_names_faults() -> None:
     assert any("does not open with an assistant" in p for p in render.check(leak))
     first, rest = render._split(prompt + [_final("5")])
     assert first == prompt and rest == [_final("5")]
+
+
+def test_teacher_turn_is_shaped_like_a_student_try() -> None:
+    """Question k's messages, opened by a blanked prompt, the previous turn's tail dropped."""
+    from convfinqa.dpo.teacher import teacher_turn
+
+    def req(*parts: dict[str, object], **extra: object) -> dict[str, object]:
+        return {"kind": "request", "parts": list(parts), **extra}
+
+    def resp(name: str) -> dict[str, object]:
+        return {
+            "kind": "response",
+            "parts": [{"part_kind": "tool-call", "tool_name": name}],
+        }
+
+    ret = {"part_kind": "tool-return", "content": "Final result processed."}
+    conv = [
+        req({"part_kind": "user-prompt", "content": "q0"}, instructions="sys"),
+        resp("StructuredOutput"),
+        req(ret, {"part_kind": "user-prompt", "content": "q1"}),
+        resp("divide"),
+        req({"part_kind": "tool-return", "content": "2.0"}),
+        resp("StructuredOutput"),
+        req(ret, {"part_kind": "user-prompt", "content": "q2"}),
+        resp("StructuredOutput"),
+    ]
+    turn = teacher_turn(conv, 1)
+    assert turn[0]["parts"] == [{"part_kind": "user-prompt", "content": ""}]
+    assert [m["kind"] for m in turn] == ["request", "response", "request", "response"]
+    assert teacher_turn(conv, 0)[0]["instructions"] == "sys"
+    assert len(teacher_turn(conv, 2)) == 2
+    import pytest
+
+    with pytest.raises(ValueError):
+        teacher_turn(conv, 3)

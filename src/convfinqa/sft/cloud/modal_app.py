@@ -71,6 +71,12 @@ ADAPTERS |= {
     f"{BASE_NAME}-dpo1-e{epoch}": f"20261112T090900Z_train_dpo1-pilot/checkpoints/checkpoint-{step}"
     for epoch, step in (("1", 25), ("2", 50))
 }
+# s37: DPO v1 on all 2,306 pairs, 1 epoch (144 steps) from sft2-e1. Two checkpoints are
+# served and scored on val: half an epoch (step 72) and the end (step 144).
+ADAPTERS |= {
+    f"{BASE_NAME}-dpo1full-e{epoch}": f"20261112T230944Z_train_dpo1-full/checkpoints/checkpoint-{step}"
+    for epoch, step in (("0p5", 72), ("1", 144))
+}
 
 TRAIN_PINS = (
     "torch==2.14.1",
