@@ -96,7 +96,8 @@ jobs:
 
   e2e:
     name: Frontend — Playwright e2e
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest now resolves to 26.04, which Playwright cannot install Chromium on.
+    runs-on: ubuntu-24.04
     # This job exists because its absence had a cost. Four of the six specs sat
     # red at HEAD — they opened `/` and immediately reached for chat controls,
     # and `/` had become the status board — and nothing in CI noticed, because
