@@ -49,14 +49,45 @@
   </div>
 </header>
 
+<section id="rev1">
+  <span class="eyebrow">00 · revision 1, owner's direction, 2026-11-13</span>
+  <h2>Flash writes every chosen, a <em>Haiku 5.5</em> judge checks it, and Modal only trains DPO v2</h2>
+  <p>This revision replaces B1/B2 (the student writing with a hint). Below, where §02–§07 disagree with this table, the table wins.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Piece</th><th>Was</th><th>Now</th><th>Why it holds up</th></tr></thead>
+      <tbody>
+        <tr><td><b>Writer</b></td><td>Student sft2-e1 with the answer as a hint (B1/B2) on Modal; Flash as fallback</td><td><b>DeepSeek Flash</b> (llm_react_v1, its own <code>pydantic_ai</code> harness and tools), told the gold answer, 8 tries per question</td><td>The student was SFT'd on Flash's traces, so Flash's style is the style the student learned: "off-policy" is milder than it sounds. Flash finds paths the student cannot. No GPU</td></tr>
+        <tr><td><b>Gold given</b></td><td>Answer (B1), answer + program (B2)</td><td>Answer first; answer + program only if the gate yield on dev is low</td><td>The program pins the operations but leaks easily (G5)</td></tr>
+        <tr><td><b>Judge</b></td><td>Sonnet 5, effort unspecified</td><td><b>Haiku 5.5, effort medium</b>, through the Agent SDK on the subscription (<code>evalloop/sdk.run_structured</code>)</td><td>Cheaper in subscription time. Its power is not assumed: the C2 leak control must still hit ≥ 90%. Needs one change: <code>run_structured</code> takes no effort today</td></tr>
+        <tr><td><b>Test pair (T)</b></td><td>Student's real right try vs the student's built try</td><td>Student's real right try vs <b>Flash's built try</b> on the validation questions; also Flash-with-gold vs Flash's own unhinted right try (isolates the hint)</td><td>The first answers "does it look like a right answer the student would give"; the second answers "does knowing the answer show"</td></tr>
+        <tr><td><b>Positive control</b></td><td>C1 = Flash vs real (expected detectable)</td><td>C1 dropped (Flash is now the arm). C2 (injected leak) stays; add C3 = a gold-hinted trace with its operands swapped for wrong page cells</td><td>A judge that can't catch C2 or C3 has no power, and its "can't tell" proves nothing</td></tr>
+        <tr><td><b>Pass bar</b></td><td>T − C0 upper bound ≤ +10pp</td><td>Unchanged, on the sealed 300, with the order-swap rule</td><td></td></tr>
+        <tr><td><b>Deploy</b></td><td>438 all-wrong + walk into the 499 later questions (student sampling)</td><td><b>The 438 only.</b> Gated Flash chosens vs the student's existing 8 wrong tries, cap 4 → at most 1,752 new pairs, added to v1's 2,306</td><td>The walk needs the student to sample, i.e. Modal; it is dropped. The rejected sides already exist</td></tr>
+        <tr><td><b>Modal</b></td><td>Building, validation and DPO</td><td><b>Only DPO v2 training</b>, then the val passes</td><td>DPO v2 = v1's recipe on v1 + the new pairs, from sft2-e1, compared on <code>sft_v1</code> val to DPO v1 full</td></tr>
+        <tr><td><b>Cost</b></td><td>≈ $8–11 GPU</td><td>Flash ≈ (300 + 120 + 438) × 8 tries × $0.0006 ≈ <b>$4</b>; judge $0 (subscription); DPO v2 ≈ $20 on A10G (≈ 4,000 pairs, 1 epoch, ≈ 21 h: over the 20 h cap, so either reuse v1 full's cached reference log-probs for its 2,306 pairs, which saves ≈ 2.5 h, or raise the cap to Modal's 24 h)</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Two things to know.</b> (1) A Flash chosen is a turn the student finds less likely than its own, so DPO pushes harder on it and the chosen-likelihood drop seen in v1 (−10 nats) may be larger. DPO v2 will report it per source (v1 pairs vs Flash pairs). (2) The 438 are the student's hardest questions, so the gate yield there will be lower than on the validation strata. That is why the yield is reported by stratum, and why the deploy count is "at most".</p>
+</section>
+
 <section id="flow">
   <span class="eyebrow">01</span>
   <h2>The shape of it</h2>
-  <div class="flow">
-    <div class="card"><span class="badge">B · build</span><h3>Trace builder</h3><p>Question + history + page + <b>gold</b> → one turn in the student's wire format. N candidates per question.</p></div>
-    <div class="card"><span class="badge">G · gate</span><h3>Validity gates</h3><p>Deterministic. Operands on the page, executes to gold, agrees with the gold program, no hint leak, schema valid.</p></div>
-    <div class="card"><span class="badge">V · validate</span><h3>Recreate known traces</h3><p>On questions with a hidden real right trace: same decisions? Judge can't tell which is which?</p></div>
-    <div class="card"><span class="badge">D · deploy</span><h3>Score the 438</h3><p>Only after V passes on the sealed set. Gated chosens vs the student's 8 wrong tries → DPO v2 pairs.</p></div>
+  <p>Which model does which job. <b>No Claude model writes traces.</b> The "teacher" in this plan is the SFT teacher, <b>llm_react_v1: DeepSeek Flash on Pydantic AI</b>, not the Claude Agent SDK. It is only the fallback writer and the judge's positive control. <b>Claude (Sonnet 5, Agent SDK on the subscription) is used only as the judge</b>, and it never sees gold.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Stage</th><th>Role</th><th>Model</th><th>Runtime · billing</th><th>Sees gold?</th><th>Input → output</th><th>Decided by</th></tr></thead>
+      <tbody>
+        <tr><td><b>B</b> build</td><td>Writer, lead (B1/B2)</td><td>The student, sft2-e1 (Qwen3-4B LoRA)</td><td>vLLM on Modal (<code>STUDENT_URL</code>), <code>pydantic_ai_checked</code> harness · Modal GPU time</td><td><b>Yes</b>: the answer (B1), plus the program (B2), as a hint</td><td>Question + history + page + hint → one turn in the student's wire format, 8 samples</td><td>D1</td></tr>
+        <tr><td><b>B</b> build</td><td>Writer, fallback (B3)</td><td><b>DeepSeek Flash</b>, as llm_react_v1 (the SFT teacher)</td><td>Pydantic AI on the DeepSeek API · ≈ cents</td><td><b>Yes</b>: the answer as a hint</td><td>Same as B1</td><td>D1</td></tr>
+        <tr><td><b>G</b> gate</td><td>Validity checks G1–G6</td><td>None (deterministic code)</td><td>Local · free</td><td><b>Yes</b>: checks against gold</td><td>Candidate turn → pass or fail, with the gate that failed</td><td>Fixed</td></tr>
+        <tr><td><b>V</b> validate</td><td>Recreate hidden right traces</td><td>The arm under test (B1, B2 or B3)</td><td>As in B</td><td>Yes (hint only)</td><td>120 dev and 300 sealed questions that already have a real right try → built turns</td><td>The pass bar</td></tr>
+        <tr><td><b>V</b> validate</td><td>Judge: which trace is built? (2AFC)</td><td><b>Claude Sonnet 5</b></td><td><b>Claude Agent SDK</b> via <code>evalloop/sdk.run_structured</code> · subscription, traced</td><td><b>No</b>: never gold, never the hint</td><td>Real vs built trace, order swapped → a pick and why</td><td>D2</td></tr>
+        <tr><td><b>D</b> deploy</td><td>Build chosens for the 438</td><td>The arm that passed V</td><td>As in B</td><td>Yes (hint only)</td><td>Gated chosen + the student's wrong tries → DPO v2 pairs</td><td>Only after V passes on the sealed set</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
@@ -115,7 +146,7 @@
   <div class="three">
     <div class="card"><span class="badge">V1</span><h3>Gate yield</h3><p>Share of questions with ≥ 1 candidate passing G1–G6, and of candidates. Abstentions and each gate's failures reported separately, by stratum.</p></div>
     <div class="card"><span class="badge">V2</span><h3>Recreation fidelity</h3><p>Against the hidden real right try: same turn type; same program up to execution equivalence; same operand values; same retrieved sources (cell/row); sub-question count; reasoning length within the real distribution. Reported as agreement rates with Wilson CIs. A second real right try of the same question is the ceiling: two real traces disagree too, and the builder is judged against that, not against 100%.</p></div>
-    <div class="card"><span class="badge">V3</span><h3>Judge discrimination (2AFC)</h3><p>The judge sees question, history, page, and two traces in random order: one real right try, one built. "One of these was written by a model that was told the answer. Which one?" Plus a reason. Accuracy with a Wilson CI over questions; ties are not allowed.</p></div>
+    <div class="card"><span class="badge">V3</span><h3>Judge discrimination (2AFC)</h3><p>The judge sees question, history, page, and two traces in random order: one real right try, one built. "One of these was written by a model that was told the answer. Which one?" Plus a reason. Each call must pick one (no "can't tell" option); each question is asked twice with the order swapped, and a question whose two answers disagree scores 0.5. Accuracy with a Wilson CI over questions.</p></div>
   </div>
 
   <h3 style="margin-top:var(--s5)">The judge has to be shown it can tell, or its "can't tell" proves nothing</h3>
@@ -131,6 +162,20 @@
     </table>
   </div>
   <p class="sub">Judge: Claude through <code>evalloop/sdk.run_structured</code> on the subscription (the teacher's and confidence judge's chokepoint, so it is traced). It never sees gold or the hint, only the two traces. Positions are randomised per question and each question is judged twice with the order swapped; a judge that flips with the order is scored as a tie (0.5). A second, absolute check scores each trace alone for faithfulness (does the working support the answer?) on the confidence judge's six checks; built traces must not score below real ones.</p>
+
+  <h3 style="margin-top:var(--s5)">Order swap: every pair judged twice, A–B then B–A</h3>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Outcome over the two calls</th><th class="sc">Score</th><th>Reading</th></tr></thead>
+      <tbody>
+        <tr><td>Picks the built trace both times</td><td class="sc">1</td><td>A real tell: it found the built trace whichever slot it was in</td></tr>
+        <tr><td>Picks the real trace both times</td><td class="sc">0</td><td>Fooled consistently</td></tr>
+        <tr><td>Picks slot 1 both times, or slot 2 both times</td><td class="sc">0.5</td><td>Position bias, no content signal. Counted as a tie, never as a hit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Reported beside every run:</b> the slot-1 pick rate over all calls (unbiased ≈ 50%), and the share of questions where the two orders disagree. C0 (real vs real) measures both with no content difference, so any bias it shows is the judge's, not the builder's. A judge with C0 slot-1 rate outside 40–60% is fixed (prompt) before T is read.<br>
+  <b>Is 50% the target?</b> Yes for T: if the builder's traces read like the student's, the judge should do no better than on C0, which should itself sit near 50%. The bar compares T to C0 rather than to a bare 50%, because C0 is the judge's measured chance level on this data. <b>Sample size:</b> at 50%, a 95% Wilson interval is about ±10pp at n = 100 and ±6pp at n = 300. That is why the decision is made on the sealed 300, with dev's 120 only for iteration.</p>
 </section>
 
 <section id="pass">
@@ -174,13 +219,15 @@
       <tbody>
         <tr><td>T1 builder + gates</td><td><code>src/convfinqa/dpo/builder.py</code>, <code>gates.py</code>, tests on recorded traces</td><td>none</td></tr>
         <tr><td>T2 reference sets</td><td>dev/sealed draw, stratified, page-clean, committed manifest</td><td>none</td></tr>
-        <tr><td>T3 dev runs</td><td>B1, B2 (and B3 for C1) on 120 questions × 8</td><td>≈ $1 of L4 · ≈ $0.50 of Flash</td></tr>
-        <tr><td>T4 judge + controls</td><td><code>dpo/judge.py</code>: 2AFC, order-swapped, C0–C2 on dev</td><td>≈ 1,000 judge calls on the subscription</td></tr>
-        <tr><td>T5 sealed validation</td><td>one arm, 300 questions, scored once</td><td>≈ $2 L4 · ≈ 1,200 judge calls</td></tr>
-        <tr><td>T6 deploy</td><td>438 × 8, gates, spot check, pairs, walk on</td><td>≈ $3 L4 + ≈ 1 h for the walk</td></tr>
+        <tr><td>T3 dev runs (<b>B</b> build)</td><td>B1 + B2 on 120 questions × 8 = 1,920 student tries; B3 (Flash) × 8 = 960 tries for C1</td><td>≈ $1.10 GPU · ≈ $0.60 Flash</td></tr>
+        <tr><td>T4 judge + controls</td><td><code>dpo/judge.py</code>: 2AFC, order-swapped, C0–C2 + T on dev</td><td>≈ 1,000 judge calls · subscription, $0</td></tr>
+        <tr><td>T5 sealed validation (<b>B</b> build)</td><td>one arm, 300 questions × 8 = 2,400 tries, scored once</td><td>≈ $1.40 GPU · ≈ 1,200 judge calls</td></tr>
+        <tr><td>T6 deploy (<b>B</b> build)</td><td>438 × 8 = 3,504 built tries, then the walk: the student's 8 tries on the ≈ 499 later questions they unblock (≈ 4,000)</td><td>≈ $4.30 GPU · ≈ 1–2 h</td></tr>
+        <tr><td><b>Total</b></td><td>≈ 12,800 tries + ≈ 2,200 judge calls</td><td><b>≈ $8 on L4 · ≈ $11 if it falls back to A10G</b> · plus a few dollars of server cold starts and idle</td></tr>
       </tbody>
     </table>
   </div>
+  <p class="sub"><b>Cost basis (measured, not estimated):</b> s34's 8-try sampling pass ran 31,080 student tries in 339 min on 4 L4 containers for ≈ $18, i.e. ≈ $0.58 per 1,000 tries (≈ 1,400 tries per GPU-hour at ≈ $0.80/h). A10G is ≈ 1.4× that, and L4s stopped scheduling during the pilot. Flash: llm_react_v1 turns cost ≈ $0.0006 each. The judge runs on the Claude subscription, so it costs time, not dollars.</p>
   <p class="sub">Runs alongside the DPO v1 trainer (P4) and pilot (P5), which need the GPU for a different job and do not depend on this.</p>
 </section>
 

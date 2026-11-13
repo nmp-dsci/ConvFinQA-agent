@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher backfill coverage</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .kpis > *{ min-width:0; }
+  .kpi .v{ font-family:var(--mono); font-size:var(--t3); font-variant-numeric:tabular-nums; }
+  .kpi .l{ font-size:var(--t-1); color:var(--muted); }
+  .bar{ display:flex; height:28px; border-radius:var(--r1,4px); overflow:hidden; margin-top:var(--s4); border:1px solid var(--line); }
+  .bar > span{ display:block; height:100%; }
+  .legend{ display:flex; flex-wrap:wrap; gap:var(--s2) var(--s4); margin-top:var(--s2); font-size:var(--t-1); }
+  .legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:baseline; }
+  .b1{ background:var(--ok, var(--accent)); } .b2{ background:var(--accent); opacity:.55; } .b3{ background:var(--bad, var(--muted)); }
+  .b4{ background:var(--warn, var(--muted)); } .b5{ background:var(--accent); opacity:.3; } .b6{ background:var(--muted); opacity:.55; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  code{ overflow-wrap:anywhere; }
+  td{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s37 · ConvFinQA-agent · 2026-11-13 · results · teacher backfill for the student's 0/8 questions · feeds DPO v2 · branch <code>dpo</code></div>
+  <h1>One teacher run fixes <em>104 of the 438</em>, and most of the rest aren't the model's fault.</h1>
+  <p class="lead">llm_react_v1 (DeepSeek Flash, high thinking, its own <code>pydantic_ai</code> harness) answered all 438 conversations that hold a question the student got wrong 8 times out of 8. It got 104 of those questions right, about a quarter, not the half we hoped for. On 276 of its 334 misses it gives the <b>same wrong answer as the student</b>, because the student learned from it. Sorted by cause, about a third of the 438 are gold or scorer problems, not reasoning errors. So more teacher runs would add little. The remainder, about 215 questions, goes to the s36 builder.</p>
+  <div class="kpis">
+    <div class="card kpi"><div class="v">104 / 438</div><div class="l">0/8 questions the teacher got right (23.7%), strict check</div></div>
+    <div class="card kpi"><div class="v">≈ 400</div><div class="l">new DPO pairs from them at cap 4 (teacher chosen vs the student's wrong tries)</div></div>
+    <div class="card kpi"><div class="v">83%</div><div class="l">of the teacher's misses are exactly the student's wrong answer</div></div>
+    <div class="card kpi"><div class="v">≈ +12–25</div><div class="l">questions a second teacher run is likely to add (estimate)</div></div>
+    <div class="card kpi"><div class="v">$≈1 · 8.5 min</div><div class="l">cost of this run (1,323 turns, concurrency 16)</div></div>
+  </div>
+</header>
+
+<section id="coverage">
+  <span class="eyebrow">01</span>
+  <h2>Where the 438 land: each question in exactly one bucket</h2>
+  <div class="bar" role="img" aria-label="438 questions by bucket">
+    <span class="b1" style="width:23.7%"></span><span class="b2" style="width:9.1%"></span><span class="b3" style="width:12.1%"></span><span class="b4" style="width:7.5%"></span><span class="b5" style="width:5.9%"></span><span class="b6" style="width:41.6%"></span>
+  </div>
+  <div class="legend"><span><i class="b1"></i>teacher right 104</span><span><i class="b2"></i>scorer artifact 40</span><span><i class="b3"></i>gold contradicts itself 53</span><span><i class="b4"></i>sign convention 33</span><span><i class="b5"></i>form / rounding 26</span><span><i class="b6"></i>genuinely wrong 182</span></div>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:20%">Bucket (checked in this order)</th><th class="sc" style="width:7%">Qs</th><th class="sc" style="width:10%">Teacher = student's wrong answer</th><th>How it is decided</th><th style="width:27%">What to do for DPO v2</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 · Teacher right</b></td><td class="sc">104</td><td class="sc">—</td><td>Right under the scorer <b>and</b> the strict check (<code>pairs.close</code>, sign included). 74 program, 30 number. By position: q0 56/212, q1 28/112, q2 14/68, q3 5/46</td><td><b>Use now.</b> Teacher turn as chosen, re-rendered on the student's prompt; the student's 8 wrong tries as rejected → ≈ 400 pairs</td></tr>
+        <tr><td><b>2 · Scorer artifact</b></td><td class="sc">40</td><td class="sc">37</td><td>The student (or teacher) answer, rounded half-up to gold's written precision, <b>equals gold</b>. E.g. gold 17% = 35/212 = 16.5%: <code>numeric_match</code> rounds with Python's banker's rounding, 16.5 → 16 ≠ 17. Or 0.588 vs gold 59%</td><td><b>No generation needed.</b> These were never wrong in substance. Drop them from "all wrong", or use the student's own trace as the chosen with the answer written in gold's form. The scorer fix is your call: it changes every past number</td></tr>
+        <tr><td><b>3 · Gold contradicts itself</b></td><td class="sc">53</td><td class="sc">46</td><td>Executing gold's own program does not give gold's answer, e.g. gold "2.6" for <code>subtract(18.7, 21.3)</code>, "734" for a percent change, "2291" for <code>subtract(2505, 314)</code> = 2191</td><td><b>Exclude.</b> Training towards a broken label teaches the wrong thing. Add them to the gold-suspect list</td></tr>
+        <tr><td><b>4 · Sign convention</b></td><td class="sc">33</td><td class="sc">31</td><td>Right magnitude, opposite sign: "how much did X change between 2015 and 2016" taken as old − new. Gold itself is not consistent about direction</td><td><b>s36 builder</b>, with gold's program as the hint (B2), so the order of the subtraction is pinned and G4 checks it</td></tr>
+        <tr><td><b>5 · Form / rounding</b></td><td class="sc">26</td><td class="sc">20</td><td>Right value at a ×100 or ×1000 scale, or within 0.6%, but not equal at gold's precision (e.g. 31,367,389.88 vs 31,367,389)</td><td>The student's own trace with the answer rewritten into gold's form (on-policy, no model)</td></tr>
+        <tr><td><b>6 · Genuinely wrong</b></td><td class="sc">182</td><td class="sc">142</td><td>A different value: 169 different, 8 near misses (0.6–5%), 5 "unavailable". Includes questions whose gold program doesn't fit the question, which this check can't see (e.g. "difference of contributions and payments", gold <code>divide(300.8, 76.4)</code>)</td><td><b>s36 builder</b>: Flash given the gold answer, gates G1–G6, Haiku 5.5 judge. Gate G4 and an abstain option catch gold that doesn't fit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">The teacher's history was wrong before the target question in only 15 of its 334 misses, so these errors aren't cascades from earlier turns. Turn accuracy over the whole run was 53.4% (1,323 turns), against about 81% on an ordinary train draw. These conversations really are the hard ones.</p>
+</section>
+
+<section id="examples">
+  <span class="eyebrow">02</span>
+  <h2>What the errors look like</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:15%">Bucket</th><th>Question</th><th style="width:22%">Gold</th><th style="width:12%">Teacher</th><th style="width:12%">Student (×tries)</th></tr></thead>
+      <tbody>
+        <tr><td>2 scorer</td><td>LKQ 2018 q1: what was the percent change?</td><td>17% · <code>(247−212)/212</code></td><td>16.5%</td><td>16.5% ×8</td></tr>
+        <tr><td>2 scorer</td><td>IP 2015 q2: what is 2000 divided by 2014 sales?</td><td>59% · <code>2000/3403</code></td><td>0.5877</td><td>0.588 ×5</td></tr>
+        <tr><td>3 gold</td><td>SNA 2007 q0: change in unrecognized tax benefits during 2007?</td><td>2.6 · <code>subtract(18.7, 21.3)</code> = −2.6</td><td>−2.6</td><td>−2.6 ×8</td></tr>
+        <tr><td>3 gold</td><td>FITB 2008 q3: what percentage change does this represent?</td><td>734 · <code>(937−734)/734</code> = 0.277</td><td>0.2766</td><td>0.2766 ×5</td></tr>
+        <tr><td>4 sign</td><td>ETR 2017 q0: how much did net revenue change between 2015 and 2016?</td><td>124 · <code>subtract(1666, 1542)</code></td><td>−124</td><td>−124 ×6</td></tr>
+        <tr><td>5 form</td><td>UNP 2017 q3: operating leases divided by the total sum?</td><td>71%</td><td>0.7106</td><td>0.711 ×5</td></tr>
+        <tr><td>6 genuine</td><td>AMT 2015 q0: high minus low share price, quarter ending March 31?</td><td>8.67 · <code>101.88 − 93.21</code></td><td>6.52</td><td>6.52 ×8</td></tr>
+        <tr><td>6 genuine</td><td>TFX 2015 q0: total value of the options, warrants and rights remaining?</td><td>386,797,190 · <code>4446967 × 86.98</code></td><td>4,446,967</td><td>4,446,967 ×8</td></tr>
+        <tr><td>6 gold doesn't fit</td><td>APD 2013 q0: difference of contributions to funded plans and payments for unfunded plans, 2012–2013?</td><td>3.9371 · <code>divide(300.8, 76.4)</code></td><td>224.4</td><td>224.4 ×8</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="retry">
+  <span class="eyebrow">03</span>
+  <h2>Would another teacher run pay? Barely: <em>≈ +12–25 questions</em></h2>
+  <div class="two">
+    <div class="card"><span class="badge">why so little</span><h3>The misses are stable, not random</h3><p>In 276 of 334 misses the teacher lands on the student's exact wrong number, often one the student gave 8 times out of 8. Two models agreeing on one wrong value is a fixed misreading (or a bad label), and re-sampling repeats it. Buckets 2–5 (152 questions) can't be fixed by retrying at all: the "error" is in gold or the scorer.</p></div>
+    <div class="card"><span class="badge">the estimate</span><h3>Only bucket 6 can move</h3><p>The 40 genuine misses where the teacher <i>differs</i> from the student are the unstable ones; at p ≈ 0.2–0.35 per retry that's +8–14. The 142 where it agrees, at p ≈ 0.03–0.08, add +4–11. So a second run likely adds about +12–25 (3–6% of 438), and 8 runs perhaps +40–60 in total. Upper bound if every miss were independent: +66.</p></div>
+  </div>
+  <p class="sub">A second run costs about $1 and 9 minutes, so it's cheap to measure rather than estimate, and it would firm up the per-question rates above. It isn't a strategy for the rest, though: 182 + 33 questions need a writer that is given the answer.</p>
+</section>
+
+<section id="recommend">
+  <span class="eyebrow">04</span>
+  <h2>Recommendation: <em>teacher first, scorer and gold cleanup second, builder for the remaining ≈ 215</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:5%">#</th><th>Step</th><th class="sc" style="width:12%">Questions</th><th class="sc" style="width:12%">Pairs (cap 4)</th><th style="width:18%">Cost</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Render the teacher's 104 right turns as chosens on the student's prompts (same gates as v1: strict check, DPO row check)</td><td class="sc">104</td><td class="sc">≈ 400</td><td>none</td></tr>
+        <tr><td>2</td><td>Take the 40 scorer artifacts out of "all wrong"; for the form cases (2 and 5), use the student's own trace with gold's answer form as the chosen</td><td class="sc">≤ 66</td><td class="sc">≤ 260</td><td>none</td></tr>
+        <tr><td>3</td><td>Exclude the 53 gold-contradicts-itself questions and log them as gold-suspect</td><td class="sc">53</td><td class="sc">0</td><td>none</td></tr>
+        <tr><td>4</td><td>s36 builder (Flash given gold; gold program for sign cases), gates G1–G6, Haiku 5.5 medium judge, validated on the sealed 300 first</td><td class="sc">≈ 215</td><td class="sc">≈ 300–500 if 35–60% pass</td><td>≈ $3 Flash · judge on subscription</td></tr>
+        <tr><td>5</td><td>DPO v2 on v1's 2,306 + the new pairs, from sft2-e1, judged on <code>sft_v1</code> val against DPO v1 full</td><td class="sc"></td><td class="sc">≈ 3,300–3,500</td><td>≈ $18–20 A10G</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Side finding:</b> <code>numeric_match</code> rounds with Python's <code>round()</code>, which rounds a half to the even number, so an exact .5 can fail against gold rounded the usual way. It affects every eval, test 100 included, so changing it is an owner decision and needs the past passes re-scored. It isn't touched here.<br>
+  <b>Meanwhile, DPO v1 full</b> is at step 108 of 144: eval reward accuracy 0.71, margin 0.58, finishing tonight.</p>
+
+  <form class="q" data-lavish-question="s37-D1" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s37 D1 second teacher run: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · A second teacher run</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="run one more teacher pass over the 334 still-wrong questions' conversations ($1) to measure the retry rate" checked><span><b>Run one more (≈ $1, 9 min)</b> <span class="badge rec">recommended</span> Measures the retry rate rather than estimating it; adds about 12–25.</span></label><br>
+      <label><input type="radio" name="d1" value="no more teacher runs; go straight to the builder"><span><b>No more teacher runs</b> Go straight to steps 1–4.</span></label>
+    </fieldset>
+    <textarea placeholder="note (optional)"></textarea>
+    <button type="submit">Queue</button> <span class="queued"></span>
+  </form>
+
+  <form class="q" data-lavish-question="s37-D2" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s37 D2 scorer artifacts: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D2: '+v,element:f,data:{question:'D2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · The 40 scorer artifacts and 26 form cases</h3>
+    <fieldset>
+      <label><input type="radio" name="d2" value="student's own trace, answer rewritten to gold's form, as the chosen" checked><span><b>Chosen = the student's own trace in gold's answer form</b> <span class="badge rec">recommended</span> On-policy, teaches the form the scorer wants, no model call.</span></label><br>
+      <label><input type="radio" name="d2" value="drop them from DPO entirely"><span><b>Drop them</b> Simplest; loses up to ≈ 260 pairs.</span></label><br>
+      <label><input type="radio" name="d2" value="drop them and also fix numeric_match rounding (re-score past passes)"><span><b>Drop them and fix the scorer</b> Rounds half-up; every committed pass gets re-scored.</span></label>
+    </fieldset>
+    <textarea placeholder="note (optional)"></textarea>
+    <button type="submit">Queue</button> <span class="queued"></span>
+  </form>
+</section>
+
+<footer>
+  <ul>
+    <li>Run: <code>open-evalloop-train438-sdk_v1·s1-pyd-deepseek-flash-high-20261113_202234</code>, MLflow <code>c2773235b14e4cdea9d31de893d0ec4f</code>, ids <code>evaluation/dpo/v1/teacher_all_wrong_ids.txt</code> (sha256 741eb17b…). Train side of <code>eval_loop_v2</code> only; test 100 not touched.</li>
+    <li>The 438: <code>evaluation/dpo/v1/all_wrong_tries8.json</code> (s35). Strict check <code>dpo.pairs.grade</code> + <code>pairs.close</code>; gold executed with <code>program_exec.execute</code>; "scorer artifact" = equal to gold at gold's written precision, rounded half-up, at scale ×1, ×100 or ÷100.</li>
+    <li>Retry estimate is a model, not a measurement; D1 measures it.</li>
+  </ul>
+</footer>
+</main>
+</body>
+</html>
