@@ -49,7 +49,7 @@ describe('the overall story', () => {
   });
 
   it('opens each round from a card, and links each pass to its run on Campaigns', () => {
-    expect(count(markup, 'data-round=')).toBe(RECORD.rounds.length);
+    expect(count(markup, 'data-round=')).toBe(RECORD.rounds.length + RECORD.planned.length);
     const base = passIndex(RECORD).get(RECORD.progression.test[0].pass!)!;
     expect(markup).toContain(`href="${campaignsLink(base.run_id)}"`);
   });
@@ -57,6 +57,42 @@ describe('the overall story', () => {
   it('says what it left off and why', () => {
     expect(markup).toContain('data-testid="ft-left-out"');
     expect(markup).toContain('an incomplete pass');
+  });
+});
+
+describe('the DPO rounds (s40)', () => {
+  const markup = html(<FineTuningView data={RECORD} />);
+
+  it('puts DPO v1 on the progression from sft2 e1, on val only, and keeps the pilot off it', () => {
+    const stage = RECORD.progression.val.find((s) => s.key === 'dpo1full')!;
+    expect(stage.vs_prev?.from).toContain('sft2-e1');
+    expect(stage.vs_prev?.delta_pp).toBeCloseTo(6.3, 1);
+    expect(RECORD.progression.test.find((s) => s.key === 'dpo1full')?.pass).toBeNull();
+    expect(RECORD.progression.val.some((s) => s.key === 'dpo1')).toBe(false);
+    expect(markup).toContain('not opened on test (the owner’s word opens it)');
+    // the test claim still covers only the rounds opened on test
+    expect(headline(RECORD).nRounds).toBe(2);
+  });
+
+  it('says where the student is now on val, and lists DPO v2 as built, not trained', () => {
+    expect(markup).toContain('<strong>DPO v1 · epoch 1</strong> reached 82.7% on val');
+    expect(markup).toContain('2 SFT rounds and 2 DPO rounds, each picked on val; 1 more built, not trained');
+    expect(markup).toContain('data-round="dpo_v2"');
+  });
+
+  it('sets the student beside every other agent on test 100', () => {
+    expect(markup).toContain('data-testid="ft-agents-table"');
+    expect(markup).toContain('90.5%');
+    expect(markup).toContain('data-stage="latest-val"');
+  });
+
+  it('opens DPO v1 with its pairs, objective and held-out pair accuracy', () => {
+    const dpo = html(<FineTuningView data={RECORD} />, '/optimise/fine-tuning?round=dpo1full');
+    expect(dpo).toContain(
+      'DPO v1 started from sft2 e1 and trained 1 epoch on 2,306 preference pairs; epoch 1 scored highest on val at 82.7%',
+    );
+    expect(dpo).toContain('73% prefer chosen');
+    expect(dpo).toContain('DPO β 0.1 + α 1 × NLL on the chosen side');
   });
 });
 
@@ -92,9 +128,10 @@ describe('a round', () => {
 describe('the cases', () => {
   it('lines up every test stage, then the teacher, judged from base to the last pick', () => {
     const set = overallCases(RECORD)!;
+    const opened = RECORD.progression.test.filter((s) => s.pass).length;
     expect(set.split).toBe('test');
-    expect(set.columns).toHaveLength(RECORD.progression.test.length + 1);
-    expect(set.to).toBe(RECORD.progression.test.length - 1);
+    expect(set.columns).toHaveLength(opened + 1);
+    expect(set.to).toBe(opened - 1);
     expect(set.span).toBe(set.to + 1);
   });
 

@@ -708,6 +708,12 @@ The invariants, all pinned by tests:
   split. Each pass links to `/optimise/campaigns?run=<run_id>`, which opens that run under its
   own split — so the student's runs must be in `evaluation/mlflow_snapshot.json`
   (`convfinqa-mlflow snapshot`) for the link to land in the demo.
+  **DPO rounds are on the same record** (s40): `runs/sft/*` with `kind: train_dpo` become
+  rounds with `method: dpo` (served key `dpo1full`, label `DPO v1`), their held-out pair
+  accuracy from `eval.jsonl` beside each checkpoint; a `-pilot` round is listed but kept off
+  the progression. A DPO dataset under `evaluation/dpo/v1/` that no run trained on is listed
+  under `planned`, and `agents` carries every other agent's newest complete test-100 pass
+  from `story.json → test_timeline` — so rebuild with `convfinqa-sft progress` after `story`.
 - **The write-up is `docs/optimization/agent-sdk.html`**, rendered by `story` from the same
   `story.json` (`runtime_comparison`, `sdk_campaigns`, `sdk_champion`) and covered by
   `story_check`. Every comparison field is `None` until an SDK run exists — the page says

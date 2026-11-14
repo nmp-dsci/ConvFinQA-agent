@@ -7,7 +7,10 @@ from committed files only, so it rebuilds byte for byte on any checkout, and
 - the student's scoring passes and the teacher's (llm_react_v1) test pass,
   `evaluation/predictions/evalloop/open-evalloop-*.csv`;
 - each training run's record, `runs/sft/<run id>/run.json` and `metrics.jsonl`;
-- each dataset's card, `evaluation/sft/<version>/stats.json`;
+- each dataset's card, `evaluation/sft/<version>/stats.json`, and each DPO
+  dataset's, `evaluation/dpo/v1/<version>/stats.json`;
+- each DPO round's held-out pair evaluation, `runs/sft/<run id>/eval.jsonl`;
+- the other agents' test passes, `evaluation/story.json → test_timeline`;
 - `evaluation/splits/sft_v1.json`, which says which conversations are val and
   which are test.
 
@@ -41,13 +44,38 @@ REPO = EVAL_ROOT.parent
 PROGRESS_PATH = EVAL_ROOT / "fine_tuning.json"
 PASSES_DIR = EVAL_ROOT / "predictions" / "evalloop"
 RUNS_DIR = REPO / "runs" / "sft"
-# s33: a DPO round shares the runs folder but has its own data and record; it is
-# not on the SFT progression yet, so neither its rounds nor its inputs are read
-SFT_KINDS = ("train",)
+# s33: a DPO round shares the runs folder; since s40 it is a round of its own on
+# the record (`method: dpo`), and a pilot stays off the progression
+SFT_KINDS = ("train", "train_dpo")
+DPO_DIR = EVAL_ROOT / "dpo" / "v1"
+STORY_PATH = EVAL_ROOT / "story.json"
+# the served adapter's round slug where it is not the label without its hyphens
+SERVED_KEY = {"dpo1-pilot": "dpo1"}
+# a built DPO dataset no run has trained on yet, and what stands in its way
+PLANNED_NOTES = {
+    "dpo_v2": "Built to continue from sft2 e1. The owner's direction (s38) is that "
+    "every round starts from the current champion, DPO v1 e1, as both policy and "
+    "reference, so it is rebuilt (372 teacher pairs + 372 v1 replay pairs "
+    "recommended) before it trains.",
+}
+
+
+def round_key(label: str) -> str:
+    """A run's label as its served adapter names it: `dpo1-full` → `dpo1full`."""
+    return SERVED_KEY.get(label, label.replace("-", ""))
+
+
+def _round_label(label: str) -> str:
+    """`sft2` → `Round 2`; `dpo1-full` → `DPO v1`; `dpo1-pilot` → `DPO v1 pilot`."""
+    if label.startswith("dpo"):
+        m = re.match(r"dpo(\d+)(?:-(\w+))?", label)
+        assert m, label
+        return f"DPO v{m[1]}" + (" pilot" if m[2] == "pilot" else "")
+    return f"Round {label.removeprefix('sft')}"
 
 
 def _sft_runs(name: str) -> list[Path]:
-    """`runs/sft/*/<name>` for the SFT training runs only (no DPO rounds)."""
+    """`runs/sft/*/<name>` for the training runs this record reads (SFT and DPO)."""
     return [
         p
         for p in sorted(RUNS_DIR.glob(f"*/{name}"))
@@ -83,7 +111,7 @@ _NAME = re.compile(
     r"(?P<stamp>\d{8}_\d{6})$"
 )
 _STUDENT = re.compile(
-    rf"^{re.escape(BASE)}(?:-(?P<round>sft\d+)-e(?P<epoch>[0-9p]+))?$"
+    rf"^{re.escape(BASE)}(?:-(?P<round>(?:sft|dpo)\d+[a-z]*)-e(?P<epoch>[0-9p]+))?$"
 )
 # a checkpoint's served name rounds its epoch (sft2's 0.51 is served as e0p5)
 _EPOCH_TOLERANCE = 0.05
@@ -230,6 +258,11 @@ def _key(epoch: float) -> str:
     return "e" + f"{epoch:g}".replace(".", "p")
 
 
+def _nearest_quarter(epoch: float) -> float:
+    """A saved epoch as its served name rounds it: sft2's 0.51 → 0.5, DPO's 0.25 stays."""
+    return round(epoch * 4) / 4
+
+
 def _find(
     passes: list[dict[str, Any]],
     *,
@@ -256,9 +289,11 @@ def _round(
     passes: list[dict[str, Any]],
     parents: dict[str, Any],
 ) -> dict[str, Any]:
-    label = meta["label"]
+    method = "dpo" if meta.get("kind") == "train_dpo" else "sft"
+    label = round_key(meta["label"])
     cfg = meta["config"]
-    stats = json.loads((DATA_DIR / meta["dataset"] / "stats.json").read_text())
+    data_dir = (DPO_DIR if method == "dpo" else DATA_DIR) / meta["dataset"]
+    stats = json.loads((data_dir / "stats.json").read_text())
     mine = [p for p in passes if p["complete"] and p["round"] == label]
 
     # the sweep: the harness that scored the most checkpoints on val by default
@@ -288,8 +323,9 @@ def _round(
     start["val_pass"] = start_val["id"] if start_val else None
 
     checkpoints = []
+    pair_eval = _pair_eval(run_dir) if method == "dpo" else []
     for c in _checkpoints(meta):
-        key = _key(round(c["epoch"] * 2) / 2)
+        key = _key(_nearest_quarter(c["epoch"]))
         val = next(
             (
                 p
@@ -320,6 +356,15 @@ def _round(
                 "val_pass": val["id"] if val else None,
                 "test_pass": test["id"] if test else None,
                 "vs_start": paired(start_val, val) if start_val and val else None,
+                **(
+                    {
+                        "pair_eval": next(
+                            (e for e in pair_eval if e["step"] == c["step"]), None
+                        )
+                    }
+                    if method == "dpo"
+                    else {}
+                ),
             }
         )
     accuracy = {p["id"]: p["accuracy"] for p in mine}
@@ -336,11 +381,16 @@ def _round(
         p["id"] for p in sorted(mine, key=lambda p: p["id"]) if p["id"] not in in_sweep
     ]
 
-    lora = cfg["lora"]
-    sft = cfg["sft"]
+    loss = _loss_curve(run_dir)
+    if method == "dpo":
+        detail = _dpo_detail(meta, stats, data_dir, parents, loss)
+    else:
+        detail = _sft_detail(meta, stats, cfg)
     return {
         "key": label,
-        "label": f"Round {label.removeprefix('sft')}",
+        "label": _round_label(meta["label"]),
+        "method": method,
+        "pilot": meta["label"].endswith("-pilot"),
         "run_id": meta["run_id"],
         "record": str((run_dir / "run.json").relative_to(REPO)),
         "started": meta["created"],
@@ -348,6 +398,25 @@ def _round(
         "instance": meta["instance"],
         "code_sha": meta["code_sha"],
         "start": start,
+        **detail,
+        "duration_s": round(meta["duration_s"]),
+        "cost_usd": meta["cost_usd"],
+        "cost_basis": meta["cost_basis"],
+        "loss": loss,
+        "pair_eval": pair_eval,
+        "sweep_harness": harness,
+        "checkpoints": checkpoints,
+        "best": best["key"] if best else None,
+        "rescores": rescores,
+    }
+
+
+def _sft_detail(
+    meta: dict[str, Any], stats: dict[str, Any], cfg: dict[str, Any]
+) -> dict[str, Any]:
+    lora = cfg["lora"]
+    sft = cfg["sft"]
+    return {
         "dataset": {
             "version": meta["dataset"],
             "card": str((DATA_DIR / meta["dataset"] / "card.md").relative_to(REPO)),
@@ -380,15 +449,143 @@ def _round(
         "steps": meta["steps"],
         "train_loss": round(meta["train_loss"], 4),
         "final_loss": round(meta["final_loss"], 4),
-        "duration_s": round(meta["duration_s"]),
-        "cost_usd": meta["cost_usd"],
-        "cost_basis": meta["cost_basis"],
-        "loss": _loss_curve(run_dir),
-        "sweep_harness": harness,
-        "checkpoints": checkpoints,
-        "best": best["key"] if best else None,
-        "rescores": rescores,
     }
+
+
+def _pair_eval(run_dir: Path) -> list[dict[str, Any]]:
+    """The held-out pairs at each evaluation: does the policy prefer the chosen side?"""
+    path = run_dir / "eval.jsonl"
+    if not path.exists():
+        return []
+    out = []
+    for line in path.read_text().splitlines():
+        row = json.loads(line)
+        out.append(
+            {
+                "step": int(row["step"]),
+                "reward_accuracy": row["reward_accuracy"],
+                "margin": row["margin"],
+                "chosen_dlogp": row["chosen_dlogp"],
+                "rejected_dlogp": row["rejected_dlogp"],
+                "n": int(row["n"]),
+            }
+        )
+    return out
+
+
+def _dpo_detail(
+    meta: dict[str, Any],
+    stats: dict[str, Any],
+    data_dir: Path,
+    parents: dict[str, Any],
+    loss: list[dict[str, float]],
+) -> dict[str, Any]:
+    """A DPO round's data and settings; its LoRA shape is the adapter it continues."""
+    dpo = meta["config"]["dpo"]
+    parent = parents[meta["init_adapter"].partition("/checkpoints/")[0]]
+    inherited = parent["settings"]
+    epochs = dpo["num_train_epochs"]
+    return {
+        "dataset": {
+            "version": meta["dataset"],
+            "card": str((data_dir / "stats.json").relative_to(REPO)),
+            "manifest": stats.get("manifest", "sft_v1"),
+            "source": stats.get("source"),
+            "n_rows": stats["n_train"],
+            "n_eval_pairs": stats["n_eval"],
+            "n_turns": stats["train_questions"],
+            "program_pairs": stats["train_kind"]["program"],
+            "number_pairs": stats["train_kind"]["number"],
+        },
+        "settings": {
+            "learning_rate": dpo["learning_rate"],
+            "schedule": f"warmup {dpo['warmup_ratio']:g} of the run, decayed to 0",
+            "epochs": epochs,
+            "effective_batch": round(stats["n_train"] * epochs / meta["steps"]),
+            "beta": dpo["beta"],
+            "nll_alpha": dpo["nll_alpha"],
+            "max_grad_norm": dpo["max_grad_norm"],
+            "lora_r": inherited["lora_r"],
+            "lora_alpha": inherited["lora_alpha"],
+            "lora_dropout": inherited["lora_dropout"],
+            "target_modules": inherited["target_modules"],
+            "save": "at "
+            + ", ".join(f"{f:g}" for f in dpo["save_fractions"])
+            + " of the run",
+            "reference": "the start adapter, frozen",
+        },
+        "steps": meta["steps"],
+        "train_loss": round(sum(p["loss"] for p in loss) / len(loss), 4),
+        "final_loss": loss[-1]["loss"],
+    }
+
+
+def _planned(rounds: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """DPO datasets built but not trained on: the next round, as far as it has got."""
+    used = {r["dataset"]["version"] for r in rounds}
+    out = []
+    for path in sorted(DPO_DIR.glob("*/stats.json")):
+        stats = json.loads(path.read_text())
+        name = stats["name"]
+        if name in used:
+            continue
+        m = re.match(r"dpo_v(\d+)", name)
+        out.append(
+            {
+                "key": name,
+                "label": f"DPO v{m[1]}" if m else name,
+                "status": "dataset built, not trained",
+                "card": str(path.relative_to(REPO)),
+                "n_pairs": stats["n_train"],
+                "n_eval_pairs": stats["n_eval"],
+                "n_questions": stats["train_questions"],
+                "program_pairs": stats["train_kind"]["program"],
+                "number_pairs": stats["train_kind"]["number"],
+                "note": PLANNED_NOTES.get(name, ""),
+            }
+        )
+    return out
+
+
+def _agents() -> list[dict[str, Any]]:
+    """Every other agent's newest complete test-100 pass, best first (story.json)."""
+    story = json.loads(STORY_PATH.read_text())
+    newest: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in story.get("test_timeline", []):
+        if not row.get("complete") or row.get("accuracy") is None:
+            continue
+        key = (row["runtime"], row["version"], row["model"], row.get("effort"))
+        if key not in newest or row["at_ms"] > newest[key]["at_ms"]:
+            newest[key] = row
+    champion = story.get("champion_agent") or {}
+    out = [
+        {
+            "name": row.get("agent_name")
+            or (
+                f"{row['version']} · {row['model']}"
+                if row["runtime"] != "pipeline"
+                else f"pipeline {row['version']}"
+            ),
+            "runtime": row["runtime"],
+            "version": row["version"],
+            "model": row["model"],
+            "effort": row.get("effort"),
+            "accuracy": row["accuracy"],
+            "n": row.get("n_scored") or row.get("n_questions"),
+            "date": row["date"],
+            "run_id": row.get("run_id"),
+            "outcome": row.get("outcome"),
+            "label": row.get("label"),
+            "champion": (
+                row["version"] == champion.get("version")
+                and row["model"] == champion.get("model")
+                and row.get("effort") == champion.get("effort")
+                and row["runtime"] == champion.get("runtime")
+            ),
+        }
+        for row in newest.values()
+    ]
+    return sorted(out, key=lambda a: -a["accuracy"])
 
 
 def _rounds(
@@ -432,6 +629,7 @@ def _progression(
     checked harness, and that pass stands between them: the step into it is the
     harness alone, the step out of it is the training alone.
     """
+    rounds = [r for r in rounds if not r["pilot"]]  # a pilot is a sibling, not a step
     first = rounds[0]["sweep_harness"] if rounds else None
     stages: list[dict[str, Any]] = [
         {
@@ -494,6 +692,9 @@ def _inputs(passes: list[dict[str, Any]]) -> list[dict[str, str]]:
     paths = [MANIFEST_PATH, *_sft_runs("run.json")]
     paths += _sft_runs("metrics.jsonl")
     paths += sorted(DATA_DIR.glob("v*/stats.json"))
+    paths += sorted(DPO_DIR.glob("*/stats.json"))
+    paths += _sft_runs("eval.jsonl")
+    paths += [STORY_PATH]
     paths += [REPO / p["csv"] for p in passes]
     return [
         {
@@ -582,6 +783,8 @@ def build() -> dict[str, Any]:
         "rounds": rounds,
         "progression": progression,
         "teacher": reference,
+        "agents": _agents(),
+        "planned": _planned(rounds),
         "passes": passes,
         "excluded": excluded,
         "skipped_runs": skipped_runs,

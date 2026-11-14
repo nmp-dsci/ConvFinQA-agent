@@ -47,7 +47,7 @@ def test_each_round_picks_the_checkpoint_val_ranks_highest(
     record: dict[str, Any],
 ) -> None:
     rounds = {r["key"]: r for r in record["rounds"]}
-    assert list(rounds) == ["sft1", "sft2"]
+    assert list(rounds) == ["sft1", "sft2", "dpo1", "dpo1full"]
     for r in rounds.values():
         scored = [c for c in r["checkpoints"] if c["val_pass"]]
         top = max(scored, key=lambda c: _pass(record, c["val_pass"])["accuracy"])
@@ -66,6 +66,10 @@ def test_the_test_progression_steps_one_change_at_a_time(
     record: dict[str, Any],
 ) -> None:
     stages = record["progression"]["test"]
+    # DPO v1 is on the line but not opened on test: the owner's word opens it
+    assert stages[-1]["key"] == "dpo1full" and stages[-1]["pass"] is None
+    assert stages[-1]["vs_prev"] is None
+    stages = stages[:-1]
     assert [s["kind"] for s in stages] == ["base", "round", "harness", "round"]
     accuracy = [round(_pass(record, s["pass"])["accuracy"], 3) for s in stages]
     assert accuracy == [0.562, 0.774, 0.802, 0.814]
@@ -123,3 +127,39 @@ def test_the_routes_serve_the_record_and_its_cases(demo_mode: None) -> None:
     assert cases.status_code == 200, cases.text
     assert cases.json()["split"] == "test"
     assert stranger.status_code == 404
+
+
+def test_dpo_rounds_continue_sft2_and_the_pilot_stays_off_the_line(
+    record: dict[str, Any],
+) -> None:
+    rounds = {r["key"]: r for r in record["rounds"]}
+    full, pilot = rounds["dpo1full"], rounds["dpo1"]
+    assert full["method"] == pilot["method"] == "dpo"
+    assert pilot["pilot"] and not full["pilot"]
+    assert full["start"]["model"] == "student-qwen3-4b-sft2-e1"
+    assert full["best"] == "e1"
+    assert full["dataset"]["n_rows"] == 2306
+    # the held-out pairs are read at each saved step
+    assert [c["pair_eval"]["step"] for c in full["checkpoints"]] == [36, 72, 108, 144]
+    # on val, DPO v1 steps from sft2's pick, paired on the same questions
+    val = {s["key"]: s for s in record["progression"]["val"]}
+    assert "dpo1" not in val
+    step = val["dpo1full"]["vs_prev"]
+    assert "sft2-e1" in step["from"] and step["same_harness"]
+    assert step["delta_pp"] == 6.3 and step["p_one_sided"] < 0.05
+
+
+def test_dpo_v2_is_listed_as_built_not_trained(record: dict[str, Any]) -> None:
+    planned = {p["key"]: p for p in record["planned"]}
+    assert planned["dpo_v2"]["status"] == "dataset built, not trained"
+    assert planned["dpo_v2"]["n_pairs"] == 2678
+
+
+def test_the_other_agents_are_their_newest_complete_test_passes(
+    record: dict[str, Any],
+) -> None:
+    agents = record["agents"]
+    assert [a["champion"] for a in agents].count(True) == 1
+    assert agents[0]["champion"] and agents[0]["accuracy"] > 0.9
+    keys = [(a["runtime"], a["version"], a["model"], a["effort"]) for a in agents]
+    assert len(keys) == len(set(keys))
