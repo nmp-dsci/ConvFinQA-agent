@@ -62,6 +62,18 @@ export interface Checkpoint {
   val_pass: string | null;
   test_pass: string | null;
   vs_start: Paired | null;
+  /** DPO only: the held-out preference pairs at this checkpoint's step. */
+  pair_eval?: PairEval | null;
+}
+
+/** A DPO evaluation on held-out pairs: how often the policy prefers the chosen side, and by how much. */
+export interface PairEval {
+  step: number;
+  reward_accuracy: number;
+  margin: number;
+  chosen_dlogp: number;
+  rejected_dlogp: number;
+  n: number;
 }
 
 export interface LossPoint {
@@ -74,6 +86,10 @@ export interface LossPoint {
 export interface FtRound {
   key: string;
   label: string;
+  /** `sft` trains on the teacher's conversations; `dpo` on chosen/rejected pairs, from an SFT adapter. */
+  method: 'sft' | 'dpo';
+  /** A pilot is a sibling of the round it scouted, not a step on the progression. */
+  pilot: boolean;
   run_id: string;
   record: string;
   started: string;
@@ -85,19 +101,29 @@ export interface FtRound {
     version: string;
     card: string;
     manifest: string;
+    /** SFT: conversations. DPO: preference pairs. */
     n_rows: number;
-    n_prefix_rows: number;
+    /** SFT: questions trained. DPO: the distinct questions the pairs come from. */
     n_turns: number;
-    n_type2: number;
-    n_dropped: number;
-    tokens_trained: number;
+    n_prefix_rows?: number;
+    n_type2?: number;
+    n_dropped?: number;
+    tokens_trained?: number;
+    source?: string | null;
+    n_eval_pairs?: number;
+    program_pairs?: number;
+    number_pairs?: number;
   };
   settings: {
     learning_rate: number;
     schedule: string;
     epochs: number;
     effective_batch: number;
-    max_length: number;
+    max_length?: number;
+    beta?: number;
+    nll_alpha?: number;
+    max_grad_norm?: number;
+    reference?: string;
     lora_r: number;
     lora_alpha: number;
     lora_dropout: number;
@@ -111,6 +137,7 @@ export interface FtRound {
   cost_usd: number;
   cost_basis: string;
   loss: LossPoint[];
+  pair_eval: PairEval[];
   sweep_harness: Harness | null;
   checkpoints: Checkpoint[];
   best: string | null;
@@ -144,10 +171,42 @@ export interface FineTuningRecord {
     vs_final: Paired | null;
     gap_closed: number | null;
   } | null;
+  /** Every other agent's newest complete test-100 pass, best first (`story.json → test_timeline`). */
+  agents: AgentPass[];
+  /** DPO datasets built but not yet trained on. */
+  planned: PlannedRound[];
   passes: FtPass[];
   excluded: { id: string; reason: string }[];
   skipped_runs: { run_id: string; reason: string }[];
   inputs: { path: string; sha256: string }[];
+}
+
+export interface AgentPass {
+  name: string;
+  runtime: string;
+  version: string;
+  model: string;
+  effort: string | null;
+  accuracy: number;
+  n: number | null;
+  date: string;
+  run_id: string | null;
+  outcome: string | null;
+  label: string | null;
+  champion: boolean;
+}
+
+export interface PlannedRound {
+  key: string;
+  label: string;
+  status: string;
+  card: string;
+  n_pairs: number;
+  n_eval_pairs: number;
+  n_questions: number;
+  program_pairs: number;
+  number_pairs: number;
+  note: string;
 }
 
 export interface CaseAnswer {

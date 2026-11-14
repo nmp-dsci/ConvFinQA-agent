@@ -44,6 +44,10 @@ VLLM_VOLUME = "convfinqa-sft-vllm"
 DATA_VOLUME = "convfinqa-sft-data"
 RUNS_VOLUME = "convfinqa-sft-runs"
 GPU = "L4"
+# s35 (2026-11-12): L4s stopped scheduling (an L4 probe sat pending 4 min while an A10G
+# started in 3 s), so the server and the DPO job take an A10G when no L4 is free. Same
+# 24 GB and bf16; about 1.4x the price per second.
+GPUS = [GPU, "A10G"]
 VLLM = "0.21.0"  # tau's pin
 PORT = 8000
 MAX_MODEL_LEN = 32768
@@ -58,6 +62,20 @@ ADAPTERS: dict[str, str] = {
 ADAPTERS |= {
     f"{BASE_NAME}-sft2-e{epoch}": f"20261025T113733Z_train_sft2/checkpoints/checkpoint-{step}"
     for epoch, step in (("0p5", 29), ("1", 58), ("1p5", 87), ("2", 116))
+}
+
+# s35: the DPO pilot from sft2-e1 (400 pairs, 2 epochs, 50 steps). It saves every
+# half-epoch, but only epochs 1 and 2 are served and scored on sft_v1 val (owner,
+# 2026-11-12): val's pass-to-pass noise is too large to rank four close checkpoints.
+ADAPTERS |= {
+    f"{BASE_NAME}-dpo1-e{epoch}": f"20261112T090900Z_train_dpo1-pilot/checkpoints/checkpoint-{step}"
+    for epoch, step in (("1", 25), ("2", 50))
+}
+# s37: DPO v1 on all 2,306 pairs, 1 epoch (144 steps) from sft2-e1. Two checkpoints are
+# served and scored on val: half an epoch (step 72) and the end (step 144).
+ADAPTERS |= {
+    f"{BASE_NAME}-dpo1full-e{epoch}": f"20261112T230944Z_train_dpo1-full/checkpoints/checkpoint-{step}"
+    for epoch, step in (("0p5", 72), ("1", 144))
 }
 
 TRAIN_PINS = (
@@ -76,6 +94,8 @@ TRAIN_MEMORY_GIB = 16
 GPU_USD_PER_S = 0.000222
 TRAIN_USD_PER_S = GPU_USD_PER_S + TRAIN_CPU * 0.0000131 + TRAIN_MEMORY_GIB * 0.00000222
 TRAIN_HOURS = 12  # s29: v2 is ≈ 3× v1, 2 epochs on one L4
+# s33: DPO on all 2,306 pairs is ≈ 2.5 h of reference + ≈ 9.6 h of steps + evals
+DPO_HOURS = 20
 REPO = "/repo"
 PACKAGE = Path(__file__).resolve().parents[1]  # src/convfinqa/sft
 
@@ -131,7 +151,7 @@ def vllm_command(adapters: dict[str, str] | None = None) -> list[str]:
 
 @app.server(
     image=image,
-    gpu=GPU,
+    gpu=GPUS,
     port=PORT,
     volumes={
         "/root/.cache/huggingface": hf_cache,
@@ -140,6 +160,10 @@ def vllm_command(adapters: dict[str, str] | None = None) -> list[str]:
     },
     scaledown_window=15 * MINUTES,
     startup_timeout=20 * MINUTES,
+    # s34: one L4 saturates near 24 requests in flight (0.40 tries/s at 20, 0.47
+    # at 96), so past that Modal adds containers, up to max_containers
+    target_concurrency=24,
+    max_containers=6,
 )
 class Student:
     @modal.enter()
@@ -213,6 +237,49 @@ def train(
     return meta
 
 
+@app.function(
+    image=train_image,
+    gpu=GPUS,
+    cpu=TRAIN_CPU,
+    memory=TRAIN_MEMORY_GIB * 1024,
+    volumes={
+        "/root/.cache/huggingface": hf_cache,
+        f"{REPO}/data": data,
+        f"{REPO}/runs": runs,
+    },
+    timeout=DPO_HOURS * 60 * MINUTES,
+)
+def train_dpo(
+    config_file: str, run_id: str, code_sha: str, max_steps: int | None = None
+) -> dict[str, Any]:
+    """`sft_train.dpo.train` (s33 P4) on one L4, into the runs volume."""
+    import time
+
+    from sft_train.dpo import train as run_train
+    from sft_train.dpo import write_json
+
+    t0 = time.time()
+    try:
+        run_dir = run_train(
+            Path(REPO) / "configs" / config_file,
+            data_root=Path(REPO) / "data",
+            runs_root=Path(REPO) / "runs",
+            run_id=run_id,
+            code_sha=code_sha,
+            max_steps=max_steps,
+        )
+    finally:
+        runs.commit()
+    meta: dict[str, Any] = json.loads((run_dir / "run.json").read_text())
+    meta["cost_usd"] = round((time.time() - t0) * TRAIN_USD_PER_S, 2)
+    meta["cost_basis"] = (
+        f"Modal list price × this attempt's wall time ({GPU}, {TRAIN_CPU} cores)"
+    )
+    write_json(run_dir / "run.json", meta)
+    runs.commit()
+    return meta
+
+
 def _clean_code_sha() -> str:
     """The commit the job ships; refuses uncommitted training code (tau's rule)."""
     dirty = subprocess.run(
@@ -262,4 +329,32 @@ def train_job(
     print(
         f"{run_id}: {meta['status']}, {meta.get('steps')} steps, final loss "
         f"{meta.get('final_loss')}, about ${meta['cost_usd']}"
+    )
+
+
+@app.local_entrypoint()
+def dpo_job(
+    config: str = "dpo1_pilot.yaml", max_steps: int = 0, run_id: str = ""
+) -> None:
+    """Spawn one DPO job (s33 P4/P5); the run id is minted here unless one is given.
+
+    Giving an existing run id reuses its folder, so its cached reference
+    log-probs are read back (and checked again by step 0) rather than recomputed.
+    """
+    import yaml  # type: ignore[import-untyped]
+
+    code_sha = _clean_code_sha()
+    label = yaml.safe_load((PACKAGE / "configs" / config).read_text())["label"]
+    from datetime import UTC, datetime
+
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    run_id = run_id or (
+        f"{stamp}_train_{label}" + (f"-step{max_steps}" if max_steps else "")
+    )
+    call = train_dpo.spawn(config, run_id, code_sha, max_steps or None)
+    print(f"{run_id} at {code_sha}: call {call.object_id}")
+    meta = call.get()
+    print(
+        f"{run_id}: {meta['status']}, {meta.get('steps')} steps, "
+        f"{meta.get('seconds_per_pair')} s/pair, about ${meta['cost_usd']}"
     )

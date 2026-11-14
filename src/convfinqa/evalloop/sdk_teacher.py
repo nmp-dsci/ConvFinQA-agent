@@ -1750,8 +1750,8 @@ DATASET_NOTES_HEADING = "## ConvFinQA Dataset Characteristics"
 
 
 def dataset_notes(path: Path | None = None) -> str:
-    """The dataset section of CLAUDE.md, sliced to the next top-level heading."""
-    target = path or (REPO_ROOT / "CLAUDE.md")
+    """The dataset section of AGENTS.md, sliced to the next top-level heading."""
+    target = path or (REPO_ROOT / "AGENTS.md")
     try:
         text = target.read_text()
     except OSError:

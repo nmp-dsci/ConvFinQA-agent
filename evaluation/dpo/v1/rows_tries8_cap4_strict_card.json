@@ -1,0 +1,16 @@
+{
+ "selected": 2448,
+ "rendered": 2406,
+ "rendered:train": 2306,
+ "rendered:eval": 100,
+ "skipped:F5": 36,
+ "skipped:N1": 6,
+ "mean_tokens": {
+  "prompt": 6242,
+  "chosen_student": 721,
+  "chosen_tool": 22,
+  "rejected_student": 752,
+  "rejected_tool": 20
+ },
+ "longest_row_tokens": 10361
+}

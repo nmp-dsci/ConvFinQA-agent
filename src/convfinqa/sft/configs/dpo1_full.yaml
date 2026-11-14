@@ -1,0 +1,20 @@
+# s33 P5 full: the pilot's recipe on every rendered train pair. Policy and frozen
+# reference start at sft2-e1 (sft2's checkpoint-58, val 76.4%). Data: all 2,306 of s35's
+# rendered train pairs (cap 4, strict chosen) and the same 100 eval-slice pairs as the
+# pilot; one epoch. Pilot (400 pairs, 2 epochs): val 77.5%, not significant.
+# Each checkpoint is scored on sft_v1 val. Test 100 stays closed.
+label: dpo1-full
+base_model: Qwen/Qwen3-4B-Instruct-2507
+revision: cdbee75f17c01a7cc42f958dc650907174af0554
+dataset: dpo_v1_full
+init_adapter: 20261025T113733Z_train_sft2/checkpoints/checkpoint-58
+dpo:
+  beta: 0.1
+  nll_alpha: 1.0          # Pang et al.'s RPO term on the chosen, length-normalised
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.05
+  num_train_epochs: 1
+  gradient_accumulation_steps: 16
+  max_grad_norm: 1.0
+  save_fractions: [0.25, 0.5, 0.75, 1.0]   # every quarter-epoch (36 steps)
+  seed: 2035

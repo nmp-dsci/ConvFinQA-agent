@@ -111,7 +111,7 @@ vendored in `frontend/src/kit/`; the brief is `DESIGN.md`.
 | **Scoring** · `/scoring` | How a turn is judged: execution accuracy, gold-derived attribution, the one-sided cluster McNemar gate, and the confidence judge that was tried and not adopted. |
 | **Leaderboard** · `/leaderboard` | The paper's FinQANet, GPT-3 and human-expert rows beside our two runtimes, on one axis, with the caveats. |
 | **Runs** · `/runs`, `/runs/legacy`, `/runs/traces`, `/runs/traces/:id` | Every test pass of every agent (train behind `?train=1`), the older per-version slice table, and every served turn stage by stage. |
-| **Optimise** · `/optimise`, `/optimise/campaigns`, `/optimise/runtimes`, `/optimise/fine-tuning`, `/optimise/research` | The Story: test accuracy over time for champion and challengers; campaigns and the append-only promotion history; how we got to `sdk_v1`; the SFT student's fine-tuning rounds (base → sft1 → sft2); the retired s7 rule research. |
+| **Optimise** · `/optimise`, `/optimise/campaigns`, `/optimise/runtimes`, `/optimise/fine-tuning`, `/optimise/research` | The Story: test accuracy over time for champion and challengers; campaigns and the append-only promotion history; how we got to `sdk_v1`; the SFT student's fine-tuning rounds (base → sft1 → sft2, then DPO v1 scored on val only, test still sealed); the retired s7 rule research. |
 | **Agent** · `/agent`, `/agent/readiness`, `/agent/chat/*` | The pipeline, the one place a model is built, the bundle fingerprint, deploy and open work; the R1–R9 scorecard; and the chat itself. |
 | **Gold review** · `/gold` | Gold labels the loop flagged as suspect or could not settle, and how each was adjudicated. |
 

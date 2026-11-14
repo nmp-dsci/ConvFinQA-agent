@@ -1,0 +1,5 @@
+{"step": 0, "reward_accuracy": 0.0, "margin": 0.0, "chosen_dlogp": 0.0, "rejected_dlogp": 0.0, "n": 100}
+{"step": 36, "reward_accuracy": 0.62, "margin": 0.2579, "chosen_dlogp": -11.026, "rejected_dlogp": -13.605, "n": 100}
+{"step": 72, "reward_accuracy": 0.73, "margin": 0.4393, "chosen_dlogp": -10.007, "rejected_dlogp": -14.4, "n": 100}
+{"step": 108, "reward_accuracy": 0.71, "margin": 0.5821, "chosen_dlogp": -10.705, "rejected_dlogp": -16.525, "n": 100}
+{"step": 144, "reward_accuracy": 0.73, "margin": 0.6004, "chosen_dlogp": -9.464, "rejected_dlogp": -15.469, "n": 100}

@@ -1,0 +1,7478 @@
+[
+ {
+  "rid": "Single_APD/2013/page_44.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the difference of cash contributions to funded plans and benefit payments for unfunded plans between 2012 and 2013?",
+  "gold": "3.9371",
+  "answers": [
+   [
+    "224.4",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2008/page_27.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change?",
+  "gold": "29",
+  "answers": [
+   [
+    "-29.0",
+    6
+   ],
+   [
+    "-29",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HFC/2011/page_85.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and what was the total amount of accrued liabilities and long-term debt, also combined?",
+  "gold": "1117.4",
+  "answers": [
+   [
+    "-411.3",
+    6
+   ],
+   [
+    "411.3",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2017/page_74.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the value of operating leases divided by the total sum?",
+  "gold": "71%",
+  "answers": [
+   [
+    "0.711",
+    5
+   ],
+   [
+    "0.710568669527897",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2017/page_124.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the total number of securities approved by security holders?",
+  "gold": "4536446",
+  "answers": [
+   [
+    "448859",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_C/2009/page_41.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and in 2007?",
+  "gold": "91%",
+  "answers": [
+   [
+    "91.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_DVN/2017/page_31.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "for 2017, what is the ratio of operating cash flow to total debt?",
+  "gold": "3.57",
+  "answers": [
+   [
+    "0.2795502594656929",
+    6
+   ],
+   [
+    "27.95502594656929",
+    1
+   ],
+   [
+    "0.2796",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LKQ/2018/page_102.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what was the percent change?",
+  "gold": "17%",
+  "answers": [
+   [
+    "16.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FITB/2008/page_69.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what percentage change does this represent?",
+  "gold": "734",
+  "answers": [
+   [
+    "0.276566757493188",
+    5
+   ],
+   [
+    "0.277",
+    2
+   ],
+   [
+    "0.276",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PPG/2018/page_32.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was it in 2018?",
+  "gold": "85",
+  "answers": [
+   [
+    "95.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2010/page_128.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was, then, the change in the total of wholesale lending-related commitments over the year?",
+  "gold": "1.1",
+  "answers": [
+   [
+    "-1.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2009/page_38.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that change divided by the 2007 value?",
+  "gold": "24%",
+  "answers": [
+   [
+    "0.242",
+    7
+   ],
+   [
+    "0.2419896246566982",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2015/page_46.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is 2000 divided by 2014 sales?",
+  "gold": "59%",
+  "answers": [
+   [
+    "0.588",
+    5
+   ],
+   [
+    "0.5877167205406993",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CME/2017/page_83.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the total cash balance at the federal reserve bank of chicago for 12/31/17 and 12/31/16?",
+  "gold": "40.4",
+  "answers": [
+   [
+    "34.2 and 6.2",
+    4
+   ],
+   [
+    "34.2, 6.2",
+    3
+   ],
+   [
+    "34.2; 6.2",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_VNO/2011/page_85.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "in december of 2011, what was the full value of the vornado common shares received as payment for the exercise of certain employee options?",
+  "gold": "31367389",
+  "answers": [
+   [
+    "31367389.88",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MMM/2012/page_105.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the fair value of long-term debt excluding current portion at the end of 2012?",
+  "gold": "4484",
+  "answers": [
+   [
+    "5363.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2009/page_31.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was that ratio for the asset management revenue in those same years?",
+  "gold": "25.1%",
+  "answers": [
+   [
+    "1.250728862973761",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2007/page_80.pdf-4",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and the percentage?",
+  "gold": ".4127",
+  "answers": [
+   [
+    "141.3%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MRO/2014/page_18.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total african net undeveloped acres in thousands as of 12/31/15?",
+  "gold": "3936",
+  "answers": [
+   [
+    "1986",
+    7
+   ],
+   [
+    "1986.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_L/2010/page_41.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the total of these two?",
+  "gold": "809225",
+  "answers": [
+   [
+    "810225",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BKR/2017/page_105.pdf-3",
+  "k": 2,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "how many shares were outstanding in 2017?",
+  "gold": "422",
+  "answers": [
+   [
+    "422208",
+    6
+   ],
+   [
+    "1129193",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GRMN/2006/page_91.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the number of shares that vested in 2006?",
+  "gold": "470",
+  "answers": [
+   [
+    "124693",
+    5
+   ],
+   [
+    "unavailable",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2004/page_261.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total of receivables from the money pool, in millions?",
+  "gold": "1.783",
+  "answers": [
+   [
+    "14.491",
+    6
+   ],
+   [
+    "14491",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_V/2016/page_132.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and from 2015 to that year, what was the change in the fair value per option granted?",
+  "gold": "24.7%",
+  "answers": [
+   [
+    "2.97",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_NCLH/2016/page_84.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the principal amount by the interest rate for unsecured notes issued in 2016?",
+  "gold": "33.35",
+  "answers": [
+   [
+    "700.0",
+    6
+   ],
+   [
+    "4.750%",
+    1
+   ],
+   [
+    "700",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2009/page_85.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the value of non-vested shares as of 5/31/08?",
+  "gold": "20202",
+  "answers": [
+   [
+    "518",
+    6
+   ],
+   [
+    "518.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_356.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and was the proportion of fuel recovery to this change?",
+  "gold": "109%",
+  "answers": [
+   [
+    "109.8%",
+    3
+   ],
+   [
+    "1.10",
+    2
+   ],
+   [
+    "1.097938144329897",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2013/page_22.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and converted to the hundreds?",
+  "gold": "200.9",
+  "answers": [
+   [
+    "2008520.0846",
+    6
+   ],
+   [
+    "2008520.08",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_KHC/2016/page_94.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and what was the change in that total since the year of 2014?",
+  "gold": "842115",
+  "answers": [
+   [
+    "841937",
+    6
+   ],
+   [
+    "4555",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RCL/2005/page_40.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the ratio of debt maturity for 2010 to 2006?",
+  "gold": "1.14",
+  "answers": [
+   [
+    "2.086162680239034",
+    7
+   ],
+   [
+    "2.09",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UPS/2009/page_33.pdf-3",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the percent change?",
+  "gold": "21.5%",
+  "answers": [
+   [
+    "21.48%",
+    7
+   ],
+   [
+    "121.48%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AON/2015/page_45.pdf-4",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what profit margin does this represent?",
+  "gold": "18.9%",
+  "answers": [
+   [
+    "-20.3",
+    4
+   ],
+   [
+    "-20.3%",
+    2
+   ],
+   [
+    "20.3%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2012/page_29.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the product of shares and price per share?",
+  "gold": "128394401.8",
+  "answers": [
+   [
+    "128464166.16",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2012/page_98.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the total of originations for 2012 quarterly residential mortgage repurchase claims in the second quarter of 2006?",
+  "gold": "41",
+  "answers": [
+   [
+    "56.0",
+    4
+   ],
+   [
+    "56",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_376.pdf-3",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the value of fuel recovery over that difference?",
+  "gold": "-530%",
+  "answers": [
+   [
+    "-5.357142857142858",
+    4
+   ],
+   [
+    "-5.357",
+    3
+   ],
+   [
+    "7.5",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ILMN/2007/page_84.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is that simplified?",
+  "gold": "153.8",
+  "answers": [
+   [
+    "153802405.12",
+    2
+   ],
+   [
+    "153802404.12",
+    1
+   ],
+   [
+    "1538024.0512",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2012/page_98.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum of the value of repurchase claims in 2005 and 2006?",
+  "gold": "53",
+  "answers": [
+   [
+    "31",
+    2
+   ],
+   [
+    "31.0",
+    2
+   ],
+   [
+    "29",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MS/2015/page_200.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "in 2015, what was the change on the effective borrowing rate due to the use of swaps?",
+  "gold": "1.9",
+  "answers": [
+   [
+    "0.2",
+    7
+   ],
+   [
+    "0.20",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETFC/2013/page_155.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "and what was this impairment amount as a percentage of that balance as of december 31 of the previous year?",
+  "gold": "-7%",
+  "answers": [
+   [
+    "7.4%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MSI/2008/page_73.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the amount of the reduction in the segment 2019s backlog in 2007?",
+  "gold": "2.6",
+  "answers": [
+   [
+    "0.6",
+    6
+   ],
+   [
+    "600",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AAPL/2011/page_37.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage, then, did the interest and dividend income represent in relation to this one?",
+  "gold": "1.25",
+  "answers": [
+   [
+    "125.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HWM/2018/page_110.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the ratio of depreciation, depletion and amortization to capital expenditures?",
+  "gold": "1989932886",
+  "answers": [
+   [
+    "1.99",
+    5
+   ],
+   [
+    "1.9899328859060403",
+    2
+   ],
+   [
+    "2.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FIS/2007/page_33.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the total number of leased locations?",
+  "gold": "136",
+  "answers": [
+   [
+    "178",
+    4
+   ],
+   [
+    "148",
+    2
+   ],
+   [
+    "260",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_REGN/2010/page_64.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the recognized revenue in 2010, in millions?",
+  "gold": "25.3",
+  "answers": [
+   [
+    "75.4",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2017/page_26.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "how much did net revenue change between 2015 and 2016?",
+  "gold": "124",
+  "answers": [
+   [
+    "-124",
+    6
+   ],
+   [
+    "-124.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2017/page_91.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "now as a percentage of the original value?",
+  "gold": "69%",
+  "answers": [
+   [
+    "40.7%",
+    4
+   ],
+   [
+    "68.5%",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2009/page_38.pdf-3",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that change divided by the 2008 value?",
+  "gold": "-21%",
+  "answers": [
+   [
+    "-0.20540540540540542",
+    7
+   ],
+   [
+    "-0.205",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ILMN/2007/page_78.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the difference divided by the 2006 revenues?",
+  "gold": "96%",
+  "answers": [
+   [
+    "0.961",
+    7
+   ],
+   [
+    "0.9607061351234347",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AES/2002/page_46.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was it in that same period in 2001?",
+  "gold": "18.85",
+  "answers": [
+   [
+    "13.73",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GS/2017/page_74.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "in 2017, what were the net revenues in equity securities when including net gains from private equities?",
+  "gold": "8.4",
+  "answers": [
+   [
+    "4578",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CME/2017/page_57.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and what portion did the increase in license costs represent, in that period?",
+  "gold": "22%",
+  "answers": [
+   [
+    "0.221",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2015/page_99.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the amount paid from the long-term debt after the discounts and debt issuance costs, in millions?",
+  "gold": "6.9",
+  "answers": [
+   [
+    "6900",
+    7
+   ],
+   [
+    "6900.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2009/page_132.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the proportion of basis points increase from 12/31/09 to 12/31/08?",
+  "gold": "1.054",
+  "answers": [
+   [
+    "5.4%",
+    6
+   ],
+   [
+    "0.05405405405405406",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_WRK/2019/page_49.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "was is the sum including cash from financing activities?",
+  "gold": "1780.2",
+  "answers": [
+   [
+    "-489.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2005/page_85.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and concerning the long-term financing, what percentage of it was classified as current by the end of the last year of that period, in 2005?",
+  "gold": "4%",
+  "answers": [
+   [
+    "4.7%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_IQV/2018/page_59.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and from 2018 to that year, what was the change in the total of benefits obligations?",
+  "gold": "6",
+  "answers": [
+   [
+    "-2",
+    2
+   ],
+   [
+    "-137",
+    2
+   ],
+   [
+    "-135",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GS/2012/page_152.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the change in the total gains/ ( losses ) on financial assets and financial liabilities at fair value from 2017 to 2018?",
+  "gold": "-7761",
+  "answers": [
+   [
+    "unavailable",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CB/2008/page_144.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the fair value of net assets denominated in foreign currencies in the year of 2007?",
+  "gold": "1127",
+  "answers": [
+   [
+    "1651.0",
+    7
+   ],
+   [
+    "1651",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CME/2010/page_42.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is that value plus 10?",
+  "gold": "2014",
+  "answers": [
+   [
+    "2041",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2012/page_56.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the product of 2011 north american printing paper sales by 1000?",
+  "gold": "2800",
+  "answers": [
+   [
+    "6215000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CB/2010/page_114.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what percentage change does this represent?",
+  "gold": "1.68",
+  "answers": [
+   [
+    "0.1681496923780953",
+    4
+   ],
+   [
+    "0.168",
+    3
+   ],
+   [
+    "0.16815",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DVN/2015/page_117.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the former quotient by the number of mmboe?",
+  "gold": "700.7",
+  "answers": [
+   [
+    "0.021132713440405747",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DRE/2002/page_40.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net change in the cash dividend for the period ended march 31, 2002 to the period ended march 31, 2003?",
+  "gold": ".005",
+  "answers": [
+   [
+    "-405.0",
+    3
+   ],
+   [
+    "-407.0",
+    2
+   ],
+   [
+    "-407",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RCL/2005/page_40.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the value in 2006?",
+  "gold": "600883",
+  "answers": [
+   [
+    "329493",
+    6
+   ],
+   [
+    "unavailable",
+    1
+   ],
+   [
+    "297000",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PPG/2010/page_68.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "in 2010, what percentage of other income was due to interest income?",
+  "gold": "15.9%",
+  "answers": [
+   [
+    "49.3%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ADBE/2018/page_66.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was, then, the average annual amortization expense for that segment?",
+  "gold": "11.1%",
+  "answers": [
+   [
+    "unavailable",
+    7
+   ],
+   [
+    "9",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SWKS/2010/page_105.pdf-3",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the value of cash outflows in 2010?",
+  "gold": "95.3",
+  "answers": [
+   [
+    "-133926",
+    2
+   ],
+   [
+    "38597",
+    2
+   ],
+   [
+    "133926",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2018/page_39.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the difference in net cash provided by operating activities between 2016 and 2017?",
+  "gold": "1394.6",
+  "answers": [
+   [
+    "369.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2010/page_39.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the operating profit margin in 2010?",
+  "gold": "88.2%",
+  "answers": [
+   [
+    "-11.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DVN/2014/page_88.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the difference between the aggregate principal amount of fixed and floating rate senior notes and the cash proceeds that resulted from it?",
+  "gold": "0.05",
+  "answers": [
+   [
+    "2.0",
+    3
+   ],
+   [
+    "50",
+    2
+   ],
+   [
+    "2",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2011/page_364.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the net change in the balance of receivables from the money pool from 2010 to 2011?",
+  "gold": "-12746",
+  "answers": [
+   [
+    "-44329",
+    2
+   ],
+   [
+    "-1420",
+    1
+   ],
+   [
+    "44329",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2014/page_31.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in the average price of the purchased shares from october to december 2014?",
+  "gold": "13.85",
+  "answers": [
+   [
+    "3.07",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2016/page_37.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the full amount of cash equivalents and marketable securities in 2016?",
+  "gold": "1665.8",
+  "answers": [
+   [
+    "1100.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2003/page_52.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "including november of that year, what then becomes that total?",
+  "gold": "246",
+  "answers": [
+   [
+    "168",
+    5
+   ],
+   [
+    "198",
+    2
+   ],
+   [
+    "unavailable",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_BLK/2015/page_35.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the total combined value of the market change and the fx impact in the asset allocation and balanced segment, in millions?",
+  "gold": "10122",
+  "answers": [
+   [
+    "-10122",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HWM/2016/page_53.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference in third-party sales for engineered product between 2015 and 2016?",
+  "gold": "-80",
+  "answers": [
+   [
+    "80",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HIG/2008/page_113.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the net income reported in 2008, in millions?",
+  "gold": "2757.2",
+  "answers": [
+   [
+    "-2757.233",
+    5
+   ],
+   [
+    "unavailable",
+    2
+   ],
+   [
+    "-8.99",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SNA/2007/page_80.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the change in balance of the unrecognized tax benefits from 2006 to 2007?",
+  "gold": "2.6",
+  "answers": [
+   [
+    "-2.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PM/2017/page_38.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what percentage of those net earnings in the previous year is represented by this amount?",
+  "gold": "13.4%",
+  "answers": [
+   [
+    "15.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CE/2017/page_20.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the r&d expense from 2016 to 2017?",
+  "gold": "150",
+  "answers": [
+   [
+    "-6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SNPS/2012/page_61.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage does this represent?",
+  "gold": "85%",
+  "answers": [
+   [
+    "100%",
+    5
+   ],
+   [
+    "14.5%",
+    1
+   ],
+   [
+    "100.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLL/2010/page_40.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the value of the settlement times 10000000?",
+  "gold": "31000000",
+  "answers": [
+   [
+    "888000000",
+    4
+   ],
+   [
+    "88800000000.0",
+    1
+   ],
+   [
+    "1250000000",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AON/2015/page_43.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the ratio of 2017 credit facility to the 2020 credit facility?",
+  "gold": "2.25",
+  "answers": [
+   [
+    "0.444",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMAT/2013/page_18.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the change in rd&e spendings from 2013 to 2014?",
+  "gold": "0.1",
+  "answers": [
+   [
+    "unavailable",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2014/page_65.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that divided by total printing papers sales in 2013?",
+  "gold": "18%",
+  "answers": [
+   [
+    "0.177276390008058",
+    4
+   ],
+   [
+    "0.1773",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HOLX/2009/page_153.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the sum of the value of construction of the finished cytyc building in 2008?",
+  "gold": "7400",
+  "answers": [
+   [
+    "4400",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_EL/2009/page_112.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "for 2008, what is the variation between the high of foreign exchange contracts and the high for interest rate contracts?",
+  "gold": "5.9",
+  "answers": [
+   [
+    "-10.0",
+    5
+   ],
+   [
+    "10.0",
+    1
+   ],
+   [
+    "-8.7",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_K/2012/page_44.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the difference in net cash used in investing activities between 2011 and 2012?",
+  "gold": "587",
+  "answers": [
+   [
+    "2658",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2011/page_52.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and converted to the millions?",
+  "gold": "400000000",
+  "answers": [
+   [
+    "400.0",
+    6
+   ],
+   [
+    "0.4",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2015/page_124.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the total number of securities approved by security holders?",
+  "gold": "5706308",
+  "answers": [
+   [
+    "1424356",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2012/page_20.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the ratio of shares repurchased to those authorized?",
+  "gold": "34.5%",
+  "answers": [
+   [
+    "0.0534932",
+    7
+   ],
+   [
+    "53493.2",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_FIS/2016/page_49.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net difference among these years?",
+  "gold": "-1",
+  "answers": [
+   [
+    "22",
+    6
+   ],
+   [
+    "23",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2013/page_62.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the net sales of printing papers in north american in 2013, in billions?",
+  "gold": "2.6",
+  "answers": [
+   [
+    "6.205",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2012/page_57.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum of net sales in 2012 and 2011?",
+  "gold": "220",
+  "answers": [
+   [
+    "6880",
+    6
+   ],
+   [
+    "6880.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_KMI/2010/page_164.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum?",
+  "gold": "115461.1",
+  "answers": [
+   [
+    "11546.1",
+    6
+   ],
+   [
+    "20290.3",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PKG/2006/page_68.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the percent change?",
+  "gold": "15%",
+  "answers": [
+   [
+    "14.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2007/page_35.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the aggregate value of shares repurchased, in millions?",
+  "gold": "163700000",
+  "answers": [
+   [
+    "385.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HIG/2012/page_132.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was the change in the value of those property and casualty insurance subsidiaries since 2011?",
+  "gold": "3.1%",
+  "answers": [
+   [
+    "233",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLK/2017/page_87.pdf-4",
+  "k": 1,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the revenues in 2015?",
+  "gold": "528",
+  "answers": [
+   [
+    "621",
+    7
+   ],
+   [
+    "unavailable",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2008/page_111.pdf-4",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "so what was the percentage change?",
+  "gold": "10.6%",
+  "answers": [
+   [
+    "-9.7%",
+    7
+   ],
+   [
+    "-9.66%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HIG/2011/page_188.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what percentage change does this represent?",
+  "gold": "58.6%",
+  "answers": [
+   [
+    "-0.5862068965517241",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_FBHS/2017/page_48.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the ratio of the net cash provided by operating activities to the net cash used in investing activities in 2017?",
+  "gold": "2.09",
+  "answers": [
+   [
+    "-2.086548488008342",
+    5
+   ],
+   [
+    "-2.09",
+    2
+   ],
+   [
+    "-2.087",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ANSS/2016/page_82.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum of compensation associated with the awards in 2015 and 2016?",
+  "gold": "5.9",
+  "answers": [
+   [
+    "31.6",
+    6
+   ],
+   [
+    "33.4",
+    1
+   ],
+   [
+    "0.8",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLL/2006/page_47.pdf-3",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the value in 2004?",
+  "gold": "45.7",
+  "answers": [
+   [
+    "50",
+    7
+   ],
+   [
+    "50.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2014/page_47.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the difference in operating profit between 2013 and 2014?",
+  "gold": "-73",
+  "answers": [
+   [
+    "73",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_C/2009/page_248.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "so what was the percentage decline during this time?",
+  "gold": "-60.1%",
+  "answers": [
+   [
+    "60.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_376.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "sign",
+  "q": "and the percentage change?",
+  "gold": "0.3%",
+  "answers": [
+   [
+    "-0.3%",
+    7
+   ],
+   [
+    "-3.2%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2010/page_113.pdf-3",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what is weighted average risk-free interest rate in 2010?",
+  "gold": "2.35",
+  "answers": [
+   [
+    "-2.35",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2017/page_414.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "and what percentage does the amount of this net wholesale revenue represent in relation to this value?",
+  "gold": ".053",
+  "answers": [
+   [
+    "-5.3%",
+    6
+   ],
+   [
+    "-5.6%",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RCL/2011/page_16.pdf-3",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the total of berths as of 2011?",
+  "gold": "34000",
+  "answers": [
+   [
+    "806000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2018/page_61.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage change does this represent?",
+  "gold": "-13%",
+  "answers": [
+   [
+    "-0.1255852382263839",
+    6
+   ],
+   [
+    "-0.1256",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMAT/2015/page_14.pdf-3",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "and for 2014?",
+  "gold": "1400",
+  "answers": [
+   [
+    "-55",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_APD/2019/page_100.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total long-term debt in 2019?",
+  "gold": "3227.4",
+  "answers": [
+   [
+    "2907.3",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2013/page_136.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what were the future minimum lease payments in 2016?",
+  "gold": "52253",
+  "answers": [
+   [
+    "13750",
+    7
+   ],
+   [
+    "13750.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ADBE/2018/page_88.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and the upper bound?",
+  "gold": "29%",
+  "answers": [
+   [
+    "26.0",
+    7
+   ],
+   [
+    "22.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_441.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the value of stock options for j. wayne leonard?",
+  "gold": "18935000",
+  "answers": [
+   [
+    "175000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2015/page_44.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the value of north american printer paper net sales in 2014?",
+  "gold": "2.1",
+  "answers": [
+   [
+    "5720",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AES/2018/page_168.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "and concerning eletropaulo, what was its implied value as of june of the year subsequent to this period, in millions?",
+  "gold": "2000",
+  "answers": [
+   [
+    "340",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_NKE/2015/page_37.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what portion of total contractual obligations is related to endorsement contracts in 2017?",
+  "gold": "0.58",
+  "answers": [
+   [
+    "58.4%",
+    7
+   ],
+   [
+    "5.9%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PM/2014/page_112.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the difference pmi between 2013 and 2014?",
+  "gold": "3",
+  "answers": [
+   [
+    "-2636",
+    6
+   ],
+   [
+    "2636",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HUM/2018/page_129.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and two years later, in 2018, concerning the individual price of shares, what percentage of it was due to the cash dividend?",
+  "gold": "26.31%",
+  "answers": [
+   [
+    "100%",
+    7
+   ],
+   [
+    "163.79310344827587%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CB/2008/page_217.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the change over the 2008 value?",
+  "gold": "26.6%",
+  "answers": [
+   [
+    "21.0%",
+    5
+   ],
+   [
+    "9.71",
+    2
+   ],
+   [
+    "-9.71",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_KIM/2010/page_94.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the value of preferred a units that were redeemed?",
+  "gold": "4840000",
+  "answers": [
+   [
+    "2.2",
+    4
+   ],
+   [
+    "2200000.0",
+    3
+   ],
+   [
+    "2200000",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_TXN/2017/page_55.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in assumed health care cost trend rate from 2016 to 2017?",
+  "gold": "0.75",
+  "answers": [
+   [
+    "-0.75",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_STT/2009/page_73.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage change does this represent?",
+  "gold": "34%",
+  "answers": [
+   [
+    "0.34222624300721893",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMAT/2015/page_14.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the change in the backlog from 2014 to 2015?",
+  "gold": "225",
+  "answers": [
+   [
+    "3242",
+    7
+   ],
+   [
+    "3242.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DISCA/2011/page_35.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what is the number of subscribers for global networks discovery channel, in millions?",
+  "gold": "213",
+  "answers": [
+   [
+    "66.0",
+    2
+   ],
+   [
+    "166.0",
+    2
+   ],
+   [
+    "66",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JPM/2010/page_219.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "if the fair value resale agreements were excluded, what would the 2010 balance be for securities purchased under resale agreements, in billions?",
+  "gold": "222.302",
+  "answers": [
+   [
+    "202002.0",
+    4
+   ],
+   [
+    "222099",
+    1
+   ],
+   [
+    "222281.7",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ORLY/2006/page_40.pdf-4",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the product simplified?",
+  "gold": "4.5",
+  "answers": [
+   [
+    "4522772.16",
+    3
+   ],
+   [
+    "45.2277216",
+    1
+   ],
+   [
+    "4522.77216",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_313.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the change divided by 2007 net revenue?",
+  "gold": "-34.3%",
+  "answers": [
+   [
+    "-0.03218645948945616",
+    4
+   ],
+   [
+    "-3.2%",
+    2
+   ],
+   [
+    "-0.0322",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2005/page_54.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what is the value of non-tower cash flow for the twelve months ended december 31 2005?",
+  "gold": "30584",
+  "answers": [
+   [
+    "-30584",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2009/page_93.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "how much do the remaining securities available for issuance represent in relation to the total remaining securities?",
+  "gold": "0.0155",
+  "answers": [
+   [
+    "1.0",
+    7
+   ],
+   [
+    "100%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AOS/2004/page_11.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "as of december 31, 2004, what percentage of the total of aggregate contractual obligations was due to long-term debt?",
+  "gold": "275.1",
+  "answers": [
+   [
+    "52.8%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RSG/2014/page_22.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "as of december 31, 2014, what percentage did the residential vehicles represent in relation to the total fleet?",
+  "gold": "15.1%",
+  "answers": [
+   [
+    "48.1%",
+    7
+   ],
+   [
+    "48.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2005/page_32.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the number of stock warrants issued in the purchase of spectrasite , inc, in millions?",
+  "gold": "56250",
+  "answers": [
+   [
+    "1.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ORLY/2006/page_40.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the amount of cash raised from the issuance of shares in 2015?",
+  "gold": "4463665.71",
+  "answers": [
+   [
+    "unavailable",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_VRTX/2006/page_71.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference in the balance of liabilities between 2003 and 2004?",
+  "gold": "-13683",
+  "answers": [
+   [
+    "13683",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2017/page_157.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was, then, in millions of dollars, the total net revenue in 2017 without counting the us?",
+  "gold": "7304",
+  "answers": [
+   [
+    "7301.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DVN/2014/page_85.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "how much does the total of intangibles represent in relation to the total amortization in 2014?",
+  "gold": ".8",
+  "answers": [
+   [
+    "1580.6%",
+    3
+   ],
+   [
+    "15.8",
+    2
+   ],
+   [
+    "16.1%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2009/page_24.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "sign",
+  "q": "and the specific ratio for 2008?",
+  "gold": "55.6",
+  "answers": [
+   [
+    "-55.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CMCSA/2015/page_62.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "in the year of 2015, what was the ratio of the operating income before depreciation and amortization\tto the revenue?",
+  "gold": "44%",
+  "answers": [
+   [
+    "0.4384546271338724",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2018/page_50.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the total operating revenues for 2018, converted to the tens place?",
+  "gold": "22.832",
+  "answers": [
+   [
+    "22830",
+    7
+   ],
+   [
+    "2283.2",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ADBE/2011/page_83.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "which weighted average useful life, then, of these two was the highest?",
+  "gold": "no",
+  "answers": [
+   [
+    "customer contracts and relationships",
+    7
+   ],
+   [
+    "yes",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GS/2016/page_161.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what percentage, then, of this total did that amount represent?",
+  "gold": "9%",
+  "answers": [
+   [
+    "9.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JPM/2012/page_157.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in the one basis-point increase in jpmorgan chase 2019s credit spread from 2011 to 2012?",
+  "gold": "1",
+  "answers": [
+   [
+    "-1.0",
+    7
+   ],
+   [
+    "-1",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2009/page_36.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net change of sales and profit in 2008?",
+  "gold": "6336",
+  "answers": [
+   [
+    "-85",
+    5
+   ],
+   [
+    "-365",
+    1
+   ],
+   [
+    "645",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2017/page_441.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what is the balance of system energy 2019s receivables from the money pool in 2017?",
+  "gold": "111667",
+  "answers": [
+   [
+    "33809",
+    5
+   ],
+   [
+    "unavailable",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2009/page_68.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and converted to the ten millions?",
+  "gold": "22000000",
+  "answers": [
+   [
+    "2.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLK/2010/page_46.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "sign",
+  "q": "and what was it in 2009?",
+  "gold": "46",
+  "answers": [
+   [
+    "-46",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2012/page_222.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "combined, what was the weighted-average grant-date fair value of incentive/ performance unit share awards and restricted stock/unit awards granted for 2011 and 2010?",
+  "gold": "124.0",
+  "answers": [
+   [
+    "117.84",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IQV/2016/page_57.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the change in the price of the s&p 500 between 2013 and 2014?",
+  "gold": "27",
+  "answers": [
+   [
+    "13",
+    5
+   ],
+   [
+    "13.0",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GS/2015/page_80.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in cash flow from operating activities between 2014 and 2015 affected by the change in inventory?",
+  "gold": "21831",
+  "answers": [
+   [
+    "-21831",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2014/page_94.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the total loan portfolio value based on the percentage of the portfolio made up by home equity loans?",
+  "gold": "2.04",
+  "answers": [
+   [
+    "204.12",
+    5
+   ],
+   [
+    "204.11764705882356",
+    2
+   ],
+   [
+    "204.11764705882354",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2015/page_159.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change on all total purchased impaired loans between 12/31/15 and 12/31/14?",
+  "gold": "-.6",
+  "answers": [
+   [
+    "-308",
+    7
+   ],
+   [
+    "-600",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_STT/2001/page_74.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "and how much does the foreign currency translation represent in relation to this total, in percentage?",
+  "gold": ".2784",
+  "answers": [
+   [
+    "-27.8%",
+    6
+   ],
+   [
+    "-27.835051546391753",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2007/page_111.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total cash for towers acquisitions, in dollars?",
+  "gold": "6000000",
+  "answers": [
+   [
+    "64.3",
+    7
+   ],
+   [
+    "64300000",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UPS/2017/page_58.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what were the pension and postretirement plan contributions in 2016?",
+  "gold": "2668",
+  "answers": [
+   [
+    "-2668",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MO/2016/page_10.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the total smokeless shipment units divided by that sum?",
+  "gold": "813.63",
+  "answers": [
+   [
+    "8.13632030505243",
+    4
+   ],
+   [
+    "0.512",
+    3
+   ],
+   [
+    "8.14",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GS/2018/page_212.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total of securities approved by security holders?",
+  "gold": "85388124",
+  "answers": [
+   [
+    "17176475",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_TFX/2015/page_70.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the total value of the options , warrants and rights that remain available for future issuance?",
+  "gold": "386797190",
+  "answers": [
+   [
+    "4446967",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JPM/2018/page_150.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and what was, in millions, the total amount of money represented by class b derivatives?",
+  "gold": "21322",
+  "answers": [
+   [
+    "7397.0",
+    3
+   ],
+   [
+    "7397000",
+    2
+   ],
+   [
+    "7397000.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2007/page_32.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the difference in operating earnings from 2006 to 2007?",
+  "gold": "-4",
+  "answers": [
+   [
+    "26",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLG/2009/page_99.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what were the number of capital leases?",
+  "gold": "1555",
+  "answers": [
+   [
+    "1",
+    5
+   ],
+   [
+    "6",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2014/page_157.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the number of shares by 1000000?",
+  "gold": "3400000",
+  "answers": [
+   [
+    "3.4",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RCL/2009/page_90.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference between the expected stock price volatility of the years of 2009 and 2008?",
+  "gold": "23.6",
+  "answers": [
+   [
+    "-23.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_UAA/2016/page_83.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "as of 2016, how much did the future minimum sponsorship and other payments due in the next 12 months represent in relation to the total?",
+  "gold": "13.0%",
+  "answers": [
+   [
+    "12.3%",
+    6
+   ],
+   [
+    "0.12316345838205082",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GIS/2008/page_83.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "including the year of 2016, what then becomes the total?",
+  "gold": "155.7",
+  "answers": [
+   [
+    "110.2",
+    2
+   ],
+   [
+    "2126.2",
+    1
+   ],
+   [
+    "286.5",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GS/2015/page_70.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the value of compensation and benefits over the number of staff?",
+  "gold": "344510.9",
+  "answers": [
+   [
+    "0.34451086956521737",
+    7
+   ],
+   [
+    "0.345",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2013/page_40.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was, then, the change in its value from 2011 to 2013?",
+  "gold": "( 0.60 )",
+  "answers": [
+   [
+    "-0.60",
+    7
+   ],
+   [
+    "-0.6",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMAT/2012/page_37.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "and how much does this change represent in relation to this original amount invested?",
+  "gold": "18.24%",
+  "answers": [
+   [
+    "-18.24%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_IP/2007/page_75.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage, then, did that amount represent in relation to this total?",
+  "gold": "93%",
+  "answers": [
+   [
+    "93.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DRE/2010/page_56.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and converted from a decimal to a percentage?",
+  "gold": "94.9%",
+  "answers": [
+   [
+    "100%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2008/page_96.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in value of unrealized losses from 2007 to 2008?",
+  "gold": "5.6",
+  "answers": [
+   [
+    "-15863",
+    7
+   ],
+   [
+    "-15863.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AWK/2012/page_118.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in tax positions throughout 2010?",
+  "gold": "-1833",
+  "answers": [
+   [
+    "-2209",
+    5
+   ],
+   [
+    "2059.0",
+    1
+   ],
+   [
+    "-2059",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2001/page_51.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that time 1000?",
+  "gold": "80",
+  "answers": [
+   [
+    "7",
+    4
+   ],
+   [
+    "8000",
+    3
+   ],
+   [
+    "0.008",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLK/2013/page_125.pdf-3",
+  "k": 1,
+  "kind": "number",
+  "cat": "near",
+  "q": "and the specific value for 2013 again?",
+  "gold": "133",
+  "answers": [
+   [
+    "137",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_TMUS/2018/page_35.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "as of december 31, 2018, how much did the warehouse space represent in relation to the switching centers one, measured in square feet?",
+  "gold": "2.6",
+  "answers": [
+   [
+    "38.5%",
+    3
+   ],
+   [
+    "0.38461538461538464",
+    3
+   ],
+   [
+    "0.385",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2008/page_362.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the net change in net receivables from the money pool between from 2007 to 2008?",
+  "gold": "12388",
+  "answers": [
+   [
+    "0",
+    4
+   ],
+   [
+    "84871",
+    2
+   ],
+   [
+    "unavailable",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AON/2014/page_47.pdf-3",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was total operating income in 2013?",
+  "gold": "1.6",
+  "answers": [
+   [
+    "318.0",
+    4
+   ],
+   [
+    "318",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SLB/2003/page_57.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and during this same period, what was the total amount of shares issued to directors?",
+  "gold": "11800",
+  "answers": [
+   [
+    "3500",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2017/page_441.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the value of receivables in 2017?",
+  "gold": "111667",
+  "answers": [
+   [
+    "unavailable",
+    7
+   ],
+   [
+    "33809",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SNPS/2006/page_69.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the ratio of the goodwill to the purchase price?",
+  "gold": "22%",
+  "answers": [
+   [
+    "0.217",
+    4
+   ],
+   [
+    "0.21650534895568008",
+    3
+   ],
+   [
+    "0.2165",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ORLY/2017/page_30.pdf-3",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the value of the investment in s&p500 at the end of 2017?",
+  "gold": "157",
+  "answers": [
+   [
+    "187.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_OKE/2008/page_86.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the net change over the 2007 value?",
+  "gold": "928%",
+  "answers": [
+   [
+    "233629",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_NWS/2016/page_148.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the deferred tax asset associated with its nols in 2016?",
+  "gold": "540",
+  "answers": [
+   [
+    "580",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2017/page_114.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the total of payments for entergy arkansas, in millions?",
+  "gold": "6",
+  "answers": [
+   [
+    "2.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BKR/2017/page_105.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the number of class b shares issued in 2017 times 1000?",
+  "gold": "1250",
+  "answers": [
+   [
+    "717111000",
+    7
+   ],
+   [
+    "717111",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2012/page_57.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that divided by 2012 sales?",
+  "gold": "63%",
+  "answers": [
+   [
+    "0.6309148264984227",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_362.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what were the receivables in 2008?",
+  "gold": "60093",
+  "answers": [
+   [
+    "unavailable",
+    7
+   ],
+   [
+    "47705",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2013/page_28.pdf-3",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what was the debt-to-capital ratio in 2013?",
+  "gold": "57.9",
+  "answers": [
+   [
+    "-57.9",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ILMN/2008/page_77.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the difference in the value of company 2019s reserve for product warranties in 2006?",
+  "gold": "245",
+  "answers": [
+   [
+    "2720",
+    3
+   ],
+   [
+    "996",
+    3
+   ],
+   [
+    "7207",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2018/page_288.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the net change over the 2017 value?",
+  "gold": "31%",
+  "answers": [
+   [
+    "30.5%",
+    7
+   ],
+   [
+    "130.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLL/2007/page_35.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total amount of cash outflow used for shares repurchased during november 2007, in millions of dollars?",
+  "gold": "20743588.7",
+  "answers": [
+   [
+    "373866.9",
+    5
+   ],
+   [
+    "373.87",
+    1
+   ],
+   [
+    "51503292.28",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2015/page_50.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the difference between high and low share price for the quarter ending on march 31?",
+  "gold": "8.67",
+  "answers": [
+   [
+    "6.52",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GRMN/2008/page_98.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what growth rate does this represent?",
+  "gold": "4.5%",
+  "answers": [
+   [
+    "4.6%",
+    4
+   ],
+   [
+    "4.57%",
+    2
+   ],
+   [
+    "1.0456894207234158",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2010/page_41.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in the net cash provided by operating activities from 2009 to 2010?",
+  "gold": "383",
+  "answers": [
+   [
+    "82.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GPN/2007/page_97.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total number of approved securities by the security holders as of may 31, 2007?",
+  "gold": "12950000",
+  "answers": [
+   [
+    "5171000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GS/2018/page_212.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the ratio of securities to be issued to total available securities?",
+  "gold": "20.1%",
+  "answers": [
+   [
+    "0.25181146111861336",
+    6
+   ],
+   [
+    "0.252",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2001/page_78.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is that value in millions?",
+  "gold": "27000000",
+  "answers": [
+   [
+    "27",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CME/2010/page_71.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "what was the percentage of cash performance bonds and guaranty fund contributions from cash performance bonds?",
+  "gold": "92.3%",
+  "answers": [
+   [
+    "94.1%",
+    6
+   ],
+   [
+    "106.2%",
+    1
+   ],
+   [
+    "61.4%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2006/page_90.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what about in millions?",
+  "gold": "1100",
+  "answers": [
+   [
+    "1145",
+    6
+   ],
+   [
+    "1145.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2003/page_28.pdf-3",
+  "k": 2,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the pre-tax interest income in 2003?",
+  "gold": "590",
+  "answers": [
+   [
+    "unavailable",
+    7
+   ],
+   [
+    "45.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SNPS/2013/page_61.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net change divided by the 2012 value?",
+  "gold": "0.052%",
+  "answers": [
+   [
+    "-0.0005139133438914874",
+    7
+   ],
+   [
+    "-0.000514",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FITB/2013/page_84.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "and what was the number of shares repurchased in that year?",
+  "gold": "43071613",
+  "answers": [
+   [
+    "65516126",
+    7
+   ],
+   [
+    "-65516126.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLG/2009/page_84.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the acquisition of 100 park avenue, converted to the ten millions?",
+  "gold": "95800000",
+  "answers": [
+   [
+    "9.58",
+    4
+   ],
+   [
+    "9580.0",
+    2
+   ],
+   [
+    "0.00958",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LKQ/2010/page_72.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in changes in the warranty reserve in 2009?",
+  "gold": "64",
+  "answers": [
+   [
+    "1459",
+    7
+   ],
+   [
+    "-386",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2009/page_85.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the net change divided by the 2007 value?",
+  "gold": "265%",
+  "answers": [
+   [
+    "2.6470588235294117",
+    6
+   ],
+   [
+    "2.647",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RL/2010/page_11.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "near",
+  "q": "what percentage, then, of this total did that amount in europe represent?",
+  "gold": "49%",
+  "answers": [
+   [
+    "49.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2013/page_64.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that divided by 2013 sales?",
+  "gold": "58%",
+  "answers": [
+   [
+    "0.5822416302765647",
+    5
+   ],
+   [
+    "0.582",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2016/page_45.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference in the average spot rate between 2015 and 2016?",
+  "gold": "-193",
+  "answers": [
+   [
+    "193",
+    7
+   ],
+   [
+    "193.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_VNO/2003/page_102.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and in the subsequent year of 2002, what was the total of future noncancelable minimum rent amounts for 2004 and 2005, also in thousands?",
+  "gold": "2052796",
+  "answers": [
+   [
+    "1814507",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2009/page_279.pdf-3",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the percent change?",
+  "gold": "73.4%",
+  "answers": [
+   [
+    "-73.4%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GIS/2014/page_25.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "how much, then, does that change represent in relation to these 2013 earnings?",
+  "gold": "9.1%",
+  "answers": [
+   [
+    "-9.1%",
+    6
+   ],
+   [
+    "-9.09%",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_EOG/2017/page_85.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "what fraction does this represent?",
+  "gold": "22.42%",
+  "answers": [
+   [
+    "1.224",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLG/2011/page_58.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum of the joint venture income costs increased over 2010 and 2011?",
+  "gold": "23.2",
+  "answers": [
+   [
+    "270140",
+    4
+   ],
+   [
+    "11.5",
+    3
+   ],
+   [
+    "217666",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AON/2018/page_84.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and the difference in the statutory tax rate and the effective tax rate for international operations in 2018?",
+  "gold": "17.2%",
+  "answers": [
+   [
+    "-7.3",
+    7
+   ],
+   [
+    "7.3",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2009/page_68.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what were the pretax pension expenses in 2010?",
+  "gold": "117",
+  "answers": [
+   [
+    "41",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2015/page_314.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the normalized ratio of citi to the s&p in 2013?",
+  "gold": ".185",
+  "answers": [
+   [
+    "0.705",
+    4
+   ],
+   [
+    "0.7045657441652851",
+    2
+   ],
+   [
+    "0.7046",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AWK/2012/page_12.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and how much is that, in dollars?",
+  "gold": "2564000000",
+  "answers": [
+   [
+    "2564400000",
+    7
+   ],
+   [
+    "2564400000.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PPG/2012/page_47.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the sum of the outstanding letters of credit, surety bonds and guarantees?",
+  "gold": "212",
+  "answers": [
+   [
+    "215",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_L/2008/page_120.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the growth rate in gas production between the years of 2007 and 2008?",
+  "gold": "232%",
+  "answers": [
+   [
+    "132.1%",
+    7
+   ],
+   [
+    "132.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AES/2001/page_45.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is is the gross margin?",
+  "gold": "25%",
+  "answers": [
+   [
+    "912",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMAT/2012/page_37.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the dividend yield for 2012 for applied materials?",
+  "gold": "0.14%",
+  "answers": [
+   [
+    "unavailable",
+    2
+   ],
+   [
+    "6.9%",
+    1
+   ],
+   [
+    "7.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2013/page_46.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was the average during this time?",
+  "gold": "147000",
+  "answers": [
+   [
+    "14700",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2008/page_86.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage change does this represent?",
+  "gold": "12%",
+  "answers": [
+   [
+    "0.1159",
+    3
+   ],
+   [
+    "0.11590296495956873",
+    2
+   ],
+   [
+    "0.116",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ANSS/2008/page_85.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in unrecognized tax benefits during 2008?",
+  "gold": "4488",
+  "answers": [
+   [
+    "8891",
+    7
+   ],
+   [
+    "8891.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ILMN/2007/page_78.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what percentage does this change represent in relation to the 2006 net income?",
+  "gold": "145%",
+  "answers": [
+   [
+    "-144.6%",
+    7
+   ],
+   [
+    "-145%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2012/page_157.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "what would be the net income in 2011 if integration charges were not included?",
+  "gold": "2953",
+  "answers": [
+   [
+    "2869",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2008/page_88.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "convert the number of remaining share purchase authorizations to the millions place",
+  "gold": "13000000",
+  "answers": [
+   [
+    "13.0",
+    7
+   ],
+   [
+    "0.013",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2008/page_86.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the net change divided by the 2006 value?",
+  "gold": "19%",
+  "answers": [
+   [
+    "0.193",
+    6
+   ],
+   [
+    "0.19292604501607716",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2012/page_123.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "and what was the number of those sites?",
+  "gold": "2126",
+  "answers": [
+   [
+    "1526",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AWK/2014/page_122.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the decrease in tax positions in 2012?",
+  "gold": "2059",
+  "answers": [
+   [
+    "unavailable",
+    4
+   ],
+   [
+    "-3176",
+    2
+   ],
+   [
+    "-2393",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_FIS/2006/page_88.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in the total of principal maturities due in 2007 due to the debt refinancing completed on january of that year?",
+  "gold": "-34500",
+  "answers": [
+   [
+    "34500",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MSI/2006/page_61.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in long-term debt payments from 2007 to 2011?",
+  "gold": "733",
+  "answers": [
+   [
+    "-733",
+    6
+   ],
+   [
+    "2683",
+    1
+   ],
+   [
+    "-1240",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2003/page_44.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the product between the operating earnings in million of 2003 and that difference?",
+  "gold": "157.85",
+  "answers": [
+   [
+    "15785",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_UNP/2006/page_37.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the anticipated change in the capital investment between 2006 and 2007?",
+  "gold": "0.96",
+  "answers": [
+   [
+    "958",
+    7
+   ],
+   [
+    "958.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2013/page_61.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the value of north american industrial packaging net sales in 2012 times 1000?",
+  "gold": "11600",
+  "answers": [
+   [
+    "13280000",
+    7
+   ],
+   [
+    "13280000.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_KHC/2018/page_27.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what portion is leased?",
+  "gold": ".00357",
+  "answers": [
+   [
+    "8.3%",
+    7
+   ],
+   [
+    "9.5%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RSG/2009/page_78.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "near",
+  "q": "how much does that difference represents in relation to the cash provided by operating activities of 2007?",
+  "gold": "-23%",
+  "answers": [
+   [
+    "-22.5%",
+    7
+   ],
+   [
+    "22.5%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MO/2017/page_65.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "how much does that change represent, percentually, in relation to the 2016 earnings for basic and diluted eps?",
+  "gold": "39.3%",
+  "answers": [
+   [
+    "28.2%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_VTR/2007/page_97.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and the percentage of the maturities that are part of the total maturities in 2008?",
+  "gold": "5.8%",
+  "answers": [
+   [
+    "18.1%",
+    5
+   ],
+   [
+    "100.4%",
+    2
+   ],
+   [
+    "8.4%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SNA/2007/page_80.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in the unrecognized tax benefits during 2007, in millions?",
+  "gold": "2.6",
+  "answers": [
+   [
+    "-2.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PM/2014/page_67.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total of us dollar notes issued in november of 2014, in millions?",
+  "gold": "1500",
+  "answers": [
+   [
+    "750",
+    7
+   ],
+   [
+    "750.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2012/page_123.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the total aggregate purchase price of assets?",
+  "gold": "182.0",
+  "answers": [
+   [
+    "4563.0",
+    4
+   ],
+   [
+    "4563",
+    2
+   ],
+   [
+    "4654",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_INTC/2013/page_47.pdf",
+  "k": 2,
+  "kind": "number",
+  "cat": "scale",
+  "q": "and over the subsequent year of this period, what was the change in that net cash?",
+  "gold": "19",
+  "answers": [
+   [
+    "1892",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2008/page_343.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "how was the cash flow of entergy mississippi affected by the balance in money pool between 2007 and 2008?",
+  "gold": "87041",
+  "answers": [
+   [
+    "18576",
+    3
+   ],
+   [
+    "-18576",
+    3
+   ],
+   [
+    "unavailable",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2017/page_441.pdf-4",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the sum divided by 120?",
+  "gold": "56.7%",
+  "answers": [
+   [
+    "0.565",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2013/page_158.pdf-3",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the tier 1 common ratio as of 2013?",
+  "gold": "9.4%",
+  "answers": [
+   [
+    "9.5%",
+    7
+   ],
+   [
+    "9.5",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2018/page_21.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total number of shares repurchased in 2018, in millions?",
+  "gold": "57.669746",
+  "answers": [
+   [
+    "12.508023",
+    6
+   ],
+   [
+    "12508.023",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2014/page_35.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the value included in the capital investments for buyout of locomotives in 2012, in dollars?",
+  "gold": "75000000",
+  "answers": [
+   [
+    "75",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2011/page_76.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total expense for repairs and maintenance incurred in 2011?",
+  "gold": "2200",
+  "answers": [
+   [
+    "2.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2013/page_14.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "and how much, in percentage, does the retail electric price represent in relation to this change?",
+  "gold": "43%",
+  "answers": [
+   [
+    "42.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AOS/2003/page_23.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage change does this represent?",
+  "gold": "14%",
+  "answers": [
+   [
+    "0.13815789473684212",
+    7
+   ],
+   [
+    "0.1381578947368421",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_WRK/2018/page_39.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the difference between the net sales of year ended september 30 2018 and the net sales increase of consumer packaging segment?",
+  "gold": "8993.7",
+  "answers": [
+   [
+    "15446.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MRO/2009/page_32.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what portion of total carrels per day is coming from garyville louisiana?",
+  "gold": "",
+  "answers": [
+   [
+    "36.7%",
+    6
+   ],
+   [
+    "0.367",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ABMD/2015/page_93.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "sign",
+  "q": "and the foreign currency translation impact?",
+  "gold": "3789",
+  "answers": [
+   [
+    "-3789",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DVN/2014/page_112.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total in proved undeveloped resources as of december 31, 2014?",
+  "gold": "862",
+  "answers": [
+   [
+    "689",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ABMD/2004/page_26.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what is the last year included in the remaining terms of the facility leases?",
+  "gold": "2010",
+  "answers": [
+   [
+    "2009",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PM/2015/page_38.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in the non-us pension plans rate from 2014 to 2015?",
+  "gold": "-0.24",
+  "answers": [
+   [
+    "0.24",
+    5
+   ],
+   [
+    "-2.62",
+    2
+   ],
+   [
+    "24%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2012/page_57.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the north american consumer packaging net sales in 2011, in millions?",
+  "gold": "2500",
+  "answers": [
+   [
+    "3710",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2009/page_200.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was value of aggregate annual maturities of long-term debt obligations for the citigroup parent company in 2012?",
+  "gold": "18030",
+  "answers": [
+   [
+    "29706",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_EOG/2016/page_80.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the quotient less 1?",
+  "gold": "13.5%",
+  "answers": [
+   [
+    "-0.11880331706542868",
+    3
+   ],
+   [
+    "-0.1188033170654287",
+    2
+   ],
+   [
+    "-11.9%",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RE/2015/page_131.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and concerning the redeemed amount of junior subordinated debt, what was its annual interest expense?",
+  "gold": "20453.6",
+  "answers": [
+   [
+    "8181",
+    5
+   ],
+   [
+    "8181.0",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2009/page_57.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the value in 2009?",
+  "gold": "99.75",
+  "answers": [
+   [
+    "62.09",
+    7
+   ],
+   [
+    "-37.66",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_C/2008/page_113.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the net change in the expected return from 2007 to 2008?",
+  "gold": "10",
+  "answers": [
+   [
+    "0.25",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_EW/2016/page_92.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was this change as a percentage of those benefits in 2017?",
+  "gold": "11%",
+  "answers": [
+   [
+    "0.0%",
+    6
+   ],
+   [
+    "0%",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2009/page_95.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the number of securities approved by security holders that remain to be issued in the future by the price per security?",
+  "gold": "183963696",
+  "answers": [
+   [
+    "6570132",
+    4
+   ],
+   [
+    "234647.57",
+    1
+   ],
+   [
+    "234647.6",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_NKE/2009/page_81.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the percent change?",
+  "gold": "91%",
+  "answers": [
+   [
+    "109.8%",
+    4
+   ],
+   [
+    "110%",
+    2
+   ],
+   [
+    "0.477",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JKHY/2016/page_25.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in the performance value of the peer group stock from 2014 to 2016?",
+  "gold": "45.18",
+  "answers": [
+   [
+    "76.96",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CE/2005/page_167.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "what percentage of the maturation of the company 2019s debt, including short-term borrowings that will occur after 2010?",
+  "gold": "93%",
+  "answers": [
+   [
+    "92.0%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AAL/2015/page_51.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the percent decrease?",
+  "gold": "-20%",
+  "answers": [
+   [
+    "20.1%",
+    6
+   ],
+   [
+    "20.2%",
+    1
+   ],
+   [
+    "25.1%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_REGN/2010/page_68.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "in 2008, what percentage did bayer healthcare represent in relation to the total revenue?",
+  "gold": "14%",
+  "answers": [
+   [
+    "13.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FRT/2011/page_115.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the value in 2009?",
+  "gold": "108261",
+  "answers": [
+   [
+    "938087",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_STT/2017/page_101.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is this decline as a percentage of that balance in 2016?",
+  "gold": ".5493",
+  "answers": [
+   [
+    "35.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2018/page_50.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the growth rate in 2018 compare to 2017?",
+  "gold": "109%",
+  "answers": [
+   [
+    "9.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2014/page_95.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and how much is that in millions?",
+  "gold": "56.5",
+  "answers": [
+   [
+    "56.52358185",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ABMD/2009/page_85.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in the risk-free interest rate from 2007 to 2008?",
+  "gold": "-0.23",
+  "answers": [
+   [
+    "0.23",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DG/2008/page_73.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the value change in held-to-maturity securities at cost and at fair value between?",
+  "gold": "-2.5",
+  "answers": [
+   [
+    "2.5",
+    7
+   ],
+   [
+    "unavailable",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DISH/2002/page_94.pdf-4",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "is the echostar purchases larger than the total lease payments?",
+  "gold": "yes",
+  "answers": [
+   [
+    "no",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IQV/2018/page_59.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the change in benefits obligations from 2018 to 2019, in millions?",
+  "gold": "6",
+  "answers": [
+   [
+    "-2.0",
+    2
+   ],
+   [
+    "2",
+    2
+   ],
+   [
+    "25",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GPN/2013/page_71.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what percentage of the balance was used on payments?",
+  "gold": "52.9%",
+  "answers": [
+   [
+    "1770.4%",
+    6
+   ],
+   [
+    "-1770.4%",
+    1
+   ],
+   [
+    "1770%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ORLY/2006/page_40.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what were the number of shares issued in 2015 times the average share price per share?",
+  "gold": "4463665.71",
+  "answers": [
+   [
+    "619277.76",
+    4
+   ],
+   [
+    "unavailable",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Double_C/2009/page_53.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "by how much did the tier 1 common ratio change between 2008 and 2009?",
+  "gold": "7.30",
+  "answers": [
+   [
+    "-7.3",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PM/2015/page_127.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the net change over the 2013 value?",
+  "gold": "62.9%",
+  "answers": [
+   [
+    "2636.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GPN/2008/page_88.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and as of may of that last year, what was the amount remaining under the current share repurchase authorization?",
+  "gold": "13000000",
+  "answers": [
+   [
+    "13.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HOLX/2008/page_93.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "near",
+  "q": "what was the total of equity compensation plans approved by security holders?",
+  "gold": "15370814",
+  "answers": [
+   [
+    "15953695",
+    7
+   ],
+   [
+    "15953695.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MRO/2017/page_111.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the purchases of reserves in place in 2016?",
+  "gold": "-13",
+  "answers": [
+   [
+    "34",
+    5
+   ],
+   [
+    "15",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLL/2007/page_87.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the related tax expense in 2006, in millions?",
+  "gold": "5.7",
+  "answers": [
+   [
+    "2.9",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2011/page_435.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "in the year of 2011, by what amount did the operating cash flow fall short from the target one?",
+  "gold": "221",
+  "answers": [
+   [
+    "0.38",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2014/page_133.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total value of the equity compensation plan?",
+  "gold": "6033117",
+  "answers": [
+   [
+    "4078093",
+    5
+   ],
+   [
+    "1955024",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2002/page_266.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in the difference in the fair value of the securities held in decommissioning trust funds and the amounts deposited plus the earnings on the deposits from 2001 to 2002 for entergy arkansas?",
+  "gold": "34.5",
+  "answers": [
+   [
+    "-34.5",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2004/page_76.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what percentage change does this rerpesent?",
+  "gold": "979000",
+  "answers": [
+   [
+    "-0.15730337078651685",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RSG/2015/page_126.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the net change over the 2014 value?",
+  "gold": "-32.9%",
+  "answers": [
+   [
+    "-23.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_DVN/2011/page_99.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the value of proved undeveloped reserves at the end of 2011?",
+  "gold": "379",
+  "answers": [
+   [
+    "782",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_UA/2007/page_42.pdf",
+  "k": 2,
+  "kind": "number",
+  "cat": "same",
+  "q": "what were those total revenues?",
+  "gold": "430689",
+  "answers": [
+   [
+    "255681.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2008/page_144.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and how much does this difference represent in relation to the total liabilities?",
+  "gold": "0.59",
+  "answers": [
+   [
+    "170%",
+    4
+   ],
+   [
+    "170.4%",
+    2
+   ],
+   [
+    "1.704",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_IPG/2013/page_46.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "how much would the interest income increase with a 100bp increase in interest rates?",
+  "gold": "41.1",
+  "answers": [
+   [
+    "16.4",
+    7
+   ],
+   [
+    "405.1",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ADI/2019/page_85.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the difference in values?",
+  "gold": "-12.5",
+  "answers": [
+   [
+    "79696.7",
+    5
+   ],
+   [
+    "12.511",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2017/page_26.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "so what was the percentage change over these years?",
+  "gold": "8.04%",
+  "answers": [
+   [
+    "-7.4%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_REGN/2010/page_72.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what were the research and development costs related to vegf trap-eye in 2009?",
+  "gold": "27.1",
+  "answers": [
+   [
+    "109.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2009/page_58.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference in average crack spread for chicago between 2007 and 2009?",
+  "gold": "-5.35",
+  "answers": [
+   [
+    "5.35",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MSI/2009/page_65.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "and in this same year, what was the total of the segment net sales?",
+  "gold": "12099",
+  "answers": [
+   [
+    "7146.0",
+    5
+   ],
+   [
+    "7.1",
+    2
+   ],
+   [
+    "22.2",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_APD/2018/page_54.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the difference in cash provided by operating activities and the cash used for investing activities in 2018?",
+  "gold": "905.6",
+  "answers": [
+   [
+    "4203.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_GPN/2013/page_98.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "so what was the value of the available securities for future issuance?",
+  "gold": "276818173",
+  "answers": [
+   [
+    "7927210",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HII/2011/page_72.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "as of december 31, 2011, how much did the the long-term debt included in the section of current liabilities on the balance sheet represent in relation to the total one?",
+  "gold": "1.6%",
+  "answers": [
+   [
+    "31.8%",
+    4
+   ],
+   [
+    "0.3178321080526586",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2005/page_27.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that divided 2004 sales?",
+  "gold": "65%",
+  "answers": [
+   [
+    "0.651890482398957",
+    5
+   ],
+   [
+    "0.652",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PPG/2018/page_61.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the operating income return on sales in 2016?",
+  "gold": "111",
+  "answers": [
+   [
+    "12.2%",
+    6
+   ],
+   [
+    "0.122",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ILMN/2007/page_84.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total value of granted options in 2006 using the number of options and the weighted-average exercise price?",
+  "gold": "71397402",
+  "answers": [
+   [
+    "153802405.12",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2013/page_14.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the value of volume/weather divided by the net change?",
+  "gold": "7%",
+  "answers": [
+   [
+    "0.07207207207207207",
+    7
+   ],
+   [
+    "0.072",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_EMN/2016/page_104.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what percentage change does this represent from 2014?",
+  "gold": "28.5%",
+  "answers": [
+   [
+    "28.6%",
+    6
+   ],
+   [
+    "1.2857142857142858",
+    1
+   ],
+   [
+    "0.2857142857142857",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_IPG/2007/page_97.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "and what is the total of those rent obligations?",
+  "gold": "323.9",
+  "answers": [
+   [
+    "2195.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2012/page_125.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was, then, the average price paid for each tower?",
+  "gold": "1798334",
+  "answers": [
+   [
+    "180041.58",
+    4
+   ],
+   [
+    "173200",
+    3
+   ],
+   [
+    "180042",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2009/page_71.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in consulting and professional fees from 2008 to 2009?",
+  "gold": "1.5",
+  "answers": [
+   [
+    "-1.5",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLG/2009/page_84.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is that divided by its economic interest?",
+  "gold": "1611908200",
+  "answers": [
+   [
+    "16119.032858028519",
+    4
+   ],
+   [
+    "16119.03",
+    2
+   ],
+   [
+    "16119032.858",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PKG/2004/page_21.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "in the year of 2004, which one was higher: the interest expense net or the ( provision ) benefit for income taxes?",
+  "gold": "no",
+  "answers": [
+   [
+    "interest expense net",
+    6
+   ],
+   [
+    "yes",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ADI/2011/page_74.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in the total amount of proceeds received by the company from exercise of options from 2010 to 2011?",
+  "gold": "1.3",
+  "answers": [
+   [
+    "-23.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PPG/2006/page_22.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum between the segment income increased by asset impairment in fine chemicals business and the optical and specialty materials segment income of 2005?",
+  "gold": "185",
+  "answers": [
+   [
+    "894",
+    5
+   ],
+   [
+    "92",
+    2
+   ],
+   [
+    "1028",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ADI/2011/page_81.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "in the year of 2011, how much did the mutual funds represent in relation to the total investment?",
+  "gold": "65.1%",
+  "answers": [
+   [
+    "34.9%",
+    7
+   ],
+   [
+    "0.3492237788716395",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HIG/2016/page_253.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and how much did that net operating lease obligation excluding this income represent, in percentage, in relation to the total future minimum lease commitments for operating leases?",
+  "gold": "25.8%",
+  "answers": [
+   [
+    "24.5%",
+    7
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2004/page_160.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "so what was the percentage change?",
+  "gold": "9.73%",
+  "answers": [
+   [
+    "-8.9%",
+    6
+   ],
+   [
+    "8.9%",
+    1
+   ],
+   [
+    "-8.87%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_EW/2017/page_83.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and how much does this combined total represent in relation to the total of current assets, in percentage?",
+  "gold": "20.7%",
+  "answers": [
+   [
+    "0.9%",
+    7
+   ],
+   [
+    "92%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2016/page_117.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the number of securities to be issued?",
+  "gold": "5802673",
+  "answers": [
+   [
+    "6885020",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AON/2015/page_43.pdf-4",
+  "k": 2,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is, then, the difference between the total ebitda and this amortization, in 2015?",
+  "gold": "2291",
+  "answers": [
+   [
+    "2191",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CME/2017/page_37.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "so by how much will the square footage decrease?",
+  "gold": "-15000",
+  "answers": [
+   [
+    "15000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GS/2012/page_154.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the amount of securities borrowed by the end of 2012, in billions?",
+  "gold": "38.40",
+  "answers": [
+   [
+    "136.893",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_V/2008/page_163.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the amount gained with the issuance of the class a common stock in 2008?",
+  "gold": "19101082000",
+  "answers": [
+   [
+    "19.1",
+    6
+   ],
+   [
+    "19100000000",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_STT/2008/page_116.pdf-2",
+  "k": 1,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what is the value in 2007?",
+  "gold": "12.14",
+  "answers": [
+   [
+    "unavailable",
+    7
+   ],
+   [
+    "10.09",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_DVN/2011/page_99.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the change in the total proved undeveloped reserves for canada from 2010 to 2011?",
+  "gold": "379",
+  "answers": [
+   [
+    "-41",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AAP/2012/page_12.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the number of new stores in 2008 and 2012?",
+  "gold": "202.0",
+  "answers": [
+   [
+    "109, 116",
+    7
+   ],
+   [
+    "109 and 116",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2013/page_49.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what was the effective income tax rate on continuing operations in 2012?",
+  "gold": "74",
+  "answers": [
+   [
+    "-74.0",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LLY/2008/page_39.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the percent change?",
+  "gold": "6%",
+  "answers": [
+   [
+    "65.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AES/2011/page_230.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "and as of that same date, how much did the non-recourse debt due in 2014 represent in relation to the total debt, in percentage?",
+  "gold": "11%",
+  "answers": [
+   [
+    "10.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2011/page_269.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the value of acquisition?",
+  "gold": "3.5",
+  "answers": [
+   [
+    "3483",
+    6
+   ],
+   [
+    "3483.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2014/page_85.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the change in the balance of net total long-term debt from 2013 to 2014?",
+  "gold": "12321",
+  "answers": [
+   [
+    "17",
+    7
+   ],
+   [
+    "17.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RL/2014/page_13.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what portion of factory stores are located in the asia?",
+  "gold": "64%",
+  "answers": [
+   [
+    "14.9%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2015/page_124.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the total number of shares of equity compensation plans approved by security holders?",
+  "gold": "5706308",
+  "answers": [
+   [
+    "1424356",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2015/page_50.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "near",
+  "q": "what was the low for share price for the quarter ended 12/31/15?",
+  "gold": "87.32",
+  "answers": [
+   [
+    "90.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FIS/2010/page_89.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "near",
+  "q": "what was the net rent expense in 2010?",
+  "gold": "116.1",
+  "answers": [
+   [
+    "114.1",
+    6
+   ],
+   [
+    "118.1",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2018/page_52.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the average rate per year?",
+  "gold": "20.5",
+  "answers": [
+   [
+    "20.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2011/page_435.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the target operating cash flow divided by the total shortfall?",
+  "gold": "3.129",
+  "answers": [
+   [
+    "15.158371040723981",
+    5
+   ],
+   [
+    "0.015158371040723982",
+    1
+   ],
+   [
+    "1.5%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2016/page_44.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and three years later, in the last quarter of 2016, what was the total spent in the repurchase of shares, in thousands?",
+  "gold": "503807",
+  "answers": [
+   [
+    "500",
+    4
+   ],
+   [
+    "500000",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CDNS/2018/page_82.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what percentage, then, was that total amount in relation to this goodwill?",
+  "gold": "118%",
+  "answers": [
+   [
+    "84.7%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SWKS/2011/page_112.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "scale",
+  "q": "and what was is it 2010?",
+  "gold": "19900",
+  "answers": [
+   [
+    "unavailable",
+    4
+   ],
+   [
+    "935",
+    2
+   ],
+   [
+    "18755",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2008/page_32.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and what was the full value of those shares?",
+  "gold": "11456267981.5",
+  "answers": [
+   [
+    "11456267981.45",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SNPS/2009/page_59.pdf-1",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the product divided by total purchase price considerations?",
+  "gold": "41%",
+  "answers": [
+   [
+    "0.0004149313029361576",
+    4
+   ],
+   [
+    "0.000415",
+    2
+   ],
+   [
+    "0.415",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ZBH/2008/page_84.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "so what was the difference between these two years?",
+  "gold": "-9.2",
+  "answers": [
+   [
+    "9.2",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2011/page_80.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was the value of those outstanding notes?",
+  "gold": "6.65%",
+  "answers": [
+   [
+    "400",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RE/2014/page_125.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and in the subsequent year of this period, what was the total of the catastrophe reinsurance coverage provided for kilimanjaro re limited?",
+  "gold": "450000",
+  "answers": [
+   [
+    "950000",
+    7
+   ],
+   [
+    "750000",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2013/page_104.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the value of investment securities portfolio (average) in 2013 divided by 1000?",
+  "gold": "347.6",
+  "answers": [
+   [
+    "353.712",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JPM/2016/page_141.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and in the year before, what was the total percentage of the ratings profile of derivative receivables that had a rating equivalent for junk ratings?",
+  "gold": "19",
+  "answers": [
+   [
+    "2.0",
+    5
+   ],
+   [
+    "20.0",
+    1
+   ],
+   [
+    "20",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LKQ/2010/page_84.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the net change divided by the 2008 value?",
+  "gold": "17%",
+  "answers": [
+   [
+    "0.16734693877551018",
+    6
+   ],
+   [
+    "0.167",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETFC/2007/page_126.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and how much did they represent in relation to the payments due after 2012?",
+  "gold": "0.15",
+  "answers": [
+   [
+    "15.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2010/page_219.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the total repurchase agreements of 2010 and 2009?",
+  "gold": "7.4",
+  "answers": [
+   [
+    "508414",
+    7
+   ],
+   [
+    "508414.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLB/2009/page_46.pdf-4",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the percent change?",
+  "gold": "15.9%",
+  "answers": [
+   [
+    "-22.9%",
+    7
+   ],
+   [
+    "-22.95%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MAA/2018/page_88.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the lowest risk free rate from 2018?",
+  "gold": "1.61%",
+  "answers": [
+   [
+    "-1.61",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IPG/2017/page_40.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is that shown as a percent?",
+  "gold": "28.13",
+  "answers": [
+   [
+    "39.1%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GIS/2014/page_25.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what percentage change does this represent?",
+  "gold": "9.1%",
+  "answers": [
+   [
+    "-0.09090909090909091",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RSG/2016/page_144.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "how much did the gallons hedged in 2018 represent in relation to the ones hedged in 2017?",
+  "gold": "4",
+  "answers": [
+   [
+    "0.25",
+    7
+   ],
+   [
+    "25%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CME/2012/page_73.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "in 2012, what was the total combined amount of the fair value and the cost basis for the the bm&fbovespa s.a .?",
+  "gold": "2.63",
+  "answers": [
+   [
+    "953.5",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2015/page_44.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what were operating profits in 2015?",
+  "gold": "186",
+  "answers": [
+   [
+    "533",
+    6
+   ],
+   [
+    "533.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2005/page_84.pdf-4",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "and convert that into hundreds?",
+  "gold": "646.6",
+  "answers": [
+   [
+    "6465.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_EW/2016/page_94.pdf-4",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "how much, then, does that change represent in relation to this 2014 fair value, in percentage?",
+  "gold": "163%",
+  "answers": [
+   [
+    "163.8%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_LMT/2018/page_85.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "so what was the difference in value between the two years?",
+  "gold": "-3.8",
+  "answers": [
+   [
+    "3.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2009/page_133.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the value of commercial mortgage loans sold in 2009 less the prior sum?",
+  "gold": "10",
+  "answers": [
+   [
+    "-3.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CE/2014/page_90.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the quarterly commitment fee on the unused portion of the revolving credit facility?",
+  "gold": "2.25",
+  "answers": [
+   [
+    "0.25%",
+    6
+   ],
+   [
+    "0.25",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_LMT/2016/page_87.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what percentage of the total assets of the disposal group were from receivables?",
+  "gold": "20%",
+  "answers": [
+   [
+    "0.5%",
+    4
+   ],
+   [
+    "3.5%",
+    1
+   ],
+   [
+    "2.4%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2015/page_46.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the value of consumer packaging sales from north american consumer packaging in 2015 times 1000?",
+  "gold": "1900",
+  "answers": [
+   [
+    "2940000",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2007/page_35.pdf-2",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and converted to the hundreds?",
+  "gold": "127.7",
+  "answers": [
+   [
+    "1276983.1104",
+    6
+   ],
+   [
+    "1276983.11",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_DRE/2009/page_60.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the net fair value of acquired assets and liabilities?",
+  "gold": "207914",
+  "answers": [
+   [
+    "-208976",
+    3
+   ],
+   [
+    "-137036",
+    1
+   ],
+   [
+    "106200",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2004/page_213.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the total increase in the other regulatory credits in 2003?",
+  "gold": "37.5",
+  "answers": [
+   [
+    "8.9",
+    6
+   ],
+   [
+    "50.8",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AAL/2014/page_80.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and how much did it represent in relation to the professional fees?",
+  "gold": "8.7",
+  "answers": [
+   [
+    "870.9%",
+    5
+   ],
+   [
+    "87.1%",
+    2
+   ],
+   [
+    "87.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2016/page_98.pdf-4",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "so what was the change between these years?",
+  "gold": "67.0",
+  "answers": [
+   [
+    "15",
+    6
+   ],
+   [
+    "15%",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2005/page_84.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the recorded amortization expense in 2007?",
+  "gold": "5.3",
+  "answers": [
+   [
+    "178.3",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RSG/2015/page_127.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "sign",
+  "q": "and the value for 2013 specifically?",
+  "gold": "28.9",
+  "answers": [
+   [
+    "-28.9",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GPN/2017/page_77.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what portion of the total identifiable net assets in cash?",
+  "gold": "73.7%",
+  "answers": [
+   [
+    "3.8%",
+    3
+   ],
+   [
+    "0.0376",
+    2
+   ],
+   [
+    "327.9%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2009/page_36.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what was the north american printing papers net sales in 2009?",
+  "gold": "2.8",
+  "answers": [
+   [
+    "5680",
+    7
+   ],
+   [
+    "5680.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_APD/2019/page_48.pdf-2",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the amount of cash provided by operating activities?",
+  "gold": "2547.2",
+  "answers": [
+   [
+    "2969.9",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AWK/2012/page_118.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the difference in the balance between 1/1/10 and 12/31/12?",
+  "gold": "-6101",
+  "answers": [
+   [
+    "4268",
+    7
+   ],
+   [
+    "-4268",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RSG/2018/page_13.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what portion of total vehicles uses natural gas?",
+  "gold": "3200",
+  "answers": [
+   [
+    "20%",
+    3
+   ],
+   [
+    "20",
+    2
+   ],
+   [
+    "20.0%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2002/page_104.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum value of expected payments for principal of long-term debt in 2003 and 2004?",
+  "gold": "399758",
+  "answers": [
+   [
+    "262524",
+    5
+   ],
+   [
+    "326344",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MSI/2005/page_64.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in the total contractual obligations due from 2006 to 2010?",
+  "gold": "360",
+  "answers": [
+   [
+    "-360",
+    7
+   ],
+   [
+    "-360.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_CDNS/2006/page_30.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "and only from 2001 to 2005, what was that change for the s&p500 stock?",
+  "gold": "11.15",
+  "answers": [
+   [
+    "16.61",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SLB/2009/page_46.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the fraction of shares purchased in 2008 over 2009?",
+  "gold": "3.6",
+  "answers": [
+   [
+    "2.691974440894569",
+    6
+   ],
+   [
+    "2.692",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2017/page_379.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the sum of receivables from the money pool in 2017 and 2016?",
+  "gold": "12228",
+  "answers": [
+   [
+    "36525",
+    4
+   ],
+   [
+    "unavailable",
+    3
+   ],
+   [
+    "21190",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SNA/2013/page_111.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in value of non-vested performance awards during the year?",
+  "gold": "-128",
+  "answers": [
+   [
+    "8.77",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2007/page_114.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in the balance of other long-term notes receivable during 2007?",
+  "gold": "6.7",
+  "answers": [
+   [
+    "-6.7",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CDNS/2006/page_30.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the value of the s&p 500 in 2005 less an assumed initial $100 investment?",
+  "gold": "11.15",
+  "answers": [
+   [
+    "16.61",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_MRO/2008/page_99.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "and considering that same list, what were the average option contract volumes between those put options purchased and the call options sold, in barrels per day?",
+  "gold": "20000",
+  "answers": [
+   [
+    "17500.0",
+    7
+   ],
+   [
+    "35000.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2007/page_58.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was earnings per share for 2012 diluted pro forma?",
+  "gold": "3.85",
+  "answers": [
+   [
+    "unavailable",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2011/page_208.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net change?",
+  "gold": "-8",
+  "answers": [
+   [
+    "-7",
+    6
+   ],
+   [
+    "7",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_SLG/2017/page_114.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "near",
+  "q": "what is the net change in the amount received contributions from employers from 2015 to 2016?",
+  "gold": "27.6",
+  "answers": [
+   [
+    "2794",
+    5
+   ],
+   [
+    "-92",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HIG/2004/page_122.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "and what is the total of those aggregate contractual obligations that are due in up to three years?",
+  "gold": "72890",
+  "answers": [
+   [
+    "11927",
+    7
+   ],
+   [
+    "45161",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2018/page_168.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the balance of unrecognized tax benefits for 2018?",
+  "gold": "348",
+  "answers": [
+   [
+    "463",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_GPN/2017/page_91.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and what is this change as a percentage of that fair value in 2016?",
+  "gold": "69%",
+  "answers": [
+   [
+    "68.5%",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MMM/2005/page_55.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in net cash used in financing activities from the year of 2004 to 2005, in millions?",
+  "gold": "1145",
+  "answers": [
+   [
+    "-1145",
+    6
+   ],
+   [
+    "-1145.0",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_HIG/2011/page_188.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "so what was the percentage change during this time?",
+  "gold": "58.6%",
+  "answers": [
+   [
+    "-58.6%",
+    7
+   ],
+   [
+    "-62.1%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_KIM/2010/page_86.pdf-1",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "and what were those revenues in 2009?",
+  "gold": "5.2",
+  "answers": [
+   [
+    "0.8",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_JPM/2014/page_293.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and was this sum two years later, in 2014?",
+  "gold": "64",
+  "answers": [
+   [
+    "yes",
+    5
+   ],
+   [
+    "no",
+    2
+   ],
+   [
+    "True",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PNC/2011/page_208.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in commercial mortgage recourse obligations in 2011?",
+  "gold": "-8",
+  "answers": [
+   [
+    "-7",
+    4
+   ],
+   [
+    "-7.0",
+    4
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_401.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the net change in value of receivables from the money pool from 2007 to 2008?",
+  "gold": "-10705",
+  "answers": [
+   [
+    "unavailable",
+    3
+   ],
+   [
+    "34611",
+    3
+   ],
+   [
+    "-34611",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2008/page_441.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the sum of stock options for leo p. denault by the exercise price?",
+  "gold": "5410000",
+  "answers": [
+   [
+    "50000",
+    7
+   ],
+   [
+    "50000.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_UNP/2009/page_65.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "what is the assumed fmv of a share?",
+  "gold": "2000",
+  "answers": [
+   [
+    "11.33",
+    4
+   ],
+   [
+    "180000",
+    2
+   ],
+   [
+    "18",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_FITB/2013/page_84.pdf-4",
+  "k": 0,
+  "kind": "number",
+  "cat": "scattered",
+  "q": "how many shares were authorized to repurchase?",
+  "gold": "100",
+  "answers": [
+   [
+    "43071613",
+    7
+   ],
+   [
+    "63046682",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ADBE/2014/page_47.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in percentage points of data center cost between the years of 2014-13 and 2013-12?",
+  "gold": "-1",
+  "answers": [
+   [
+    "1.0",
+    6
+   ],
+   [
+    "1",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2015/page_58.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the sum of new sites acquired or constructed in the u.s. and asia in 2015?",
+  "gold": "3525",
+  "answers": [
+   [
+    "13925",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2014/page_99.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what is the impact of total net charge-offs in the balance of allowance for loan and lease losses during 2014?",
+  "gold": "531",
+  "answers": [
+   [
+    "-531",
+    3
+   ],
+   [
+    "-278",
+    3
+   ],
+   [
+    "-531.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2008/page_119.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the total in current assets and noncurrent assets in 2008, in millions?",
+  "gold": "266.0",
+  "answers": [
+   [
+    "267",
+    5
+   ],
+   [
+    "267.0",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AAP/2013/page_68.pdf-3",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "what was the reduction in 2013?",
+  "gold": "24708",
+  "answers": [
+   [
+    "5572",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ZBH/2003/page_40.pdf",
+  "k": 0,
+  "kind": "number",
+  "cat": "sign",
+  "q": "what was the operating profit for the americas as a percentage of net sales in 2003?",
+  "gold": "51.2",
+  "answers": [
+   [
+    "-51.2",
+    6
+   ],
+   [
+    "47.4",
+    1
+   ],
+   [
+    "48.3",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MRO/2007/page_149.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the net change added to the 2007 costs?",
+  "gold": "2057",
+  "answers": [
+   [
+    "403",
+    4
+   ],
+   [
+    "4977",
+    3
+   ],
+   [
+    "1654",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ADI/2009/page_90.pdf-3",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the net change in the value of the balance from 2007 to 2009?",
+  "gold": "8272",
+  "answers": [
+   [
+    "4411",
+    6
+   ],
+   [
+    "4411.0",
+    1
+   ],
+   [
+    "8822.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_HII/2012/page_127.pdf-3",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "what is the total number approved by security holders?",
+  "gold": "7554638",
+  "answers": [
+   [
+    "3946111",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_UNP/2010/page_24.pdf",
+  "k": 1,
+  "kind": "number",
+  "cat": "same",
+  "q": "and what was the total of that cash provided by operations?",
+  "gold": "4505",
+  "answers": [
+   [
+    "4105",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AMT/2012/page_121.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "near",
+  "q": "what was the total purchase price of the communication sites, in dollars?",
+  "gold": "64200000",
+  "answers": [
+   [
+    "63500000",
+    6
+   ],
+   [
+    "57536000",
+    1
+   ],
+   [
+    "63500",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AMT/2008/page_96.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "in the year of 2008, what was the aggregate net unrealized loss, including the net of a tax provision?",
+  "gold": "26",
+  "answers": [
+   [
+    "-16349",
+    5
+   ],
+   [
+    "-16349.0",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Single_TROW/2010/page_22.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the change in capital gain distributions from 2008 to 2009?",
+  "gold": "-2.7",
+  "answers": [
+   [
+    "-3.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ADBE/2011/page_101.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "same",
+  "q": "what is the minimum unrecognized tax benefits?",
+  "gold": "0",
+  "answers": [
+   [
+    "156925",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_JPM/2008/page_177.pdf-4",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "what was the total amount of resale agreements in 2008, in millions?",
+  "gold": "20800",
+  "answers": [
+   [
+    "200265",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_RE/2015/page_148.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is that value simplified?",
+  "gold": "1.9",
+  "answers": [
+   [
+    "1914.4822",
+    3
+   ],
+   [
+    "178.84",
+    2
+   ],
+   [
+    "1914481.2",
+    2
+   ]
+  ]
+ },
+ {
+  "rid": "Double_C/2009/page_162.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the fair value of the shares vested in 2009?",
+  "gold": "538763257.76",
+  "answers": [
+   [
+    "25.96",
+    7
+   ],
+   [
+    "3842388508.64",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AWK/2013/page_12.pdf-1",
+  "k": 0,
+  "kind": "number",
+  "cat": "scale",
+  "q": "what was the operating revenue in new jersey?",
+  "gold": "638.0",
+  "answers": [
+   [
+    "unavailable",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_PM/2018/page_24.pdf-1",
+  "k": 1,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the price of pmi in 2014 less 100?",
+  "gold": "2.1",
+  "answers": [
+   [
+    "-2.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_BLK/2009/page_98.pdf-1",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the change in estimated amortization expense for finite-lived intangible assets from 2010 to 2011?",
+  "gold": "3",
+  "answers": [
+   [
+    "-3",
+    6
+   ],
+   [
+    "-3.0",
+    1
+   ],
+   [
+    "1.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_IP/2013/page_64.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the north american consumer packaging net sales in 2012, converted to the thousands?",
+  "gold": "2000",
+  "answers": [
+   [
+    "3170000",
+    3
+   ],
+   [
+    "3170",
+    2
+   ],
+   [
+    "3170.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RSG/2008/page_141.pdf",
+  "k": 2,
+  "kind": "program",
+  "cat": "same",
+  "q": "and three years earlier, in 2008, what were the total liabilities acquired for the bfi post retirement healthcare plan, in millions?",
+  "gold": "2.5",
+  "answers": [
+   [
+    "1.3",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_TROW/2010/page_22.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "between the years of 2008 and 2009, what was the variation in the capital gain distributions?",
+  "gold": "-2.7",
+  "answers": [
+   [
+    "-3.6",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_CAT/2018/page_38.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scale",
+  "q": "so what was the proportion of 2018 profit to 2017?",
+  "gold": "820%",
+  "answers": [
+   [
+    "8.142857142857142",
+    3
+   ],
+   [
+    "8.14",
+    3
+   ],
+   [
+    "1.9162175404213622",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_RCL/2005/page_40.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what was the portion of debt maturity in 2010 compared to 2006?",
+  "gold": "1.14",
+  "answers": [
+   [
+    "2.086162680239034",
+    7
+   ],
+   [
+    "0.42337187995626935",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_ETR/2004/page_261.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what was the net cash flow from money pool activity for entergy new orleans' operating cash flow in 2003 and 2002?",
+  "gold": "2.1",
+  "answers": [
+   [
+    "5283",
+    3
+   ],
+   [
+    "1783, 3500",
+    3
+   ],
+   [
+    "1783 3500",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_KIM/2014/page_59.pdf",
+  "k": 3,
+  "kind": "program",
+  "cat": "same",
+  "q": "and what was the combined total of both debts, in billions?",
+  "gold": "0.39",
+  "answers": [
+   [
+    "6.4",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Double_PNC/2013/page_207.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "in 2014, what percentage did the notional value of derivatives designated as hedging instruments under gaap represent in relation to the fair value?",
+  "gold": "3044%",
+  "answers": [
+   [
+    "1563.6%",
+    2
+   ],
+   [
+    "19256.6%",
+    1
+   ],
+   [
+    "341.6%",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_SLG/2009/page_79.pdf-1",
+  "k": 2,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "what is the first product divided by the total square feet?",
+  "gold": "978",
+  "answers": [
+   [
+    "404887.1739130435",
+    4
+   ],
+   [
+    "1.0",
+    2
+   ],
+   [
+    "1",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Double_UNP/2014/page_21.pdf",
+  "k": 0,
+  "kind": "program",
+  "cat": "same",
+  "q": "in 2014, what was the full amount spent on the repurchase of shares?",
+  "gold": "3311448849",
+  "answers": [
+   [
+    "881943560.99",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_AES/2003/page_112.pdf-2",
+  "k": 1,
+  "kind": "program",
+  "cat": "scattered",
+  "q": "converted to the hundred millions?",
+  "gold": "312000000",
+  "answers": [
+   [
+    "3.12",
+    5
+   ],
+   [
+    "31.2",
+    3
+   ]
+  ]
+ },
+ {
+  "rid": "Double_AAL/2015/page_18.pdf",
+  "k": 1,
+  "kind": "program",
+  "cat": "scale",
+  "q": "and for 2014?",
+  "gold": "31903",
+  "answers": [
+   [
+    "31904",
+    7
+   ],
+   [
+    "31903.614457831325",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2002/page_266.pdf-2",
+  "k": 2,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what is the net change in value?",
+  "gold": "17.1",
+  "answers": [
+   [
+    "-17.1",
+    8
+   ]
+  ]
+ },
+ {
+  "rid": "Single_MMM/2007/page_39.pdf-2",
+  "k": 0,
+  "kind": "program",
+  "cat": "sign",
+  "q": "what was the difference in net cash used in financing activities between 2006 and 2007?",
+  "gold": "486",
+  "answers": [
+   [
+    "-486",
+    7
+   ],
+   [
+    "-486.0",
+    1
+   ]
+  ]
+ },
+ {
+  "rid": "Single_ETR/2004/page_261.pdf-3",
+  "k": 3,
+  "kind": "program",
+  "cat": "scale",
+  "q": "what is the ratio of money provided to the simplified balance?",
+  "gold": "95.4%",
+  "answers": [
+   [
+    "0.0009534492428491307",
+    5
+   ],
+   [
+    "0.953",
+    3
+   ]
+  ]
+ }
+]

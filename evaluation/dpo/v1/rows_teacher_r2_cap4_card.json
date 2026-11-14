@@ -1,0 +1,26 @@
+{
+ "targets": 438,
+ "questions_with_teacher_chosen": 114,
+ "questions_with_pairs": 114,
+ "pairs": 413,
+ "cap": 4,
+ "passes": [
+  "open-evalloop-train438-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261113_202234.csv",
+  "open-evalloop-train438-sdk_v1\u00b7s1-pyd-deepseek-flash-high-20261113_212051.csv"
+ ],
+ "teacher wrong": 675,
+ "teacher right": 191,
+ "teacher history wrong": 10,
+ "skipped:F5": 32,
+ "rendered:train": 372,
+ "skipped:N1": 8,
+ "rendered:eval": 41,
+ "skipped:prompts differ": 3,
+ "mean_tokens": {
+  "prompt": 6166,
+  "chosen_student": 1533,
+  "chosen_tool": 20,
+  "rejected_student": 706,
+  "rejected_tool": 15
+ }
+}

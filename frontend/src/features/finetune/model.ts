@@ -29,9 +29,11 @@ export function epochLabel(key: string | null | undefined): string {
   return `epoch ${key.replace(/^e/, '').replace('p', '.')}`;
 }
 
-/** `sft2` → `Round 2`. */
-export function roundName(key: string | null | undefined): string {
-  return key ? `Round ${key.replace(/^sft/, '')}` : NO_VALUE;
+/** A round's name from the record (`sft2` → `Round 2`, `dpo1full` → `DPO v1`), else from its key. */
+export function roundName(key: string | null | undefined, record?: FineTuningRecord): string {
+  if (!key) return NO_VALUE;
+  const r = record?.rounds.find((x) => x.key === key);
+  return r ? r.label : `Round ${key.replace(/^sft/, '')}`;
 }
 
 export function harnessLabel(record: FineTuningRecord | undefined, harness: Harness | null | undefined): string {
@@ -96,7 +98,8 @@ export function headline(record: FineTuningRecord | undefined): Headline {
     finalStage,
     teacher: record?.teacher ? passes.get(record.teacher.pass) ?? null : null,
     gapClosed: record?.teacher?.gap_closed ?? null,
-    nRounds: record?.rounds.length ?? 0,
+    // the rounds the test number covers: a round whose pick was never opened on test is not in it
+    nRounds: drawn.filter((s) => s.kind === 'round').length,
   };
 }
 
@@ -106,10 +109,18 @@ export function stageLines(stage: Stage, record: FineTuningRecord | undefined): 
   if (stage.kind === 'base') return ['Base', harness];
   if (stage.kind === 'harness') {
     const from = stage.key.split('-')[0];
-    return [`${from === 'base' ? 'Base' : roundName(from)}, re-scored`, harness];
+    return [`${from === 'base' ? 'Base' : roundName(from, record)}, re-scored`, harness];
   }
   const round = record?.rounds.find((r) => r.key === stage.round);
-  return [`${roundName(stage.round)} · ${epochLabel(round?.best)}`, harness];
+  return [`${roundName(stage.round, record)} · ${epochLabel(round?.best)}`, harness];
+}
+
+/** The newest stage on val with a pass, and its paired step from the stage before: where the student is now. */
+export function latestVal(record: FineTuningRecord | undefined): { stage: Stage; pass: FtPass } | null {
+  const passes = passIndex(record);
+  const stages = (record?.progression.val ?? []).filter((s) => s.pass && passes.has(s.pass));
+  const stage = stages[stages.length - 1];
+  return stage ? { stage, pass: passes.get(stage.pass!)! } : null;
 }
 
 /** The overall step that bought the most, by paired delta on test. */
@@ -149,9 +160,13 @@ export function roundClaim(round: FtRound, passes: Map<string, FtPass>): string 
   const best = round.checkpoints.find((c) => c.key === round.best);
   const bestVal = best?.val_pass ? passes.get(best.val_pass) : undefined;
   const from = round.start.round ? `from ${round.start.label}` : 'from the untrained base';
-  const rows = `${round.dataset.n_rows} conversations`;
+  const rows =
+    round.method === 'dpo'
+      ? `${round.dataset.n_rows.toLocaleString()} preference pairs`
+      : `${round.dataset.n_rows} conversations`;
+  const epochs = `${round.settings.epochs} epoch${round.settings.epochs === 1 ? '' : 's'}`;
   const pick = bestVal ? `${epochLabel(round.best)} scored highest on val at ${pct(bestVal.accuracy)}` : 'no checkpoint was scored on val';
-  return `${round.label} started ${from} and trained ${round.settings.epochs} epochs on ${rows}; ${pick}`;
+  return `${round.label} started ${from} and trained ${epochs} on ${rows}; ${pick}`;
 }
 
 /** The start's test pass on the round's harness, when there is one: what the best is paired with on test. */

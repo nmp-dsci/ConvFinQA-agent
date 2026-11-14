@@ -1,8 +1,13 @@
+---
+name: execute-prp
+description: Execute a PRP file: implement the feature it describes, validate, and iterate. Use when asked to run or execute a PRP.
+---
+
 # Execute BASE PRP
 
 Implement a feature using using the PRP file.
 
-## PRP File: $ARGUMENTS
+## PRP File: the file path or feature the user names
 
 ## Execution Process
 

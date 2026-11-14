@@ -1,0 +1,20 @@
+{
+ "name": "dpo_v1_pilot",
+ "source": "evaluation/dpo/v1/rows_tries8_cap4_strict.jsonl",
+ "seed": 2034,
+ "n_train": 400,
+ "n_eval": 100,
+ "train_questions": 306,
+ "train_kind": {
+  "program": 334,
+  "number": 66
+ },
+ "train_position": {
+  "q1": 92,
+  "q2": 80,
+  "q0": 199,
+  "q3": 29
+ },
+ "train_sha256": "a41cc5adfecc456af1bd7beb9e14992b6e3110dee1823919b54e64f320162b21",
+ "eval_sha256": "8a5bb239026a262abf6671ef085ddd5a2ba84cf549c7449383ac3d1b8633088b"
+}

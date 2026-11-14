@@ -1,0 +1,60 @@
+{
+  "run_id": "20261112T090900Z_train_dpo1-pilot",
+  "kind": "train_dpo",
+  "label": "dpo1-pilot",
+  "purpose": "result",
+  "status": "finished",
+  "created": "2026-11-12T10:03:54Z",
+  "code_sha": "e85377e",
+  "config": {
+    "label": "dpo1-pilot",
+    "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+    "revision": "cdbee75f17c01a7cc42f958dc650907174af0554",
+    "dataset": "dpo_v1_pilot",
+    "init_adapter": "20261025T113733Z_train_sft2/checkpoints/checkpoint-58",
+    "dpo": {
+      "beta": 0.1,
+      "nll_alpha": 1.0,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.05,
+      "num_train_epochs": 2,
+      "gradient_accumulation_steps": 16,
+      "max_grad_norm": 1.0,
+      "save_fractions": [
+        0.25,
+        0.5,
+        0.75,
+        1.0
+      ],
+      "seed": 2035
+    }
+  },
+  "dataset": "dpo_v1_pilot",
+  "train_sha256": "a41cc5adfecc456af1bd7beb9e14992b6e3110dee1823919b54e64f320162b21",
+  "eval_sha256": "8a5bb239026a262abf6671ef085ddd5a2ba84cf549c7449383ac3d1b8633088b",
+  "init_adapter": "20261025T113733Z_train_sft2/checkpoints/checkpoint-58",
+  "n_train": 400,
+  "n_eval": 100,
+  "instance": "Modal NVIDIA A10",
+  "mask_check": {
+    "sides_checked": 1000,
+    "failed": 0,
+    "ok": true
+  },
+  "reference_seconds": 1884.2,
+  "step0_max_abs_dlogp": 0.0,
+  "finished": "2026-11-12T14:01:19Z",
+  "duration_s": 11943.6,
+  "steps": 50,
+  "seconds_per_pair": 14.93,
+  "checkpoints_by_epoch": {
+    "0.48": "checkpoint-12",
+    "1.00": "checkpoint-25",
+    "1.52": "checkpoint-38",
+    "2.00": "checkpoint-50"
+  },
+  "peak_mem_gb": 14.4,
+  "pid": 2,
+  "cost_usd": 4.42,
+  "cost_basis": "Modal list price × this attempt's wall time (L4, 4 cores)"
+}

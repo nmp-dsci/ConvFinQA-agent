@@ -1,0 +1,192 @@
+{
+ "conversations": 300,
+ "questions_in_conversations": 888,
+ "questions_reached": 770,
+ "reached_share": 0.8671,
+ "stops": {
+  "completed": 184,
+  "no right try": 116
+ },
+ "overall": {
+  "questions": 770,
+  "tries": 3080,
+  "graded": 3072,
+  "right": 2454,
+  "dropped": 8,
+  "unclean": 175,
+  "pairs": 86,
+  "flip": 88,
+  "all_right": 566,
+  "all_wrong": 116,
+  "paired_q": 73,
+  "pass1": 0.7988,
+  "flip_share": 0.1143,
+  "all_right_share": 0.7351,
+  "all_wrong_share": 0.1506,
+  "pairs_per_question": 0.112
+ },
+ "program": {
+  "questions": 544,
+  "tries": 2176,
+  "graded": 2170,
+  "right": 1638,
+  "dropped": 6,
+  "unclean": 169,
+  "pairs": 65,
+  "flip": 72,
+  "all_right": 369,
+  "all_wrong": 103,
+  "paired_q": 57,
+  "pass1": 0.7548,
+  "flip_share": 0.1324,
+  "all_right_share": 0.6783,
+  "all_wrong_share": 0.1893,
+  "pairs_per_question": 0.119
+ },
+ "number": {
+  "questions": 226,
+  "tries": 904,
+  "graded": 902,
+  "right": 816,
+  "dropped": 2,
+  "unclean": 6,
+  "pairs": 21,
+  "flip": 16,
+  "all_right": 197,
+  "all_wrong": 13,
+  "paired_q": 16,
+  "pass1": 0.9047,
+  "flip_share": 0.0708,
+  "all_right_share": 0.8717,
+  "all_wrong_share": 0.0575,
+  "pairs_per_question": 0.093
+ },
+ "by_position": {
+  "0": {
+   "questions": 300,
+   "right": 922,
+   "graded": 1196,
+   "flip": 40,
+   "pass1": 0.7709,
+   "flip_share": 0.1333
+  },
+  "1": {
+   "questions": 248,
+   "right": 828,
+   "graded": 990,
+   "flip": 21,
+   "pass1": 0.8364,
+   "flip_share": 0.0847
+  },
+  "2": {
+   "questions": 147,
+   "right": 486,
+   "graded": 586,
+   "flip": 18,
+   "pass1": 0.8294,
+   "flip_share": 0.1224
+  },
+  "3": {
+   "questions": 75,
+   "right": 218,
+   "graded": 300,
+   "flip": 9,
+   "pass1": 0.7267,
+   "flip_share": 0.12
+  }
+ },
+ "rights_histogram": {
+  "0/2": 2,
+  "0/4": 114,
+  "1/2": 1,
+  "1/4": 26,
+  "2/2": 1,
+  "2/4": 18,
+  "3/4": 43,
+  "4/4": 565
+ },
+ "distinct_wrong_answers_per_flip": {
+  "1": 76,
+  "2": 11,
+  "3": 1
+ },
+ "sign_flips_caught": 3,
+ "retries_and_drops": {
+  "H3": 112,
+  "H2": 55,
+  "schema_correction": 12,
+  "dropped:ModelTimeoutError": 6,
+  "dropped:no valid reply after 2 attempts": 2
+ },
+ "tokens": {
+  "num_turns": 6300,
+  "input_tokens": 1584396,
+  "cache_read_input_tokens": 39242192,
+  "output_tokens": 1748828,
+  "latency_ms": 414933941
+ },
+ "splits": {
+  "train": 289,
+  "eval": 11
+ },
+ "sampling_wall_s": 6548.3,
+ "l4_usd_at_one_container": 1.45,
+ "runs": [
+  {
+   "manifest": "dpo_v1",
+   "model": "student-qwen3-4b-sft2-e1",
+   "harness": "pydantic_ai_checked",
+   "tries": 4,
+   "sampler": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "max_tokens": 4096,
+    "extra_body": {
+     "top_k": 20
+    },
+    "seed": null
+   },
+   "system_prompt": "student_v1@819137b9",
+   "started_at": "2026-11-11T11:21:41+00:00",
+   "wall_s": 150.6,
+   "concurrency": 5,
+   "upto": 5,
+   "sampled": 5,
+   "aborted": 0,
+   "stopped_early": false,
+   "n_tries": 60,
+   "n_right": 54,
+   "n_pairs": 2,
+   "n_groups": 15,
+   "n_flip": 1
+  },
+  {
+   "manifest": "dpo_v1",
+   "model": "student-qwen3-4b-sft2-e1",
+   "harness": "pydantic_ai_checked",
+   "tries": 4,
+   "sampler": {
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "max_tokens": 4096,
+    "extra_body": {
+     "top_k": 20
+    },
+    "seed": null
+   },
+   "system_prompt": "student_v1@819137b9",
+   "started_at": "2026-11-11T11:24:31+00:00",
+   "wall_s": 6397.7,
+   "concurrency": 24,
+   "upto": 300,
+   "sampled": 295,
+   "aborted": 0,
+   "stopped_early": false,
+   "n_tries": 3020,
+   "n_right": 2400,
+   "n_pairs": 84,
+   "n_groups": 755,
+   "n_flip": 87
+  }
+ ]
+}

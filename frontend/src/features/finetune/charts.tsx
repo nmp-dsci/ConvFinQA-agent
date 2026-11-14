@@ -109,7 +109,7 @@ export function ProgressChart({ record }: { record: FineTuningRecord }) {
                   </text>
                 </>
               ) : (
-                <text className="tx s" x={x(i)} y={top + plotH / 2} textAnchor="middle">
+                <text className="tx s" x={x(i)} y={top + plotH - 10} textAnchor="middle">
                   — not on test
                 </text>
               )}
