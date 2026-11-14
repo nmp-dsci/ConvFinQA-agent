@@ -105,6 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--set", required=True, choices=("dev", "sealed"))
     p.add_argument("--tries", type=int, default=2)
     p.add_argument("--hint", default="h1")
+    p.add_argument("--kind", action="append", choices=("program", "number"))
     p.add_argument("--concurrency", type=int, default=16)
     p = sub.add_parser("judge-run", help="2AFC judge over a built set (s39)")
     p.add_argument("--set", required=True, choices=("dev", "sealed"))
@@ -213,6 +214,7 @@ def main(argv: list[str] | None = None) -> int:
                     tries=args.tries,
                     concurrency=args.concurrency,
                     hint=args.hint,
+                    kinds=tuple(args.kind) if args.kind else None,
                 )
             )
         )

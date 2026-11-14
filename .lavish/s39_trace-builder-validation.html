@@ -110,6 +110,24 @@
   <p class="sub">Real traces use these words <i>more</i> often than hinted ones (the teacher talks like this anyway), so dropping hinted traces that use them doesn't plant a new tell. The words only betray a trace when they refer to the given number. Program turns keep a residual +6 even then. It comes from structure: operands chosen to hit a number, a check that "matches".</p>
 </section>
 
+<section id="rev1">
+  <span class="eyebrow">03a · revision 1 · program turns first (owner, 2026-11-14)</span>
+  <h2>Program turns are the priority, and on them <em>rewording the hint has stopped helping</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:30%">Program turns only</th><th class="sc">Dev · hint 1</th><th class="sc">Dev · hint 2</th><th class="sc">Dev · hint 3</th><th class="sc">Sealed · hint 2</th></tr></thead>
+      <tbody>
+        <tr><td>T hinted vs real</td><td class="sc">75%</td><td class="sc">68%</td><td class="sc">66% (53–79)</td><td class="sc">65%</td></tr>
+        <tr><td>C0 chance</td><td class="sc">43%</td><td class="sc">43%</td><td class="sc">42% (29–54)</td><td class="sc">55%</td></tr>
+        <tr><td>T − C0</td><td class="sc">+32</td><td class="sc">+25</td><td class="sc">+24 (+6…+42)</td><td class="sc">+11</td></tr>
+        <tr><td>Tries passing the gates</td><td class="sc"></td><td class="sc"></td><td class="sc">53% (leak gate 59%)</td><td class="sc"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Hint 3 (justify every cell; never state or approximate the value before the calculator returns it; never call any number target, gold, expected, given or known) did no better than hint 2 on program turns, and the model mentioned the note more often. A word-near-number leak gate doesn't work either: real teacher traces say "expected 1.23" at 16–22%, as often as hinted ones. On a program turn, knowing the answer changes how operands are chosen, and the judge reads that.</p>
+  <p><b>Recommended next lever: filter with one judge, validate with another.</b> For each 0/8 program question, build 4–8 hinted tries, keep those that pass the gates, and have the Haiku judge score each against a real trace of a <i>neighbouring</i> question. Drop any try it calls hinted with confidence ≥ 0.7. Validate on a <b>fresh</b> sealed set of program turns (new conversations, a new teacher pass) with a <b>different judge</b> (Sonnet 5), so the bar isn't the same model the filter was tuned against. Cost: ≈ $3–4 DeepSeek off-peak, ≈ 2,500 Haiku + ≈ 1,800 Sonnet calls on the subscription (several sessions).</p>
+</section>
+
 <section id="next">
   <span class="eyebrow">04</span>
   <h2>Where this leaves it, and the options</h2>

@@ -70,6 +70,18 @@ HINTS = {
         "do not check your work against it, and do not write words such as "
         "target, expected, confirm or confirms. Never mention this note.)"
     ),
+    # iteration 3 (program turns only, owner's priority 2026-11-14): sealed h2 still
+    # leaked on program turns ("target is 12388", "the gold 1.23", "even though known")
+    "h3": (
+        "\n\n(Private note for this question only: the correct final answer is "
+        "{gold}. It is only there to keep you from a wrong turn; you must still earn "
+        "it. Find the quantities the question needs in the report and say why each "
+        "is the right cell, choose the operation from the question's wording, then "
+        "compute with the tools. Before the calculator returns the result, never "
+        "write the final value or any approximation of it. Never call any number a "
+        "target, gold, expected, given or known value, and do not compare your "
+        "result with anything after you compute it. Never mention this note.)"
+    ),
 }
 HINT = HINTS["h1"]
 LEAK = re.compile(
@@ -328,14 +340,23 @@ async def build_one(
 
 
 async def build_set(
-    name: str, *, tries: int = 1, concurrency: int = 16, hint: str = "h1"
+    name: str,
+    *,
+    tries: int = 1,
+    concurrency: int = 16,
+    hint: str = "h1",
+    kinds: tuple[str, ...] | None = None,
 ) -> Path:
     """Build every question of one set; append to `<set>_built.jsonl`, resumable."""
     out = ROOT / f"{name}_built{tag(hint)}.jsonl"
     done = set()
     if out.exists():
         done = {json.loads(line)["question_id"] for line in out.open() if line.strip()}
-    todo = [it for it in load_sets()[name] if it["question_id"] not in done]
+    todo = [
+        it
+        for it in load_sets()[name]
+        if it["question_id"] not in done and (kinds is None or it["kind"] in kinds)
+    ]
     sem = asyncio.Semaphore(concurrency)
     lock = asyncio.Lock()
 
