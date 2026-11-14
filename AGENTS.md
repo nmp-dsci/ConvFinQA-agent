@@ -693,8 +693,8 @@ The invariants, all pinned by tests:
   tries pair against right ones (`pairs`, capped per question), and `teacher` backfills the
   questions the student got all wrong with llm_react_v1's correct turns as the chosen side
   (`dpo_v2`). Val and test are never sampled: val scores the tuned LoRA, **test 100 stays sealed**
-  unless the owner approves opening it. DPO rounds share `runs/sft/` but carry a `kind` in
-  `run.json` and are **not** on the Fine-tuning progression (`sft/progress.py::_sft_runs`).
+  unless the owner approves opening it. DPO rounds share `runs/sft/` and carry `kind: train_dpo` in
+  `run.json`; since s40 they are on the Fine-tuning record (see the next item).
 - **Optimise › Fine-tuning reads one committed record, `evaluation/fine_tuning.json`** (s32).
   `convfinqa-sft progress` (`sft/progress.py`) builds it from committed files only: the
   student's and teacher's pass CSVs, `runs/sft/*/run.json` + `metrics.jsonl`, the dataset
