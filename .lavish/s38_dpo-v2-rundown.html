@@ -100,6 +100,26 @@
   </div>
 </section>
 
+<section id="rev1">
+  <span class="eyebrow">03a · revision 1 · owner's direction, 2026-11-13</span>
+  <h2>DPO v2 continues from <em>dpo1-full step 144</em>, the champion; the data question</h2>
+  <p>Every round now starts from the latest champion. The trainer builds its frozen reference from <code>init_adapter</code>, so setting it to <code>20261112T230944Z_train_dpo1-full/checkpoints/checkpoint-144</code> makes dpo1-full both the starting policy and the reference: the KL anchor moves with the champion, and there's no drift back toward sft2-e1. No code change is needed. §03 below is superseded where it says "from sft2-e1".</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:20%">Data for the round</th><th class="sc" style="width:9%">Pairs · steps</th><th>What happens</th><th style="width:16%">Time · cost</th></tr></thead>
+      <tbody>
+        <tr><td><b>Teacher 372 + v1 replay 372</b> <span class="badge rec">recommended</span></td><td class="sc">744 · 46</td><td>The new signal is the teacher pairs, the only pairs on questions the champion has never got right. An equal seeded slice of v1's pairs is replayed so the update doesn't narrow onto long teacher-style turns and forget the student-vs-student signal that produced +6.3. Reward accuracy and log-prob change are reported per source</td><td>≈ 3 h · ≈ $5</td></tr>
+        <tr><td>Teacher 372 only</td><td class="sc">372 · 23</td><td>The cleanest "did the teacher pairs help" test, but every pair has a chosen about twice as long as its rejected, so the step is a length push as much as a correctness push. With 23 steps the result is also noisy</td><td>≈ 1.5 h · ≈ $3</td></tr>
+        <tr><td>All 2,678 (v1 + teacher)</td><td class="sc">2,678 · 168</td><td>Replays v1's 2,306 pairs a second time on a model that has already learned them (train reward accuracy ≈ 0.85). With the reference reset to dpo1-full their margin starts again at 0, so DPO pushes them further: more likelihood displacement for little new information</td><td>≈ 10.5 h · ≈ $18</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card"><span class="badge warn">off-policy</span><h3>Every pair was sampled from sft2-e1, not the champion</h3><p>The rejected sides are sft2-e1's wrong tries. dpo1-full now gets some of those questions right, so part of the data teaches it to avoid mistakes it no longer makes. That's fine for one round. The proper iterative loop resamples the champion: 8 tries on <code>dpo_v1</code> as in s34 (≈ $18–25, ≈ 6 h), then fresh student pairs on its own mistakes plus teacher backfill on its own 0/8 questions.</p></div>
+    <div class="card"><span class="badge">more teacher trials?</span><h3>Not on the same 438: ≈ 30 pairs a run</h3><p>Run 2 added 16 questions; run 3 would add perhaps 8–10 (about 30 pairs). More teacher pairs come cheaper from <b>new questions</b>: (1) the 219 questions where the student was right only 1–3 times in 8 (a teacher chosen adds variety where right tries are scarce), and (2) the champion's own 0/8 questions once it's resampled, which differ from sft2-e1's. One teacher run over a set costs ≈ $1–2 off-peak.</p></div>
+  </div>
+</section>
+
 <section id="recipe">
   <span class="eyebrow">03</span>
   <h2>The DPO v2 run: <em>v1 full's recipe, one change: the data</em></h2>

@@ -73,7 +73,8 @@ HINTS = {
 }
 HINT = HINTS["h1"]
 LEAK = re.compile(
-    r"\b(note|hint|told|given (the )?answer|correct (final )?answer|expected answer|"
+    # s39 dev h2: "matches the hinted answer" and "gold answer is" got past the first list
+    r"\b(note|hint|hinted|hints|gold answer|told|given (the )?answer|correct (final )?answer|expected answer|"
     r"target answer|answer (is|was) given|we know the answer|should (be|equal|come out))\b",
     re.IGNORECASE,
 )

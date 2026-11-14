@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace builder validation</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+  td{ overflow-wrap:anywhere; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .kpis > *{ min-width:0; }
+  .kpi .v{ font-family:var(--mono); font-size:var(--t3); font-variant-numeric:tabular-nums; }
+  .kpi .l{ font-size:var(--t-1); color:var(--muted); }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  pre.trace{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:var(--t-1); max-height:320px; overflow:auto; }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  code{ overflow-wrap:anywhere; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s39 · ConvFinQA-agent · 2026-11-14 · results · the gold-hinted trace builder, validated against an LLM judge · branch <code>dpo</code></div>
+  <h1>DeepSeek can write a right trace from the gold answer that <em>a judge mostly can't tell from a real one</em>, but not quite well enough yet on program turns.</h1>
+  <p class="lead">For questions nobody gets right, the builder asks the teacher again with the gold answer as a private note, keeps only traces that pass deterministic gates, and asks a Haiku 5.5 judge to pick the hinted trace out of a pair with a real right one. Over two hint wordings, the judge went from spotting the hinted trace <b>68%</b> of the time (dev, round 1) to <b>54%</b> (dev, round 2, the same as its chance level). On the sealed set, scored once, it spots it <b>58.7%</b> against a chance level of <b>52.3%</b>: +6.3 points, with a 95% interval of −0.7 to +13.6. That <b>misses the pre-set bar</b> (upper end ≤ +10). Number turns are indistinguishable; program turns still leak.</p>
+  <div class="kpis">
+    <div class="card kpi"><div class="v">+6.3 pts</div><div class="l">sealed: judge accuracy on hinted vs real, minus chance (CI −0.7…+13.6; bar ≤ +10)</div></div>
+    <div class="card kpi"><div class="v">100%</div><div class="l">the judge catches an injected leak every time, so it has power</div></div>
+    <div class="card kpi"><div class="v">51% vs 50%</div><div class="l">number turns: hinted vs chance (sealed, 114 questions)</div></div>
+    <div class="card kpi"><div class="v">65% vs 55%</div><div class="l">program turns: hinted vs chance (sealed, 123 questions)</div></div>
+    <div class="card kpi"><div class="v">80%</div><div class="l">of the questions get a gated trace (240 of 300, sealed)</div></div>
+  </div>
+</header>
+
+<section id="approach">
+  <span class="eyebrow">01</span>
+  <h2>The approach: <em>write with the answer, gate, then try to catch it</em></h2>
+  <div class="three">
+    <div class="card"><span class="badge">1 · write</span><h3>DeepSeek Flash, told the answer</h3><p>llm_react_v1 (the SFT teacher) is asked the question on its own conversation history, with the gold answer appended as a private note it must not mention. Its own harness and the six calculator tools, 2 tries a question. Off-peak DeepSeek.</p></div>
+    <div class="card"><span class="badge">2 · gate</span><h3>Deterministic checks</h3><p>G1 right answer (strict); G2 a program turn's answer is its own last tool result; G5 no reference to the note ("note", "hint", "hinted", "gold answer", "told", "expected answer"…); G6 no harness retry, and it renders as a DPO row.</p></div>
+    <div class="card"><span class="badge">3 · catch</span><h3>Haiku 5.5 judge, two orders</h3><p>The judge sees the history, the question and two right traces, and is told one agent was secretly given the answer: which? Every pair is judged A/B and B/A. Picking the same slot twice scores 0.5. It never sees gold or the note.</p></div>
+  </div>
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <thead><tr><th style="width:16%">Comparison</th><th>Pair the judge sees</th><th style="width:22%">Expected</th><th style="width:26%">Proves</th></tr></thead>
+      <tbody>
+        <tr><td><b>T</b> test</td><td>hinted trace (passed the gates) vs the real run-1 trace</td><td>≈ C0</td><td>the hinted traces read like real ones</td></tr>
+        <tr><td><b>C0</b> chance</td><td>real run-2 trace (labelled "hinted") vs real run-1 trace</td><td>≈ 50%</td><td>the judge's chance level and position bias, on this data</td></tr>
+        <tr><td><b>C2</b> power</td><td>the hinted trace with "Since I already know the correct final answer is X…" injected</td><td>≥ 90%</td><td>the judge can catch a leak, so its "can't tell" means something</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Where the questions come from:</b> 524 questions the teacher got right in both of its unhinted runs over the 438 backfill conversations, on right histories. Run 1 is the real trace, and run 2 is a second real one for C0. Cut by conversation into dev (120, iterate on) and sealed (300, decide on, scored once). 77 of the 420 are questions the student got wrong 8 times out of 8.</p>
+</section>
+
+<section id="results">
+  <span class="eyebrow">02</span>
+  <h2>Results: two rounds on dev, then the sealed set <em>once</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:22%"></th><th class="sc">Dev · hint 1</th><th class="sc">Dev · hint 2</th><th class="sc">Sealed · hint 2</th></tr></thead>
+      <tbody>
+        <tr><td>Questions with a gated trace</td><td class="sc">92 / 120</td><td class="sc">97 / 120</td><td class="sc">240 / 300</td></tr>
+        <tr><td>Tries failing the leak gate</td><td class="sc">33%</td><td class="sc">30%</td><td class="sc">31%</td></tr>
+        <tr><td>Judged questions</td><td class="sc">90</td><td class="sc">95</td><td class="sc">237</td></tr>
+        <tr><td><b>T</b> hinted vs real</td><td class="sc">68.3% (60.8–75.8)</td><td class="sc">53.7% (46.1–61.5)</td><td class="sc"><b>58.7% (53.3–64.0)</b></td></tr>
+        <tr><td><b>C0</b> chance level</td><td class="sc">50.0% (41.1–59.0)</td><td class="sc">53.7% (45.8–61.7)</td><td class="sc">52.3% (46.9–57.6)</td></tr>
+        <tr><td><b>C2</b> injected leak</td><td class="sc">100%</td><td class="sc">100%</td><td class="sc">100%</td></tr>
+        <tr><td><b>T − C0</b> (bar: upper end ≤ +10)</td><td class="sc">+18.3 (+6.6…+30.4) ✗</td><td class="sc">0.0 (−11.7…+11.8) ✗ narrowly</td><td class="sc"><b>+6.3 (−0.7…+13.6) ✗</b></td></tr>
+        <tr><td>C0 picks slot A (bar 40–60%)</td><td class="sc">57.8% ✓</td><td class="sc">54.2% ✓</td><td class="sc">57.6% ✓</td></tr>
+        <tr><td>T · program / number turns</td><td class="sc">75% / 64%</td><td class="sc">68% / 44%</td><td class="sc">65% / 51%</td></tr>
+        <tr><td>C0 · program / number turns</td><td class="sc">43% / 55%</td><td class="sc">43% / 61%</td><td class="sc">55% / 50%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Intervals are 95% bootstraps over conversations. Each question is scored 1 / 0.5 / 0 over its two orders. The sealed set was built and judged once with hint 2 and the gates as they stood. Extending the leak gate with "hinted" and "gold answer" (added from dev) changed one try and no judged trace.</p>
+</section>
+
+<section id="tells">
+  <span class="eyebrow">03</span>
+  <h2>What still gives it away: <em>the model talks about the number it was given</em></h2>
+  <div class="two">
+    <div class="card"><span class="badge warn">hint 1 tells</span><h3>Verification against a known target</h3><p>"Target: 5.8%", "expected −5.35", "Yes! Confirms.", "Change = 6.8. Confirmed." Hint 2 told the model not to state, check against or name the answer, which removed most of these and brought dev to chance.</p></div>
+    <div class="card"><span class="badge warn">sealed tells</span><h3>Residual references, mostly program turns</h3><p>The judge's 34 confident (≥ 0.8) calls on T were right 79% of the time; on C0, 50%. Its quoted evidence: "But target is 12388?", "given target 3.85", "the gold 1.23", "need derive 1.23", "even though known", "the answer expected 795786.9", "→ 12.4%. Matches."</p></div>
+  </div>
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table class="fx">
+      <thead><tr><th style="width:44%">Exploratory, on sealed (not a decision: tuned after looking)</th><th class="sc">Hinted traces</th><th class="sc">Real traces</th><th class="sc">T − C0</th></tr></thead>
+      <tbody>
+        <tr><td>Contain a broad tell word (target, gold, expected, known, given, matches, need derive)</td><td class="sc">43 / 237</td><td class="sc">53 / 237</td><td class="sc"></td></tr>
+        <tr><td>T − C0 with those 43 hinted traces left out</td><td class="sc">194 q</td><td class="sc"></td><td class="sc">+1.3</td></tr>
+        <tr><td>…program turns · number turns</td><td class="sc">62.4% · 49.0%</td><td class="sc">56.2% · 52.6%</td><td class="sc">+6.2 · −3.6</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Real traces use these words <i>more</i> often than hinted ones (the teacher talks like this anyway), so dropping hinted traces that use them doesn't plant a new tell. The words only betray a trace when they refer to the given number. Program turns keep a residual +6 even then. It comes from structure: operands chosen to hit a number, a check that "matches".</p>
+</section>
+
+<section id="next">
+  <span class="eyebrow">04</span>
+  <h2>Where this leaves it, and the options</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:24%">Option</th><th>What</th><th style="width:22%">Cost</th></tr></thead>
+      <tbody>
+        <tr><td><b>A · iterate once more</b> <span class="badge rec">recommended</span></td><td>Hint 3 + a reference-aware leak gate (a tell word within a few tokens of the gold value), developed on dev. Then validate on a <b>fresh</b> sealed set: the current one has been looked at, and only 104 pool questions are unused, so draw a new sealed 300 from a teacher pass over new conversations (e.g. the student's 1–3-of-8 conversations)</td><td>≈ $3 DeepSeek · ≈ 2,000 judge calls on the subscription (≈ 2 sessions)</td></tr>
+        <tr><td>B · use number turns now</td><td>Number turns are at chance on sealed (51% vs 50%). But that split wasn't pre-registered, and number turns are only ~19% of the 0/8 questions</td><td>none</td></tr>
+        <tr><td>C · accept the +6</td><td>Deploy hint 2 + gates as is. The judge only edges ahead on a minority of traces. The risk is DPO chosens that teach "work back from a target" on program turns</td><td>none</td></tr>
+        <tr><td>D · rewrite pass</td><td>A second Flash call rewrites the hinted trace's reasoning without changing its tool calls, removing target talk. A new text distribution, so it needs its own validation</td><td>≈ $2 + validation</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>Spent so far:</b> ≈ 1,680 DeepSeek tries (off-peak, a few dollars) and 2,532 Haiku judge calls on the subscription. Round 1 on dev ran into the session limit once. Nothing has been deployed to the 0/8 questions, and no DPO data uses built traces.</p>
+
+  <form class="q" data-lavish-question="s39-D1" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s39 D1 builder next step: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · Next step for the builder</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="A: iterate once more (hint 3 + reference-aware leak gate on dev), then a fresh sealed set" checked><span><b>A · iterate once more, fresh sealed set</b> <span class="badge rec">recommended</span></span></label><br>
+      <label><input type="radio" name="d1" value="B: deploy for number turns only now"><span><b>B · number turns only, now</b></span></label><br>
+      <label><input type="radio" name="d1" value="C: accept the +6 and deploy hint 2 as is"><span><b>C · accept and deploy hint 2</b></span></label><br>
+      <label><input type="radio" name="d1" value="D: add a rewrite pass and validate it"><span><b>D · rewrite pass</b></span></label>
+    </fieldset>
+    <textarea placeholder="note (optional)"></textarea>
+    <button type="submit">Queue</button> <span class="queued"></span>
+  </form>
+</section>
+
+<footer>
+  <ul>
+    <li>Code: <code>src/convfinqa/dpo/builder.py</code> (pool, sets, hints h1/h2, gates), <code>src/convfinqa/dpo/judge.py</code> (2AFC, arms, report); CLI <code>convfinqa-dpo builder-sets | builder-build | judge-run | judge-report</code>. Judge: <code>claude-haiku-5-5</code>, effort medium, through <code>evalloop.sdk.run_structured</code>.</li>
+    <li>Data: <code>evaluation/dpo/v1/builder/</code>: <code>sets.json</code>, <code>{dev,sealed}_built[_h2].jsonl</code>, <code>{dev,sealed}_judge[_h2].jsonl</code>, <code>*_report*.json</code>. Teacher runs <code>…-20261113_202234</code> (real) and <code>…_212051</code> (real 2).</li>
+    <li>Not yet built from the s36 plan: G3 grounded and G4 gold-program gates, and a recreation-fidelity measure. Test 100 not touched.</li>
+  </ul>
+</footer>
+</main>
+</body>
+</html>
