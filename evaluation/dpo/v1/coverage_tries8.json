@@ -1,0 +1,233 @@
+{
+ "cap": 4,
+ "strict": true,
+ "conversations": {
+  "pool": 1489,
+  "sampled": 1489,
+  "sampled:train": 1415,
+  "with a pair": 520,
+  "sampled:eval": 74
+ },
+ "stops": {
+  "completed": 1051,
+  "q0": 212,
+  "q1": 112,
+  "q2": 68,
+  "q3": 46
+ },
+ "questions": {
+  "program": {
+   "questions": 3175,
+   "reached": 2771,
+   "no pair": 2271,
+   "right": 17378,
+   "graded": 22149,
+   "paired": 500,
+   "pairs": 1972,
+   "not reached": 404
+  },
+  "number": {
+   "questions": 1219,
+   "reached": 1124,
+   "no pair": 1005,
+   "right": 7920,
+   "graded": 8978,
+   "paired": 119,
+   "pairs": 476,
+   "not reached": 95
+  }
+ },
+ "no_pair_reasons": {
+  "program": {
+   "all right": 1810,
+   "not reached (an earlier question had no right try)": 404,
+   "all wrong": 357,
+   "flip, but no clean right or no clean wrong": 104
+  },
+  "number": {
+   "all right": 917,
+   "not reached (an earlier question had no right try)": 95,
+   "all wrong": 81,
+   "flip, but no clean right or no clean wrong": 7
+  }
+ },
+ "by_position": {
+  "0": {
+   "reached": 1489,
+   "right": 9114,
+   "graded": 11892,
+   "pairs": 1159,
+   "paired": 293
+  },
+  "1": {
+   "reached": 1273,
+   "right": 8735,
+   "graded": 10175,
+   "pairs": 557,
+   "paired": 140
+  },
+  "2": {
+   "reached": 756,
+   "right": 5019,
+   "graded": 6045,
+   "pairs": 546,
+   "paired": 138
+  },
+  "3": {
+   "reached": 377,
+   "right": 2430,
+   "graded": 3015,
+   "pairs": 186,
+   "paired": 48
+  }
+ },
+ "pairs_per_conversation": {
+  "0": 969,
+  "1": 2,
+  "2": 5,
+  "3": 5,
+  "4": 417,
+  "5": 1,
+  "6": 1,
+  "7": 1,
+  "8": 80,
+  "10": 8
+ },
+ "rights_histogram": {
+  "0/6": 2,
+  "0/7": 2,
+  "0/8": 434,
+  "1/6": 1,
+  "1/8": 87,
+  "2/2": 1,
+  "2/7": 1,
+  "2/8": 71,
+  "3/8": 61,
+  "4/4": 1,
+  "4/5": 1,
+  "4/8": 70,
+  "5/7": 1,
+  "5/8": 63,
+  "6/6": 1,
+  "6/7": 1,
+  "6/8": 135,
+  "7/7": 7,
+  "7/8": 238,
+  "8/8": 2717
+ },
+ "caps": {
+  "plain:1": {
+   "pairs:program": 508,
+   "pairs:train": 602,
+   "pairs": 628,
+   "questions": 628,
+   "pairs:number": 120,
+   "pairs:eval": 26
+  },
+  "plain:2": {
+   "pairs:program": 1013,
+   "pairs:train": 1201,
+   "pairs": 1253,
+   "questions": 628,
+   "pairs:number": 240,
+   "pairs:eval": 52
+  },
+  "plain:3": {
+   "pairs:program": 1513,
+   "pairs:train": 1795,
+   "pairs": 1873,
+   "questions": 628,
+   "pairs:number": 360,
+   "pairs:eval": 78
+  },
+  "plain:4": {
+   "pairs:program": 2006,
+   "pairs:train": 2382,
+   "pairs": 2486,
+   "questions": 628,
+   "pairs:number": 480,
+   "pairs:eval": 104
+  },
+  "plain:6": {
+   "pairs:program": 2914,
+   "pairs:train": 3481,
+   "pairs": 3634,
+   "questions": 628,
+   "pairs:number": 720,
+   "pairs:eval": 153
+  },
+  "plain:8": {
+   "pairs:program": 3527,
+   "pairs:train": 4251,
+   "pairs": 4439,
+   "questions": 628,
+   "pairs:number": 912,
+   "pairs:eval": 188
+  },
+  "plain:64": {
+   "pairs:program": 4576,
+   "pairs:train": 5640,
+   "pairs": 5907,
+   "questions": 628,
+   "pairs:number": 1331,
+   "pairs:eval": 267
+  },
+  "strict:1": {
+   "pairs:program": 500,
+   "pairs:train": 594,
+   "pairs": 619,
+   "questions": 619,
+   "pairs:number": 119,
+   "pairs:eval": 25
+  },
+  "strict:2": {
+   "pairs:program": 997,
+   "pairs:train": 1185,
+   "pairs": 1235,
+   "questions": 619,
+   "pairs:number": 238,
+   "pairs:eval": 50
+  },
+  "strict:3": {
+   "pairs:program": 1488,
+   "pairs:train": 1770,
+   "pairs": 1845,
+   "questions": 619,
+   "pairs:number": 357,
+   "pairs:eval": 75
+  },
+  "strict:4": {
+   "pairs:program": 1972,
+   "pairs:train": 2348,
+   "pairs": 2448,
+   "questions": 619,
+   "pairs:number": 476,
+   "pairs:eval": 100
+  },
+  "strict:6": {
+   "pairs:program": 2862,
+   "pairs:train": 3428,
+   "pairs": 3575,
+   "questions": 619,
+   "pairs:number": 713,
+   "pairs:eval": 147
+  },
+  "strict:8": {
+   "pairs:program": 3457,
+   "pairs:train": 4182,
+   "pairs": 4361,
+   "questions": 619,
+   "pairs:number": 904,
+   "pairs:eval": 179
+  },
+  "strict:64": {
+   "pairs:program": 4476,
+   "pairs:train": 5545,
+   "pairs": 5799,
+   "questions": 619,
+   "pairs:number": 1323,
+   "pairs:eval": 254
+  }
+ },
+ "top_decile_share": 0.1
+}

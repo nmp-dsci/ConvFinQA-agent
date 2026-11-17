@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DPO student plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx.narrow{ min-width:460px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .up{ color:var(--accent); font-weight:600; }
+  .down{ color:var(--red); font-weight:600; }
+  .fig{ overflow-x:auto; margin-top:var(--s4); }
+  .fig svg{ display:block; width:100%; height:auto; min-width:640px; }
+  .fig .box{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.2; }
+  .fig .box.acc{ stroke:var(--accent); stroke-width:2; }
+  .fig .box.mask{ fill:var(--band); stroke:var(--line-2); }
+  .fig .box.tr{ fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.4; }
+  .fig .box.trw{ fill:var(--red-soft); stroke:var(--red); stroke-width:1.4; }
+  .fig .arrow{ stroke:var(--ink-2); stroke-width:1.5; fill:none; marker-end:url(#ah); }
+  .fig .arrow.acc{ stroke:var(--accent); }
+  .fig .head{ fill:var(--ink-2); }
+  .fig .lb{ fill:var(--ink); font-family:var(--sans); font-size:15px; font-weight:600; }
+  .fig .lbs{ fill:var(--muted); font-family:var(--sans); font-size:13px; }
+  .fig .mono{ fill:var(--ink); font-family:var(--mono); font-size:12.5px; }
+  .fig .ta{ fill:var(--accent); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .tw{ fill:var(--red); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .tm{ fill:var(--muted); font-family:var(--sans); font-size:13.5px; font-weight:600; }
+  .fig .dr{ fill:var(--accent); }
+  .fig .dw{ fill:none; stroke:var(--red); stroke-width:2; }
+  .fig .pick{ fill:none; stroke:var(--ink); stroke-width:2.5; }
+  .fig .pair{ fill:none; stroke:var(--ink); stroke-width:2; stroke-dasharray:4 3; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .three .card p, .two .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .math{ font-family:var(--mono); font-size:var(--t-1); overflow-x:auto; }
+  pre.tree{ white-space:pre; overflow-x:auto; }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  .copyall{ margin-top:var(--s5); display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+  .copyall textarea{ width:100%; }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+  code{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s33 · ConvFinQA-agent · 2026-11-08 · plan · DPO with LoRA, the third fine-tuning round · branch <code>dpo</code></div>
+  <h1>Round 3 can be DPO on the student's own right and wrong tries. <em>You have the questions and the gold answers. The pairs come from one sampling pass.</em></h1>
+  <p class="lede">Two SFT rounds took Qwen3-4B from 56.2% to 81.4% on test 100 by copying DeepSeek Flash's right conversations. That leaves two things SFT can't do: show the student its own mistakes, and push them down. DPO does both. This page reviews the data you have, explains how to turn it into chosen/rejected pairs, plans a DPO run that continues sft2-e1's adapter, trains an RFT control arm beside it on the same right tries, and says how we'd know which won. Eight decisions are at the end. <b>Update 2026-11-11:</b> you chose 4 tries a question (D3) and to build straight away (D1). P1–P3 are being built and run now, and the findings will go on their own page.</p>
+
+  <div class="verdict">
+    <div class="stat"><div class="n">81.4%</div><div class="l">sft2-e1 on test 100 (76.4% on val), the score to beat. The gap to Flash is in program turns: 75.2% against Flash's 83.6%. Number turns are 94.6% against 96.4%</div></div>
+    <div class="stat red"><div class="n">0 pairs</div><div class="l">exist today. No training question has two student tries. The student's only scored tries are on val and test, which pick checkpoints and judge them, so they can't be trained on</div></div>
+    <div class="stat accent"><div class="n">≈ 900</div><div class="l">pairs from 4 tries at each of the 4,394 questions in the fresh pool (an estimate; the first 300 sampled conversations measure the real rate). A top-up to 8 adds about 350–950 more without re-running anything. You don't need new questions</div></div>
+    <div class="stat amber"><div class="n">≈ $65</div><div class="l">for the whole plan, with a $90 cap. The RFT arm is about $15 of that. About $14 reaches the pilot's go/no-go. The two SFT rounds cost about $12, but they had no sampling to pay for</div></div>
+  </div>
+
+  <div class="callout">
+    <p><b>Recommendation.</b> Sample sft2-e1 4 times at each question of the fresh pool, on its own history, and keep every try so selected questions can be topped up to 8 later. Wherever some tries are right and some wrong, pair a right try (chosen) with a wrong one (rejected). Then continue sft2-e1's adapter with DPO plus an NLL term on the chosen, scored against sft2-e1's own log-probs, computed once before training. Beside it, train an RFT arm on the same right tries with no rejected side, so the readout can say what the wrong tries added. Build straight away: the first 300 sampled conversations measure the yield (D1, your call on 2026-11-11).
+    Expect +1 to +4 points on val from one round. Test 100 can only confirm a gain of about 4 points or more.</p>
+  </div>
+</header>
+
+<section id="start">
+  <span class="eyebrow">01</span>
+  <h2>Where round 3 starts, and why DPO</h2>
+  <p class="sub">The starting point is the last adapter you trained: sft2's epoch 1, <code>runs/sft/20261025T113733Z_train_sft2/checkpoints/checkpoint-58</code>. It is the best student on val and on test, under the checked harness at temperature 0.7.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Pass</th><th class="sc">Overall</th><th class="sc">Program turns</th><th class="sc">Number turns</th></tr></thead>
+      <tbody>
+        <tr><td>sft2-e1 · val (sft_v1 val, 365 questions)</td><td class="sc">76.4%</td><td class="sc">70.1% <span class="note">164 / 234</span></td><td class="sc">87.8% <span class="note">115 / 131</span></td></tr>
+        <tr><td>sft2-e1 · test 100 (349 questions)</td><td class="sc">81.4%</td><td class="sc">75.2% <span class="note">179 / 238</span></td><td class="sc">94.6% <span class="note">105 / 111</span></td></tr>
+        <tr><td>Flash, the teacher · test 100</td><td class="sc">87.7%</td><td class="sc">83.6% <span class="note">199 / 238</span></td><td class="sc">96.4% <span class="note">107 / 111</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">From <code>evaluation/fine_tuning.json</code>. The student is right as often as Flash on number turns. Nearly all the gap is in program turns.</p>
+
+  <div class="three">
+    <div class="card rec">
+      <span class="badge ok">why DPO fits</span>
+      <ul>
+        <li><b>The mistakes are the student's own.</b> Most first mistakes are wrong operand values or operands in the wrong order. Flash rarely makes them, so SFT on Flash's turns never showed them to the student (s31 §01).</li>
+        <li><b>Gold grades every try for free.</b> A verified right try against a verified wrong one is the textbook pair for math-like tasks (rlhf-book ch11:L147-148).</li>
+        <li><b>SFT has plateaued.</b> Val went flat after about one epoch, and sft2 against sft1's epoch 2 is +1.1 on test, not significant (s30).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge info">DPO against the GRPO plan (s31, closed)</span>
+      <ul>
+        <li><b>Offline.</b> Sampling happens once, before training, so the pairs can be read and audited before a GPU trains on them.</li>
+        <li><b>The SFT stack is reused.</b> The trainer is a training job like sft2's: the same image, the same mask code, an L4. No vLLM runs inside the trainer, and no weights are synced every step.</li>
+        <li><b>It can use the teacher where the student is always wrong.</b> GRPO gets no signal from a question with no right try. DPO can use Flash's right answer as the chosen (D2).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge warn">what it gives up</span>
+      <ul>
+        <li><b>The data goes stale.</b> The pairs are drawn from sft2-e1. As training moves the student away from it, the pairs describe an older model. GRPO re-samples every step; DPO re-samples only if you run a second round.</li>
+        <li><b>Questions it always gets right teach nothing,</b> exactly as for GRPO.</li>
+        <li><b>The book is silent on LoRA.</b> Its DPO code is a full fine-tune (rlhf-book <code>code/direct_alignment/train.py</code>:L560-565). The LoRA settings here come from TRL's docs and from LoRA Without Regret.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <span class="eyebrow">02</span>
+  <h2>How DPO works, from zero</h2>
+  <p class="sub">SFT says "make the teacher's answer likely". DPO says "for the same prompt, make the right answer more likely <i>relative to the wrong one</i> than it was before training". It needs a pair of answers to one prompt, and a frozen copy of the starting model to measure "before" against.</p>
+
+  <div class="two">
+    <div class="card">
+      <h3>The loss</h3>
+      <p class="math">L = −log σ( β · [ (log π(y⁺|x) − log π_ref(y⁺|x)) − (log π(y⁻|x) − log π_ref(y⁻|x)) ] )</p>
+      <ul>
+        <li><b>x</b> is the prompt: everything up to the current question. <b>y⁺</b> is the chosen try, <b>y⁻</b> the rejected one.</li>
+        <li><b>π</b> is the student being trained. <b>π_ref</b> is the frozen starting point, sft2-e1.</li>
+        <li><b>β</b> sets how far the student may move. A large β keeps it close to π_ref; a small β can over-optimise (rlhf-book lec6:L711-712). The usual value is 0.1, typically 0.1–0.5 (<code>direct_alignment/loss.py</code>:L76).</li>
+        <li>At step 0 the policy equals the reference, so the bracket is 0 and the loss is log 2 ≈ 0.693. It should fall from there.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>A worked pair from val (illustration only)</h3>
+      <p><code>Single_ETR/2008/page_153.pdf-2</code>, q2: "what was, then, the change in amount over the year, in millions?" Gold is −17.4, <code>subtract(19.2, 36.6)</code>. Two of the four sft2 checkpoints answered −17.4. The other two answered 17.4, with the operands reversed (s31 §02).</p>
+      <ul>
+        <li><b>Chosen:</b> a try that calls <code>subtract(19.2, 36.6)</code> and answers −17.4.</li>
+        <li><b>Rejected:</b> a try that calls <code>subtract(36.6, 19.2)</code> and answers 17.4.</li>
+        <li>Tokens the two tries share, in the same context, add the same term to both sides and cancel. The gradient lands where they differ: the order of the operands.</li>
+      </ul>
+      <p class="note">Val picks checkpoints, so this pair is never trained on. The real pairs come from the fresh pool (§03).</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Four ways to train the same student</h3>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:17%"></th><th>SFT <span class="note">sft1, sft2 (done): Flash's tries, kept if right</span></th><th>RFT <span class="note">rejection sampling · the control arm</span></th><th>DPO <span class="note">this plan</span></th><th>GRPO <span class="note">s31, closed</span></th></tr></thead>
+      <tbody>
+        <tr><td>Tokens written by</td><td>Flash</td><td>the student</td><td>the student (and Flash as chosen, if D2 allows)</td><td>the student</td></tr>
+        <tr><td>Signal</td><td>every teacher token, weight 1</td><td>right tries, weight 1; wrong tries dropped</td><td>a right try pushed up against a wrong try on the same prompt</td><td>each try weighted by its advantage within the group</td></tr>
+        <tr><td>Its own mistakes</td><td>never seen</td><td>seen, then ignored</td><td>pushed down</td><td>pushed down</td></tr>
+        <tr><td>Reference model</td><td>none</td><td>none</td><td>sft2-e1, frozen; its log-probs are computed once</td><td>optional KL (β 0 in s31)</td></tr>
+        <tr><td>How on-policy</td><td>not at all</td><td>at sampling time</td><td>at sampling time; goes stale as it trains</td><td>fully: fresh tries every step</td></tr>
+        <tr><td>Questions it always misses</td><td>taught if Flash got them right</td><td>no signal</td><td>no signal, unless Flash supplies the chosen</td><td>no signal</td></tr>
+        <tr><td>Compute</td><td>training only, one L4</td><td>DPO's sampling, then training: one sequence a row, no reference</td><td>sampling once, then training on an L4 (or an H100 for speed)</td><td>vLLM and the trainer together, one H100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">sft1 and sft2 were not rejection sampling. They filtered Flash's tries by gold, one try per conversation, which is distillation. The book's rejection sampling samples the model being trained, several times per prompt, and keeps the best (ch09:L41-44, L217). The RFT arm (§05) is the first time the student trains on its own tries.</p>
+</section>
+
+<section id="data">
+  <span class="eyebrow">03</span>
+  <h2>The data you have</h2>
+  <p class="sub">DPO needs prompts with at least two tries each, one right and one wrong. You have plenty of prompts and gold answers, and good demonstrations. What you don't have is a single training question the student has answered twice.</p>
+
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:22%">What</th><th class="sc" style="width:16%">Size</th><th>What it holds</th><th style="width:26%">Use for DPO</th></tr></thead>
+      <tbody>
+        <tr><td><b>Fresh pool</b><span class="note">eval_loop_v2's pool, page-clean, never collected on</span></td><td class="sc">1,489 conv · 4,394 q<span class="note">≈ 3,150 program turns</span></td><td>Reports, questions, gold answers and programs. Page-clean means no report page shared with test, the v1 holdout or val (sft_v2's rules). Counted in s31 §04.</td><td><span class="badge ok">primary pool</span> Sample the student here. Needs a <code>dpo_v1</code> manifest that re-asserts the page rules (P1).</td></tr>
+        <tr><td><b>sft_v2 train</b><span class="note">Flash's two collection passes</span></td><td class="sc">1,152 conv · 5,145 q</td><td>Flash's whole conversations, committed as <code>evaluation/sft/trajectories/…train552…</code> and <code>…train600…</code>. One Flash try per question.</td><td><span class="badge info">reserve</span> One try per question gives no pairs. Sample the student here only if the fresh pool runs short. It will be right more often, since it trained on these.</td></tr>
+        <tr><td><b>SFT data v1, v2</b></td><td class="sc">334 rows · 916 rows<span class="note">1,187 · 3,486 turns</span></td><td>Flash's right turns rendered in the student's format, each checked by the loss mask.</td><td><span class="badge warn">chosen only</span> No rejected side. The renderer (<code>sft/rows.py</code>) and mask check (<code>sft/train/mask.py</code>) are reused to build pairs.</td></tr>
+        <tr><td><b>Student passes</b></td><td class="sc">14 complete<span class="note">10 val · 4 test</span></td><td>Every student checkpoint scored on val, plus 4 on test, with whole trajectories in MLflow (<code>trajectories.jsonl.gz</code>).</td><td><span class="badge bad">never train</span> Val picks checkpoints and test is the holdout. They measure how often tries disagree, which is how the yield below was estimated.</td></tr>
+        <tr><td><b>sft_v1 val</b></td><td class="sc">100 conv · 365 q</td><td>Picks checkpoints.</td><td><span class="badge bad">selection only</span></td></tr>
+        <tr><td><b>Test 100</b><span class="note">eval_loop_v2 test</span></td><td class="sc">100 conv · 349 q</td><td>The student's holdout.</td><td><span class="badge bad">once, on your word</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Do you need more questions? No.</h3>
+  <p class="sub">A question yields a pair only when some of its tries are right and some wrong. On val, four sft2 checkpoints standing in for four tries flipped on 17% of clean program turns and 9% of number turns. They were all right on 72% and 86%, and all wrong on 10% and 6% (s31 §04). Applied to the pool's mix:</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Tries per question</th><th class="sc">Questions that flip</th><th class="sc">Pairs, ≤ 2 per question</th><th class="sc">Always wrong</th><th>Sampling</th></tr></thead>
+      <tbody>
+        <tr><td><b>4</b> <span class="badge rec">chosen</span></td><td class="sc">≈ 570 <span class="note">≈ 15%</span></td><td class="sc">≈ 900</td><td class="sc">≈ 340</td><td>≈ $5–10, then a selective top-up</td></tr>
+        <tr><td>8</td><td class="sc">≈ 770–1,160 <span class="note">≈ 20–30%</span></td><td class="sc">≈ 1,250–1,850</td><td class="sc">≈ 230–310</td><td>≈ $10–20</td></tr>
+        <tr><td>16</td><td class="sc">more; not measured</td><td class="sc">≈ 2,000+</td><td class="sc">fewer</td><td>about twice 8's</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">How these were worked out: about 88% of questions are reached, because a conversation stops at a question with no right try (§04). The flip rate for 8 tries is s31's estimate, since more tries turn some always-right questions into flips. A question averages about 1.6 pairs. The first 300 sampled conversations replace every number here with a measurement on the real student. You chose 4 on 2026-11-11: the pilot needs only about 400 pairs, and every try is stored, so 8 stays one top-up away (§04). For scale, the RLHF book's DPO config trains on 6,400 pairs (<code>direct_alignment/configs/dpo.yaml</code>:L18-26). That run is a full fine-tune of a 1B model on general chat, so it doesn't set a floor for this one.</p>
+
+  <h3 style="margin-top:var(--s5)">What to update before sampling</h3>
+  <ol class="steps">
+    <li><b>The harness retry budget stays as it is for sampling.</b> <code>backends/open_agent.py</code>:170 builds <code>Agent(…)</code> without <code>retries=</code>, so its default of 1 shadows <code>ToolOutput(max_retries=2)</code>, and a try can die on "Exceeded maximum output retries" (s31 P0, still unfixed). Building straight away means sampling on the harness sft2-e1 was scored on, so the tries match its val and test passes. A try the bug kills is dropped and counted. Fixing it means re-scoring the baseline, so the fix moves to P0's val passes.</li>
+    <li><b>Add a sign check to the pair labeller, not to the eval metric.</b> <code>numeric_match</code> rule 1 accepts any two numbers that round to the same integer, so 0.5 matches −0.5. 19 of 6,984 recorded answers scored right had the wrong sign (s31 §05). A wrong-sign "chosen" would teach exactly the wrong thing.</li>
+    <li><b>Read the always-wrong questions for bad gold</b> before any of them is paired with Flash's answer (D2).</li>
+    <li><b>Cut a <code>dpo_v1</code> manifest</b> from the fresh pool, asserting sft_v2's page rules and leak checks. Hold back 5% of its conversations as fixed eval pairs, because per-step DPO metrics are mostly batch noise (rlhf-book <code>direct_alignment/experiments/2026-02-08-orpo-simpo.md</code>:L86, L91).</li>
+    <li><b>Leave val and test alone.</b> Val still picks checkpoints. Test 100 is opened once.</li>
+  </ol>
+</section>
+
+<section id="pairs">
+  <span class="eyebrow">04</span>
+  <h2>Building the chosen and rejected trajectories</h2>
+  <p class="sub">A pair needs one prompt and two answers to it. In a conversation the prompt grows with every answer, so a pair can only be made one question at a time: the same history, then two different tries at the current question.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 900 230" role="img" aria-labelledby="bp-t bp-d">
+      <title id="bp-t">Branch, sample and pair, one conversation</title>
+      <desc id="bp-d">Each question is tried 4 times on the same history. Right and wrong tries are paired. One right try is kept as the history for the next question. A question that is all right gives no pair; a question that is all wrong stops the conversation unless Flash supplies a chosen.</desc>
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+      <g id="bp-q0"><title>q0: 3 of 4 right, 1 pair</title>
+        <text x="40" y="26" class="lb">q0</text><text x="72" y="26" class="lbs">4 tries</text>
+        <circle cx="52" cy="62" r="12" class="dr"/><circle cx="88" cy="62" r="12" class="dr"/><circle cx="124" cy="62" r="12" class="dw"/><circle cx="160" cy="62" r="12" class="dr"/>
+        <path d="M88,62 L124,62" class="pair"/>
+        <circle cx="160" cy="62" r="17" class="pick"/>
+        <text x="40" y="110" class="ta">3 / 4: 1 pair</text>
+        <text x="40" y="132" class="lbs">an unpaired right try is kept</text>
+      </g>
+      <path d="M180,62 L238,62" class="arrow"/>
+      <g id="bp-q1"><title>q1: all 4 right, no pair</title>
+        <text x="250" y="26" class="lb">q1</text><text x="282" y="26" class="lbs">4 tries</text>
+        <circle cx="262" cy="62" r="12" class="dr"/><circle cx="298" cy="62" r="12" class="dr"/><circle cx="334" cy="62" r="12" class="dr"/><circle cx="370" cy="62" r="12" class="dr"/>
+        <circle cx="370" cy="62" r="17" class="pick"/>
+        <text x="250" y="110" class="tm">4 / 4: no pair</text>
+        <text x="250" y="132" class="lbs">continue; top up later</text>
+      </g>
+      <path d="M390,62 L448,62" class="arrow"/>
+      <g id="bp-q2"><title>q2: 2 of 4 right, 2 pairs</title>
+        <text x="460" y="26" class="lb">q2</text><text x="492" y="26" class="lbs">4 tries</text>
+        <circle cx="472" cy="62" r="12" class="dr"/><circle cx="508" cy="62" r="12" class="dw"/><circle cx="544" cy="62" r="12" class="dr"/><circle cx="580" cy="62" r="12" class="dw"/>
+        <path d="M472,62 L508,62" class="pair"/><path d="M544,62 L580,62" class="pair"/>
+        <circle cx="544" cy="62" r="17" class="pick"/>
+        <text x="460" y="110" class="ta">2 / 4: 2 pairs</text>
+        <text x="460" y="132" class="lbs">different wrong answers first</text>
+      </g>
+      <path d="M600,62 L658,62" class="arrow"/>
+      <g id="bp-q3"><title>q3: none right, stop</title>
+        <text x="670" y="26" class="lb">q3</text><text x="702" y="26" class="lbs">4 tries</text>
+        <circle cx="682" cy="62" r="12" class="dw"/><circle cx="718" cy="62" r="12" class="dw"/><circle cx="754" cy="62" r="12" class="dw"/><circle cx="790" cy="62" r="12" class="dw"/>
+        <text x="670" y="110" class="tw">0 / 4: stop here</text>
+        <text x="670" y="132" class="lbs">a top-up may find a right try</text>
+        <text x="670" y="152" class="lbs">or Flash's, as the chosen (D2)</text>
+      </g>
+      <g id="bp-key"><title>key</title>
+        <circle cx="52" cy="202" r="9" class="dr"/><text x="68" y="207" class="lbs">right</text>
+        <circle cx="140" cy="202" r="9" class="dw"/><text x="156" y="207" class="lbs">wrong</text>
+        <path d="M232,202 L262,202" class="pair"/><text x="272" y="207" class="lbs">a pair: chosen, rejected</text>
+        <circle cx="470" cy="202" r="12" class="pick"/><text x="490" y="207" class="lbs">kept as the next question's history</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">The recipe, per conversation</h3>
+  <ol class="steps">
+    <li><b>Branch.</b> At q0, send the same prompt to sft2-e1 4 times through the checked harness at the serving sampler (T 0.7, top_p 0.8, top_k 20). <code>open_agent._ask(agent, prompt, history)</code> already answers one question on a given history; 4 calls on one history is a group. Every try is stored with the history it was asked on.</li>
+    <li><b>Grade.</b> A try is right if <code>numeric_match</code> accepts it <i>and</i> its sign agrees with gold. A try that errored with no answer is dropped, not rejected.</li>
+    <li><b>Pair.</b> If the group has both right and wrong tries, make up to 2 pairs from disjoint tries. Choose rejected tries with different wrong answers first, so two pairs cover two mistakes rather than one twice. DPO weights every pair equally (rlhf-book ch08:L243), and the cap keeps a 4-right/4-wrong question from contributing 16.</li>
+    <li><b>Continue.</b> Keep one right try, chosen at random, as the history and move to q1. Prefer one not used in a pair. The history is the student's own, as at serving. The book's multi-turn recipe also continues with the chosen answer (ch11:L137-140).</li>
+    <li><b>Stop</b> at a question with no right try. Later questions would rest on a wrong answer, and those knock-on errors are fixed by fixing the first mistake. With D2's rescue, Flash answers on the same history; if it's right it becomes the chosen and the conversation continues on it.</li>
+    <li><b>Top up, later and only where it pays.</b> Because each group's history is stored, more tries join the same group: about 4 more where all 4 were right (to find a flip) or all wrong (a right try lets the conversation continue past where it stopped), a few more where only one try was right or wrong (for a second pair), none where there are already two of each. Pairs are rebuilt over the merged group before training, with the same checkpoint, sampler and harness, and new seeds.</li>
+  </ol>
+
+  <h3 style="margin-top:var(--s5)">What one pair contains</h3>
+  <div class="fig">
+    <svg viewBox="0 0 900 250" role="img" aria-labelledby="pa-t pa-d">
+      <title id="pa-t">Anatomy of one pair</title>
+      <desc id="pa-d">One shared prompt, masked from the loss, followed by two tries. In each try, the student's own messages are trained and the tool replies are masked. A try's score is the sum of log-probabilities over its trained tokens only.</desc>
+      <g id="pa-prompt"><title>the prompt, identical for both tries and masked</title>
+        <rect x="20" y="40" width="250" height="170" rx="6" class="box mask"/>
+        <text x="36" y="70" class="lb">prompt x · masked</text>
+        <text x="36" y="96" class="lbs">system prompt + tool schemas</text>
+        <text x="36" y="116" class="lbs">the report and q0</text>
+        <text x="36" y="136" class="lbs">earlier turns: the student's</text>
+        <text x="36" y="154" class="lbs">own right answers</text>
+        <text x="36" y="176" class="lbs">this question</text>
+        <text x="36" y="198" class="rg mono">≈ 6–8.5k tokens</text>
+      </g>
+      <path d="M270,90 L300,74" class="arrow"/>
+      <path d="M270,160 L300,176" class="arrow"/>
+      <g id="pa-chosen"><title>chosen: a right try</title>
+        <text x="306" y="34" class="ta">chosen y⁺ · right</text>
+        <rect x="306" y="48" width="230" height="52" rx="6" class="box tr"/>
+        <text x="318" y="70" class="mono">&lt;reasoning&gt; … call</text>
+        <text x="318" y="90" class="mono">subtract(19.2, 36.6)</text>
+        <rect x="544" y="48" width="110" height="52" rx="6" class="box mask"/>
+        <text x="556" y="70" class="lbs">tool reply</text>
+        <text x="556" y="90" class="mono">−17.4</text>
+        <rect x="662" y="48" width="220" height="52" rx="6" class="box tr"/>
+        <text x="674" y="70" class="mono">StructuredOutput</text>
+        <text x="674" y="90" class="mono">answer −17.4</text>
+      </g>
+      <g id="pa-rejected"><title>rejected: a wrong try</title>
+        <text x="306" y="138" class="tw">rejected y⁻ · wrong</text>
+        <rect x="306" y="150" width="230" height="52" rx="6" class="box trw"/>
+        <text x="318" y="172" class="mono">&lt;reasoning&gt; … call</text>
+        <text x="318" y="192" class="mono">subtract(36.6, 19.2)</text>
+        <rect x="544" y="150" width="110" height="52" rx="6" class="box mask"/>
+        <text x="556" y="172" class="lbs">tool reply</text>
+        <text x="556" y="192" class="mono">17.4</text>
+        <rect x="662" y="150" width="220" height="52" rx="6" class="box trw"/>
+        <text x="674" y="172" class="mono">StructuredOutput</text>
+        <text x="674" y="192" class="mono">answer 17.4</text>
+      </g>
+      <text x="306" y="238" class="lbs">log π(y | x) sums the trained boxes only. The masked boxes are context, as in SFT.</text>
+    </svg>
+  </div>
+  <ul>
+    <li><b>Masked:</b> the prompt, every tool reply, and any harness retry prompt. Tool outputs are the environment's words, not the model's (rlhf-book ch13:L212, L296). The two tries' tool replies differ, and scoring them would credit the student for the calculator's output.</li>
+    <li><b>Trained:</b> the student's reasoning, its calculator calls and its <code>StructuredOutput</code> call, exactly the spans SFT trained. The same <code>sft/rows.turn_messages</code> renders them, and the same mask check proves it on every pair.</li>
+    <li><b>Excluded in round 1:</b> any try that needed a harness retry (H1–H3). SFT collapses those detours, which would make a chosen differ from what the model actually wrote. The count is reported; if it's more than 15% of wrong tries, the rejected side learns to keep them, with the retry prompt masked.</li>
+  </ul>
+
+  <h3 style="margin-top:var(--s5)">The record</h3>
+  <p class="sub">Committed as <code>evaluation/dpo/v1/</code> beside <code>evaluation/sft/v2/</code>: a gzipped <code>pairs.jsonl</code>, every graded try (<code>tries.jsonl.gz</code>), <code>stats.json</code> and a data card. Each prompt is stored once and referenced by the pairs that share it.</p>
+<pre class="tree">{"pair_id": "Single_ETR/2008/page_153.pdf-2:q2:a",     # conversation : question : pair
+ "split": "train", "source": "on_policy",              # or "teacher_rescue" (D2)
+ "prompt_ref": "sha256:…",                             # system + tools + history + question
+ "history": ["try:q0:6", "try:q1:3"],                  # the right tries the history was built from
+ "chosen":   {"try": "q2:5", "answer": "-17.4", "messages": […], "trained_tokens": 412},
+ "rejected": {"try": "q2:1", "answer": "17.4",  "messages": […], "trained_tokens": 398},
+ "gold": "-17.4", "turn_type": "program", "group": {"right": 3, "tries": 8},
+ "sign_ok": true, "sampler": {"T": 0.7, "top_p": 0.8, "top_k": 20}, "adapter": "sft2-e1"}</pre>
+</section>
+
+<section id="train">
+  <span class="eyebrow">05</span>
+  <h2>Training</h2>
+  <p class="sub">Continue sft2-e1's adapter, the way sft2 continued sft1's, with a fresh optimiser and a DPO loss. Everything not listed is sft2's setting.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:22%">Setting</th><th style="width:28%">Value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Starting point</td><td>sft2-e1, <code>checkpoint-58</code>; LoRA r 16, α 32, all-linear</td><td>The best student on val and test. The adapter keeps its shape, as in sft2's warm start.</td></tr>
+        <tr><td>Reference model</td><td><b>sft2-e1 itself</b>: its log-probs on every pair, computed once with the adapter on</td><td>The reference is usually the SFT checkpoint (rlhf-book ch15:L144). Switching the adapter off would give base Qwen3-4B, so β would pull the student back toward the base model and undo both SFT rounds. Precomputing also halves peak memory (ch08:L297).</td></tr>
+        <tr><td>Loss</td><td>DPO (sigmoid) + 1.0 × NLL on the chosen, length-normalised</td><td>The NLL term guards against likelihood displacement, where the chosen's probability falls along with the rejected's (ch08:L258-262; lec6:L693). It comes from Iterative Reasoning Preference Optimization, built for exactly this setting: verified right and wrong chains of reasoning (ch15:L133-146). The book's own "RPO" is a different method (ch15:L163).</td></tr>
+        <tr><td>β</td><td>0.1</td><td>The book's code default; typical values are 0.1–0.5 (<code>loss.py</code>:L76). The pilot tries 0.3 if margins race ahead while val stalls.</td></tr>
+        <tr><td>Learning rate</td><td>5e-6, cosine, 5% warmup; the pilot also tries 2e-6 and 1e-5</td><td>Full-fine-tune DPO runs at 1e-7 to 5e-6 (<code>direct_alignment/README.md</code>:L143), and a LoRA usually wants about 10× more (TRL's tip is ≈ 1e-5 for adapters). The book says to sweep learning rates (appendix-c:L83).</td></tr>
+        <tr><td>Batch</td><td>16 pairs a step (1 pair × 16 accumulation)</td><td>sft2's effective batch. Each pair is two sequences of about 7k tokens.</td></tr>
+        <tr><td>Epochs</td><td>at most 2; a checkpoint every half-epoch</td><td>Offline DPO can overfit and start to reward-hack (rlhf-book, Conversation 2 at 40:30). Val picks the checkpoint, as for sft2.</td></tr>
+        <tr><td>Sequence length</td><td>24,576, sft2's; a pair that doesn't fit is dropped and counted, never truncated</td><td>TRL's DPO default is 1,024 with keep-start truncation. That would keep the system prompt and cut off the whole answer.</td></tr>
+        <tr><td>Dropout</td><td>off during DPO</td><td>Policy and reference must give identical log-probs at step 0. TRL also disables dropout by default.</td></tr>
+        <tr><td>GPU</td><td>L4 for the pilot; L4 or H100 for the full run</td><td>No vLLM runs inside the trainer, so sft2's image and GPU work as they are. An H100 costs about the same per token and is about 6× faster (s31 §06).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">The training stack (D5)</h3>
+  <div class="two">
+    <div class="card rec">
+      <span class="badge rec">recommended</span>
+      <h3>B · Our own DPO step on the SFT stack</h3>
+      <p>About 150 lines in <code>dpo/train/dpo.py</code>. It renders each side with <code>sft/rows</code> and the student's template, checks the mask with <code>sft/train/mask.py</code>, precomputes sft2-e1's log-probs, then runs the DPO + NLL step. It ships and resumes on Modal the way <code>sft/train</code> does.</p>
+      <p><b>Cost:</b> we own the loss's correctness. Step-0 checks and a one-step test cover it.</p>
+    </div>
+    <div class="card">
+      <span class="badge info">fallback</span>
+      <h3>A · TRL's DPOTrainer</h3>
+      <p>It supports tool-calling conversations, PEFT models, <code>precompute_ref_log_probs</code>, and combined losses such as <code>loss_type=["sigmoid","sft"]</code>.</p>
+      <p><b>Cost:</b> three things need proving first. Its docs don't say whether tool replies inside a completion are masked. Whether a continued adapter's reference is sft2-e1 or the base model must be checked. And the 1,024 default must be overridden. For SFT, TRL also swapped in its own Qwen3 training template (s31 §06).</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">The RFT control arm</h3>
+  <p class="sub">Same right tries, no rejected side, no reference model. Its loss is exactly the NLL half of DPO + NLL. The arms differ in one thing: whether the wrong tries are pushed down. The iterative reasoning paper ran the same control, one round of STaR (SFT on the chosen only), and it trailed DPO + NLL on GSM8K. Its Figure 2 suggests why: SFT on the chosen raised the rejected tries' log-probs too.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:20%">Setting</th><th style="width:40%">RFT arm</th><th>Against the DPO arm</th></tr></thead>
+      <tbody>
+        <tr><td>Starting point</td><td>sft2-e1, <code>checkpoint-58</code></td><td><span class="badge ok">same</span></td></tr>
+        <tr><td>Data (D7)</td><td>The chosen side of every train pair, rendered exactly as for DPO: one try per row, its prompt masked. ≈ 1,250–1,850 rows</td><td><span class="badge ok">same</span> tries, order and seed. The earlier answers in the history are verified right too, but they stay masked, so the trained tokens match DPO's chosen token for token</td></tr>
+        <tr><td>Loss</td><td>Cross-entropy over the try's trained tokens, as in SFT</td><td><span class="badge warn">differs</span> No preference term and no reference pass</td></tr>
+        <tr><td>Learning rate</td><td>5e-5, cosine, 5% warmup: sft2's</td><td><span class="badge warn">differs</span> Each method runs at its own rate. At DPO's 5e-6 an SFT step barely moves the adapter, so the control would lose by construction</td></tr>
+        <tr><td>Batch, epochs, checkpoints</td><td>16 rows a step, at most 2 epochs, a checkpoint every half-epoch</td><td><span class="badge ok">same</span></td></tr>
+        <tr><td>Length, dropout</td><td>24,576; LoRA dropout 0.05, sft2's</td><td>Length the same. Dropout differs: DPO turns it off so policy and reference agree at step 0</td></tr>
+        <tr><td>Selection</td><td>2 val passes at each checkpoint, 4 for its pick</td><td><span class="badge ok">same</span></td></tr>
+        <tr><td>Code</td><td><code>dpo/train/dpo.py --loss nll</code></td><td><span class="badge ok">same</span> loader, renderer and mask, with the preference term and the reference pass switched off</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">The student already gives its own right tries a high likelihood, so the RFT arm starts at a low loss and moves the adapter less than sft2 did. That's expected; val picks its checkpoint the same way.</p>
+</section>
+
+<section id="cost">
+  <span class="eyebrow">06</span>
+  <h2>Compute and cost</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Item</th><th class="sc">Estimate</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>P0 · 4 val passes of sft2-e1</td><td class="sc">≈ $3</td><td>s31's estimate. These passes are also the final baseline.</td></tr>
+        <tr><td>P3 · sampling, 4 tries a question</td><td class="sc">≈ $5–10</td><td>About 15k tries on the Student app (L4, vLLM). Four tries share one prefix-cached context, so a try costs less than in a val pass, which runs one try per question. Measured on the first 300 conversations, and capped.</td></tr>
+        <tr><td>P5t · top-up toward 8, optional</td><td class="sc">≈ $3–6</td><td>Only the questions §04 names, after the pilot.</td></tr>
+        <tr><td>P5 · pilot, about 400 pairs, 1 epoch</td><td class="sc">≈ $5</td><td>About 25 s a pair on an L4: two 7k-token sequences at sft2's measured 740 tokens/s, plus the reference pass.</td></tr>
+        <tr><td>P6 · full run, about 1,500 pairs, 2 epochs</td><td class="sc">≈ $20–25</td><td>About 20 h on an L4 or 3–4 h on an H100. A 20-step timing run comes first, as sft1's two-step run did.</td></tr>
+        <tr><td>P6r · RFT arm, the same tries, 2 epochs</td><td class="sc">≈ $5–8</td><td>One ≈ 7k-token sequence a row and no reference pass: about 9.5 s a row on an L4 at 740 tokens/s, for 2,500–3,700 rows over 2 epochs. No sampling of its own.</td></tr>
+        <tr><td>Val passes for checkpoints, and the final 4</td><td class="sc">≈ $18</td><td>For each arm, 2 passes at each of 4 checkpoints, then 4 for its pick, at about $0.75 a pass.</td></tr>
+        <tr><td><b>Total</b></td><td class="sc"><b>≈ $55–70</b></td><td>Cap $90 (D6). The RFT arm is ≈ $15 of it. About $14 reaches the pilot's go/no-go.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">One saving is left for later. A pair's two sequences share about 6.5k prompt tokens out of 7k. Computing that prompt once per pair would cut training compute by about 45%, but it needs a custom attention mask, so it waits until the plan has paid off.</p>
+</section>
+
+<section id="build">
+  <span class="eyebrow">07</span>
+  <h2>The build, step by step</h2>
+  <p class="sub">Each phase ends at a gate. Money is only spent after a cheaper phase has shown it's worth spending.</p>
+  <ol class="steps">
+    <li><b>P0 · Baseline and go/no-go · ≈ $3.</b> Fix the retry budget. Score sft2-e1 4 times on val, in parallel containers. Measure single-try and best-of-4 accuracy per question, and the real flip share. Read the always-wrong questions for bad gold.<br><span class="note">gate: at least 15% of clean program turns flip. These four passes are also the final baseline.</span></li>
+    <li><b>P1 · The DPO manifest, dpo_v1 · $0.</b> The fresh pool's 1,489 conversations, with page rules and leak checks asserted, 5% held out as eval pairs, and a data card.</li>
+    <li><b>P2 · Sampler and pair builder · $0.</b> <code>dpo/sample.py</code> branches and samples through <code>open_agent._ask</code> on the checked harness. <code>dpo/pairs.py</code> grades, adds the sign check, picks pairs, renders and mask-checks them. All tested on Pydantic AI's <code>FunctionModel</code>, with no GPU.</li>
+    <li><b>P3 · Sample, 4 tries · ≈ $5–10.</b> The first 300 conversations, then a projection of cost and yield, then the rest.<br><span class="note">gates: at least 800 pairs (otherwise the P5t top-up, then the reserve pool). Read 30 pairs by hand: the chosen really right, the rejected really wrong, the difference in the decision rather than the formatting.</span></li>
+    <li><b>P4 · Trainer and checks · ≈ $2.</b> <code>dpo/train/dpo.py</code> and the Modal worker, reusing the SFT image.<br><span class="note">checks: the mask check passes on every pair. At step 0, policy minus reference is 0 on 50 pairs (so the reference really is sft2-e1). One step on a fixed batch widens the chosen-minus-rejected margin. Re-rendered tokens equal vLLM's on 50 tries.</span></li>
+    <li><b>P5 · Pilot · ≈ $5.</b> About 400 pairs, 1 epoch, learning rate 5e-6, plus 2e-6 or 1e-5 if it's flat or unstable.<br><span class="note">gates: eval-pair accuracy and margin rising; chosen log-prob not collapsing; val (2 passes) not below sft2-e1.</span></li>
+    <li><b>P5t · Top-up, optional · ≈ $3–6.</b> Only if the pilot passes and the full run wants more pairs: more tries on the stored groups §04 names, then pairs rebuilt over the merged groups.<br><span class="note">Same checkpoint, sampler, harness and manifest; new seeds, logged.</span></li>
+    <li><b>P6 · Full run · ≈ $20–25.</b> All pairs, at most 2 epochs, 2 val passes at each half-epoch checkpoint.<br><span class="note">stop early if val falls at two checkpoints in a row, or at the cap.</span></li>
+    <li><b>P6r · RFT arm · ≈ $5–8.</b> The chosen sides of the same train pairs, in its own Modal container, alongside P6. Same epochs, checkpoints and val passes.<br><span class="note">No pilot: its recipe is sft2's. Same early stop as P6. A step-0 check that <code>--loss nll</code> equals SFT cross-entropy on the chosen.</span></li>
+    <li><b>P7 · Readout · ≈ $6.</b> Each arm's val pick gets 4 passes. Compare both against sft2-e1's 4 and against each other, question by question, with a cluster bootstrap by conversation (§08 says how to read the result). Val decides between the arms. Test 100 is scored once, for the winning arm's pick only, on your word. Add rounds <code>dpo1</code> and <code>rft1</code> to <code>evaluation/fine_tuning.json</code> so Optimise › Fine-tuning shows both. Then a results page, a PR and no-mistakes.</li>
+    <li><b>P8 · Round 2, optional.</b> If the winning arm beats sft2-e1, sample it on the questions it hasn't seen, or on the reserve pool, and train round 2 with that arm's method. Online DPO is exactly this, re-sampling from the current model (ch08:L265), and the iterative paper's gains came over several rounds.</li>
+  </ol>
+
+  <h3 style="margin-top:var(--s5)">Where the code goes</h3>
+<pre class="tree">src/convfinqa/dpo/
+  splits.py        dpo_v1 manifest: fresh pool, page rules, leak checks, eval-pair holdout
+  sample.py        branch-and-sample tries through the checked harness; resumable
+  pairs.py         grade (scorer + sign check), pick ≤ 2 pairs, render with sft/rows, mask-check
+  cli.py           convfinqa-dpo build | sample | pairs | train | status
+  train/dpo.py     self-contained: precompute reference log-probs, DPO + NLL over the SFT mask;
+                   --loss nll is the RFT arm (preference term and reference pass off)
+  cloud/modal_app.py   the trainer, on sft2's image; one container per arm
+  configs/dpo_v1.yaml, configs/rft_v1.yaml
+evaluation/dpo/v1/ pairs.jsonl.gz, tries.jsonl.gz, stats.json, card.md (committed, like evaluation/sft/v2)
+runs/dpo/&lt;run&gt;/   run.json, metrics.jsonl, mask.json, checkpoints (committed, like runs/sft/)
+tests/test_dpo_*.py  pairing rules · sign check · mask on a real pair · step-0 reference · one-step margin
+                   · --loss nll equals SFT cross-entropy on the chosen</pre>
+</section>
+
+<section id="measure">
+  <span class="eyebrow">08</span>
+  <h2>How we'll know it worked</h2>
+  <div class="two">
+    <div class="card">
+      <h3>While it trains</h3>
+      <ul>
+        <li><b>Loss</b> starts at 0.693 and should fall.</li>
+        <li><b>Rewards</b> for chosen and rejected (β · log π/π_ref), their margin, and the share of eval pairs ranked right. The margin should grow without the samples collapsing (ch08:L346-347).</li>
+        <li><b>Chosen log-prob:</b> if it falls steadily, that's likelihood displacement. The NLL term is there to stop it.</li>
+        <li><b>The length gap</b> between chosen and rejected. If wrong tries tend to be shorter, DPO can learn length instead of correctness.</li>
+        <li><b>KL to sft2-e1</b> on eval pairs. A very large KL usually means a bug (ch14:L142).</li>
+      </ul>
+      <p class="note">Read these on the fixed eval pairs. Per-step numbers are mostly batch noise.</p>
+    </div>
+    <div class="card">
+      <h3>Choosing and comparing</h3>
+      <ul>
+        <li><b>Selection:</b> 2 val passes at each checkpoint; the pick has the best mean.</li>
+        <li><b>Comparison:</b> 4 passes of each arm's pick against sft2-e1's 4 from P0 and against each other, paired by question, with a cluster bootstrap by conversation. Accuracy by turn type, calculator calls per question, H1–H3 retry rate.</li>
+        <li><b>Test 100:</b> once, for the winning arm's val pick, on your word. Its 95% CI is about ±3.5 points, so only a gain of about 4 or more reads as significant.</li>
+        <li><b>Audit:</b> read 20 questions that went from wrong to right, and check that the reasoning, the program and the calculator calls support the answer.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Reading the result: what the control arm tells us</h3>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:24%">Outcome on val</th><th>What it means</th><th style="width:34%">Next</th></tr></thead>
+      <tbody>
+        <tr><td><b>DPO &gt; RFT &gt; sft2-e1</b></td><td>The wrong tries added something the right ones alone didn't</td><td>Round 2 with DPO (P8)</td></tr>
+        <tr><td><b>DPO ≈ RFT &gt; sft2-e1</b></td><td>The gain came from training on the student's own right tries. The wrong tries added nothing measurable</td><td>Iterate RFT instead: no pairs, no reference model, and every question with a right try counts</td></tr>
+        <tr><td><b>RFT &gt; DPO</b></td><td>The preference term hurt: likelihood displacement, stale pairs, or β and learning rate set wrong</td><td>Read the chosen log-prob and margin curves; retune β and the learning rate before any DPO round 2</td></tr>
+        <tr><td><b>Neither beats sft2-e1</b></td><td>These tries carry no usable signal at this size, whatever the loss. The loss isn't the problem</td><td>Stop, or go wider: 16 tries, or the reserve pool</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">"Beats" and "≈" are read from the paired cluster-bootstrap CI on val, not from point estimates. Without the RFT arm, a DPO win can't be pinned on the wrong tries. It could come entirely from the student seeing its own right answers.</p>
+</section>
+
+<section id="risks">
+  <span class="eyebrow">09</span>
+  <h2>Risks and failure modes</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:22%">Risk</th><th>What it looks like</th><th style="width:38%">Guard</th></tr></thead>
+      <tbody>
+        <tr><td>Wrong reference model</td><td>Step-0 log-ratios aren't 0; the student drifts toward base Qwen</td><td>sft2-e1's log-probs precomputed with the adapter on; the P4 step-0 check</td></tr>
+        <tr><td>Likelihood displacement</td><td>Chosen and rejected log-probs both fall; answers degrade though the margin grows</td><td>The NLL term on the chosen; chosen log-prob logged every step</td></tr>
+        <tr><td>Stale data</td><td>The margin keeps rising while val goes flat</td><td>At most 2 epochs, val selection, round 2 re-samples (P8)</td></tr>
+        <tr><td>Learning the wrong shortcut</td><td>Length, tool-call count or formatting differ systematically between chosen and rejected</td><td>The length gap logged; the 30-pair read in P3; disjoint pairs that cover different mistakes</td></tr>
+        <tr><td>Labels the scorer gets wrong</td><td>A wrong-sign answer as the chosen; bad gold</td><td>The sign check; on-policy pairs never use an always-wrong question; Flash's rescue only where it matches gold</td></tr>
+        <tr><td>Truncation</td><td>The answer cut off the end of a 7k prompt</td><td>Length 24,576, and drop-and-count rather than truncate</td></tr>
+        <tr><td>Forgetting lookups</td><td>Number-turn accuracy falls</td><td>Number turns kept at their natural share; accuracy by turn type at every checkpoint</td></tr>
+        <tr><td>Noise picks the checkpoint</td><td>The pick falls back on test</td><td>2 passes per checkpoint and 4 for the final comparison</td></tr>
+        <tr><td>A gain too small to show on test</td><td>+2 on val, not significant on test</td><td>Said before we look: test 100 confirms only about +4 or more</td></tr>
+        <tr><td>The control isn't a control</td><td>The arms differ in data, steps or selection, so a gap between them can't be pinned on the wrong tries</td><td>Same tries, order, seed, epochs, checkpoints and val passes. Only the loss and its learning rate differ, and that's stated</td></tr>
+        <tr><td>Val chooses twice</td><td>The winner's val score is flattering, because val picked both its checkpoint and its arm</td><td>The 4 final passes are fresh samples; test 100, opened once, is the unbiased number</td></tr>
+        <tr><td>Cost overrun</td><td>—</td><td>Sampling projected after 300 conversations; the hard cap (D6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="decisions">
+  <span class="eyebrow">10</span>
+  <h2>Decisions</h2>
+  <p class="sub">The recommended option is preselected in each. Queue your answers, or change any of them. Once they're back I'll build in phase order and stop at P0's gate, and at any gate that fails.</p>
+
+  <div class="qgrid">
+  <form class="q" data-lavish-question="D1-measure-first" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D1 measure first: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · Measure the flip share first?</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="measure first: fix the retry budget, score sft2-e1 4x on val, build only if at least 15% of clean program turns flip"><span><b>Measure first</b> <span class="badge rec">recommended</span><span class="d">Fix the retry budget, then 4 val passes of sft2-e1 (≈ $3). Build only if at least 15% of clean program turns flip.</span></span></label>
+      <label><input type="radio" name="d1" value="build straight away; P3's first 300 conversations measure the yield" checked><span><b>Build straight away</b> <span class="badge ok">your call, 11 Nov</span><span class="d">The first 300 sampled conversations show the yield anyway, but after the build.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D2-chosen-source" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D2 where chosen comes from: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D2: '+v,element:f,data:{question:'D2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · Where does the chosen come from?</h3>
+    <fieldset>
+      <label><input type="radio" name="d2" value="on-policy only: the student's own right tries" checked><span><b>The student's own right tries only</b> <span class="badge rec">recommended</span><span class="d">The book's strongest advice is that pairs should include your own model's completions (ch11:L46, ch08:L305-306). Always-wrong questions give no pair.</span></span></label>
+      <label><input type="radio" name="d2" value="on-policy, plus Flash's right answer on the student's history for always-wrong questions (teacher rescue), only where Flash matches gold"><span><b>Plus a Flash rescue on always-wrong questions</b><span class="d">About 230–310 more pairs, where GRPO can't reach. Off-policy chosen, a few dollars of DeepSeek. The book: "Best practices on how to do this are not established" (ch09:L219).</span></span></label>
+      <label><input type="radio" name="d2" value="Flash's turn as the chosen everywhere"><span><b>Flash as the chosen everywhere</b><span class="d">More pairs, but in the teacher's voice, and it repeats what SFT already did.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D3-tries" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d3'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D3 tries per question: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D3: '+v,element:f,data:{question:'D3',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D3 · Tries per question</h3>
+    <fieldset>
+      <label><input type="radio" name="d3" value="8"><span><b>8</b><span class="d">≈ 1,250–1,850 pairs, ≈ $10–20 of sampling.</span></span></label>
+      <label><input type="radio" name="d3" value="4, then a selective top-up" checked><span><b>4, then top up</b> <span class="badge ok">your call, 11 Nov</span><span class="d">≈ 900 pairs for ≈ $5–10. Every try is stored, so a later top-up adds tries to the same groups (§04, P5t).</span></span></label>
+      <label><input type="radio" name="d3" value="16"><span><b>16</b><span class="d">The book suggests 10–30 or more completions per prompt for rejection sampling (ch09:L217). About twice the cost of 8.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D4-loss" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d4'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D4 loss: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D4: '+v,element:f,data:{question:'D4',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D4 · Loss</h3>
+    <fieldset>
+      <label><input type="radio" name="d4" value="DPO + NLL on the chosen (alpha 1, length-normalised), beta 0.1" checked><span><b>DPO + NLL on the chosen</b> <span class="badge rec">recommended</span><span class="d">The iterative reasoning recipe, built for verified right and wrong reasoning. Guards against displacement.</span></span></label>
+      <label><input type="radio" name="d4" value="plain DPO, beta 0.1"><span><b>Plain DPO</b><span class="d">The baseline loss. "Change the data before changing the loss" (ch08:L371).</span></span></label>
+      <label><input type="radio" name="d4" value="length-normalised DPO, beta about 2"><span><b>Length-normalised DPO</b><span class="d">For when chosen and rejected differ in length. Needs β ≈ 2 (<code>direct_alignment/README.md</code>:L139).</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D5-stack" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d5'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D5 stack: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D5: '+v,element:f,data:{question:'D5',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D5 · Training stack</h3>
+    <fieldset>
+      <label><input type="radio" name="d5" value="B: our own DPO step on the SFT stack" checked><span><b>B · Our own DPO step</b> <span class="badge rec">recommended</span><span class="d">The same renderer and mask as SFT, with the reference pinned to sft2-e1. About 150 lines.</span></span></label>
+      <label><input type="radio" name="d5" value="A: TRL DPOTrainer, after proving masking, reference and length"><span><b>A · TRL's DPOTrainer</b><span class="d">Maintained losses, but three behaviours to prove first.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D6-budget" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d6'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D6 budget: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D6: '+v,element:f,data:{question:'D6',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D6 · Budget</h3>
+    <fieldset>
+      <label><input type="radio" name="d6" value="pilot, then the full run and the RFT arm, cap $90" checked><span><b>Pilot, then the full run and the RFT arm, cap $90</b> <span class="badge rec">recommended</span><span class="d">Continues past the pilot only if its gates pass.</span></span></label>
+      <label><input type="radio" name="d6" value="pilot only, then review (about $14)"><span><b>Pilot only, then review</b><span class="d">≈ $14, through P5. The RFT arm doesn't run yet.</span></span></label>
+      <label><input type="radio" name="d6" value="pilot, full run, RFT arm and round 2, cap $125"><span><b>Through round 2, cap $125</b><span class="d">Adds P8: re-sample from the winning arm and train its round 2.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D7-rft-data" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d7'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D7 RFT arm data: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D7: '+v,element:f,data:{question:'D7',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D7 · Which right tries does the RFT arm train on?</h3>
+    <p class="note">You decided in chat (2026-11-09) that the RFT arm runs alongside DPO. This picks its data.</p>
+    <fieldset>
+      <label><input type="radio" name="d7" value="matched: the chosen side of every DPO train pair" checked><span><b>Matched: the chosen side of every pair</b> <span class="badge rec">recommended</span><span class="d">≈ 1,250–1,850 rows. The only difference from DPO is the rejected side, so the readout can name what the wrong tries added.</span></span></label>
+      <label><input type="radio" name="d7" value="wide: one right try at every question with any right try, always-right questions included (about +$10)"><span><b>Wide: textbook rejection sampling</b><span class="d">One right try at every question that has one, always-right questions included: ≈ 3,600 rows (ch09:L41-44). It asks whether more of the student's own right answers beats DPO, but it differs from DPO in data as well as loss. ≈ +$10. In the iterative reasoning paper, doubling STaR's data only moved it from 65.2% to 66.9% on GSM8K.</span></span></label>
+      <label><input type="radio" name="d7" value="both: a matched and a wide RFT arm (about +$25)"><span><b>Both</b><span class="d">Two RFT arms, ≈ +$25 with their val passes. Answers both questions.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="D8-test100" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d8'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('D8 test 100: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D8: '+v,element:f,data:{question:'D8',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D8 · Test 100</h3>
+    <fieldset>
+      <label><input type="radio" name="d8" value="once, for the val pick, after I say so" checked><span><b>Once, for the val pick, on your word</b> <span class="badge rec">recommended</span><span class="d">As for sft1 and sft2. Only about +4 or more reads as significant.</span></span></label>
+      <label><input type="radio" name="d8" value="not this round; val only"><span><b>Not this round</b><span class="d">Keep test sealed until a second round.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+  </div>
+
+  <div class="copyall">
+    <button type="button" class="btn" onclick="(async (btn) => {
+      const copyRun = btn._lavishCopyRun = (btn._lavishCopyRun || 0) + 1;
+      const qs = [...document.querySelectorAll('[data-lavish-question]')];
+      const status = btn.parentElement.querySelector('[data-lavish-copy-all-status]');
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const out = [];
+      for (const q of qs) {
+        const key = q.getAttribute('data-lavish-question')?.trim() || 'Question';
+        const lines = [];
+        for (const el of q.querySelectorAll('input, select, textarea')) {
+          if (el.matches(':disabled')) continue;
+          if (el.closest('[data-lavish-question]') !== q) continue;
+          const isChoice = el.matches('input[type=checkbox], input[type=radio]');
+          if (isChoice && !el.checked) continue;
+          if (el.matches('input[type=button], input[type=submit], input[type=reset], input[type=image], input[type=hidden], input[type=file], input[type=range], input[type=color]')) continue;
+          let vals;
+          if (el instanceof HTMLSelectElement) {
+            vals = [...el.selectedOptions].filter((o) => !o.disabled && !o.closest('optgroup[disabled]')).map((o) => o.value.trim()).filter(Boolean);
+          } else {
+            const v = isChoice && (!el.hasAttribute('value') || !el.value.trim())
+              ? el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.name || ''
+              : el.value.trim();
+            vals = v ? [v] : [];
+          }
+          const label = el.name || el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.getAttribute('placeholder')?.trim() || el.tagName.toLowerCase();
+          for (const v of vals) lines.push('  ' + label + ': ' + v.split('\n').join('\n    '));
+        }
+        if (lines.length) out.push(key + ':\n' + lines.join('\n'));
+      }
+      const text = out.join('\n\n');
+      if (!text) {
+        status.textContent = qs.length ? 'No answers to copy yet.' : 'No questions or answers to copy.';
+        return;
+      }
+      status.textContent = '';
+      try {
+        if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('Clipboard API unavailable');
+        await navigator.clipboard.writeText(text);
+        if (copyRun !== btn._lavishCopyRun) return;
+        status.textContent = 'Answers copied.';
+        return;
+      } catch {}
+      if (copyRun !== btn._lavishCopyRun) return;
+      const tmp = document.createElement('textarea');
+      tmp.value = text;
+      tmp.readOnly = true;
+      tmp.setAttribute('aria-hidden', 'true');
+      tmp.style.position = 'fixed';
+      tmp.style.left = '-10000px';
+      document.body.append(tmp);
+      tmp.focus();
+      tmp.select();
+      let ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch {}
+      tmp.remove();
+      if (ok) {
+        status.textContent = 'Answers copied.';
+        return;
+      }
+      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
+      const man = document.createElement('textarea');
+      man.value = text;
+      man.readOnly = true;
+      man.rows = Math.min(12, Math.max(3, text.split('\n').length));
+      man.setAttribute('aria-label', 'Answers to copy manually');
+      man.dataset.lavishCopyAllManual = '';
+      btn.insertAdjacentElement('afterend', man);
+      man.focus();
+      man.select();
+      status.textContent = 'Clipboard unavailable. Copy the answers below manually.';
+    })(this)">Copy all answers</button>
+    <span data-lavish-copy-all-status role="status" aria-live="polite"></span>
+  </div>
+  <p class="note">Reading this away from Lavish? Pick your options, tap Copy all answers, and paste the result into the chat.</p>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <h3>Sources</h3>
+  <ul>
+    <li><b>Repo.</b> <code>evaluation/fine_tuning.json</code> (every student pass, by turn type) · <code>runs/sft/20261025T113733Z_train_sft2/</code> (run.json, mask.json, <code>checkpoint-58</code>) · <code>src/convfinqa/sft/configs/sft_v2.yaml</code> · <code>sft/rows.py</code> (<code>turn_messages</code>) · <code>sft/train/mask.py</code> · <code>sft/trajectories.py</code> · <code>evalloop/runner.py</code> (<code>_log_trajectories</code>) · <code>backends/open_agent.py</code>:170 (<code>Agent(…)</code>, <code>ToolOutput(max_retries=…)</code>), <code>_ask</code> · <code>evaluation/metrics.py</code> (<code>numeric_match</code>) · <code>evaluation/sft/v1/</code>, <code>v2/stats.json</code> · <code>evaluation/sft/trajectories/</code>.</li>
+    <li><b>Carried from s31</b> (<code>.lavish/s31_rl-plan.html</code>, measured then): the fresh-pool counts, the val flip shares from the four sft2 checkpoints, the 19 wrong-sign answers in 6,984, the retry-budget bug, token counts per try, and Modal throughput and price per token.</li>
+    <li><b>RLHF book</b> (Lambert), from <code>rlhfbook-deepdive/sources/rlhf-book/</code> at pin <code>929727f</code>. Chapters as chNN:line (<code>book/chapters/</code>): ch08 direct alignment (L51, L55, L89, L243, L258-265, L297, L305-308, L346-347, L371), ch09 rejection sampling (L41-44, L216-219), ch11 preference data (L46, L51-53, L137-148), ch13 tools (L212, L296, L332), ch14 (L142), ch15 regularization (L133-146, L163), appendix-c (L83). Code: <code>code/direct_alignment/</code> (loss.py, config.py, train.py, README.md, configs/dpo.yaml, experiments/). Lecture 6 slides, and Conversation 2 at 40:30.</li>
+    <li><b>Methods.</b> Rafailov et al. 2023, <a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a> · Pang et al. 2024, <a href="https://arxiv.org/abs/2404.19733">Iterative Reasoning Preference Optimization</a> (Table 1's STaR rows are the SFT-on-chosen control; Figures 2–3 the log-probs with and without NLL) · Thinking Machines 2025, <a href="https://thinkingmachines.ai/blog/lora/">LoRA Without Regret</a>.</li>
+    <li><b>Tools.</b> <a href="https://huggingface.co/docs/trl/main/en/dpo_trainer">TRL DPOTrainer docs</a> (tool calling, PEFT, <code>precompute_ref_log_probs</code>, <code>loss_type</code>, the <code>max_length</code> default of 1,024, β 0.1, learning rate 1e-6, ≈ 1e-5 for adapters, <code>disable_dropout</code>). The repo pins TRL 1.16.0; the docs describe main. <a href="https://modal.com/pricing">Modal pricing</a>: L4 $0.000222/s, H100 $0.001097/s.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

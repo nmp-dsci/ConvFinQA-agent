@@ -1,0 +1,74 @@
+{
+ "set": "dev",
+ "hint": "h3",
+ "questions": 58,
+ "questions_gated": 38,
+ "tries": 116,
+ "gate_pass_rate": {
+  "G1_answer": 1.0,
+  "G2_executes": 0.974,
+  "G5_no_leak": 0.586,
+  "G6_clean": 0.914,
+  "passed": 0.534
+ },
+ "by_kind_gated": {
+  "program": "38/58",
+  "number": "0/0"
+ },
+ "judge_calls": 222,
+ "arms": {
+  "T": {
+   "n_questions": 37,
+   "score": 0.6622,
+   "ci95": [
+    0.527,
+    0.7857
+   ],
+   "both_right": 22,
+   "split": 5,
+   "both_wrong": 10,
+   "slot_A_rate": 0.5135,
+   "mean_confidence": 0.624
+  },
+  "C0": {
+   "n_questions": 37,
+   "score": 0.4189,
+   "ci95": [
+    0.2941,
+    0.5429
+   ],
+   "both_right": 10,
+   "split": 11,
+   "both_wrong": 16,
+   "slot_A_rate": 0.5946,
+   "mean_confidence": 0.603
+  },
+  "C2": {
+   "n_questions": 37,
+   "score": 1.0,
+   "ci95": [
+    1.0,
+    1.0
+   ],
+   "both_right": 37,
+   "split": 0,
+   "both_wrong": 0,
+   "slot_A_rate": 0.5,
+   "mean_confidence": 0.972
+  }
+ },
+ "T_minus_C0": {
+  "n": 37,
+  "delta": 0.2432,
+  "ci95": [
+   0.0641,
+   0.4167
+  ]
+ },
+ "verdict": {
+  "C2_power_ok": true,
+  "C0_position_ok": true,
+  "T_indistinguishable": false,
+  "passed": false
+ }
+}

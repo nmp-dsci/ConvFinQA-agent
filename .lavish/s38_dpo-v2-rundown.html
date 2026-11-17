@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DPO v2 rundown</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+  td{ overflow-wrap:anywhere; }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .kpis > *{ min-width:0; }
+  .kpi .v{ font-family:var(--mono); font-size:var(--t3); font-variant-numeric:tabular-nums; }
+  .kpi .l{ font-size:var(--t-1); color:var(--muted); }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  code{ overflow-wrap:anywhere; }
+  footer li{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s38 · ConvFinQA-agent · 2026-11-13 · results + plan · DPO v1 full scored, DPO v2 data built · branch <code>dpo</code></div>
+  <h1>DPO v1 on all 2,306 pairs lifts val to <em>82.7%, +6.3 points, significant</em>. DPO v2 adds the teacher's 372 pairs on questions the student never got right.</h1>
+  <p class="lead">The 400-pair pilot moved val by +1.1 points, within noise. The full set, one epoch from sft2-e1, moves it +6.3 points with conversation-clustered one-sided p = 0.005. That's the first student change since sft2 to clear the project's promotion bar on val. DPO v2's data is built and not yet trained: v1's pairs plus 372 pairs whose chosen is the teacher's right turn on a question the student got wrong 8 times out of 8.</p>
+  <div class="kpis">
+    <div class="card kpi"><div class="v">82.7%</div><div class="l">dpo1-full, step 144, on <code>sft_v1</code> val (sft2-e1: 76.4%)</div></div>
+    <div class="card kpi"><div class="v">33 / 10</div><div class="l">questions fixed / broken against sft2-e1, in 27 conversations</div></div>
+    <div class="card kpi"><div class="v">p = 0.005</div><div class="l">one-sided, cluster-corrected McNemar (bar: 0.05)</div></div>
+    <div class="card kpi"><div class="v">2,678</div><div class="l">DPO v2 train pairs: 2,306 student + 372 teacher</div></div>
+    <div class="card kpi"><div class="v">≈ 10.5 h · ≈ $18</div><div class="l">DPO v2 on one A10G, one epoch (estimate from v1 full)</div></div>
+  </div>
+</header>
+
+<section id="v1">
+  <span class="eyebrow">01</span>
+  <h2>DPO v1: the pilot was too small, <em>the full set works</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:24%">sft_v1 val (100 conv, 365 q, checked harness, T 0.7)</th><th class="sc">sft2-e1</th><th class="sc">pilot e1</th><th class="sc">pilot e2</th><th class="sc">full · step 72</th><th class="sc">full · step 144</th></tr></thead>
+      <tbody>
+        <tr><td>Train pairs · epochs</td><td class="sc">—</td><td class="sc">400 · 1</td><td class="sc">400 · 2</td><td class="sc">2,306 · ½</td><td class="sc">2,306 · 1</td></tr>
+        <tr><td><b>Accuracy</b></td><td class="sc">76.4%</td><td class="sc">77.5%</td><td class="sc">77.5%</td><td class="sc">79.7%</td><td class="sc"><b>82.7%</b></td></tr>
+        <tr><td>Fixed / broken vs sft2-e1</td><td class="sc">—</td><td class="sc">26 / 22</td><td class="sc">20 / 16</td><td class="sc">28 / 16</td><td class="sc"><b>33 / 10</b></td></tr>
+        <tr><td>One-sided cluster p</td><td class="sc">—</td><td class="sc">0.36</td><td class="sc">0.34</td><td class="sc">0.10</td><td class="sc"><b>0.005</b></td></tr>
+        <tr><td>95% cluster bootstrap CI on Δ</td><td class="sc">—</td><td class="sc">−5.4…+7.1</td><td class="sc">−4.3…+6.1</td><td class="sc">−1.9…+8.5</td><td class="sc"><b>+1.6…+11.2</b></td></tr>
+        <tr><td>Program turns (234)</td><td class="sc">70.1%</td><td class="sc">69.7%</td><td class="sc">71.8%</td><td class="sc">74.8%</td><td class="sc">77.4%</td></tr>
+        <tr><td>Number turns (131)</td><td class="sc">87.8%</td><td class="sc">91.6%</td><td class="sc">87.8%</td><td class="sc">88.5%</td><td class="sc">92.4%</td></tr>
+        <tr><td>Held-out pair reward accuracy · margin</td><td class="sc">—</td><td class="sc">0.62 · 0.17</td><td class="sc">0.67 · 0.23</td><td class="sc">0.73 · 0.44</td><td class="sc">0.73 · 0.60</td></tr>
+        <tr><td>Chosen / rejected log-prob change (nats)</td><td class="sc">—</td><td class="sc"></td><td class="sc">−5.0 / −7.3</td><td class="sc">−10.0 / −14.4</td><td class="sc">−9.5 / −15.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card"><span class="badge">what moved</span><h3>Program turns, +7.3 points</h3><p>The DPO pairs are 80% program turns, and that's where the gain is: 70.1% → 77.4%. Number turns gain +4.6. The chosen answers lost likelihood (−9.5 nats), but the rejected lost more (−15.5) and val went up, so the displacement hasn't hurt.</p></div>
+    <div class="card"><span class="badge">caveats</span><h3>Val picked it; test hasn't seen it</h3><p>Val chose step 144 over step 72, so its 82.7% is slightly optimistic. Test 100, the student's holdout, is the unbiased number and opens only on your word (D1). One step-144 conversation hit a server 502 and was re-run whole with <code>--resume-from</code>, under the project's rule.</p></div>
+  </div>
+</section>
+
+<section id="data">
+  <span class="eyebrow">02</span>
+  <h2>DPO v2's data: v1's pairs plus <em>372 teacher pairs</em> on the student's 0/8 questions</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:24%">Source</th><th class="sc" style="width:10%">Train pairs</th><th class="sc" style="width:10%">Questions</th><th>Chosen · rejected</th></tr></thead>
+      <tbody>
+        <tr><td>v1: student vs student (s34/s35)</td><td class="sc">2,306</td><td class="sc">584</td><td>A right try of the student · a wrong try of the student, same prompt, cap 4, strict check</td></tr>
+        <tr><td><b>New: teacher vs student</b> (s37)</td><td class="sc"><b>372</b></td><td class="sc"><b>102</b></td><td>llm_react_v1's right turn, spliced into the <b>student's</b> history · the student's own wrong tries (distinct answers first), cap 4</td></tr>
+        <tr><td><b>DPO v2 train</b></td><td class="sc"><b>2,678</b></td><td class="sc"><b>686</b></td><td>2,122 program · 556 number; q0 1,328 · q1 618 · q2 543 · q3 189</td></tr>
+        <tr><td>Eval (held out)</td><td class="sc">100</td><td class="sc"></td><td>v1's 100 pairs, byte-identical (sha256 8a5bb239…), so the curves compare with v1 full. The teacher's 41 eval-split pairs are held back</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 style="margin-top:var(--s5)">Where the teacher pairs came from</h3>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:34%">Step</th><th class="sc" style="width:12%">Count</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Student 0/8 questions (8 tries, all wrong)</td><td class="sc">438</td><td>s35; they also block 499 later questions</td></tr>
+        <tr><td>Teacher right, run 1 · run 2 · either</td><td class="sc">103 · 98 · 119</td><td>Two passes of DeepSeek Flash over the 438 conversations; run 2 added 16. The two runs gave the same wrong answer on 273 of the 319 they both missed</td></tr>
+        <tr><td>…with the teacher's own earlier turns right</td><td class="sc">114</td><td>So its turn's references to earlier answers match the student's history</td></tr>
+        <tr><td>Rendered pairs</td><td class="sc">413</td><td>372 train · 41 eval. Skipped: 32 harness retries (F5), 8 N1, 3 prompts differ</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card"><span class="badge warn">watch</span><h3>Teacher chosens are twice as long</h3><p>Mean chosen 1,533 student tokens against 706 for the rejected: DeepSeek's thinking becomes the visible reasoning block, as it did in SFT. DPO sums log-probs, so a longer chosen starts at a lower likelihood. The length-normalised NLL term holds it up. DPO v2 reports reward accuracy and log-prob change <b>per source</b> so a length artefact shows. Longest row 12.7k tokens (v1: 10.4k); v1 peaked at 14.5 GB of 24 GB.</p></div>
+    <div class="card"><span class="badge">on-policy-ish</span><h3>Why a teacher chosen is reasonable</h3><p>The student was SFT'd on exactly this writer's turns, so its style is what the student learned. The prompt is the student's own, so chosen and rejected share it byte for byte, the same as v1. Every row passes v1's row check and token-span check.</p></div>
+  </div>
+</section>
+
+<section id="rev1">
+  <span class="eyebrow">03a · revision 1 · owner's direction, 2026-11-13</span>
+  <h2>DPO v2 continues from <em>dpo1-full step 144</em>, the champion; the data question</h2>
+  <p>Every round now starts from the latest champion. The trainer builds its frozen reference from <code>init_adapter</code>, so setting it to <code>20261112T230944Z_train_dpo1-full/checkpoints/checkpoint-144</code> makes dpo1-full both the starting policy and the reference: the KL anchor moves with the champion, and there's no drift back toward sft2-e1. No code change is needed. §03 below is superseded where it says "from sft2-e1".</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:20%">Data for the round</th><th class="sc" style="width:9%">Pairs · steps</th><th>What happens</th><th style="width:16%">Time · cost</th></tr></thead>
+      <tbody>
+        <tr><td><b>Teacher 372 + v1 replay 372</b> <span class="badge rec">recommended</span></td><td class="sc">744 · 46</td><td>The new signal is the teacher pairs, the only pairs on questions the champion has never got right. An equal seeded slice of v1's pairs is replayed so the update doesn't narrow onto long teacher-style turns and forget the student-vs-student signal that produced +6.3. Reward accuracy and log-prob change are reported per source</td><td>≈ 3 h · ≈ $5</td></tr>
+        <tr><td>Teacher 372 only</td><td class="sc">372 · 23</td><td>The cleanest "did the teacher pairs help" test, but every pair has a chosen about twice as long as its rejected, so the step is a length push as much as a correctness push. With 23 steps the result is also noisy</td><td>≈ 1.5 h · ≈ $3</td></tr>
+        <tr><td>All 2,678 (v1 + teacher)</td><td class="sc">2,678 · 168</td><td>Replays v1's 2,306 pairs a second time on a model that has already learned them (train reward accuracy ≈ 0.85). With the reference reset to dpo1-full their margin starts again at 0, so DPO pushes them further: more likelihood displacement for little new information</td><td>≈ 10.5 h · ≈ $18</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card"><span class="badge warn">off-policy</span><h3>Every pair was sampled from sft2-e1, not the champion</h3><p>The rejected sides are sft2-e1's wrong tries. dpo1-full now gets some of those questions right, so part of the data teaches it to avoid mistakes it no longer makes. That's fine for one round. The proper iterative loop resamples the champion: 8 tries on <code>dpo_v1</code> as in s34 (≈ $18–25, ≈ 6 h), then fresh student pairs on its own mistakes plus teacher backfill on its own 0/8 questions.</p></div>
+    <div class="card"><span class="badge">more teacher trials?</span><h3>Not on the same 438: ≈ 30 pairs a run</h3><p>Run 2 added 16 questions; run 3 would add perhaps 8–10 (about 30 pairs). More teacher pairs come cheaper from <b>new questions</b>: (1) the 219 questions where the student was right only 1–3 times in 8 (a teacher chosen adds variety where right tries are scarce), and (2) the champion's own 0/8 questions once it's resampled, which differ from sft2-e1's. One teacher run over a set costs ≈ $1–2 off-peak.</p></div>
+  </div>
+</section>
+
+<section id="recipe">
+  <span class="eyebrow">03</span>
+  <h2>The DPO v2 run: <em>v1 full's recipe, one change: the data</em></h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:24%">Setting</th><th>DPO v2 (proposed)</th><th style="width:30%">Why</th></tr></thead>
+      <tbody>
+        <tr><td>Start</td><td>sft2-e1 (policy and frozen reference), as v1 full</td><td>One change at a time: v2 − v1 full is then the teacher pairs' effect</td></tr>
+        <tr><td>Data</td><td><code>dpo_v2</code>: 2,678 train · same 100 eval; built locally at <code>evaluation/dpo/v1/dpo_v2/</code>, not uploaded</td><td></td></tr>
+        <tr><td>Loss</td><td>DPO sigmoid, β 0.1, + 1.0 × length-normalised chosen NLL</td><td>Unchanged; the NLL term matters more with longer chosens</td></tr>
+        <tr><td>Optimiser</td><td>lr 2e-5, warmup 5%, 1 epoch, grad accumulation 16 → 168 steps, seed 2035</td><td>Unchanged</td></tr>
+        <tr><td>Checkpoints scored on val</td><td>Two: half an epoch (step 84) and the end (step 168)</td><td>As for v1 full</td></tr>
+        <tr><td>Bar</td><td>Paired on val against <b>dpo1-full step 144 (82.7%)</b>, the project's rule (net positive and one-sided cluster p &lt; 0.05). Against sft2-e1 as well, for the record</td><td>v2 must beat v1, not just sft2</td></tr>
+        <tr><td>Time · cost</td><td>≈ 2.5 h reference + ≈ 8 h of steps ≈ <b>10.5 h, ≈ $18</b> on an A10G; 20 h cap</td><td>v1 full: 8.8 h, $12.83 at the L4 list price (it ran on an A10G)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub"><b>A cheaper alternative (D2):</b> continue from dpo1-full step 144 on the 372 teacher pairs only, about 1.5 h and $3. Faster, but it changes two things at once (more steps, and the new data), and continued DPO drifts from the reference, so it's less clean as evidence.</p>
+</section>
+
+<section id="next">
+  <span class="eyebrow">04</span>
+  <h2>What is left of the 0/8 questions after the teacher</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th style="width:30%">Still uncovered (319 of 438)</th><th class="sc" style="width:10%">≈ Qs</th><th>Route</th></tr></thead>
+      <tbody>
+        <tr><td>Scorer artifacts: right at gold's precision</td><td class="sc">40</td><td>Not student errors. Drop them, or use the student's own trace in gold's answer form (s37 D2)</td></tr>
+        <tr><td>Gold contradicts its own program</td><td class="sc">53</td><td>Exclude, and log them as gold-suspect</td></tr>
+        <tr><td>Sign convention · form / rounding</td><td class="sc">≈ 55</td><td>s36 builder with gold's program · rewrite the student's answer form</td></tr>
+        <tr><td>Genuinely wrong</td><td class="sc">≈ 170</td><td>s36 builder: Flash given gold, gates G1–G6, Haiku 5.5 judge; validated on the sealed 300 before use. Feeds a DPO v3, not v2</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">More teacher runs aren't worth it: run 2 added 16 questions, in line with the +12–25 estimate, and the misses are stable. A third run would add perhaps 8–10.</p>
+
+  <form class="q" data-lavish-question="s38-D1" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s38 D1 test 100 for dpo1-full: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D1: '+v,element:f,data:{question:'D1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D1 · Open test 100 for dpo1-full step 144?</h3>
+    <fieldset>
+      <label><input type="radio" name="d1" value="yes, score dpo1full-e1 once on test 100" checked><span><b>Yes, once</b> <span class="badge rec">recommended</span> It cleared the promotion bar on val. Test is the unbiased number to put beside sft2-e1's 81.4% and the teacher's 87.7%. A few minutes, well under $1.</span></label><br>
+      <label><input type="radio" name="d1" value="no, wait for DPO v2 and open test once for the better of the two"><span><b>Wait for DPO v2</b> Open test once, for whichever of v1 full and v2 wins on val.</span></label>
+    </fieldset>
+    <textarea placeholder="note (optional)"></textarea>
+    <button type="submit">Queue</button> <span class="queued"></span>
+  </form>
+
+  <form class="q" data-lavish-question="s38-D2" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('d2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('s38 D2 DPO v2 run: '+v+(n?' — note: '+n:''),{tag:'choice',text:'D2: '+v,element:f,data:{question:'D2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>D2 · Launch DPO v2</h3>
+    <fieldset>
+      <label><input type="radio" name="d2" value="launch DPO v2 from sft2-e1 on all 2,678 pairs, 1 epoch (≈10.5 h, ≈$18)" checked><span><b>From sft2-e1, all 2,678 pairs</b> <span class="badge rec">recommended</span> A clean single change against v1 full.</span></label><br>
+      <label><input type="radio" name="d2" value="continue from dpo1-full step 144 on the 372 teacher pairs only (≈1.5 h, ≈$3)"><span><b>Continue from dpo1-full on the 372 only</b> Cheap; the evidence is muddier.</span></label><br>
+      <label><input type="radio" name="d2" value="hold DPO v2 until the s36 builder adds the remaining 0/8 questions"><span><b>Hold</b> Wait for the s36 builder, and train once with everything.</span></label>
+    </fieldset>
+    <textarea placeholder="note (optional)"></textarea>
+    <button type="submit">Queue</button> <span class="queued"></span>
+  </form>
+</section>
+
+<footer>
+  <ul>
+    <li>DPO v1 full: <code>runs/sft/20261112T230944Z_train_dpo1-full</code> (config <code>dpo1_full.yaml</code>, 144 steps, 13.79 s/pair, peak 14.5 GB, A10G). Val passes <code>…dpo1full-e0p5-none-20261113_214419.csv</code> and <code>…dpo1full-e1-none-20261113_225039.csv</code> (resumed from <code>…_214419</code>); baseline <code>…sft2-e1-none-20261026_020116.csv</code>. Stats from <code>evalloop.gate.gate_runs</code> and <code>comparator.cluster_bootstrap_ci</code>.</li>
+    <li>Teacher runs: <code>open-evalloop-train438-…-20261113_202234</code> and <code>…_212051</code> (off-peak); pairs <code>evaluation/dpo/v1/rows_teacher_r2_cap4.jsonl.gz</code> + card; builder <code>src/convfinqa/dpo/teacher.py</code> (<code>convfinqa-dpo teacher-pairs</code>).</li>
+    <li>DPO v2 data: <code>evaluation/dpo/v1/dpo_v2/</code> (train sha256 from <code>stats.json</code>), eval identical to v1's. Test 100 has not been opened for any DPO checkpoint.</li>
+  </ul>
+</footer>
+</main>
+</body>
+</html>

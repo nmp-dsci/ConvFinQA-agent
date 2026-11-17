@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en" data-lavish-annotate="off">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DPO sampling results</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* layout only; every colour is a house token */
+  .tablewrap td, .tablewrap th{ vertical-align:top; }
+  table.fx{ table-layout:fixed; min-width:640px; }
+  table.fx.narrow{ min-width:460px; }
+  table.fx th{ white-space:normal; }
+  td.sc, th.sc{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .note{ display:block; font-family:var(--sans); font-size:var(--t-2); color:var(--muted); margin-top:2px; }
+  .up{ color:var(--accent); font-weight:600; }
+  .down{ color:var(--red); font-weight:600; }
+  .two{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:var(--s4); margin-top:var(--s4); }
+  .two > *{ min-width:0; }
+  .three{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); margin-top:var(--s4); }
+  .three > *{ min-width:0; }
+  .three .card p, .two .card p{ margin:var(--s1) 0 0; font-size:var(--t-1); }
+  .card h3{ margin:var(--s1) 0 0; }
+  .bar{ display:inline-block; height:10px; background:var(--accent); border-radius:2px; vertical-align:middle; margin-right:6px; }
+  .bar.w{ background:var(--red); }
+  .bar.m{ background:var(--amber); }
+  form.q{ margin-top:var(--s4); }
+  form.q fieldset{ border:0; padding:0; margin:var(--s2) 0 0; }
+  form.q textarea{ width:100%; min-height:48px; margin-top:var(--s2); }
+  footer{ font-size:var(--t-1); }
+  footer ul{ padding-left:1.1em; }
+  footer li{ overflow-wrap:anywhere; }
+  code{ overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">s34 · ConvFinQA-agent · 2026-11-12 · findings · DPO round 3, sampling (s33 P3) · branch <code>dpo</code></div>
+  <h1>The first 300 conversations give 86 pairs. <em>The full pool projects to about 430, half the plan's 900.</em></h1>
+  <p class="lede">sft2-e1 answered every question of the first 300 conversations of <code>dpo_v1</code> 4 times, on its own history, through the harness it was scored on. Single-try accuracy is where val and test said it would be (79.9%). But it flips less often than s31's val passes suggested (11.4% of questions, not 15%), and most flips have only one wrong try, so they give one pair, not two. That misses s33's P3 gate (≥800 projected pairs). It is still enough for the pilot (≈400). Sampling has stopped at 300 so you can choose the next step below.</p>
+
+  <div class="verdict">
+    <div class="stat"><div class="n">79.9%</div><div class="l">single-try accuracy, 2,454 / 3,072 graded tries. Program turns 75.5%, number turns 90.5%. sft2-e1 scored 76.4% on val and 81.4% on test</div></div>
+    <div class="stat red"><div class="n">86 pairs</div><div class="l">from 88 flip questions out of 770 reached. Projected to all 1,489 conversations: <b>≈ 430</b>, against the plan's ≈ 900 and the P3 gate of 800</div></div>
+    <div class="stat amber"><div class="n">26%</div><div class="l">of pairs (22 of 86) reject the right number with the wrong sign. That is the most common mistake DPO would push down</div></div>
+    <div class="stat accent"><div class="n">$1.45</div><div class="l">of L4 time for 107 min, 3,080 tries. The full pool projects to ≈ $7 and ≈ 9 h in total, about 7 h more</div></div>
+  </div>
+
+  <div class="callout">
+    <p><b>Your question: yes.</b> Every try here comes from <code>dpo_v1</code>, the train-side fresh pool (289 train and 11 eval-slice conversations so far). None of its pages are shared with val or test; the manifest asserts that. Val (<code>sft_v1</code> val) only picks among the updated LoRA's checkpoints. Test 100 is scored once, for the pick, and only on your word.</p>
+  </div>
+</header>
+
+<section id="run">
+  <span class="eyebrow">01</span>
+  <h2>What ran</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Policy</td><td><code>student-qwen3-4b-sft2-e1</code> on the Modal vLLM server (one L4)</td></tr>
+        <tr><td>Harness</td><td><code>pydantic_ai_checked</code>, unchanged, so the tries match sft2-e1's scored passes. The retry-budget bug is still in</td></tr>
+        <tr><td>System prompt</td><td><code>student_v1@819137b9</code>, the same hash as all 17 recorded student runs</td></tr>
+        <tr><td>Sampler</td><td>T 0.7 · top_p 0.8 · top_k 20 · max 4,096 tokens · no seed</td></tr>
+        <tr><td>Tries per question</td><td>4, concurrently, each from a fresh agent on the same stored history</td></tr>
+        <tr><td>Conversations</td><td>the first 300 in <code>dpo_v1</code>'s seeded order (5 in the smoke test, then 295), 888 questions</td></tr>
+        <tr><td>Concurrency</td><td>24 conversations. Throughput rose only from 0.40 to 0.47 tries/s compared with 5, so the server, not the client, is the limit</td></tr>
+        <tr><td>Record</td><td><code>evaluation/dpo/v1/tries.jsonl</code> (300 lines), <code>sample_runs.jsonl</code>, <code>stats.json</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="yield">
+  <span class="eyebrow">02</span>
+  <h2>Measured against the plan</h2>
+  <p>Projections scale the 300 by 1,489 / 300 = 4.96. The order is a seeded shuffle, so the first 300 are a fair sample of the rest.</p>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Quantity</th><th class="sc">s33 plan (full pool)</th><th class="sc">Measured, 300</th><th class="sc">Projected, 1,489</th><th>Read</th></tr></thead>
+      <tbody>
+        <tr><td>Questions reached</td><td class="sc">≈ 88%</td><td class="sc">770 / 888 · 86.7%</td><td class="sc">≈ 3,820</td><td><span class="badge ok">on plan</span></td></tr>
+        <tr><td>Flip questions (some right, some wrong)</td><td class="sc">≈ 570 · 15%</td><td class="sc">88 · 11.4%</td><td class="sc">≈ 440</td><td><span class="badge warn">below</span></td></tr>
+        <tr><td>Pairs</td><td class="sc">≈ 900</td><td class="sc">86</td><td class="sc">≈ 430</td><td><span class="badge bad">misses the ≥800 gate</span></td></tr>
+        <tr><td>Always wrong (conversation stops)</td><td class="sc">≈ 340</td><td class="sc">116 · 15.1%</td><td class="sc">≈ 580</td><td><span class="badge warn">above</span></td></tr>
+        <tr><td>Sampling cost</td><td class="sc">$5–10</td><td class="sc">$1.45</td><td class="sc">≈ $7</td><td><span class="badge ok">on plan</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="three">
+    <div class="card"><span class="eyebrow">why 1</span><h3>Fewer flips</h3><p>s31's val passes put clean program turns at 17% flip and number turns at 9%. Here they are 13.2% and 7.1%. Val is harder than this pool, and 4 tries find fewer flips than 4 whole passes compared turn by turn.</p></div>
+    <div class="card"><span class="eyebrow">why 2</span><h3>One wrong try per flip</h3><p>43 of the 87 four-try flips are 3 right and 1 wrong, so they can only give one pair. 76 of 88 flips have a single distinct wrong answer. Pairs per flip came out at 0.98, not the ≈ 1.6 the plan assumed.</p></div>
+    <div class="card"><span class="eyebrow">why 3</span><h3>15 flips unpaired</h3><p>Round 1 pairs only clean tries. 175 tries (5.7%) needed a harness retry (H3 112, H2 55) or a schema correction (12), almost all on program turns. That leaves 15 of the 88 flips with no clean right or no clean wrong try.</p></div>
+  </div>
+</section>
+
+<section id="types">
+  <span class="eyebrow">03</span>
+  <h2>By turn type and position</h2>
+  <div class="two">
+    <div class="tablewrap">
+      <table class="fx narrow">
+        <thead><tr><th>Turn type</th><th class="sc">Questions</th><th class="sc">Single try</th><th class="sc">Flip</th><th class="sc">All wrong</th><th class="sc">Pairs</th></tr></thead>
+        <tbody>
+          <tr><td>Program</td><td class="sc">544</td><td class="sc">75.5%</td><td class="sc">13.2%</td><td class="sc">18.9%</td><td class="sc">65</td></tr>
+          <tr><td>Number</td><td class="sc">226</td><td class="sc">90.5%</td><td class="sc">7.1%</td><td class="sc">5.8%</td><td class="sc">21</td></tr>
+          <tr><td><b>All</b></td><td class="sc">770</td><td class="sc">79.9%</td><td class="sc">11.4%</td><td class="sc">15.1%</td><td class="sc">86</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tablewrap">
+      <table class="fx narrow">
+        <thead><tr><th>Question</th><th class="sc">Reached</th><th class="sc">Single try</th><th class="sc">Flip</th></tr></thead>
+        <tbody>
+          <tr><td>q0</td><td class="sc">300</td><td class="sc">77.1%</td><td class="sc">13.3%</td></tr>
+          <tr><td>q1</td><td class="sc">248</td><td class="sc">83.6%</td><td class="sc">8.5%</td></tr>
+          <tr><td>q2</td><td class="sc">147</td><td class="sc">82.9%</td><td class="sc">12.2%</td></tr>
+          <tr><td>q3</td><td class="sc">75</td><td class="sc">72.7%</td><td class="sc">12.0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p>Program turns give three quarters of the pairs and are where the gap to Flash is (s33 §01). 52 of the 116 stops are at q0, before any history, and q0 has the highest flip share. The first question is where most of the signal is.</p>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>Right tries out of 4</th><th class="sc">Questions</th><th>Share</th><th>Gives</th></tr></thead>
+      <tbody>
+        <tr><td>4 / 4</td><td class="sc">565</td><td><span class="bar" style="width:147px"></span>73.4%</td><td>nothing; a top-up could find a flip</td></tr>
+        <tr><td>3 / 4</td><td class="sc">43</td><td><span class="bar m" style="width:11px"></span>5.6%</td><td>1 pair</td></tr>
+        <tr><td>2 / 4</td><td class="sc">18</td><td><span class="bar m" style="width:5px"></span>2.3%</td><td>up to 2 pairs</td></tr>
+        <tr><td>1 / 4</td><td class="sc">26</td><td><span class="bar m" style="width:7px"></span>3.4%</td><td>1 pair</td></tr>
+        <tr><td>0 / 4</td><td class="sc">114</td><td><span class="bar w" style="width:30px"></span>14.8%</td><td>nothing; the conversation stops here</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">4 more questions had 2 tries graded and 2 dropped (2/2, 1/2, 0/2 twice).</p>
+</section>
+
+<section id="pairs">
+  <span class="eyebrow">04</span>
+  <h2>What the pairs look like, read by hand</h2>
+  <div class="tablewrap">
+    <table class="fx">
+      <thead><tr><th>Conversation · question</th><th>Question</th><th class="sc">Gold</th><th class="sc">Chosen</th><th class="sc">Rejected</th><th>The mistake</th></tr></thead>
+      <tbody>
+        <tr><td><code>Single_PM/2018</code> · q0</td><td>weighted average discount rate for postretirement plans in 2018?</td><td class="sc">3.97</td><td class="sc">3.97</td><td class="sc">−3.97</td><td>sign on a lookup</td></tr>
+        <tr><td><code>Single_C/2008</code> · q2</td><td>what was, then, the change over the year?</td><td class="sc">−9766</td><td class="sc">−9766</td><td class="sc">9766</td><td>subtraction the wrong way round</td></tr>
+        <tr><td><code>Double_AAPL/2011</code> · q3</td><td>what about the net change from 2009 to 2010?</td><td class="sc">−28</td><td class="sc">−28</td><td class="sc">28</td><td>subtraction the wrong way round</td></tr>
+        <tr><td><code>Double_AAL/2015</code> · q1</td><td>what percentage of that value corresponds to the first installment?</td><td class="sc">1.25%</td><td class="sc">1.25%</td><td class="sc">125%</td><td>percentage scale</td></tr>
+        <tr><td><code>Single_MRO/2007</code> · q1</td><td>are 2008's quarterly dividends per share greater than 2007's?</td><td class="sc">yes</td><td class="sc">yes</td><td class="sc">no</td><td>comparison</td></tr>
+        <tr><td><code>Single_PNC/2011</code> · q3</td><td>and considering if there were no loan sales in 2010?</td><td class="sc">125</td><td class="sc">125.0</td><td class="sc">78.0</td><td>wrong operand</td></tr>
+        <tr><td><code>Single_TSCO/2017</code> · q0</td><td>change in goodwill between the beginning of 2016 and …</td><td class="sc">82934</td><td class="sc">82934</td><td class="sc">−1225</td><td>wrong quantity</td></tr>
+        <tr><td><code>Double_BLK/2016</code> · q3</td><td>what proportion does this represent?</td><td class="sc">18.5%</td><td class="sc">18.5%</td><td class="sc">100%</td><td>divided a value by itself</td></tr>
+        <tr><td><code>Single_UNP/2016</code> · q1</td><td>what is that over the minimum value?</td><td class="sc">0.0852</td><td class="sc down">0.0931</td><td class="sc">9.3%</td><td><b>Both wrong.</b> The chosen passed only because the scorer rounds both sides to 0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="two">
+    <div class="card"><span class="eyebrow">finding</span><h3>A quarter of the pairs are sign flips</h3><p>In 22 of 86 pairs the rejected answer is exactly minus the chosen. The sign check also stopped 3 tries that <code>numeric_match</code> accepted with the wrong sign from becoming a chosen. Sign is the clearest single thing round 3 can teach.</p></div>
+    <div class="card"><span class="eyebrow">finding</span><h3>3 chosen answers are more than 2% off gold</h3><p><code>Single_UNP</code> (0.0931 for 0.0852) is wrong. <code>Double_ZBH</code> (4.2% for 4%) and <code>Double_VTR</code> (0.773 for 0.8) look like rounded gold. Rule 1 of <code>numeric_match</code> rounds both sides to an integer, so any two answers below 0.5 match. The pair labeller should add a relative tolerance, as it added the sign check (E2).</p></div>
+  </div>
+</section>
+
+<section id="harness">
+  <span class="eyebrow">05</span>
+  <h2>Harness, drops and cost</h2>
+  <div class="tablewrap">
+    <table class="fx narrow">
+      <thead><tr><th>What</th><th class="sc">Count</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Tries</td><td class="sc">3,080</td><td>770 questions × 4</td></tr>
+        <tr><td>Dropped (no answer)</td><td class="sc">8</td><td>6 <code>ModelTimeoutError</code>, 2 "no valid reply after 2 attempts". Counted, never rejected</td></tr>
+        <tr><td>H3 retry</td><td class="sc">112</td><td>graded, not clean</td></tr>
+        <tr><td>H2 retry</td><td class="sc">55</td><td>graded, not clean</td></tr>
+        <tr><td>Schema correction</td><td class="sc">12</td><td>graded, not clean</td></tr>
+        <tr><td>Aborted conversations (rate limit)</td><td class="sc">0</td><td></td></tr>
+        <tr><td>Tokens</td><td class="sc">1.75 M out</td><td>1.58 M uncached input, 39.2 M cache reads, 6,300 model turns</td></tr>
+        <tr><td>Wall time</td><td class="sc">107 min</td><td>about 22 s per conversation at concurrency 24; mean try latency 135 s, against 38 s at concurrency 5</td></tr>
+        <tr><td>L4 cost</td><td class="sc">$1.45</td><td>6,548 s × $0.000222/s. The latency figures say Modal kept one container; the server sets no <code>max_containers</code>, so this is a floor</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="taken">
+  <span class="eyebrow">06</span>
+  <h2>What I decided while building, and the gaps</h2>
+  <ol class="steps">
+    <li><b>D1 · built straight away</b> and <b>D3 · 4 tries</b>, as you chose on 11 Nov.</li>
+    <li><b>D2 · the student's own right tries only.</b> No Flash rescue. The 116 always-wrong questions give nothing.</li>
+    <li><b>The harness stays unchanged.</b> The retry-budget bug is still in, so the tries match what sft2-e1 was scored on. It cost 2 dropped tries out of 3,080.</li>
+    <li><b>No sampler seed.</b> vLLM's <code>seed</code> is null, so a re-run gives different tries. The tries are kept, so nothing needs re-running. Pairing and the kept try are seeded per question, so they reproduce from the record.</li>
+    <li><b>Gap: no MLflow run.</b> Sampling writes only to <code>evaluation/dpo/v1/</code>. A run with the manifest, sampler, prompt hash and stats should be logged before training, so the DPO run has a parent.</li>
+    <li><b>Gap: not built yet.</b> Pair rendering through <code>sft/rows.py</code> and the mask check, the top-up path, and <code>tries.jsonl.gz</code>. The record is ≈ 21 MB uncompressed at 300 conversations, so ≈ 105 MB for the pool. Gzipped, the 300 are 1.9 MB, so ≈ 9 MB for the pool.</li>
+  </ol>
+</section>
+
+<section id="decide">
+  <span class="eyebrow">07</span>
+  <h2>Your calls</h2>
+  <p>Sampling stopped at 300. Nothing more runs on Modal until you answer E1.</p>
+
+  <form class="q" data-lavish-question="E1-next-sampling" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('e1'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('E1 next sampling step: '+v+(n?' — note: '+n:''),{tag:'choice',text:'E1: '+v,element:f,data:{question:'E1',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>E1 · What runs next</h3>
+    <fieldset>
+      <label><input type="radio" name="e1" value="finish the pool at 4 tries (about 7 h, about $6) and build the top-up path meanwhile, then probe top-up yield on the first 300"><span><b>Finish the pool at 4 tries, build the top-up meanwhile</b> <span class="badge rec">recommended</span><span class="d">Every later choice needs the whole pool sampled. ≈ 430 pairs is enough for the P5 pilot. The top-up is then measured on the first 300 before it is run wider.</span></span></label>
+      <label><input type="radio" name="e1" value="build the top-up first and probe it on the first 300 conversations (about 30 min), then decide on the rest"><span><b>Probe the top-up on the 300 first</b><span class="d">About 30 min and $0.50 once it is built. Tells you whether 8 tries reach 800 pairs before you spend the 7 h.</span></span></label>
+      <label><input type="radio" name="e1" value="stop sampling; revisit the DPO plan"><span><b>Stop and rethink</b><span class="d">For example, go back to s31's GRPO, or run the RFT arm on its own.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="E2-chosen-tolerance" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('e2'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('E2 chosen tolerance: '+v+(n?' — note: '+n:''),{tag:'choice',text:'E2: '+v,element:f,data:{question:'E2',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>E2 · A tighter "right" for the chosen</h3>
+    <fieldset>
+      <label><input type="radio" name="e2" value="add a relative tolerance to the pair labeller (within 1% of gold, after percent scaling, or matching gold's rounding); eval metric unchanged" checked><span><b>Add a relative tolerance to the labeller</b> <span class="badge rec">recommended</span><span class="d">The chosen must be within 1% of gold, after percent scaling, or match gold to the precision gold is given at. Drops <code>Single_UNP</code>-type pairs. The eval metric stays as it is.</span></span></label>
+      <label><input type="radio" name="e2" value="keep numeric_match plus the sign check as the definition of right"><span><b>Keep it as is</b><span class="d">About 1 bad chosen in 86.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+
+  <form class="q" data-lavish-question="E3-gate" onsubmit="event.preventDefault(); const f=event.currentTarget; const v=new FormData(f).get('e3'); const n=f.querySelector('textarea').value.trim(); if(v&&window.lavish){window.lavish.queuePrompt('E3 P3 gate: '+v+(n?' — note: '+n:''),{tag:'choice',text:'E3: '+v,element:f,data:{question:'E3',answer:v,note:n}}); f.querySelector('.queued').textContent='queued';}">
+    <h3>E3 · The P3 gate (≥800 projected pairs) is missed</h3>
+    <fieldset>
+      <label><input type="radio" name="e3" value="run the pilot on what 4 tries give (at least 400 pairs), and judge the full run after the top-up"><span><b>Pilot on ≈ 430 pairs, judge the full run after the top-up</b> <span class="badge rec">recommended</span><span class="d">The pilot was always sized at about 400. The 800 gate then applies to 4 tries plus the top-up together.</span></span></label>
+      <label><input type="radio" name="e3" value="reopen D2: add the Flash rescue on always-wrong questions"><span><b>Reopen D2: add the Flash rescue</b><span class="d">There are ≈ 580 always-wrong questions in the pool, more than the plan's 340. Off-policy chosen, a few dollars of DeepSeek.</span></span></label>
+      <label><input type="radio" name="e3" value="also pair harness-retried tries (adds about 15 flips per 300)"><span><b>Also pair harness-retried tries</b><span class="d">About +17% pairs. The chosen would differ from what the model actually wrote.</span></span></label>
+    </fieldset>
+    <textarea placeholder="Optional note"></textarea>
+    <div class="row"><button type="submit" class="btn">Queue answer</button><span class="queued"></span></div>
+  </form>
+</section>
+
+<section id="next">
+  <span class="eyebrow">08</span>
+  <h2>Next, whichever way E1 goes</h2>
+  <ol class="steps">
+    <li><b>P2 rest.</b> Render the pairs through <code>sft/rows.py</code> (shared system prompt masked), run the mask check, add E2's tolerance, gzip the tries.</li>
+    <li><b>P5t.</b> The top-up path: more tries into stored groups, pairs rebuilt over the merged group.</li>
+    <li><b>P4.</b> The DPO trainer on Modal: sft2-e1 as the frozen reference with log-probs precomputed, the NLL term on the chosen, the RFT arm beside it, and a step-0 check that policy − reference = 0.</li>
+    <li><b>P5.</b> The pilot on ≈ 400 pairs, with checkpoints picked on val. Test 100 stays closed.</li>
+  </ol>
+</section>
+
+<footer class="sub" style="margin-top:var(--s6)">
+  <h3>Sources</h3>
+  <ul>
+    <li><b>Record.</b> <code>evaluation/dpo/v1/tries.jsonl</code> · <code>sample_runs.jsonl</code> · <code>stats.json</code> (from <code>convfinqa-dpo stats</code>) · <code>evaluation/splits/dpo_v1.json</code>.</li>
+    <li><b>Code.</b> <code>src/convfinqa/dpo/</code> (<code>manifest.py</code>, <code>sample.py</code>, <code>pairs.py</code>, <code>stats.py</code>, <code>cli.py</code>) · <code>tests/test_dpo_sample.py</code> (8 pass) · <code>sft/cloud/modal_app.py</code> (<code>Student</code>, scaledown 15 min).</li>
+    <li><b>Plan.</b> <code>.lavish/s33_dpo-plan.html</code> (estimates, gates, D1–D8). The hand checks in §04 (sign flips, the off-gold chosen) were run over the 86 pairs in <code>tries.jsonl</code>.</li>
+    <li><b>Design.</b> House UI (<code>house.css</code> + <code>project.css</code>), with the s33 layout classes.</li>
+  </ul>
+</footer>
+
+</main>
+</body>
+</html>

@@ -7,7 +7,7 @@ import { useLens } from '@/kit/url';
 import { AdminPage, ErrorNote, LoadingRows, Panel } from '../admin/ui';
 import { formatUsd } from '../landing/format';
 import { getFineTuning, getFineTuningCases } from './api';
-import type { FineTuningRecord, FtPass, FtRound, Paired, SplitName } from './api';
+import type { AgentPass, FineTuningRecord, FtPass, FtRound, Paired, PlannedRound, SplitName } from './api';
 import { CheckpointChart, LossChart, ProgressChart } from './charts';
 import {
   CASE_FILTERS,
@@ -23,6 +23,7 @@ import {
   headline,
   isCaseFilter,
   isTurnType,
+  latestVal,
   matches,
   overallCases,
   passIndex,
@@ -126,6 +127,23 @@ function lead(data: FineTuningRecord | undefined, h: Headline): ReactNode {
       conversations, never trained on) picks each round’s checkpoint; test 100 ({test.n_conversations} conversations) is
       the holdout, opened only for a picked checkpoint. The teacher scored {pct(h.teacher?.accuracy)} on the same test.
       Each step is paired with the one before it on the same questions.
+      <LatestVal data={data} h={h} />
+    </>
+  );
+}
+
+/** The newest round past the test number: what it scored on val, and against what. */
+function LatestVal({ data, h }: { data: FineTuningRecord; h: Headline }) {
+  const now = latestVal(data);
+  if (!now || now.stage.key === h.finalStage?.key || now.stage.kind !== 'round') return null;
+  const [name] = stageLines(now.stage, data);
+  const v = now.stage.vs_prev;
+  return (
+    <>
+      {' '}
+      Since then, <strong>{name}</strong> reached {pct(now.pass.accuracy)} on val (program turns{' '}
+      {pct(now.pass.program.accuracy)}){v ? `, ${stepPhrase(v)} over the stage before` : ''}; it has not been opened on
+      test.
     </>
   );
 }
@@ -175,13 +193,18 @@ function OverallView({ record }: { record: FineTuningRecord }) {
         <StageTable record={record} />
       </Panel>
 
-      <Panel testId="ft-rounds" title={`${record.rounds.length} training rounds, each picked on val`} endpoint="runs/sft/*/run.json">
+      <Panel testId="ft-rounds" title={roundsClaim(record)} endpoint="runs/sft/*/run.json">
         <div className="cards ft-rounds">
           {record.rounds.map((r) => (
             <RoundCard key={r.key} round={r} record={record} passes={passes} />
           ))}
+          {(record.planned ?? []).map((p) => (
+            <PlannedCard key={p.key} planned={p} />
+          ))}
         </div>
       </Panel>
+
+      <AgentsPanel record={record} />
 
       {set && (
         <CasesPanel
@@ -195,6 +218,15 @@ function OverallView({ record }: { record: FineTuningRecord }) {
       <LeftOut record={record} />
     </>
   );
+}
+
+function roundsClaim(record: FineTuningRecord): string {
+  const sft = record.rounds.filter((r) => r.method !== 'dpo').length;
+  const dpo = record.rounds.filter((r) => r.method === 'dpo').length;
+  const planned = (record.planned ?? []).length;
+  const parts = [`${sft} SFT round${sft === 1 ? '' : 's'}`];
+  if (dpo) parts.push(`${dpo} DPO round${dpo === 1 ? '' : 's'}`);
+  return `${parts.join(' and ')}, each picked on val${planned ? `; ${planned} more built, not trained` : ''}`;
 }
 
 function stepsClaim(record: FineTuningRecord): string {
@@ -274,11 +306,12 @@ function StageTable({ record }: { record: FineTuningRecord }) {
             <th className="num">number</th>
             <th>step from the stage before</th>
             <th>val</th>
+            <th>step on val</th>
             <th>MLflow</th>
           </tr>
         </thead>
         <tbody>
-          {record.progression.test.map((s) => {
+          {record.progression.test.map((s, i) => {
             const p = s.pass ? passes.get(s.pass) : undefined;
             const v = val.get(s.key)?.pass ? passes.get(val.get(s.key)!.pass!) : undefined;
             const [a, b] = stageLines(s, record);
@@ -298,11 +331,14 @@ function StageTable({ record }: { record: FineTuningRecord }) {
                 <td className="num">{pct(p?.program.accuracy)}</td>
                 <td className="num">{pct(p?.number.accuracy)}</td>
                 <td className="step">
-                  <Step v={s.vs_prev} />
+                  {!p && i > 0 ? <span className="muted">— not opened on test (the owner’s word opens it)</span> : <Step v={s.vs_prev} />}
                 </td>
                 <td>{v ? <Rate passed={v.correct} n={v.n} digits={1} /> : <span className="muted">— not scored on val</span>}</td>
+                <td className="step">
+                  {v ? <Step v={val.get(s.key)?.vs_prev ?? null} /> : <span className="muted">—</span>}
+                </td>
                 <td>
-                  <RunLink pass={p} />
+                  <RunLink pass={p ?? v} />
                 </td>
               </tr>
             );
@@ -344,9 +380,121 @@ function TeacherRow({ record }: { record: FineTuningRecord }) {
         <span className="muted">— not scored on val</span>
       </td>
       <td>
+        <span className="muted">—</span>
+      </td>
+      <td>
         <RunLink pass={p} />
       </td>
     </tr>
+  );
+}
+
+/** Every other agent set up on test 100, beside the student's best on test and its newest round on val. */
+function AgentsPanel({ record }: { record: FineTuningRecord }) {
+  const agents = record.agents ?? [];
+  if (!agents.length) return null;
+  const h = headline(record);
+  const now = latestVal(record);
+  const nowName = now ? stageLines(now.stage, record)[0] : null;
+  const rows: { key: string; name: ReactNode; sub: string; acc: number | null; note: ReactNode; cls?: string }[] = [
+    ...agents.map((a: AgentPass) => ({
+      key: `${a.runtime}-${a.version}-${a.model}-${a.effort}`,
+      name: (
+        <>
+          {a.name} {a.champion && <Status tone="acc">champion</Status>}
+          {a.name === record.teacher?.name && <Status tone="no">teacher</Status>}
+        </>
+      ),
+      sub: `${a.runtime} · ${a.model}${a.effort ? ` · ${a.effort}` : ''} · ${a.date}`,
+      acc: a.accuracy,
+      note: <span className="muted">{a.label ? `${a.label} · ` : ''}{a.outcome ?? ''}</span>,
+      cls: a.champion ? 'pro' : 'dim',
+    })),
+  ];
+  if (h.final && h.finalStage) {
+    rows.push({
+      key: 'student-test',
+      name: (
+        <>
+          Student · {stageLines(h.finalStage, record)[0]} <Status tone="ok">student</Status>
+        </>
+      ),
+      sub: `${h.final.model} · ${harnessLabel(record, h.final.harness)} harness`,
+      acc: h.final.accuracy,
+      note: <span className="muted">the student’s newest pick opened on test</span>,
+    });
+  }
+  rows.sort((a, b) => (b.acc ?? -1) - (a.acc ?? -1));
+  return (
+    <Panel
+      testId="ft-agents"
+      title={`The student against ${agents.length} other agent setups on test 100`}
+      endpoint="story.json · test_timeline"
+      note="Each setup’s newest complete pass on the same 349 test questions. Accuracy only: these are separate passes, not paired here; the Story pairs each against the champion of its day."
+    >
+      <div className="tw">
+        <table className="ft-table" data-testid="ft-agents-table">
+          <thead>
+            <tr>
+              <th>agent</th>
+              <th className="num">test 100</th>
+              <th>verdict when it ran</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className={r.cls}>
+                <td className="sub stagecell">
+                  {r.name}
+                  <span className="path">{r.sub}</span>
+                </td>
+                <td className="num">{pct(r.acc)}</td>
+                <td>{r.note}</td>
+              </tr>
+            ))}
+            {now && nowName && now.stage.key !== h.finalStage?.key && (
+              <tr data-stage="latest-val">
+                <td className="sub stagecell">
+                  Student · {nowName} <Status tone="warn">val only</Status>
+                  <span className="path">{now.pass.model} · not opened on test</span>
+                </td>
+                <td className="num">
+                  <span className="muted">— not opened</span>
+                </td>
+                <td>
+                  {pct(now.pass.accuracy)} on val (program {pct(now.pass.program.accuracy)})
+                  {now.stage.vs_prev ? `; ${stepPhrase(now.stage.vs_prev)} over the stage before` : ''}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+function PlannedCard({ planned }: { planned: PlannedRound }) {
+  return (
+    <article className="card" data-round={planned.key}>
+      <h3>
+        {planned.label} <span className="tag">{planned.key}</span> <Status tone="warn">{planned.status}</Status>
+      </h3>
+      <p className="claim">{planned.note}</p>
+      <dl className="kv">
+        <dt>data</dt>
+        <dd>
+          {planned.n_pairs.toLocaleString()} preference pairs · {planned.n_questions} questions · {planned.program_pairs.toLocaleString()} program /{' '}
+          {planned.number_pairs} number pairs
+        </dd>
+        <dt>held out</dt>
+        <dd>{planned.n_eval_pairs} pairs</dd>
+        <dt>card</dt>
+        <dd>
+          <code className="wrap-any">{planned.card}</code>
+        </dd>
+      </dl>
+    </article>
   );
 }
 
@@ -358,18 +506,34 @@ function RoundCard({ round, record, passes }: { round: FtRound; record: FineTuni
     <article className="card" data-round={round.key}>
       <h3>
         {round.label} <span className="tag">{round.key}</span>
+        {round.pilot && (
+          <>
+            {' '}
+            <Status tone="no">pilot</Status>
+          </>
+        )}
       </h3>
       <p className="claim">{roundClaim(round, passes)}.</p>
       <dl className="kv">
         <dt>data</dt>
         <dd>
-          {round.dataset.n_rows} rows · {round.dataset.n_turns.toLocaleString()} questions · dataset {round.dataset.version}
+          {round.method === 'dpo'
+            ? `${round.dataset.n_rows.toLocaleString()} preference pairs (${round.dataset.program_pairs?.toLocaleString() ?? '—'} program) · ${round.dataset.n_turns} questions`
+            : `${round.dataset.n_rows} rows · ${round.dataset.n_turns.toLocaleString()} questions`}{' '}
+          · dataset {round.dataset.version}
         </dd>
         <dt>training</dt>
         <dd>
-          {round.settings.epochs} epochs · lr {round.settings.learning_rate} {round.settings.schedule} · LoRA r
-          {round.settings.lora_r}
+          {round.method === 'dpo'
+            ? `DPO from ${round.start.label} · ${round.settings.epochs} epoch${round.settings.epochs === 1 ? '' : 's'} · β ${round.settings.beta} · NLL α ${round.settings.nll_alpha} · lr ${round.settings.learning_rate}`
+            : `${round.settings.epochs} epochs · lr ${round.settings.learning_rate} ${round.settings.schedule} · LoRA r${round.settings.lora_r}`}
         </dd>
+        {round.method === 'dpo' && (
+          <>
+            <dt>held-out pairs</dt>
+            <dd>{pairEvalPhrase(round)}</dd>
+          </>
+        )}
         <dt>pick on test</dt>
         <dd>{test ? <Rate passed={test.correct} n={test.n} digits={1} /> : '— not opened on test'}</dd>
         <dt>harness</dt>
@@ -386,6 +550,14 @@ function RoundCard({ round, record, passes }: { round: FtRound; record: FineTuni
       </p>
     </article>
   );
+}
+
+/** The held-out pairs at the pick: how often the policy prefers the chosen trace, and the margin. */
+function pairEvalPhrase(round: FtRound): string {
+  const best = round.checkpoints.find((c) => c.key === round.best);
+  const e = best?.pair_eval ?? round.pair_eval[round.pair_eval.length - 1];
+  if (!e) return '—';
+  return `${Math.round(e.reward_accuracy * 100)}% of ${e.n} prefer the chosen side at step ${e.step} · margin ${e.margin.toFixed(2)}`;
 }
 
 function hours(seconds: number): string {
@@ -469,8 +641,10 @@ function RoundView({ round, record }: { round: FtRound; record: FineTuningRecord
           title={`${round.label}: training loss at each of ${round.steps} steps, with the saved checkpoints`}
           caption={
             <>
-              Mean training loss {round.train_loss.toFixed(3)}, last step {round.final_loss.toFixed(3)}. Loss is on the
-              teacher’s tokens, so it says how closely the student copies them, not how often it is right; val decides.
+              Mean training loss {round.train_loss.toFixed(3)}, last step {round.final_loss.toFixed(3)}.{' '}
+              {round.method === 'dpo'
+                ? `The loss is DPO’s preference term (β ${round.settings.beta}) plus α ${round.settings.nll_alpha} × NLL on the chosen trace; it says how far the policy has moved toward the chosen side, not how often it is right; val decides. ${pairEvalPhrase(round)}.`
+                : 'Loss is on the teacher’s tokens, so it says how closely the student copies them, not how often it is right; val decides.'}
             </>
           }
           source={
@@ -523,13 +697,18 @@ function RoundView({ round, record }: { round: FtRound; record: FineTuningRecord
 }
 
 function setupClaim(round: FtRound): string {
-  return `${round.dataset.n_rows} rows, ${(round.dataset.tokens_trained / 1e6).toFixed(1)}M tokens trained, ${formatUsd(round.cost_usd)} on one GPU`;
+  if (round.method === 'dpo') {
+    return `${round.dataset.n_rows.toLocaleString()} preference pairs, ${round.steps} steps, ${formatUsd(round.cost_usd)} on one GPU`;
+  }
+  return `${round.dataset.n_rows} rows, ${((round.dataset.tokens_trained ?? 0) / 1e6).toFixed(1)}M tokens trained, ${formatUsd(round.cost_usd)} on one GPU`;
 }
 
 function CheckpointTable({ round, record }: { round: FtRound; record: FineTuningRecord }) {
   const passes = passIndex(record);
   const rows = checkpointRows(round, passes);
   const start = round.start.val_pass ? passes.get(round.start.val_pass) : undefined;
+  const dpo = round.method === 'dpo';
+  const pairs = new Map(round.checkpoints.map((c) => [c.key, c.pair_eval ?? null]));
   return (
     <div className="tw">
       <table className="ft-table" data-testid="ft-checkpoints-table">
@@ -540,6 +719,7 @@ function CheckpointTable({ round, record }: { round: FtRound; record: FineTuning
             <th className="num">program</th>
             <th className="num">number</th>
             <th>step from the start</th>
+            {dpo && <th>held-out pairs</th>}
             <th>test 100</th>
             <th>MLflow</th>
           </tr>
@@ -556,6 +736,11 @@ function CheckpointTable({ round, record }: { round: FtRound; record: FineTuning
             <td className="step">
               <span className="muted">— where the round began</span>
             </td>
+            {dpo && (
+              <td>
+                <span className="muted">— the reference</span>
+              </td>
+            )}
             <td>
               <span className="muted">—</span>
             </td>
@@ -575,8 +760,20 @@ function CheckpointTable({ round, record }: { round: FtRound; record: FineTuning
               <td className="num">{pct(r.val?.program.accuracy)}</td>
               <td className="num">{pct(r.val?.number.accuracy)}</td>
               <td className="step">
-                <Step v={r.vsStart} />
+                {r.val ? <Step v={r.vsStart} /> : <span className="muted">— not scored on val</span>}
               </td>
+              {dpo && (
+                <td>
+                  {pairs.get(r.key) ? (
+                    <>
+                      {Math.round(pairs.get(r.key)!.reward_accuracy * 100)}% prefer chosen
+                      <span className="ci">margin {pairs.get(r.key)!.margin.toFixed(2)}</span>
+                    </>
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+              )}
               <td>
                 {r.test ? (
                   <Rate passed={r.test.correct} n={r.test.n} digits={1} />
@@ -617,7 +814,62 @@ function Rescores({ round, record }: { round: FtRound; record: FineTuningRecord 
   );
 }
 
+function DpoSetup({ round }: { round: FtRound }) {
+  const s = round.settings;
+  const d = round.dataset;
+  return (
+    <div className="grid2">
+      <dl className="kv">
+        <dt>dataset</dt>
+        <dd>
+          {d.version} · <code className="wrap-any">{d.source ?? '—'}</code>
+        </dd>
+        <dt>pairs</dt>
+        <dd>
+          {d.n_rows.toLocaleString()} chosen/rejected pairs from {d.n_turns} questions · {d.program_pairs?.toLocaleString() ?? '—'} program,{' '}
+          {d.number_pairs?.toLocaleString() ?? '—'} number
+        </dd>
+        <dt>held out</dt>
+        <dd>{d.n_eval_pairs ?? '—'} pairs, scored at every save</dd>
+        <dt>started from</dt>
+        <dd>
+          {round.start.label} ({round.start.model}), which is also the frozen reference
+        </dd>
+      </dl>
+      <dl className="kv">
+        <dt>objective</dt>
+        <dd>
+          DPO β {s.beta} + α {s.nll_alpha} × NLL on the chosen side
+        </dd>
+        <dt>learning rate</dt>
+        <dd>
+          {s.learning_rate} · {s.schedule} · grad-norm clip {s.max_grad_norm}
+        </dd>
+        <dt>epochs</dt>
+        <dd>
+          {s.epochs} · {round.steps} steps · batch {s.effective_batch} pairs
+        </dd>
+        <dt>LoRA</dt>
+        <dd>
+          continues the start adapter: r {s.lora_r} · α {s.lora_alpha} · {s.target_modules}
+        </dd>
+        <dt>saved</dt>
+        <dd>{s.save}</dd>
+        <dt>run</dt>
+        <dd>
+          <code className="wrap-any">{round.run_id}</code> · code {round.code_sha} · {hours(round.duration_s)} on {round.instance}
+        </dd>
+        <dt>cost</dt>
+        <dd>
+          {formatUsd(round.cost_usd)} <span className="muted">({round.cost_basis})</span>
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
 function Setup({ round }: { round: FtRound }) {
+  if (round.method === 'dpo') return <DpoSetup round={round} />;
   const s = round.settings;
   const d = round.dataset;
   return (
@@ -633,12 +885,12 @@ function Setup({ round }: { round: FtRound }) {
         </dd>
         <dt>questions</dt>
         <dd>
-          {d.n_turns.toLocaleString()} · {d.n_type2} Type II conversations
+          {d.n_turns.toLocaleString()} · {d.n_type2 ?? 0} Type II conversations
         </dd>
         <dt>dropped</dt>
         <dd>{d.n_dropped} conversations the gates refused</dd>
         <dt>tokens</dt>
-        <dd>{d.tokens_trained.toLocaleString()} trained</dd>
+        <dd>{(d.tokens_trained ?? 0).toLocaleString()} trained</dd>
         <dt>started from</dt>
         <dd>{round.start.round ? `${round.start.label} (${round.start.model})` : 'the untrained base'}</dd>
       </dl>
@@ -656,7 +908,7 @@ function Setup({ round }: { round: FtRound }) {
           r {s.lora_r} · α {s.lora_alpha} · dropout {s.lora_dropout} · {s.target_modules}
         </dd>
         <dt>max length</dt>
-        <dd>{s.max_length.toLocaleString()} tokens</dd>
+        <dd>{(s.max_length ?? 0).toLocaleString()} tokens</dd>
         <dt>saved</dt>
         <dd>{s.save}</dd>
         <dt>run</dt>

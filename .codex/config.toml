@@ -1,7 +1,2 @@
-# Project-scoped Codex configuration.
-#
-# Codex reads AGENTS.md natively. Keep CLAUDE.md in the fallback list so older
-# repo guidance still works if AGENTS.md is removed or temporarily out of sync.
-
-project_doc_fallback_filenames = ["CLAUDE.md"]
-project_doc_max_bytes = 65536
+# Codex truncates AGENTS.md at 32 KiB by default; this one is longer.
+project_doc_max_bytes = 262144

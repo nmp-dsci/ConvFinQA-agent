@@ -1,6 +1,11 @@
+---
+name: generate-prp
+description: Generate a complete PRP (product requirements prompt) for a feature file, with thorough codebase and web research. Use when asked to create a PRP.
+---
+
 # Create PRP
 
-## Feature file: $ARGUMENTS
+## Feature file: the file path or feature the user names
 
 Generate a complete PRP for general feature implementation with thorough research. Ensure context is passed to the AI agent to enable self-validation and iterative refinement. Read the feature file first to understand what needs to be created, how the examples provided help, and any other considerations.
 
@@ -64,6 +69,6 @@ Save as: `PRPs/{feature-name}.md`
 - [ ] Clear implementation path
 - [ ] Error handling documented
 
-Score the PRP on a scale of 1-10 (confidence level to succeed in one-pass implementation using claude codes)
+Score the PRP on a scale of 1-10 (confidence level to succeed in one-pass implementation using a coding agent)
 
 Remember: The goal is one-pass implementation success through comprehensive context.
