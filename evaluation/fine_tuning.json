@@ -3466,6 +3466,36 @@
    }
   },
   {
+   "id": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-dpo1full-e1-none-20261117_151134",
+   "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-dpo1full-e1-none-20261117_151134.csv",
+   "run_id": "b4e7226854f240e4a2fe600fb2a02558",
+   "date": "2026-11-17",
+   "split": "test",
+   "role": "checkpoint",
+   "model": "student-qwen3-4b-dpo1full-e1",
+   "effort": "none",
+   "harness": "pydantic_ai_checked",
+   "temperature": 0.7,
+   "round": "dpo1full",
+   "epoch": 1.0,
+   "n_conversations": 100,
+   "n_unscored": 318,
+   "complete": false,
+   "n": 31,
+   "correct": 30,
+   "accuracy": 0.967742,
+   "program": {
+    "n": 19,
+    "correct": 18,
+    "accuracy": 0.947368
+   },
+   "number": {
+    "n": 12,
+    "correct": 12,
+    "accuracy": 1.0
+   }
+  },
+  {
    "id": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227",
    "csv": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227.csv",
    "run_id": "07eb3b8701214651bd815ec2e5209eaa",
@@ -4042,6 +4072,10 @@
    "reason": "349 of its turns were never scored: an incomplete pass"
   },
   {
+   "id": "open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-dpo1full-e1-none-20261117_151134",
+   "reason": "318 of its turns were never scored: an incomplete pass"
+  },
+  {
    "id": "open-evalloop-train100-sdk_v1·s1-pydchk-student-qwen3-4b-dpo1full-e1-none-20261113_214419",
    "reason": "6 of its turns were never scored: an incomplete pass"
   },
@@ -4152,6 +4186,10 @@
   {
    "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pyd-student-qwen3-4b-sft1-e2-none-20261025_194346.csv",
    "sha256": "56005cd2668ed686"
+  },
+  {
+   "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-dpo1full-e1-none-20261117_151134.csv",
+   "sha256": "504a88e8fd0dde59"
   },
   {
    "path": "evaluation/predictions/evalloop/open-evalloop-test100-sdk_v1·s1-pydchk-student-qwen3-4b-sft1-e2-none-20261025_234227.csv",
